@@ -17,22 +17,23 @@ func _() {
 	_ = x[IdentifierValueToken-6]
 	_ = x[CurlyBracketToken-7]
 	_ = x[AssignmentOperatorToken-8]
-	_ = x[MetadataKeywordToken-9]
-	_ = x[NameKeywordToken-10]
-	_ = x[VersionKeywordToken-11]
-	_ = x[StrictnessKeywordToken-12]
-	_ = x[AllKeywordToken-13]
-	_ = x[SoftKeywordToken-14]
-	_ = x[SemiStrictKeywordToken-15]
-	_ = x[StrictKeywordToken-16]
-	_ = x[SuperStrictKeywordToken-17]
-	_ = x[VariableKeywordToken-18]
-	_ = x[DotToken-19]
+	_ = x[ChainOperatorToken-9]
+	_ = x[MetadataKeywordToken-10]
+	_ = x[NameKeywordToken-11]
+	_ = x[VersionKeywordToken-12]
+	_ = x[StrictnessKeywordToken-13]
+	_ = x[AllKeywordToken-14]
+	_ = x[SoftKeywordToken-15]
+	_ = x[SemiStrictKeywordToken-16]
+	_ = x[StrictKeywordToken-17]
+	_ = x[SuperStrictKeywordToken-18]
+	_ = x[VariableKeywordToken-19]
+	_ = x[DotToken-20]
 }
 
-const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenDigitTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenCurlyBracketTokenAssignmentOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenDotToken"
+const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenDigitTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenCurlyBracketTokenAssignmentOperatorTokenChainOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenDotToken"
 
-var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 48, 59, 77, 97, 114, 137, 157, 173, 192, 214, 229, 245, 267, 285, 308, 328, 336}
+var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 48, 59, 77, 97, 114, 137, 155, 175, 191, 210, 232, 247, 263, 285, 303, 326, 346, 354}
 
 func (i LexingTokenType) String() string {
 	if i < 0 || i >= LexingTokenType(len(_LexingTokenType_index)-1) {

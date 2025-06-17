@@ -20,6 +20,7 @@ const (
 
 	// OPERATORS
 	AssignmentOperatorToken
+	ChainOperatorToken
 
 	// KEYWORDS
 	MetadataKeywordToken

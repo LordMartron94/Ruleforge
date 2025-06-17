@@ -54,6 +54,7 @@ func (d *DSLParsingRules) GetParsingRules() []rules.ParsingRuleInterface[definit
 	return []rules.ParsingRuleInterface[definitions.LexingTokenType]{
 		d.metadataSectionRule(),
 		d.generalVariableAssignmentRule(),
+		d.implicitVariableAssignmentRule(),
 		d.matchAnyFallbackRule(),
 	}
 }
@@ -117,6 +118,21 @@ func (d *DSLParsingRules) generalVariableAssignmentRule() rules.ParsingRuleInter
 		d.factory.NewSingle(definitions.ParseSymbolWhitespace, definitions.WhitespaceToken),
 		d.factory.NewSingle(definitions.ParseSymbolAssignmentOp, definitions.AssignmentOperatorToken),
 		d.factory.NewSingle(definitions.ParseSymbolWhitespace, definitions.WhitespaceToken),
+		d.factory.NewSingle(definitions.ParseSymbolValue, definitions.IdentifierValueToken),
+	})
+}
+
+func (d *DSLParsingRules) implicitVariableAssignmentRule() rules.ParsingRuleInterface[definitions.LexingTokenType] {
+	return d.factory.NewNested(definitions.ParseSymbolGeneralVariable, []rules.ParsingRuleInterface[definitions.LexingTokenType]{
+		// leading “→”
+		d.factory.NewSingle(definitions.ParseSymbolChainOperator, definitions.ChainOperatorToken),
+		d.whitespaceOptional(),
+
+		// exactly the same tail as a var‐decl:
+		d.factory.NewSingle(definitions.ParseSymbolIdentifier, definitions.IdentifierKeyToken),
+		d.whitespaceOptional(),
+		d.factory.NewSingle(definitions.ParseSymbolAssignmentOp, definitions.AssignmentOperatorToken),
+		d.whitespaceOptional(),
 		d.factory.NewSingle(definitions.ParseSymbolValue, definitions.IdentifierValueToken),
 	})
 }

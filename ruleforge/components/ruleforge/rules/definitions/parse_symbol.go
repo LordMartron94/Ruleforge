@@ -29,6 +29,7 @@ const (
 	ParseSymbolStrict               ParseSymbol = "STRICT"
 	ParseSymbolSuperStrict          ParseSymbol = "SUPER-STRICT"
 	ParseVariableAssignmentKey      ParseSymbol = "VariableAssignmentKey"
+	ParseSymbolChainOperator        ParseSymbol = "ChainOperator"
 )
 
 // String returns the literal string for the symbol.

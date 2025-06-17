@@ -85,6 +85,7 @@ func (f *RuleFactory) keywordBoundaryRule() rules.LexingRuleInterface[definition
 func (f *RuleFactory) operatorRules() []rules.LexingRuleInterface[definitions.LexingTokenType] {
 	return []rules.LexingRuleInterface[definitions.LexingTokenType]{
 		f.assignmentOperatorRule(),
+		f.chainOperatorRule(),
 	}
 }
 
@@ -93,6 +94,13 @@ func (f *RuleFactory) assignmentOperatorRule() rules.LexingRuleInterface[definit
 	return f.factory.NewKeywordLexingRule(
 		"=>", definitions.AssignmentOperatorToken, "AssignmentOperatorLexer",
 		f.factory.NewCharacterOptionLexingRule([]rune{'=', '>'}, definitions.AssignmentOperatorToken, "AssignmentOperatorLexer"),
+	)
+}
+
+func (f *RuleFactory) chainOperatorRule() rules.LexingRuleInterface[definitions.LexingTokenType] {
+	return f.factory.NewKeywordLexingRule(
+		"->", definitions.ChainOperatorToken, "ChainOperatorLexer",
+		f.factory.NewCharacterOptionLexingRule([]rune{'-', '>'}, definitions.ChainOperatorToken, "ChainOperatorLexer"),
 	)
 }
 

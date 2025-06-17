@@ -24,7 +24,7 @@ func NewParseTreeValidator(tree *shared.ParseTree[definitions.LexingTokenType]) 
 			FirstBlockValidator{node: md},
 			RequiredFieldsValidator{node: md},
 			StrictnessValidator{node: md},
-			CorrectSyntaxValidator{blocks: blocks, ignoreTokens: []definitions.LexingTokenType{definitions.NewLineToken}},
+			CorrectSyntaxValidator{blocks: blocks, ignoreTokens: []definitions.LexingTokenType{definitions.NewLineToken, definitions.WhitespaceToken}},
 		},
 	}
 }

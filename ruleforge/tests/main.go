@@ -44,7 +44,7 @@ func run() error {
 		return fmt.Errorf("parsing file: %w", err)
 	}
 	fmt.Println("----------------")
-	tree.Print(2, []definitions.LexingTokenType{definitions.NewLineToken})
+	tree.Print(2, []definitions.LexingTokenType{definitions.NewLineToken, definitions.WhitespaceToken})
 
 	// 5) Validation
 	if err := validation.NewParseTreeValidator(tree).Validate(); err != nil {
