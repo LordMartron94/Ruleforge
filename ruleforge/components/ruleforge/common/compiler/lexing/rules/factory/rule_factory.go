@@ -320,3 +320,17 @@ func (r *RuleFactory[T]) NewQuotedIdentifierLexingRule(
 		IsValidCharacterRule: isValidCharacterRule,
 	}
 }
+
+// NewUnquotedIdentifierLexingRule creates a lexing rule that
+// recognizes identifiers.
+func (r *RuleFactory[T]) NewUnquotedIdentifierLexingRule(
+	associatedToken T,
+	symbol string,
+	isValidCharacterRule rules.LexingRuleInterface[T],
+) rules.LexingRuleInterface[T] {
+	return &special.UnquotedValueRule[T]{
+		SymbolString:         symbol,
+		TokenType:            associatedToken,
+		IsValidCharacterRule: isValidCharacterRule,
+	}
+}

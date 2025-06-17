@@ -53,6 +53,7 @@ func NewDSLParsingRules() *DSLParsingRules {
 func (d *DSLParsingRules) GetParsingRules() []rules.ParsingRuleInterface[definitions.LexingTokenType] {
 	return []rules.ParsingRuleInterface[definitions.LexingTokenType]{
 		d.metadataSectionRule(),
+		d.generalVariableAssignmentRule(),
 		d.matchAnyFallbackRule(),
 	}
 }
@@ -87,7 +88,7 @@ func (d *DSLParsingRules) whitespaceOptional() rules.ParsingRuleInterface[defini
 func (d *DSLParsingRules) nameAssignmentRule() rules.ParsingRuleInterface[definitions.LexingTokenType] {
 	return d.makeAssignmentRule(
 		definitions.ParseSymbolNameAssignment, definitions.NameKeywordToken,
-		[]definitions.LexingTokenType{definitions.IdentifierToken},
+		[]definitions.LexingTokenType{definitions.IdentifierValueToken},
 		[]definitions.ParseSymbol{definitions.ParseSymbolIdentifier},
 	)
 }
@@ -95,7 +96,7 @@ func (d *DSLParsingRules) nameAssignmentRule() rules.ParsingRuleInterface[defini
 func (d *DSLParsingRules) versionAssignmentRule() rules.ParsingRuleInterface[definitions.LexingTokenType] {
 	return d.makeAssignmentRule(
 		definitions.ParseSymbolVersionAssignment, definitions.VersionKeywordToken,
-		[]definitions.LexingTokenType{definitions.IdentifierToken},
+		[]definitions.LexingTokenType{definitions.IdentifierValueToken},
 		[]definitions.ParseSymbol{definitions.ParseSymbolIdentifier},
 	)
 }
@@ -106,6 +107,18 @@ func (d *DSLParsingRules) strictnessAssignmentRule() rules.ParsingRuleInterface[
 		[]definitions.LexingTokenType{definitions.AllKeywordToken, definitions.SoftKeywordToken, definitions.SemiStrictKeywordToken, definitions.StrictKeywordToken, definitions.SuperStrictKeywordToken, definitions.LetterToken},
 		[]definitions.ParseSymbol{definitions.ParseSymbolAll, definitions.ParseSymbolSoft, definitions.ParseSymbolSemiStrict, definitions.ParseSymbolStrict, definitions.ParseSymbolSuperStrict, definitions.ParseSymbolAny},
 	)
+}
+
+func (d *DSLParsingRules) generalVariableAssignmentRule() rules.ParsingRuleInterface[definitions.LexingTokenType] {
+	return d.factory.NewNested(definitions.ParseSymbolGeneralVariable, []rules.ParsingRuleInterface[definitions.LexingTokenType]{
+		d.factory.NewSingle(definitions.ParseVariableAssignmentKey, definitions.VariableKeywordToken),
+		d.factory.NewSingle(definitions.ParseSymbolWhitespace, definitions.WhitespaceToken),
+		d.factory.NewSingle(definitions.ParseSymbolIdentifier, definitions.IdentifierKeyToken),
+		d.factory.NewSingle(definitions.ParseSymbolWhitespace, definitions.WhitespaceToken),
+		d.factory.NewSingle(definitions.ParseSymbolAssignmentOp, definitions.AssignmentOperatorToken),
+		d.factory.NewSingle(definitions.ParseSymbolWhitespace, definitions.WhitespaceToken),
+		d.factory.NewSingle(definitions.ParseSymbolValue, definitions.IdentifierValueToken),
+	})
 }
 
 // makeAssignmentRule builds a rule for 'Key Whitespace AssignmentOp Whitespace Value...'.

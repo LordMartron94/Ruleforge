@@ -16,6 +16,7 @@ const (
 	ParseSymbolNameAssignment       ParseSymbol = "NameAssignment"
 	ParseSymbolVersionAssignment    ParseSymbol = "VersionAssignment"
 	ParseSymbolStrictnessAssignment ParseSymbol = "StrictnessAssignment"
+	ParseSymbolGeneralVariable      ParseSymbol = "GeneralVariable"
 	ParseSymbolKey                  ParseSymbol = "Key"
 	ParseSymbolWhitespaceBeforeOp   ParseSymbol = "WhitespaceBeforeOp"
 	ParseSymbolAssignmentOp         ParseSymbol = "AssignmentOp"
@@ -27,6 +28,7 @@ const (
 	ParseSymbolSemiStrict           ParseSymbol = "SEMI-STRICT"
 	ParseSymbolStrict               ParseSymbol = "STRICT"
 	ParseSymbolSuperStrict          ParseSymbol = "SUPER-STRICT"
+	ParseVariableAssignmentKey      ParseSymbol = "VariableAssignmentKey"
 )
 
 // String returns the literal string for the symbol.

@@ -13,24 +13,26 @@ func _() {
 	_ = x[WhitespaceToken-2]
 	_ = x[DigitToken-3]
 	_ = x[LetterToken-4]
-	_ = x[IdentifierToken-5]
-	_ = x[CurlyBracketToken-6]
-	_ = x[AssignmentOperatorToken-7]
-	_ = x[MetadataKeywordToken-8]
-	_ = x[NameKeywordToken-9]
-	_ = x[VersionKeywordToken-10]
-	_ = x[StrictnessKeywordToken-11]
-	_ = x[AllKeywordToken-12]
-	_ = x[SoftKeywordToken-13]
-	_ = x[SemiStrictKeywordToken-14]
-	_ = x[StrictKeywordToken-15]
-	_ = x[SuperStrictKeywordToken-16]
-	_ = x[DotToken-17]
+	_ = x[IdentifierKeyToken-5]
+	_ = x[IdentifierValueToken-6]
+	_ = x[CurlyBracketToken-7]
+	_ = x[AssignmentOperatorToken-8]
+	_ = x[MetadataKeywordToken-9]
+	_ = x[NameKeywordToken-10]
+	_ = x[VersionKeywordToken-11]
+	_ = x[StrictnessKeywordToken-12]
+	_ = x[AllKeywordToken-13]
+	_ = x[SoftKeywordToken-14]
+	_ = x[SemiStrictKeywordToken-15]
+	_ = x[StrictKeywordToken-16]
+	_ = x[SuperStrictKeywordToken-17]
+	_ = x[VariableKeywordToken-18]
+	_ = x[DotToken-19]
 }
 
-const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenDigitTokenLetterTokenIdentifierTokenCurlyBracketTokenAssignmentOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenDotToken"
+const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenDigitTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenCurlyBracketTokenAssignmentOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenDotToken"
 
-var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 48, 59, 74, 91, 114, 134, 150, 169, 191, 206, 222, 244, 262, 285, 293}
+var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 48, 59, 77, 97, 114, 137, 157, 173, 192, 214, 229, 245, 267, 285, 308, 328, 336}
 
 func (i LexingTokenType) String() string {
 	if i < 0 || i >= LexingTokenType(len(_LexingTokenType_index)-1) {

@@ -11,7 +11,9 @@ const (
 	WhitespaceToken
 	DigitToken
 	LetterToken
-	IdentifierToken
+
+	IdentifierKeyToken
+	IdentifierValueToken
 
 	// BLOCKS
 	CurlyBracketToken
@@ -29,6 +31,7 @@ const (
 	SemiStrictKeywordToken
 	StrictKeywordToken
 	SuperStrictKeywordToken
+	VariableKeywordToken
 
 	// MISC
 	DotToken

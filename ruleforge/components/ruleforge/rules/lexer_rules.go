@@ -31,10 +31,11 @@ func (f *RuleFactory) GetLexingRules() []rules.LexingRuleInterface[definitions.L
 	// single-rule lexers
 	all = append(
 		all,
-		f.identifierRule(),
-		f.curlyBracketRule(),
 		f.newLineRule(),
 		f.whitespaceRule(),
+		f.identifierValueRule(),
+		f.identifierKeyRule(),
+		f.curlyBracketRule(),
 		f.digitRule(),
 		f.letterRule(),
 		f.invalidTokenRule(),
@@ -53,28 +54,30 @@ func (f *RuleFactory) keywordRules() []rules.LexingRuleInterface[definitions.Lex
 		f.keywordRule("VERSION", definitions.VersionKeywordToken, "VersionKeywordLexer"),
 		f.keywordRule("STRICTNESS", definitions.StrictnessKeywordToken, "StrictnessKeywordLexer"),
 		f.keywordRule("ALL", definitions.AllKeywordToken, "AllKeywordLexer"),
-		f.keywordRule("SOFT", definitions.SoftKeywordToken, "AllKeywordLexer"),
-		f.keywordRule("SEMI-STRICT", definitions.SemiStrictKeywordToken, "AllKeywordLexer"),
-		f.keywordRule("STRICT", definitions.StrictKeywordToken, "AllKeywordLexer"),
-		f.keywordRule("SUPER-STRICT", definitions.SuperStrictKeywordToken, "AllKeywordLexer"),
+		f.keywordRule("SOFT", definitions.SoftKeywordToken, "SoftKeywordLexer"),
+		f.keywordRule("SEMI-STRICT", definitions.SemiStrictKeywordToken, "SemiStrictKeywordLexer"),
+		f.keywordRule("STRICT", definitions.StrictKeywordToken, "StrictKeywordLexer"),
+		f.keywordRule("SUPER-STRICT", definitions.SuperStrictKeywordToken, "SuperStrictKeywordLexer"),
+		f.keywordRule("var", definitions.VariableKeywordToken, "VariableKeywordLexer"),
 	}
 }
 
 func (f *RuleFactory) identifierFilterCharactersRule() rules.LexingRuleInterface[definitions.LexingTokenType] {
-	return f.factory.NewOrLexingRule(definitions.IdentifierToken, "identifierFilterCharacters",
+	return f.factory.NewOrLexingRule(definitions.IdentifierValueToken, "identifierFilterCharacters",
 		f.digitRule(), f.letterRule(), f.whitespaceRule(), f.identifierAllowedSpecialChars())
 }
 
 func (f *RuleFactory) identifierAllowedSpecialChars() rules.LexingRuleInterface[definitions.LexingTokenType] {
-	return f.factory.NewCharacterOptionLexingRule([]rune{'.', '_', '-'}, definitions.IdentifierToken, "identifierAllowedSpecialChars")
+	return f.factory.NewCharacterOptionLexingRule([]rune{'.', '_', '-'}, definitions.IdentifierValueToken, "identifierAllowedSpecialChars")
 }
 
 func (f *RuleFactory) keywordBoundaryRule() rules.LexingRuleInterface[definitions.LexingTokenType] {
 	return f.factory.NewOrLexingRule(
-		definitions.IdentifierToken,
+		definitions.IdentifierValueToken,
 		"keywordBoundary",
 		f.letterRule(),
 		f.digitRule(),
+		f.identifierAllowedSpecialChars(),
 	)
 }
 
@@ -131,6 +134,10 @@ func (f *RuleFactory) letterRule() rules.LexingRuleInterface[definitions.LexingT
 	return f.factory.NewAlphaNumericRuleSingle(definitions.LetterToken, "LetterLexer", false)
 }
 
-func (f *RuleFactory) identifierRule() rules.LexingRuleInterface[definitions.LexingTokenType] {
-	return f.factory.NewQuotedIdentifierLexingRule(definitions.IdentifierToken, "IdentifierLexer", false, f.identifierFilterCharactersRule())
+func (f *RuleFactory) identifierValueRule() rules.LexingRuleInterface[definitions.LexingTokenType] {
+	return f.factory.NewQuotedIdentifierLexingRule(definitions.IdentifierValueToken, "IdentifierValueLexer", false, f.identifierFilterCharactersRule())
+}
+
+func (f *RuleFactory) identifierKeyRule() rules.LexingRuleInterface[definitions.LexingTokenType] {
+	return f.factory.NewUnquotedIdentifierLexingRule(definitions.IdentifierKeyToken, "IdentifierKeyLexer", f.keywordBoundaryRule())
 }

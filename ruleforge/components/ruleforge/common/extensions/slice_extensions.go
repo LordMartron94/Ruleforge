@@ -99,3 +99,12 @@ func GetFormattedStringSorted[T any](slice []T, sortComparison func(a, b T) bool
 
 	return formattedString
 }
+
+func Contains[T comparable](slice []T, toCompare T) bool {
+	for _, x := range slice {
+		if x == toCompare {
+			return true
+		}
+	}
+	return false
+}
