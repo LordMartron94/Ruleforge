@@ -19,8 +19,6 @@ func newRuleFactory(inner *rulefactory.ParsingRuleFactory[symbols.LexingTokenTyp
 	return &ruleFactory{inner: inner}
 }
 
-// --- ruleFactory Methods (Unchanged) ---
-
 func (r *ruleFactory) NewSingle(sym symbols.ParseSymbol, token symbols.LexingTokenType) parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
 	return r.inner.NewSingleTokenParsingRule(sym.String(), token)
 }
@@ -90,14 +88,27 @@ func (d *DSLParsingRules) GetParsingRules() []parsingrules.ParsingRuleInterface[
 	}
 }
 
-// metadataSectionRule parses: Metadata keyword, optional whitespace/newlines,
-// '{', zero or more assignments..., then '}'.
-func (d *DSLParsingRules) metadataSectionRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
-	// This structure is intentionally kept from the original to preserve the exact parse symbols.
-	return d.factory.NewNested(symbols.ParseSymbolMetadataSection, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
-		d.factory.NewSingle(symbols.ParseSymbolMetadataKeyword, symbols.MetadataKeywordToken),
+// --- High-Level Section Rules ---
+
+func (d *DSLParsingRules) sectionSectionRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
+	return d.factory.NewNested(symbols.ParseSymbolRuleSectionSection, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
+		d.token(symbols.ParseSymbolGenericKeyWord, symbols.SectionKeywordToken),
 		d.whitespaceOptional(),
-		d.factory.NewSingle(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
+		d.token(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
+		d.whitespaceOptional(),
+		d.metadataSectionRule(),
+		d.whitespaceOptional(),
+		d.sectionConditionsRule(),
+		d.whitespaceOptional(),
+		d.token(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
+	})
+}
+
+func (d *DSLParsingRules) metadataSectionRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
+	return d.factory.NewNested(symbols.ParseSymbolMetadataSection, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
+		d.token(symbols.ParseSymbolMetadataKeyword, symbols.MetadataKeywordToken),
+		d.whitespaceOptional(),
+		d.token(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
 		d.factory.NewOptional(symbols.ParseSymbolAssignments, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
 			d.nameAssignmentRule(),
 			d.whitespaceOptional(),
@@ -106,45 +117,30 @@ func (d *DSLParsingRules) metadataSectionRule() parsingrules.ParsingRuleInterfac
 			d.strictnessAssignmentRule(),
 			d.whitespaceOptional(),
 		}),
-		d.factory.NewSingle(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
-	})
-}
-
-func (d *DSLParsingRules) sectionSectionRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
-	return d.factory.NewNested(symbols.ParseSymbolRuleSectionSection, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
-		d.factory.NewSingle(symbols.ParseSymbolGenericKeyWord, symbols.SectionKeywordToken),
-		d.whitespaceOptional(),
-		d.factory.NewSingle(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
-		d.whitespaceOptional(), // allow whitespace/newlines before any inner sections
-		d.metadataSectionRule(),
-		d.whitespaceOptional(),
-		d.sectionConditionsRule(),
-		d.whitespaceOptional(), // allow trailing whitespace/newlines
-		d.factory.NewSingle(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
+		d.token(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
 	})
 }
 
 func (d *DSLParsingRules) sectionConditionsRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
 	return d.factory.NewNested(symbols.ParseSymbolSectionConditionsSection, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
-		d.factory.NewSingle(symbols.ParseSymbolSectionConditionsSection, symbols.SectionConditionsKeywordToken),
+		d.token(symbols.ParseSymbolSectionConditionsSection, symbols.SectionConditionsKeywordToken),
 		d.whitespaceOptional(),
-		d.factory.NewSingle(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
+		d.token(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
 		d.whitespaceOptional(),
 		d.conditionDeclarationRule(),
 		d.whitespaceOptional(),
-		d.factory.NewSingle(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
+		d.token(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
 	})
 }
 
+// --- Assignment and Declaration Rules ---
+
 func (d *DSLParsingRules) conditionDeclarationRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
 	return d.factory.NewNested(symbols.ParseSymbolCondition, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
-		// the 'WHERE' keyword
-		d.factory.NewSingle(symbols.ParseSymbolConditionAssignment, symbols.ConditionAssignmentKeywordToken),
+		d.token(symbols.ParseSymbolConditionAssignment, symbols.ConditionAssignmentKeywordToken),
 		d.whitespaceOptional(),
-		// e.g. @area_level
-		d.factory.NewSingle(symbols.ParseSymbolConditionKeywordToken, symbols.ConditionKeywordToken),
+		d.token(symbols.ParseSymbolConditionKeywordToken, symbols.ConditionKeywordToken),
 		d.whitespaceOptional(),
-		// one of <=, >=, <, > or ==
 		d.factory.NewEither(symbols.ParseSymbolComparisonOperator, []symbols.LexingTokenType{
 			symbols.GreaterThanOrEqualOperatorToken,
 			symbols.LessThanOrEqualOperatorToken,
@@ -153,16 +149,34 @@ func (d *DSLParsingRules) conditionDeclarationRule() parsingrules.ParsingRuleInt
 			symbols.ExactMatchOperatorToken,
 		}),
 		d.whitespaceOptional(),
-		// the variable reference, e.g. $campaign_end
-		d.factory.NewSingle(symbols.ParseSymbolVariableReference, symbols.VariableReferenceToken),
+		d.token(symbols.ParseSymbolVariableReference, symbols.VariableReferenceToken),
 	})
 }
 
-// whitespaceOptional matches zero or more Whitespace or NewLine tokens.
-func (d *DSLParsingRules) whitespaceOptional() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
-	return d.factory.NewOptional(symbols.ParseSymbolWhitespace, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
-		d.factory.NewSingle(symbols.ParseSymbolWhitespaceToken, symbols.WhitespaceToken),
-		d.factory.NewSingle(symbols.ParseSymbolNewLineToken, symbols.NewLineToken),
+func (d *DSLParsingRules) generalVariableAssignmentRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
+	return d.factory.NewNested(symbols.ParseSymbolGeneralVariable, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
+		d.token(symbols.ParseVariableAssignmentKey, symbols.VariableKeywordToken),
+		d.requiredWhitespace(),
+		d.token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
+		d.requiredWhitespace(),
+		d.token(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
+		d.requiredWhitespace(),
+		d.factory.NewEither(symbols.ParseSymbolValue, []symbols.LexingTokenType{
+			symbols.IdentifierValueToken,
+			symbols.DigitToken,
+		}),
+	})
+}
+
+func (d *DSLParsingRules) implicitVariableAssignmentRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
+	return d.factory.NewNested(symbols.ParseSymbolGeneralVariable, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
+		d.token(symbols.ParseSymbolChainOperator, symbols.ChainOperatorToken),
+		d.whitespaceOptional(),
+		d.token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
+		d.whitespaceOptional(),
+		d.token(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
+		d.whitespaceOptional(),
+		d.token(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
 	})
 }
 
@@ -190,35 +204,9 @@ func (d *DSLParsingRules) strictnessAssignmentRule() parsingrules.ParsingRuleInt
 	)
 }
 
-func (d *DSLParsingRules) generalVariableAssignmentRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
-	return d.factory.NewNested(symbols.ParseSymbolGeneralVariable, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
-		d.factory.NewSingle(symbols.ParseVariableAssignmentKey, symbols.VariableKeywordToken),
-		d.factory.NewSingle(symbols.ParseSymbolWhitespace, symbols.WhitespaceToken),
-		d.factory.NewSingle(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
-		d.factory.NewSingle(symbols.ParseSymbolWhitespace, symbols.WhitespaceToken),
-		d.factory.NewSingle(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
-		d.factory.NewSingle(symbols.ParseSymbolWhitespace, symbols.WhitespaceToken),
-		d.factory.NewEither(symbols.ParseSymbolValue, []symbols.LexingTokenType{
-			symbols.IdentifierValueToken,
-			symbols.DigitToken,
-		}),
-	})
-}
-
-func (d *DSLParsingRules) implicitVariableAssignmentRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
-	return d.factory.NewNested(symbols.ParseSymbolGeneralVariable, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
-		d.factory.NewSingle(symbols.ParseSymbolChainOperator, symbols.ChainOperatorToken),
-		d.whitespaceOptional(),
-		d.factory.NewSingle(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
-		d.whitespaceOptional(),
-		d.factory.NewSingle(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
-		d.whitespaceOptional(),
-		d.factory.NewSingle(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
-	})
-}
+// --- Rule Definition Helpers ---
 
 // makeAssignmentRule builds a rule for 'Key Whitespace AssignmentOp Whitespace Value...'.
-// Parameter names are improved for clarity, but logic is identical to original.
 func (d *DSLParsingRules) makeAssignmentRule(
 	assignmentSymbol symbols.ParseSymbol,
 	keywordToken symbols.LexingTokenType,
@@ -231,24 +219,41 @@ func (d *DSLParsingRules) makeAssignmentRule(
 		symbolStrings[i] = cs.String()
 	}
 
-	// This structure preserves the original, specific parse symbols for whitespace.
 	return d.factory.NewNested(assignmentSymbol, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
-		d.factory.NewSingle(symbols.ParseSymbolKey, keywordToken),
-		d.factory.NewSingle(symbols.ParseSymbolWhitespaceBeforeOp, symbols.WhitespaceToken),
-		d.factory.NewSingle(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
-		d.factory.NewSingle(symbols.ParseSymbolWhitespaceAfterOp, symbols.WhitespaceToken),
+		d.token(symbols.ParseSymbolKey, keywordToken),
+		d.token(symbols.ParseSymbolWhitespaceBeforeOp, symbols.WhitespaceToken),
+		d.token(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
+		d.token(symbols.ParseSymbolWhitespaceAfterOp, symbols.WhitespaceToken),
 		d.factory.NewMatchUntil(symbols.ParseSymbolValue, valueTokenTypes, symbolStrings),
 	})
+}
+
+// token is a shorthand for creating a simple, single-token parsing rule.
+func (d *DSLParsingRules) token(sym symbols.ParseSymbol, tokenType symbols.LexingTokenType) parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
+	return d.factory.NewSingle(sym, tokenType)
+}
+
+// whitespaceOptional matches zero or more Whitespace or NewLine tokens.
+func (d *DSLParsingRules) whitespaceOptional() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
+	return d.factory.NewOptional(symbols.ParseSymbolWhitespace, []parsingrules.ParsingRuleInterface[symbols.LexingTokenType]{
+		d.token(symbols.ParseSymbolWhitespaceToken, symbols.WhitespaceToken),
+		d.token(symbols.ParseSymbolNewLineToken, symbols.NewLineToken),
+	})
+}
+
+// requiredWhitespace matches exactly one mandatory Whitespace token.
+func (d *DSLParsingRules) requiredWhitespace() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
+	return d.token(symbols.ParseSymbolWhitespace, symbols.WhitespaceToken)
 }
 
 // --- Standalone Fallback Matchers ---
 
 func (d *DSLParsingRules) matchNewLine() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
-	return d.factory.NewSingle(symbols.ParseSymbolNewLineToken, symbols.NewLineToken)
+	return d.token(symbols.ParseSymbolNewLineToken, symbols.NewLineToken)
 }
 
 func (d *DSLParsingRules) matchWhiteSpace() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
-	return d.factory.NewSingle(symbols.ParseSymbolWhitespace, symbols.WhitespaceToken)
+	return d.token(symbols.ParseSymbolWhitespace, symbols.WhitespaceToken)
 }
 
 func (d *DSLParsingRules) matchAnyFallbackRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
