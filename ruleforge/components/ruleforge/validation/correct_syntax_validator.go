@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/definitions"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 )
 
 type CorrectSyntaxValidator struct {
-	blocks       []*shared.ParseTree[definitions.LexingTokenType]
-	ignoreTokens []definitions.LexingTokenType
+	blocks       []*shared.ParseTree[symbols.LexingTokenType]
+	ignoreTokens []symbols.LexingTokenType
 }
 
 func (v CorrectSyntaxValidator) Validate() error {
@@ -18,7 +18,7 @@ func (v CorrectSyntaxValidator) Validate() error {
 			continue
 		}
 
-		if block.Symbol == definitions.ParseSymbolAny.String() {
+		if block.Symbol == symbols.ParseSymbolAny.String() {
 			return fmt.Errorf("block (%d) has incorrect syntax (search on the value and find out why!): %q", i, block.Token.String())
 		}
 	}

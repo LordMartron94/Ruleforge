@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/definitions"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 )
 
 type FirstBlockValidator struct {
-	node *shared.ParseTree[definitions.LexingTokenType]
+	node *shared.ParseTree[symbols.LexingTokenType]
 }
 
 func (v FirstBlockValidator) Validate() error {
 	if v.node == nil {
 		return fmt.Errorf("empty file: no metadata blocks")
 	}
-	if v.node.Symbol != definitions.ParseSymbolMetadataSection.String() {
+	if v.node.Symbol != symbols.ParseSymbolMetadataSection.String() {
 		return fmt.Errorf("file must start with metadata block")
 	}
 	return nil
@@ -23,14 +23,14 @@ func (v FirstBlockValidator) Validate() error {
 
 // ---- Required Fields ----
 
-var required = []definitions.ParseSymbol{
-	definitions.ParseSymbolNameAssignment,
-	definitions.ParseSymbolVersionAssignment,
-	definitions.ParseSymbolStrictnessAssignment,
+var required = []symbols.ParseSymbol{
+	symbols.ParseSymbolNameAssignment,
+	symbols.ParseSymbolVersionAssignment,
+	symbols.ParseSymbolStrictnessAssignment,
 }
 
 type RequiredFieldsValidator struct {
-	node *shared.ParseTree[definitions.LexingTokenType]
+	node *shared.ParseTree[symbols.LexingTokenType]
 }
 
 func (v RequiredFieldsValidator) Validate() error {
@@ -46,15 +46,15 @@ func (v RequiredFieldsValidator) Validate() error {
 // ---- Strictness ----
 
 var allowed = map[string]bool{
-	definitions.ParseSymbolAll.String():         true,
-	definitions.ParseSymbolSoft.String():        true,
-	definitions.ParseSymbolSemiStrict.String():  true,
-	definitions.ParseSymbolStrict.String():      true,
-	definitions.ParseSymbolSuperStrict.String(): true,
+	symbols.ParseSymbolAll.String():         true,
+	symbols.ParseSymbolSoft.String():        true,
+	symbols.ParseSymbolSemiStrict.String():  true,
+	symbols.ParseSymbolStrict.String():      true,
+	symbols.ParseSymbolSuperStrict.String(): true,
 }
 
 type StrictnessValidator struct {
-	node *shared.ParseTree[definitions.LexingTokenType]
+	node *shared.ParseTree[symbols.LexingTokenType]
 }
 
 func (v StrictnessValidator) Validate() error {
@@ -65,7 +65,7 @@ func (v StrictnessValidator) Validate() error {
 	return nil
 }
 
-func StrictnessValue(node *shared.ParseTree[definitions.LexingTokenType]) string {
-	assign := node.FindSymbolNode(definitions.ParseSymbolStrictnessAssignment.String())
+func StrictnessValue(node *shared.ParseTree[symbols.LexingTokenType]) string {
+	assign := node.FindSymbolNode(symbols.ParseSymbolStrictnessAssignment.String())
 	return assign.Children[4].Children[0].Token.ValueToString()
 }

@@ -327,10 +327,12 @@ func (r *RuleFactory[T]) NewUnquotedIdentifierLexingRule(
 	associatedToken T,
 	symbol string,
 	isValidCharacterRule rules.LexingRuleInterface[T],
+	mustStartWith *rune,
 ) rules.LexingRuleInterface[T] {
 	return &special.UnquotedValueRule[T]{
 		SymbolString:         symbol,
 		TokenType:            associatedToken,
 		IsValidCharacterRule: isValidCharacterRule,
+		MustStartWith:        mustStartWith,
 	}
 }

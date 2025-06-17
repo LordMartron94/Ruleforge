@@ -13,6 +13,7 @@ type UnquotedValueRule[T shared.TokenTypeConstraint] struct {
 	SymbolString         string
 	TokenType            T
 	IsValidCharacterRule rules.LexingRuleInterface[T]
+	MustStartWith        *rune
 }
 
 func (u *UnquotedValueRule[T]) Symbol() string {
@@ -20,8 +21,16 @@ func (u *UnquotedValueRule[T]) Symbol() string {
 }
 
 func (u *UnquotedValueRule[T]) IsMatch(scanner scanning.PeekInterface) bool {
-	// First character must satisfy the validity rule
-	stub := &singleRuneScanner{r: scanner.Current()}
+	current := scanner.Current()
+
+	if u.MustStartWith != nil && current == *u.MustStartWith {
+		return true
+	} else if u.MustStartWith != nil && current != *u.MustStartWith {
+		return false
+	}
+
+	stub := &singleRuneScanner{r: current}
+
 	return u.IsValidCharacterRule.IsMatch(stub)
 }
 
@@ -35,6 +44,7 @@ func (u *UnquotedValueRule[T]) ExtractToken(
 
 	// Consume runes while they satisfy the validity rule
 	all := []rune{scanner.Current()}
+
 	peek := 1
 	for {
 		runes, err := scanner.Peek(peek)

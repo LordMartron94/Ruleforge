@@ -2,7 +2,7 @@ package validation
 
 import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/definitions"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 )
 
 // Validator runs a check on the metadata blocks.
@@ -14,7 +14,7 @@ type ParseTreeValidator struct {
 	validators []Validator
 }
 
-func NewParseTreeValidator(tree *shared.ParseTree[definitions.LexingTokenType]) *ParseTreeValidator {
+func NewParseTreeValidator(tree *shared.ParseTree[symbols.LexingTokenType]) *ParseTreeValidator {
 	// The metadata blocks
 	md := tree.Children[0]
 	blocks := tree.Children[1 : len(tree.Children)-1]
@@ -24,7 +24,7 @@ func NewParseTreeValidator(tree *shared.ParseTree[definitions.LexingTokenType]) 
 			FirstBlockValidator{node: md},
 			RequiredFieldsValidator{node: md},
 			StrictnessValidator{node: md},
-			CorrectSyntaxValidator{blocks: blocks, ignoreTokens: []definitions.LexingTokenType{definitions.NewLineToken, definitions.WhitespaceToken}},
+			CorrectSyntaxValidator{blocks: blocks, ignoreTokens: []symbols.LexingTokenType{symbols.NewLineToken, symbols.WhitespaceToken}},
 		},
 	}
 }

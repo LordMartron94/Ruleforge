@@ -272,13 +272,29 @@ func (p *ParsingRuleFactory[T]) NewNestedParsingRule(
 func (p *ParsingRuleFactory[T]) NewOptionalNestedParsingRule(symbol string, childRules []rules.ParsingRuleInterface[T]) rules.ParsingRuleInterface[T] {
 	matchRuleFunc := func(tokens []*shared.Token[T], index int) (bool, string) {
 		currentIndex := index
-		for _, rule := range childRules {
-			_, err, consumed := rule.Match(tokens, currentIndex)
-			if err == nil {
-				return true, ""
+		matchedAtLeastOne := false
+
+		for {
+			matchedThisIteration := false
+			for _, rule := range childRules {
+				tree, err, consumed := rule.Match(tokens, currentIndex)
+				if err == nil && tree != nil {
+					currentIndex += consumed
+					matchedThisIteration = true
+					matchedAtLeastOne = true
+					break
+				}
 			}
-			currentIndex += consumed
+
+			if !matchedThisIteration {
+				break
+			}
 		}
+
+		if matchedAtLeastOne {
+			return true, ""
+		}
+
 		return false, "No matching child rule found for " + symbol
 	}
 

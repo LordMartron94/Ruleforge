@@ -1,4 +1,4 @@
-package definitions
+package symbols
 
 //go:generate go run golang.org/x/tools/cmd/stringer@latest -type=LexingTokenType
 type LexingTokenType int
@@ -15,12 +15,20 @@ const (
 	IdentifierKeyToken
 	IdentifierValueToken
 
+	VariableReferenceToken
+
 	// BLOCKS
-	CurlyBracketToken
+	OpenCurlyBracketToken
+	CloseCurlyBracketToken
 
 	// OPERATORS
 	AssignmentOperatorToken
 	ChainOperatorToken
+	GreaterThanOrEqualOperatorToken
+	LessThanOrEqualOperatorToken
+	GreaterThanOperatorToken
+	LessThanOperatorToken
+	ExactMatchOperatorToken
 
 	// KEYWORDS
 	MetadataKeywordToken
@@ -33,6 +41,10 @@ const (
 	StrictKeywordToken
 	SuperStrictKeywordToken
 	VariableKeywordToken
+	SectionConditionsKeywordToken
+	ConditionAssignmentKeywordToken
+	ConditionKeywordToken
+	SectionKeywordToken
 
 	// MISC
 	DotToken

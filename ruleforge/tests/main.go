@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/definitions"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
 	"os"
 
@@ -44,7 +44,7 @@ func run() error {
 		return fmt.Errorf("parsing file: %w", err)
 	}
 	fmt.Println("----------------")
-	tree.Print(2, []definitions.LexingTokenType{definitions.NewLineToken, definitions.WhitespaceToken})
+	tree.Print(2, []symbols.LexingTokenType{symbols.NewLineToken})
 
 	// 5) Validation
 	if err := validation.NewParseTreeValidator(tree).Validate(); err != nil {
@@ -68,13 +68,13 @@ func closeFile(f *os.File) {
 	}
 }
 
-func newFileHandler(f *os.File) compiler.FileHandler[definitions.LexingTokenType] {
+func newFileHandler(f *os.File) compiler.FileHandler[symbols.LexingTokenType] {
 	lexingRules := rules.NewRuleFactory().GetLexingRules()
 	parsingRules := rules.NewDSLParsingRules().GetParsingRules()
-	return *compiler.NewFileHandler(f, lexingRules, parsingRules, definitions.IgnoreToken)
+	return *compiler.NewFileHandler(f, lexingRules, parsingRules, symbols.IgnoreToken)
 }
 
-func printLexemes(lexemes []*shared.Token[definitions.LexingTokenType]) {
+func printLexemes(lexemes []*shared.Token[symbols.LexingTokenType]) {
 	for i, lex := range lexemes {
 		fmt.Printf("Lexeme (%d): %q\n", i, lex.String())
 	}
