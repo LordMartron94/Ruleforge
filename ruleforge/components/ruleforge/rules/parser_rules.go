@@ -1,6 +1,7 @@
 package rules
 
 import (
+	// Use aliased imports for brevity and clarity.
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/rules/atomic"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/rules/composite"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/rules/conditional"
@@ -37,30 +38,27 @@ func GetParsingRules() []shared.ParsingRuleInterface[symbols.LexingTokenType] {
 
 // --- High-Level Section Rules ---
 
+// REFACTORED: Now uses the `seq` helper for consistency and readability.
 func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	// Since RepetitionRule now requires forward progress (consumed > 0), this is safe.
 	assignments := composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolAssignments.String(),
 		nameAssignment(),
 		versionAssignment(),
 		strictnessAssignment(),
 		descriptionAssignment(),
-		whitespaceOptional, // This allows whitespace/newlines between assignments.
+		whitespaceOptional, // Allows whitespace/newlines between assignments.
 	)
 
-	// We define the sequence manually here because `seq` is too simple for this case.
-	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolMetadata.String(),
+	return seq(symbols.ParseSymbolMetadata,
 		token(symbols.ParseSymbolKeyword, symbols.MetadataKeywordToken),
-		whitespaceOptional,
 		token(symbols.ParseSymbolBlockOperator, symbols.OpenCurlyBracketToken),
-		whitespaceOptional,
 		assignments,
 		token(symbols.ParseSymbolBlockOperator, symbols.CloseCurlyBracketToken),
 	)
 }
 
+// REFACTORED: Now uses the `seq` helper for consistency and readability.
 func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	// A section can contain other sections. We explicitly handle the whitespace.
 	sectionContent := composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolSectionContent.String(),
 		metadataRule(),
@@ -68,11 +66,10 @@ func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		ruleSectionRule(),
 		whitespaceOptional, // Allow whitespace between inner sections
 	)
-	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolSection.String(),
+
+	return seq(symbols.ParseSymbolSection,
 		token(symbols.ParseSymbolKeyword, symbols.SectionKeywordToken),
-		whitespaceOptional,
 		token(symbols.ParseSymbolBlockOperator, symbols.OpenCurlyBracketToken),
-		whitespaceOptional,
 		sectionContent,
 		token(symbols.ParseSymbolBlockOperator, symbols.CloseCurlyBracketToken),
 	)
@@ -121,6 +118,7 @@ func ruleExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 
 // --- Assignment and Declaration Rules ---
 
+// REFACTORED: Drastically simplified by using the new `makeChainedRule` helper.
 func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	comparisonOps := conditional.NewChoiceTokenRule(symbols.ParseSymbolOperator.String(),
 		[]symbols.LexingTokenType{
@@ -135,31 +133,29 @@ func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		},
 	)
 
-	initialAssignment := composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolConditionExpression.String(),
-		token(symbols.ParseSymbolKeyword, symbols.ConditionAssignmentKeywordToken),
-		whitespaceOptional,
+	// Defines the `condition <op> <value>` part of the expression.
+	conditionExpression := seqWithSeparator(whitespaceOptional, symbols.ParseSymbolConditionExpression,
 		token(symbols.ParseSymbolIdentifier, symbols.ConditionKeywordToken),
-		whitespaceOptional,
 		comparisonOps,
-		whitespaceOptional,
 		valueOpts,
 	)
 
-	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolChainedConditions.String(),
-		composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolConditionExpression.String(),
-			whitespaceOptional,
-			token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
-			whitespaceOptional,
-			token(symbols.ParseSymbolIdentifier, symbols.ConditionKeywordToken),
-			whitespaceOptional,
-			comparisonOps,
-			whitespaceOptional,
-			valueOpts,
-		),
+	// Defines the `let <expression>` part.
+	initialPart := seqWithSeparator(whitespaceOptional, symbols.ParseSymbolConditionExpression,
+		token(symbols.ParseSymbolKeyword, symbols.ConditionAssignmentKeywordToken),
+		conditionExpression,
 	)
 
-	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolCondition.String(),
-		initialAssignment,
+	// Defines the `&& <expression>` part.
+	chainedPart := seqWithSeparator(whitespaceOptional, symbols.ParseSymbolConditionExpression,
+		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
+		conditionExpression,
+	)
+
+	return makeChainedRule(
+		symbols.ParseSymbolCondition,
+		symbols.ParseSymbolChainedConditions,
+		initialPart,
 		chainedPart,
 	)
 }
@@ -171,31 +167,26 @@ func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		},
 	)
 
-	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolChainedAssignments.String(),
-		composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolAssignment.String(),
-			whitespaceOptional,
-			token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
-			requiredWhitespace,
-			token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
-			requiredWhitespace,
-			token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
-			requiredWhitespace,
-			valueOpts,
-		),
-	)
-
-	initialAssignment := composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolAssignment.String(),
+	// Defines the `var identifier => <value>` part with a flat structure.
+	initialPart := seqWithSeparator(requiredWhitespace, symbols.ParseSymbolAssignment,
 		token(symbols.ParseSymbolKeyword, symbols.VariableKeywordToken),
-		requiredWhitespace,
 		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
-		requiredWhitespace,
 		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
-		requiredWhitespace,
 		valueOpts,
 	)
 
-	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolVariable.String(),
-		initialAssignment,
+	// Defines the `-> identifier => <value>` part with a flat structure.
+	chainedPart := seqWithSeparator(requiredWhitespace, symbols.ParseSymbolAssignment,
+		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
+		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		valueOpts,
+	)
+
+	return makeChainedRule(
+		symbols.ParseSymbolVariable,
+		symbols.ParseSymbolChainedAssignments,
+		initialPart,
 		chainedPart,
 	)
 }
@@ -228,6 +219,31 @@ func descriptionAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType
 
 // --- Rule Definition Helpers ---
 
+func makeChainedRule(
+	rootSymbol symbols.ParseSymbol,
+	chainSymbol symbols.ParseSymbol,
+	initialRule shared.ParsingRuleInterface[symbols.LexingTokenType],
+	chainedRule shared.ParsingRuleInterface[symbols.LexingTokenType],
+) shared.ParsingRuleInterface[symbols.LexingTokenType] {
+
+	// The chained part is a repetition of the chainedRule logic.
+	// FIX: The repetition must also consume the optional whitespace that
+	// separates the chained expressions.
+	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType](
+		chainSymbol.String(),
+		whitespaceOptional, // <-- THIS IS THE FIX
+		chainedRule,
+	)
+
+	// The final rule is the initial part followed by the optional chained parts.
+	return composite.NewNestedRule[symbols.LexingTokenType](
+		rootSymbol.String(),
+		initialRule,
+		chainedPart,
+	)
+}
+
+// (The rest of your helper functions remain the same)
 func makeAssignmentRule(sym symbols.ParseSymbol, keyToken symbols.LexingTokenType, valueRule shared.ParsingRuleInterface[symbols.LexingTokenType]) shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	return seq(sym,
 		token(symbols.ParseSymbolKey, keyToken),
@@ -240,13 +256,20 @@ func token(sym symbols.ParseSymbol, tokenType symbols.LexingTokenType) shared.Pa
 	return atomic.NewSingleTokenRule(sym.String(), tokenType)
 }
 
-func seq(sym symbols.ParseSymbol, children ...shared.ParsingRuleInterface[symbols.LexingTokenType]) shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	rulesWithWhitespace := make([]shared.ParsingRuleInterface[symbols.LexingTokenType], 0, len(children)*2-1)
+func seqWithSeparator(separator shared.ParsingRuleInterface[symbols.LexingTokenType], sym symbols.ParseSymbol, children ...shared.ParsingRuleInterface[symbols.LexingTokenType]) shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	if len(children) <= 1 {
+		return composite.NewNestedRule[symbols.LexingTokenType](sym.String(), children...)
+	}
+	rulesWithSeparators := make([]shared.ParsingRuleInterface[symbols.LexingTokenType], 0, len(children)*2-1)
 	for i, child := range children {
-		rulesWithWhitespace = append(rulesWithWhitespace, child)
+		rulesWithSeparators = append(rulesWithSeparators, child)
 		if i < len(children)-1 {
-			rulesWithWhitespace = append(rulesWithWhitespace, whitespaceOptional)
+			rulesWithSeparators = append(rulesWithSeparators, separator)
 		}
 	}
-	return composite.NewNestedRule[symbols.LexingTokenType](sym.String(), rulesWithWhitespace...)
+	return composite.NewNestedRule[symbols.LexingTokenType](sym.String(), rulesWithSeparators...)
+}
+
+func seq(sym symbols.ParseSymbol, children ...shared.ParsingRuleInterface[symbols.LexingTokenType]) shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	return seqWithSeparator(whitespaceOptional, sym, children...)
 }
