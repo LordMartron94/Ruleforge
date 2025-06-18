@@ -10,8 +10,8 @@ type FilterMetadataValidator struct {
 	metadataBlock *shared.ParseTree[symbols.LexingTokenType]
 }
 
-func NewMetadataDiscoveryValidator(tree *shared.ParseTree[symbols.LexingTokenType]) *FilterMetadataValidator {
-	return &FilterMetadataValidator{metadataBlock: tree}
+func NewMetadataDiscoveryValidator(metadataBlock *shared.ParseTree[symbols.LexingTokenType]) *FilterMetadataValidator {
+	return &FilterMetadataValidator{metadataBlock: metadataBlock}
 }
 
 func (m *FilterMetadataValidator) Validate() error {

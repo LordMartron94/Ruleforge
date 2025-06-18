@@ -2,6 +2,7 @@ package shared
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
@@ -113,4 +114,49 @@ func (pt *ParseTree[T]) findSymbolNode(searchSymbol string) *ParseTree[T] {
 		}
 	}
 	return nil
+}
+
+// FindAllSymbolNodes searches the parse tree for all nodes whose Symbol equals searchSymbol.
+// It returns a slice of pointers to each matching node (which will be empty if there are none).
+func (pt *ParseTree[T]) FindAllSymbolNodes(searchSymbol string) []*ParseTree[T] {
+	var matches []*ParseTree[T]
+	pt.collectSymbolNodes(searchSymbol, &matches)
+	return matches
+}
+
+// collectSymbolNodes is a helper that appends matching nodes to the provided slice.
+func (pt *ParseTree[T]) collectSymbolNodes(searchSymbol string, matches *[]*ParseTree[T]) {
+	if pt.Symbol == searchSymbol {
+		*matches = append(*matches, pt)
+	}
+	for _, child := range pt.Children {
+		child.collectSymbolNodes(searchSymbol, matches)
+	}
+}
+
+// FindAllSymbolAndTokenTypes searches the parse tree for all nodes
+// whose Symbol equals searchSymbol and whose TokenType is in tokenTypes.
+// It returns a slice of matching nodes (empty if none).
+func (pt *ParseTree[T]) FindAllSymbolAndTokenTypes(
+	searchSymbol string,
+	tokenTypes []T,
+) []*ParseTree[T] {
+	var matches []*ParseTree[T]
+	pt.collectSymbolAndTokenTypes(searchSymbol, tokenTypes, &matches)
+	return matches
+}
+
+// collectSymbolAndTokenTypes is a helper that does the DFS and appends
+// to matches whenever both symbol and token-type criteria are met.
+func (pt *ParseTree[T]) collectSymbolAndTokenTypes(
+	searchSymbol string,
+	tokenTypes []T,
+	matches *[]*ParseTree[T],
+) {
+	if pt.Symbol == searchSymbol && slices.Contains(tokenTypes, pt.Token.Type) {
+		*matches = append(*matches, pt)
+	}
+	for _, child := range pt.Children {
+		child.collectSymbolAndTokenTypes(searchSymbol, tokenTypes, matches)
+	}
 }
