@@ -2,55 +2,61 @@ package rules
 
 import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/rules"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/rules/factory"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/rules/special"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 )
 
-// RuleFactory creates and configures lexing rules.
-type RuleFactory struct {
-	factory *factory.RuleFactory[symbols.LexingTokenType]
-}
+// --- Re-usable Rule Components (defined once for efficiency) ---
 
-// NewRuleFactory returns a new, configured RuleFactory.
-func NewRuleFactory() *RuleFactory {
-	return &RuleFactory{factory: &factory.RuleFactory[symbols.LexingTokenType]{}}
-}
+var (
+	// Basic building blocks for other rules.
+	letterRule                    = rules.NewAlphaNumericRuleSingle(symbols.LetterToken, "LetterLexer", false)
+	numberRule                    = rules.NewNumberRule("NumberLexer", symbols.NumberToken)
+	whitespaceRule                = rules.NewWhitespaceLexingRule(symbols.WhitespaceToken, "WhitespaceLexer")
+	identifierAllowedSpecialChars = rules.NewCharacterOptionLexingRule([]rune{'.', '_', '-'}, symbols.IdentifierValueToken, "identifierAllowedSpecialChars")
 
-// GetLexingRules returns all configured lexing rules in the correct order.
-func (f *RuleFactory) GetLexingRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
-	allRules := make([]rules.LexingRuleInterface[symbols.LexingTokenType], 0, 30) // Pre-allocate capacity
-
-	// Append rule groups
-	allRules = append(allRules, f.keywordRules()...)
-	allRules = append(allRules, f.operatorRules()...)
-	allRules = append(allRules, f.curlyBracketRules()...)
-
-	// Append single rules
-	allRules = append(allRules,
-		f.newLineRule(),
-		f.whitespaceRule(),
-		f.varReferenceRule(),
-		f.identifierValueRule(),
-		f.digitRule(),
-		f.identifierKeyRule(),
-		f.letterRule(),
-		f.invalidTokenRule(),
+	// Composite rules built from the components above.
+	// This rule defines what an unquoted identifier can be made of.
+	unquotedIdentifierCharsRule = rules.NewOrLexingRule(
+		symbols.IdentifierKeyToken, "unquotedIdentifierChars",
+		letterRule, numberRule, identifierAllowedSpecialChars,
 	)
+	// This rule defines what a quoted identifier can contain.
+	quotedIdentifierCharsRule = rules.NewOrLexingRule(
+		symbols.IdentifierValueToken, "quotedIdentifierChars",
+		numberRule, letterRule, whitespaceRule, identifierAllowedSpecialChars,
+	)
+)
 
-	return allRules
+// GetDefaultRules returns all configured lexing rules in the correct order of precedence.
+func GetDefaultRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
+	// The order is critical for correct tokenization. More specific rules must come first.
+	return appendSlices(
+		// 1. Fixed strings are most specific.
+		buildKeywordRules(),
+		buildOperatorRules(),
+
+		// 2. Literals with specific patterns (numbers, quoted strings).
+		buildLiteralValueRules(),
+
+		// 3. General identifiers (unquoted keys, variable refs). This is less specific than a number.
+		buildIdentifierRules(),
+
+		// 4. Structural elements like brackets and whitespace.
+		buildStructuralRules(),
+
+		// 5. A final fallback for any character that wasn't matched.
+		[]rules.LexingRuleInterface[symbols.LexingTokenType]{rules.NewMatchAnyTokenRule(symbols.IgnoreToken)},
+	)
 }
 
-// --- Rule Group symbols ---
-
-// keywordRules defines all keyword lexing rules.
-func (f *RuleFactory) keywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
-	type keywordDefinition struct {
+// buildKeywordRules defines all keyword lexing rules.
+func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
+	keywordDefs := []struct {
 		literal string
 		token   symbols.LexingTokenType
 		symbol  string
-	}
-
-	keywordDefs := []keywordDefinition{
+	}{
 		{"METADATA", symbols.MetadataKeywordToken, "MetadataKeywordLexer"},
 		{"NAME", symbols.NameKeywordToken, "NameKeywordLexer"},
 		{"VERSION", symbols.VersionKeywordToken, "VersionKeywordLexer"},
@@ -68,98 +74,77 @@ func (f *RuleFactory) keywordRules() []rules.LexingRuleInterface[symbols.LexingT
 	}
 
 	output := make([]rules.LexingRuleInterface[symbols.LexingTokenType], len(keywordDefs))
-	boundary := f.keywordBoundaryRule()
 	for i, def := range keywordDefs {
-		output[i] = f.factory.NewKeywordLexingRule(def.literal, def.token, def.symbol, boundary)
+		output[i] = special.NewKeywordLexingRule(def.literal, def.symbol, def.token, unquotedIdentifierCharsRule)
 	}
 	return output
 }
 
-// operatorRules defines all operator lexing rules.
-func (f *RuleFactory) operatorRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
-	type operatorDefinition struct {
+// buildOperatorRules defines all operator lexing rules.
+func buildOperatorRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
+	operatorDefs := []struct {
 		literal string
 		token   symbols.LexingTokenType
 		symbol  string
-		chars   []rune
-	}
-
-	operatorDefs := []operatorDefinition{
-		{"=>", symbols.AssignmentOperatorToken, "AssignmentOperatorLexer", []rune{'=', '>'}},
-		{"->", symbols.ChainOperatorToken, "ChainOperatorLexer", []rune{'-', '>'}},
-		{"<=", symbols.LessThanOrEqualOperatorToken, "LessThanOrEqualOperatorLexer", []rune{'<', '='}},
-		{">=", symbols.GreaterThanOrEqualOperatorToken, "GreaterThanOrEqualOperatorLexer", []rune{'>', '='}},
-		{"==", symbols.ExactMatchOperatorToken, "ExactMatchOperatorLexer", []rune{'='}},
-		{"<", symbols.LessThanOperatorToken, "LessThanOperatorLexer", []rune{'<'}},
-		{">", symbols.GreaterThanOperatorToken, "GreaterThanOperatorLexer", []rune{'>'}},
+	}{
+		{"=>", symbols.AssignmentOperatorToken, "AssignmentOperatorLexer"},
+		{"->", symbols.ChainOperatorToken, "ChainOperatorLexer"},
+		{"<=", symbols.LessThanOrEqualOperatorToken, "LessThanOrEqualOperatorLexer"},
+		{">=", symbols.GreaterThanOrEqualOperatorToken, "GreaterThanOrEqualOperatorLexer"},
+		{"==", symbols.ExactMatchOperatorToken, "ExactMatchOperatorLexer"},
+		{"<", symbols.LessThanOperatorToken, "LessThanOperatorLexer"},
+		{">", symbols.GreaterThanOperatorToken, "GreaterThanOperatorLexer"},
 	}
 
 	output := make([]rules.LexingRuleInterface[symbols.LexingTokenType], len(operatorDefs))
 	for i, def := range operatorDefs {
-		boundary := f.factory.NewCharacterOptionLexingRule(def.chars, def.token, def.symbol)
-		output[i] = f.factory.NewKeywordLexingRule(def.literal, def.token, def.symbol, boundary)
+		// The boundary for a multi-char operator is itself, to prevent '<' from matching '<='.
+		boundary := rules.NewCharacterOptionLexingRule([]rune(def.literal), def.token, def.symbol)
+		output[i] = special.NewKeywordLexingRule(def.literal, def.symbol, def.token, boundary)
 	}
 	return output
 }
 
-// curlyBracketRules defines rules for open and close curly brackets.
-func (f *RuleFactory) curlyBracketRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
+// buildLiteralValueRules defines rules for explicit data values like numbers and quoted strings.
+func buildLiteralValueRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 	return []rules.LexingRuleInterface[symbols.LexingTokenType]{
-		f.factory.NewSpecificCharacterLexingRule('{', symbols.OpenCurlyBracketToken, "OpenCurlyBracketLexer"),
-		f.factory.NewSpecificCharacterLexingRule('}', symbols.CloseCurlyBracketToken, "CloseCurlyBracketLexer"),
+		// Rule for numbers (e.g., 69, 123). This now runs before the general identifier rule.
+		numberRule,
+		// Rule for quoted strings (e.g., "hello world").
+		special.NewQuotedValueRule("IdentifierValueLexer", symbols.IdentifierValueToken, false, quotedIdentifierCharsRule),
 	}
 }
 
-// --- Single Rule symbols ---
-func (f *RuleFactory) newLineRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewCharacterOptionLexingRule([]rune{'\r', '\n'}, symbols.NewLineToken, "newline")
-}
-
-func (f *RuleFactory) whitespaceRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewWhitespaceLexingRule(symbols.WhitespaceToken, "WhitespaceLexer")
-}
-
-func (f *RuleFactory) varReferenceRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
+// buildIdentifierRules defines rules for unquoted, named entities.
+func buildIdentifierRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 	prefix := '$'
-	return f.factory.NewUnquotedIdentifierLexingRule(symbols.VariableReferenceToken, "VariableReferenceLexer", f.keywordBoundaryRule(), &prefix)
+	return []rules.LexingRuleInterface[symbols.LexingTokenType]{
+		// A variable reference must start with '$'.
+		special.NewUnquotedValueRule("VariableReferenceLexer", symbols.VariableReferenceToken, unquotedIdentifierCharsRule, &prefix),
+		// A general-purpose identifier for keys. This will no longer incorrectly match plain numbers.
+		special.NewUnquotedValueRule("IdentifierKeyLexer", symbols.IdentifierKeyToken, unquotedIdentifierCharsRule, nil),
+	}
 }
 
-func (f *RuleFactory) identifierValueRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewQuotedIdentifierLexingRule(symbols.IdentifierValueToken, "IdentifierValueLexer", false, f.identifierFilterCharactersRule())
+// buildStructuralRules defines rules for syntax structure like brackets, newlines, and whitespace.
+func buildStructuralRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
+	return []rules.LexingRuleInterface[symbols.LexingTokenType]{
+		rules.NewSpecificCharacterLexingRule('{', symbols.OpenCurlyBracketToken, "OpenCurlyBracketLexer"),
+		rules.NewSpecificCharacterLexingRule('}', symbols.CloseCurlyBracketToken, "CloseCurlyBracketLexer"),
+		rules.NewCharacterOptionLexingRule([]rune{'\r', '\n'}, symbols.NewLineToken, "newline"),
+		whitespaceRule,
+	}
 }
 
-func (f *RuleFactory) digitRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewNumberLexingRule(symbols.DigitToken, "DigitLexer")
-}
-
-func (f *RuleFactory) identifierKeyRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewUnquotedIdentifierLexingRule(symbols.IdentifierKeyToken, "IdentifierKeyLexer", f.keywordBoundaryRule(), nil)
-}
-
-func (f *RuleFactory) letterRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewAlphaNumericRuleSingle(symbols.LetterToken, "LetterLexer", false)
-}
-
-func (f *RuleFactory) invalidTokenRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewMatchAnyTokenRule(symbols.IgnoreToken)
-}
-
-// --- Rule Helpers ---
-func (f *RuleFactory) keywordBoundaryRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewOrLexingRule(
-		symbols.IdentifierValueToken,
-		"keywordBoundary",
-		f.letterRule(),
-		f.digitRule(),
-		f.identifierAllowedSpecialChars(),
-	)
-}
-
-func (f *RuleFactory) identifierFilterCharactersRule() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewOrLexingRule(symbols.IdentifierValueToken, "identifierFilterCharacters",
-		f.digitRule(), f.letterRule(), f.whitespaceRule(), f.identifierAllowedSpecialChars())
-}
-
-func (f *RuleFactory) identifierAllowedSpecialChars() rules.LexingRuleInterface[symbols.LexingTokenType] {
-	return f.factory.NewCharacterOptionLexingRule([]rune{'.', '_', '-'}, symbols.IdentifierValueToken, "identifierAllowedSpecialChars")
+// appendSlices is a small utility to make GetDefaultRules cleaner.
+func appendSlices(slices ...[]rules.LexingRuleInterface[symbols.LexingTokenType]) []rules.LexingRuleInterface[symbols.LexingTokenType] {
+	var totalLen int
+	for _, s := range slices {
+		totalLen += len(s)
+	}
+	result := make([]rules.LexingRuleInterface[symbols.LexingTokenType], 0, totalLen)
+	for _, s := range slices {
+		result = append(result, s...)
+	}
+	return result
 }

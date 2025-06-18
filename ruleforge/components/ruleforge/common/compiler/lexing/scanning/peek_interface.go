@@ -1,4 +1,4 @@
-package rules
+package scanning
 
 type LexerInterface interface {
 	Peek() (rune, error)

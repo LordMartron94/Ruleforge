@@ -69,7 +69,7 @@ func closeFile(f *os.File) {
 }
 
 func newFileHandler(f *os.File) compiler.FileHandler[symbols.LexingTokenType] {
-	lexingRules := rules.NewRuleFactory().GetLexingRules()
+	lexingRules := rules.GetDefaultRules()
 	parsingRules := rules.NewDSLParsingRules().GetParsingRules()
 	return *compiler.NewFileHandler(f, lexingRules, parsingRules, symbols.IgnoreToken)
 }

@@ -40,6 +40,11 @@ func (s *Scanner) Peek(n int) ([]rune, error) {
 	return s.runes[s.currentIndex+1 : s.currentIndex+n+1], nil
 }
 
+// Position returns the current scanner's index.
+func (s *Scanner) Position() int {
+	return s.currentIndex
+}
+
 // Consume returns the next n runes and advances the scanner's index.
 func (s *Scanner) Consume(n int) ([]rune, error) {
 	runes, err := s.Peek(n)

@@ -11,13 +11,13 @@ import (
 // Lexer is a generic lexer for a given input stream.
 type Lexer[T shared.TokenTypeConstraint] struct {
 	scanner scanning.ScannerInterface
-	ruleSet *rules.Ruleset[T]
+	ruleSet *Ruleset[T]
 }
 
 // NewLexer creates a new lexer for the given input stream.
 func NewLexer[T shared.TokenTypeConstraint](reader io.Reader, lexingRules []rules.LexingRuleInterface[T]) *Lexer[T] {
 	scanner := scanning.NewScanner(reader)
-	ruleset := rules.NewRuleset[T](lexingRules)
+	ruleset := NewRuleset[T](lexingRules)
 
 	return &Lexer[T]{
 		scanner: scanner,

@@ -9,7 +9,7 @@ const (
 	IgnoreToken LexingTokenType = iota
 	NewLineToken
 	WhitespaceToken
-	DigitToken
+	NumberToken
 	LetterToken
 
 	IdentifierKeyToken

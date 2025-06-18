@@ -163,7 +163,7 @@ func (d *DSLParsingRules) generalVariableAssignmentRule() parsingrules.ParsingRu
 		d.requiredWhitespace(),
 		d.factory.NewEither(symbols.ParseSymbolValue, []symbols.LexingTokenType{
 			symbols.IdentifierValueToken,
-			symbols.DigitToken,
+			symbols.NumberToken,
 		}),
 	})
 }
@@ -199,8 +199,8 @@ func (d *DSLParsingRules) versionAssignmentRule() parsingrules.ParsingRuleInterf
 func (d *DSLParsingRules) strictnessAssignmentRule() parsingrules.ParsingRuleInterface[symbols.LexingTokenType] {
 	return d.makeAssignmentRule(
 		symbols.ParseSymbolStrictnessAssignment, symbols.StrictnessKeywordToken,
-		[]symbols.LexingTokenType{symbols.AllKeywordToken, symbols.SoftKeywordToken, symbols.SemiStrictKeywordToken, symbols.StrictKeywordToken, symbols.SuperStrictKeywordToken, symbols.LetterToken},
-		[]symbols.ParseSymbol{symbols.ParseSymbolAll, symbols.ParseSymbolSoft, symbols.ParseSymbolSemiStrict, symbols.ParseSymbolStrict, symbols.ParseSymbolSuperStrict, symbols.ParseSymbolAny},
+		[]symbols.LexingTokenType{symbols.AllKeywordToken, symbols.SoftKeywordToken, symbols.SemiStrictKeywordToken, symbols.StrictKeywordToken, symbols.SuperStrictKeywordToken},
+		[]symbols.ParseSymbol{symbols.ParseSymbolAll, symbols.ParseSymbolSoft, symbols.ParseSymbolSemiStrict, symbols.ParseSymbolStrict, symbols.ParseSymbolSuperStrict},
 	)
 }
 
