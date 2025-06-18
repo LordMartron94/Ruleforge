@@ -1,3 +1,54 @@
 {
-
+  "Celestial": {
+    "TextColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
+    "BorderColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
+    "FontSize": 45,
+    "Minimap": {
+      "Size": 0
+    },
+    "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\Maven_divine1.ogg",
+    "DropVolume": 300
+  },
+  "Infernal": {
+    "TextColor": {"red": 255, "green": 100, "blue": 100, "alpha": 255},
+    "BorderColor": {"red": 255, "green": 100, "blue": 100, "alpha": 255},
+    "FontSize": 40,
+    "Minimap": {
+      "Size": 0
+    },
+    "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\Maven_amazing.ogg",
+    "DropVolume": 300
+  },
+  "Abomination": {
+    "TextColor": {"red": 220, "green": 130, "blue": 255, "alpha": 255},
+    "BorderColor": {"red": 220, "green": 130, "blue": 255, "alpha": 255},
+    "FontSize": 26
+  },
+  "Primal": {
+    "TextColor": {"red": 100, "green": 255, "blue": 100, "alpha": 255},
+    "BorderColor": {"red": 100, "green": 255, "blue": 100, "alpha": 255},
+    "FontSize": 32
+  },
+  "Mortal": {
+    "TextColor": {"red": 220, "green": 220, "blue": 220, "alpha": 255},
+    "BorderColor": {"red": 220, "green": 220, "blue": 220, "alpha": 255},
+    "FontSize": 28
+  },
+  "Relic": {
+    "TextColor": {"red": 170, "green": 170, "blue": 170, "alpha": 255},
+    "BorderColor": {"red": 170, "green": 170, "blue": 170, "alpha": 255},
+    "FontSize": 22
+  },
+  "Fallback": {
+    "TextColor": {"red": 0, "green": 0, "blue": 0, "alpha": 255},
+    "BackgroundColor": {"red": 255, "green": 0, "blue": 127, "alpha": 255},
+    "BorderColor": {"red": 0, "green": 0, "blue": 0, "alpha": 255},
+    "FontSize": 45,
+    "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\error.mp3",
+    "DropVolume": 300,
+    "Beam": {
+      "Color": "Pink",
+      "Temp": false
+    }
+  }
 }

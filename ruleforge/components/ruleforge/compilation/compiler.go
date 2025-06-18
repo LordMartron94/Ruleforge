@@ -5,22 +5,31 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/transforming"
 	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/transforming/shared"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 )
 
 type Compiler struct {
 	parseTree             *shared.ParseTree[symbols.LexingTokenType]
 	compilerConfiguration CompilerConfiguration
+	ruleFactory           *RuleFactory
 }
 
 func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configuration CompilerConfiguration) *Compiler {
 	return &Compiler{
 		parseTree:             parseTree,
 		compilerConfiguration: configuration,
+		ruleFactory:           &RuleFactory{},
 	}
 }
 
 func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
+	styles, err := config.LoadStyles(c.compilerConfiguration.StyleJsonPath)
+
+	if err != nil {
+		return nil, err, ""
+	}
+
 	output := make([]string, 0)
 
 	filterName := "UNKNOWN_THIS_SHOULD_NOT_HAPPEN"
@@ -35,6 +44,9 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 
 	transformer := transforming.NewTransformer(callbackFinder)
 	transformer.Transform(c.parseTree)
+
+	fallbackRule := c.ruleFactory.ConstructRule(ShowRule, *styles["Fallback"])
+	output = append(output, fallbackRule...)
 
 	return output, nil, filterName
 }
