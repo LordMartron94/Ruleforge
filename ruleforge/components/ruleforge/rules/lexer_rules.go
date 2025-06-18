@@ -26,26 +26,47 @@ var (
 		symbols.IdentifierValueToken, "quotedIdentifierChars",
 		numberRule, letterRule, whitespaceRule, identifierAllowedSpecialChars,
 	)
+
+	// Skip everything from "!!" to the end of the line (but keep the newline itself).
+	lineCommentRule = special.NewLineCommentLexingRule(
+		"LineCommentLexer",
+		symbols.IgnoreToken,
+		"!!",
+	)
+
+	// Skip everything between "!![" and "]!!", spanning multiple lines if needed.
+	blockCommentRule = special.NewDelimitedContentLexingRule(
+		"BlockCommentLexer",
+		symbols.IgnoreToken,
+		"!![",
+		"]!!",
+	)
 )
 
 // GetLexingRules returns all configured lexing rules in the correct order of precedence.
 func GetLexingRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 	// The order is critical for correct tokenization. More specific rules must come first.
 	return appendSlices(
-		// 1. Fixed strings are most specific.
+		// 1. Comment rules
+		[]rules.LexingRuleInterface[symbols.LexingTokenType]{
+			blockCommentRule,
+			lineCommentRule,
+		},
+
+		// 2. Fixed strings are most specific.
 		buildKeywordRules(),
 		buildOperatorRules(),
 
-		// 2. Literals with specific patterns (numbers, quoted strings).
+		// 3. Literals with specific patterns (numbers, quoted strings).
 		buildLiteralValueRules(),
 
-		// 3. General identifiers (unquoted keys, variable refs). This is less specific than a number.
+		// 4. General identifiers (unquoted keys, variable refs). This is less specific than a number.
 		buildIdentifierRules(),
 
-		// 4. Structural elements like brackets and whitespace.
+		// 5. Structural elements like brackets and whitespace.
 		buildStructuralRules(),
 
-		// 5. A final fallback for any character that wasn't matched.
+		// 6. A final fallback for any character that wasn't matched.
 		[]rules.LexingRuleInterface[symbols.LexingTokenType]{rules.NewMatchAnyTokenRule(symbols.IgnoreToken)},
 	)
 }
