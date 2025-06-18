@@ -11,29 +11,25 @@ import (
 // --- Re-usable, Stateless Rule Components ---
 
 var (
-	// Define optional whitespace once to reuse it everywhere.
-	// This creates a rule that matches zero or more whitespace or newline tokens.
+	// whitespaceOptional matches zero or more whitespace or newline tokens.
 	whitespaceOptional = composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolWhitespace.String(),
-		atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespaceToken.String(), symbols.WhitespaceToken),
-		atomic.NewSingleTokenRule(symbols.ParseSymbolNewLineToken.String(), symbols.NewLineToken),
+		atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespace.String(), symbols.WhitespaceToken),
+		atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespace.String(), symbols.NewLineToken),
 	)
-
-	// Define required whitespace for clarity.
+	// requiredWhitespace matches exactly one mandatory Whitespace token.
 	requiredWhitespace = atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespace.String(), symbols.WhitespaceToken)
 )
 
 // GetParsingRules returns the list of all top-level parsing rules.
-// The order defines parsing priority.
 func GetParsingRules() []shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	return []shared.ParsingRuleInterface[symbols.LexingTokenType]{
-		// These are the top-level constructs the parser will try to match first.
-		sectionSectionRule(),
-		metadataSectionRule(),
-		generalVariableAssignmentRule(),
-		implicitVariableAssignmentRule(),
-		// Fallbacks for standalone tokens that might not be part of a larger structure.
-		atomic.NewSingleTokenRule(symbols.ParseSymbolNewLineToken.String(), symbols.NewLineToken),
+		// The order of these top-level rules is the priority for parsing.
+		metadataRule(),
+		sectionRule(),
+		variableRule(),
+		// Fallbacks for any remaining standalone tokens.
+		atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespace.String(), symbols.NewLineToken),
 		atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespace.String(), symbols.WhitespaceToken),
 		conditional.NewAnyTokenRule[symbols.LexingTokenType](symbols.ParseSymbolAny.String()),
 	}
@@ -41,143 +37,153 @@ func GetParsingRules() []shared.ParsingRuleInterface[symbols.LexingTokenType] {
 
 // --- High-Level Section Rules ---
 
-// sectionSectionRule matches an entire SECTION { ... } block.
-func sectionSectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	return seq(symbols.ParseSymbolRuleSectionSection,
-		token(symbols.ParseSymbolGenericKeyWord, symbols.SectionKeywordToken),
-		token(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
-		metadataSectionRule(),
-		sectionConditionsRule(),
-		token(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
+func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	// THE FIX: The repetition of assignments must also be allowed to consume whitespace.
+	// Since RepetitionRule now requires forward progress (consumed > 0), this is safe.
+	assignments := composite.NewRepetitionRule[symbols.LexingTokenType](
+		symbols.ParseSymbolAssignments.String(),
+		nameAssignment(),
+		versionAssignment(),
+		strictnessAssignment(),
+		whitespaceOptional, // This allows whitespace/newlines between assignments.
+	)
+
+	// We define the sequence manually here because `seq` is too simple for this case.
+	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolMetadata.String(),
+		token(symbols.ParseSymbolKeyword, symbols.MetadataKeywordToken),
+		whitespaceOptional,
+		token(symbols.ParseSymbolOperator, symbols.OpenCurlyBracketToken),
+		whitespaceOptional,
+		assignments,
+		// No need for whitespace here, the last assignment's trailing space is handled by the loop.
+		token(symbols.ParseSymbolOperator, symbols.CloseCurlyBracketToken),
 	)
 }
 
-// metadataSectionRule matches a METADATA { ... } block.
-func metadataSectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	// An optional, repeating sequence of assignments within the metadata block.
-	assignments := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolAssignments.String(),
-		nameAssignmentRule(),
-		versionAssignmentRule(),
-		strictnessAssignmentRule(),
+func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	// A section can contain other sections. We explicitly handle the whitespace.
+	sectionContent := composite.NewRepetitionRule[symbols.LexingTokenType](
+		"SectionContent",
+		metadataRule(),
+		conditionListRule(),
+		whitespaceOptional, // Allow whitespace between inner sections
+	)
+	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolSection.String(),
+		token(symbols.ParseSymbolKeyword, symbols.SectionKeywordToken),
+		whitespaceOptional,
+		token(symbols.ParseSymbolOperator, symbols.OpenCurlyBracketToken),
+		whitespaceOptional,
+		sectionContent,
+		token(symbols.ParseSymbolOperator, symbols.CloseCurlyBracketToken),
+	)
+}
+
+func conditionListRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	conditions := composite.NewRepetitionRule[symbols.LexingTokenType]("Conditions",
+		conditionRule(),
 		whitespaceOptional,
 	)
-
-	return seq(symbols.ParseSymbolMetadataSection,
-		token(symbols.ParseSymbolMetadataKeyword, symbols.MetadataKeywordToken),
-		token(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
-		assignments,
-		token(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
-	)
-}
-
-// sectionConditionsRule matches a SECTION_CONDITIONS { ... } block.
-func sectionConditionsRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	return seq(symbols.ParseSymbolSectionConditionsSection,
-		token(symbols.ParseSymbolSectionConditionsSection, symbols.SectionConditionsKeywordToken),
-		token(symbols.ParseSymbolOpenBrace, symbols.OpenCurlyBracketToken),
-		conditionDeclarationRule(),
-		token(symbols.ParseSymbolCloseBrace, symbols.CloseCurlyBracketToken),
+	return seq(symbols.ParseSymbolConditionList,
+		token(symbols.ParseSymbolKeyword, symbols.SectionConditionsKeywordToken),
+		token(symbols.ParseSymbolOperator, symbols.OpenCurlyBracketToken),
+		conditions,
+		token(symbols.ParseSymbolOperator, symbols.CloseCurlyBracketToken),
 	)
 }
 
 // --- Assignment and Declaration Rules ---
 
-// conditionDeclarationRule matches 'WHERE @area_level <= $campaign_end'.
-func conditionDeclarationRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	comparisonOperators := conditional.NewTokenSetRepetitionRule(
-		symbols.ParseSymbolComparisonOperator.String(),
+func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	comparisonOps := conditional.NewTokenSetRepetitionRule(symbols.ParseSymbolOperator.String(),
 		[]symbols.LexingTokenType{
 			symbols.GreaterThanOrEqualOperatorToken, symbols.LessThanOrEqualOperatorToken,
 			symbols.GreaterThanOperatorToken, symbols.LessThanOperatorToken, symbols.ExactMatchOperatorToken,
 		},
-		[]string{"ComparisonOp", "ComparisonOp", "ComparisonOp", "ComparisonOp", "ComparisonOp"},
+		[]string{"Operator", "Operator", "Operator", "Operator", "Operator"},
 	)
-
 	return seq(symbols.ParseSymbolCondition,
-		token(symbols.ParseSymbolConditionAssignment, symbols.ConditionAssignmentKeywordToken),
-		token(symbols.ParseSymbolConditionKeywordToken, symbols.ConditionKeywordToken),
-		comparisonOperators,
-		token(symbols.ParseSymbolVariableReference, symbols.VariableReferenceToken),
+		token(symbols.ParseSymbolKeyword, symbols.ConditionAssignmentKeywordToken),
+		token(symbols.ParseSymbolIdentifier, symbols.ConditionKeywordToken),
+		comparisonOps,
+		token(symbols.ParseSymbolIdentifier, symbols.VariableReferenceToken),
 	)
 }
 
-// generalVariableAssignmentRule matches 'var key => value'.
-func generalVariableAssignmentRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	value := conditional.NewTokenSetRepetitionRule(
-		symbols.ParseSymbolValue.String(),
+func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType]("ChainedAssignments",
+		// This sequence represents one "-> key => value" chain link.
+		composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolAssignment.String(),
+			whitespaceOptional,
+			token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
+			whitespaceOptional,
+			token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
+			whitespaceOptional,
+			token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+			whitespaceOptional,
+			token(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
+		),
+	)
+
+	initialValue := conditional.NewTokenSetRepetitionRule(symbols.ParseSymbolValue.String(),
 		[]symbols.LexingTokenType{symbols.IdentifierValueToken, symbols.NumberToken},
-		[]string{"Identifier", "Number"},
+		[]string{symbols.ParseSymbolIdentifier.String(), symbols.ParseSymbolNumber.String()},
 	)
 
-	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolGeneralVariable.String(),
-		token(symbols.ParseVariableAssignmentKey, symbols.VariableKeywordToken),
+	initialAssignment := composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolAssignment.String(),
+		token(symbols.ParseSymbolKeyword, symbols.VariableKeywordToken),
 		requiredWhitespace,
 		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
 		requiredWhitespace,
-		token(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
 		requiredWhitespace,
-		value,
+		initialValue,
+	)
+
+	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolVariable.String(),
+		initialAssignment,
+		chainedPart,
 	)
 }
 
-// implicitVariableAssignmentRule matches '-> key => value'.
-func implicitVariableAssignmentRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	return seq(symbols.ParseSymbolGeneralVariable,
-		token(symbols.ParseSymbolChainOperator, symbols.ChainOperatorToken),
-		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
-		token(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
-		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
-	)
+func nameAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.NameKeywordToken,
+		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken))
 }
 
-func nameAssignmentRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	return makeAssignmentRule(symbols.ParseSymbolNameAssignment, symbols.NameKeywordToken,
-		token(symbols.ParseSymbolIdentifier, symbols.IdentifierValueToken))
+func versionAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.VersionKeywordToken,
+		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken))
 }
 
-func versionAssignmentRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	return makeAssignmentRule(symbols.ParseSymbolVersionAssignment, symbols.VersionKeywordToken,
-		token(symbols.ParseSymbolIdentifier, symbols.IdentifierValueToken))
-}
-
-func strictnessAssignmentRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+func strictnessAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	allowedValues := conditional.NewTokenSetRepetitionRule(symbols.ParseSymbolValue.String(),
 		[]symbols.LexingTokenType{
 			symbols.AllKeywordToken, symbols.SoftKeywordToken, symbols.SemiStrictKeywordToken,
 			symbols.StrictKeywordToken, symbols.SuperStrictKeywordToken,
 		},
-		[]string{"All", "Soft", "SemiStrict", "Strict", "SuperStrict"},
+		[]string{symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String()},
 	)
-	return makeAssignmentRule(symbols.ParseSymbolStrictnessAssignment, symbols.StrictnessKeywordToken, allowedValues)
+	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.StrictnessKeywordToken, allowedValues)
 }
 
 // --- Rule Definition Helpers ---
 
-// makeAssignmentRule builds a rule for 'Key => Value'.
-func makeAssignmentRule(
-	assignmentSymbol symbols.ParseSymbol,
-	keywordToken symbols.LexingTokenType,
-	valueRule shared.ParsingRuleInterface[symbols.LexingTokenType],
-) shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	return seq(assignmentSymbol,
-		token(symbols.ParseSymbolKey, keywordToken),
-		token(symbols.ParseSymbolAssignmentOp, symbols.AssignmentOperatorToken),
+func makeAssignmentRule(sym symbols.ParseSymbol, keyToken symbols.LexingTokenType, valueRule shared.ParsingRuleInterface[symbols.LexingTokenType]) shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	return seq(sym,
+		token(symbols.ParseSymbolKey, keyToken),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
 		valueRule,
 	)
 }
 
-// token is a shorthand for creating a simple, single-token parsing rule.
 func token(sym symbols.ParseSymbol, tokenType symbols.LexingTokenType) shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	return atomic.NewSingleTokenRule(sym.String(), tokenType)
 }
 
-// seq is a powerful helper that creates a nested rule with optional whitespace between each element.
-// This dramatically reduces boilerplate in the rule definitions.
 func seq(sym symbols.ParseSymbol, children ...shared.ParsingRuleInterface[symbols.LexingTokenType]) shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	rulesWithWhitespace := make([]shared.ParsingRuleInterface[symbols.LexingTokenType], 0, len(children)*2-1)
 	for i, child := range children {
 		rulesWithWhitespace = append(rulesWithWhitespace, child)
-		// Add optional whitespace between elements, but not after the last one.
 		if i < len(children)-1 {
 			rulesWithWhitespace = append(rulesWithWhitespace, whitespaceOptional)
 		}

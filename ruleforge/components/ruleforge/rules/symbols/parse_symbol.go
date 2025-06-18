@@ -1,41 +1,32 @@
 package symbols
 
 // ParseSymbol is a string-backed enum of all parse-tree symbol names.
+// These represent the non-terminal nodes in the grammar.
 type ParseSymbol string
 
+//goland:noinspection GoCommentStart
 const (
-	ParseSymbolMetadataSection          ParseSymbol = "MetadataSection"
-	ParseSymbolMetadataKeyword          ParseSymbol = "MetadataKeyword"
-	ParseSymbolWhitespace               ParseSymbol = "Whitespace"
-	ParseSymbolOpenBrace                ParseSymbol = "OpenBrace"
-	ParseSymbolCloseBrace               ParseSymbol = "CloseBrace"
-	ParseSymbolAssignments              ParseSymbol = "Assignments"
-	ParseSymbolAny                      ParseSymbol = "Any"
-	ParseSymbolWhitespaceToken          ParseSymbol = "WhitespaceToken"
-	ParseSymbolNewLineToken             ParseSymbol = "NewLineToken"
-	ParseSymbolNameAssignment           ParseSymbol = "NameAssignment"
-	ParseSymbolVersionAssignment        ParseSymbol = "VersionAssignment"
-	ParseSymbolStrictnessAssignment     ParseSymbol = "StrictnessAssignment"
-	ParseSymbolGeneralVariable          ParseSymbol = "GeneralVariable"
-	ParseSymbolKey                      ParseSymbol = "Key"
-	ParseSymbolAssignmentOp             ParseSymbol = "AssignmentOp"
-	ParseSymbolValue                    ParseSymbol = "Value"
-	ParseSymbolIdentifier               ParseSymbol = "Identifier"
-	ParseSymbolAll                      ParseSymbol = "ALL"
-	ParseSymbolSoft                     ParseSymbol = "SOFT"
-	ParseSymbolSemiStrict               ParseSymbol = "SEMI-STRICT"
-	ParseSymbolStrict                   ParseSymbol = "STRICT"
-	ParseSymbolSuperStrict              ParseSymbol = "SUPER-STRICT"
-	ParseVariableAssignmentKey          ParseSymbol = "VariableAssignmentKey"
-	ParseSymbolChainOperator            ParseSymbol = "ChainOperator"
-	ParseSymbolRuleSectionSection       ParseSymbol = "RuleSectionSection"
-	ParseSymbolGenericKeyWord           ParseSymbol = "GenericKeyWord"
-	ParseSymbolSectionConditionsSection ParseSymbol = "SectionConditionsSection"
-	ParseSymbolCondition                ParseSymbol = "ConditionDeclaration"
-	ParseSymbolConditionAssignment      ParseSymbol = "ConditionAssignmentDeclaration"
-	ParseSymbolConditionKeywordToken    ParseSymbol = "ConditionKeywordToken"
-	ParseSymbolComparisonOperator       ParseSymbol = "ComparisonOperator"
-	ParseSymbolVariableReference        ParseSymbol = "VariableReference"
+	// --- Top-Level Structures ---
+	ParseSymbolRoot          ParseSymbol = "RootNode"
+	ParseSymbolMetadata      ParseSymbol = "MetadataSection"
+	ParseSymbolSection       ParseSymbol = "Section"
+	ParseSymbolVariable      ParseSymbol = "VariableDeclaration"
+	ParseSymbolConditionList ParseSymbol = "ConditionList"
+	ParseSymbolCondition     ParseSymbol = "Condition"
+	ParseSymbolAssignment    ParseSymbol = "Assignment"
+
+	// --- Common Grammatical Roles ---
+	ParseSymbolKey         ParseSymbol = "Key"
+	ParseSymbolValue       ParseSymbol = "Value"
+	ParseSymbolIdentifier  ParseSymbol = "Identifier"
+	ParseSymbolNumber      ParseSymbol = "Number"
+	ParseSymbolOperator    ParseSymbol = "Operator"
+	ParseSymbolKeyword     ParseSymbol = "Keyword"
+	ParseSymbolWhitespace  ParseSymbol = "Whitespace"
+	ParseSymbolAssignments ParseSymbol = "AssignmentList"
+
+	// --- Fallback ---
+	ParseSymbolAny ParseSymbol = "Any"
 )
 
 // String returns the literal string for the symbol.

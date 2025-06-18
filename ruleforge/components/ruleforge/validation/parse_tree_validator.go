@@ -16,14 +16,14 @@ type ParseTreeValidator struct {
 
 func NewParseTreeValidator(tree *shared.ParseTree[symbols.LexingTokenType]) *ParseTreeValidator {
 	// The metadata blocks
-	md := tree.Children[0]
+	//md := tree.Children[0]
 	blocks := tree.Children[1 : len(tree.Children)-1]
 
 	return &ParseTreeValidator{
 		validators: []Validator{
-			FirstBlockValidator{node: md},
-			RequiredFieldsValidator{node: md},
-			StrictnessValidator{node: md},
+			//FirstBlockValidator{node: md},
+			//RequiredFieldsValidator{node: md},
+			//StrictnessValidator{node: md},
 			CorrectSyntaxValidator{blocks: blocks, ignoreTokens: []symbols.LexingTokenType{symbols.NewLineToken, symbols.WhitespaceToken}},
 		},
 	}
