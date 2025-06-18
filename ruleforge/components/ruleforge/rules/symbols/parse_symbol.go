@@ -6,7 +6,8 @@ type ParseSymbol string
 
 //goland:noinspection GoCommentStart
 const (
-	ParseSymbolMetadata            ParseSymbol = "MetadataSection"
+	ParseSymbolRootMetadata        ParseSymbol = "RootMetadataSection"
+	ParseSymbolSectionMetadata     ParseSymbol = "SectionMetadata"
 	ParseSymbolSection             ParseSymbol = "Section"
 	ParseSymbolVariable            ParseSymbol = "VariableDeclaration"
 	ParseSymbolConditionList       ParseSymbol = "ConditionList"

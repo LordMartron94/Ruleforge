@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/postprocessor"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
@@ -10,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler"
+	common_compiler "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/validation"
@@ -38,7 +39,7 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript, configuration.FilterOutputDirs)
+		err = processRuleforgeScript(ruleforgeScript, configuration)
 		if err != nil {
 			return fmt.Errorf("processRuleforgeScript: %v", err)
 		}
@@ -47,7 +48,7 @@ func run() error {
 	return nil
 }
 
-func processRuleforgeScript(ruleforgeScriptPath string, outputDirs []string) error {
+func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -87,11 +88,19 @@ func processRuleforgeScript(ruleforgeScriptPath string, outputDirs []string) err
 	}
 
 	// 6) Compilation
+	compiler := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
+		StyleJsonPath: configuration.StyleJSONFile,
+	})
+	outputStrings, err, outputName := compiler.CompileIntoFilter()
+
+	if err != nil {
+		return fmt.Errorf("compiler.CompileIntoFilter: %v", err)
+	}
 
 	// 7) Writing
-	for _, outputDir := range outputDirs {
-		outputFileName := filepath.Join(outputDir, filepath.Base(ruleforgeScriptPath))
-		err = WriteLines([]string{"Bla", "Bla", "Bla"}, outputFileName)
+	for _, outputDir := range configuration.FilterOutputDirs {
+		outputFileName := filepath.Join(outputDir, outputName+".filter")
+		err = WriteLines(outputStrings, outputFileName)
 
 		if err != nil {
 			return fmt.Errorf("writing output file: %w", err)
@@ -115,10 +124,10 @@ func closeFile(f *os.File) {
 	}
 }
 
-func newFileHandler(f *os.File) compiler.FileHandler[symbols.LexingTokenType] {
+func newFileHandler(f *os.File) common_compiler.FileHandler[symbols.LexingTokenType] {
 	lexingRules := rules.GetLexingRules()
 	parsingRules := rules.GetParsingRules()
-	return *compiler.NewFileHandler(f, lexingRules, parsingRules, symbols.IgnoreToken)
+	return *common_compiler.NewFileHandler(f, lexingRules, parsingRules, symbols.IgnoreToken)
 }
 
 func printLexemes(lexemes []*shared.Token[symbols.LexingTokenType]) {

@@ -9,7 +9,7 @@ import (
 )
 
 // GetPairsFromSpecificChildren collects children of symbol 1 and 2 and stores it in your given list..
-func GetPairsFromSpecificChildren[T comparable](symbol1 string, symbol2 string, storage *[][]shared3.Token[T]) shared2.TransformCallback[T] {
+func GetPairsFromSpecificChildren[T shared3.TokenTypeConstraint](symbol1 string, symbol2 string, storage *[][]shared3.Token[T]) shared2.TransformCallback[T] {
 	return func(node *shared.ParseTree[T]) {
 		if len(node.Children) < 2 {
 			fmt.Println(fmt.Sprintf("Invalid node. Expected at least 2 children, got %d", len(node.Children)))

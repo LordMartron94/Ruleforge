@@ -6,7 +6,7 @@ import (
 	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/transforming/shared"
 )
 
-func AppendChildrenToSlice[T comparable](target *[][]shared3.Token[T]) shared2.TransformCallback[T] {
+func AppendChildrenToSlice[T shared3.TokenTypeConstraint](target *[][]shared3.Token[T]) shared2.TransformCallback[T] {
 	return func(node *shared.ParseTree[T]) {
 		current := make([]shared3.Token[T], 0)
 

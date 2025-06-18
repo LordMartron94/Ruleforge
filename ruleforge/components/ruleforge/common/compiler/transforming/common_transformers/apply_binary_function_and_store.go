@@ -2,6 +2,7 @@ package common_transformers
 
 import (
 	"fmt"
+	shared3 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
 	"strconv"
 
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
@@ -9,7 +10,7 @@ import (
 )
 
 // ApplyBinaryOperationToChildren applies a binary operation to the children of a given node and appends the result to the provided slice.
-func ApplyBinaryOperationToChildren[T comparable](operation func(left, right int) int, result *[]int) shared2.TransformCallback[T] {
+func ApplyBinaryOperationToChildren[T shared3.TokenTypeConstraint](operation func(left, right int) int, result *[]int) shared2.TransformCallback[T] {
 	return func(node *shared.ParseTree[T]) {
 		if len(node.Children) < 2 {
 			fmt.Println("Invalid binary operation node. Too few children for binary operation. Expected 2, got", len(node.Children))

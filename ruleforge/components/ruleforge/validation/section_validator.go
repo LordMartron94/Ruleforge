@@ -29,7 +29,7 @@ func (m *SectionValidator) Validate() error {
 
 		for _, section := range sections {
 			content := section.FindSymbolNode(symbols.ParseSymbolSectionContent.String())
-			sectionMetadata := content.FindSymbolNode(symbols.ParseSymbolMetadata.String())
+			sectionMetadata := content.FindSymbolNode(symbols.ParseSymbolSectionMetadata.String())
 
 			err := helpers.NewMetadataFieldsValidator(sectionMetadata, helpers.ValidationOptions{
 				RequiredFields:     requiredFields,

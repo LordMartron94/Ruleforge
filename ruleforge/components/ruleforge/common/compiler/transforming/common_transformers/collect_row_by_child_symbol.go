@@ -8,7 +8,7 @@ import (
 	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/transforming/shared"
 )
 
-func CollectRowByChildSymbols[T comparable](symbols []string, storage *[][]shared3.Token[T]) shared2.TransformCallback[T] {
+func CollectRowByChildSymbols[T shared3.TokenTypeConstraint](symbols []string, storage *[][]shared3.Token[T]) shared2.TransformCallback[T] {
 	return func(node *shared.ParseTree[T]) {
 		row := make([]shared3.Token[T], 0)
 

@@ -61,7 +61,7 @@ func NewMetadataStrictnessValidator(node *shared.ParseTree[symbols.LexingTokenTy
 func (v *MetadataStrictnessValidator) Validate() error {
 	// find the assignment whose Key is STRICTNESS, then dive into its Value.Keyword token
 	assign := v.getStrictnessAssignment()
-	valNode := assign.Children[2].Children[0]
+	valNode := assign.Children[2]
 	if !allowedStrictness[valNode.Token.Type] {
 		return fmt.Errorf("invalid strictness value %q", valNode.Token.Value)
 	}

@@ -1,21 +1,22 @@
 package transforming
 
 import (
+	shared3 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/transforming/shared"
 )
 
-type TransformFindFunc[T comparable] func(node *shared.ParseTree[T]) (shared2.TransformCallback[T], int)
+type TransformFindFunc[T shared3.TokenTypeConstraint] func(node *shared.ParseTree[T]) (shared2.TransformCallback[T], int)
 
 // Transformer takes a parsetree and applies a specified callback transformation to it
-type Transformer[T comparable] struct {
+type Transformer[T shared3.TokenTypeConstraint] struct {
 	callbackFinder   TransformFindFunc[T]
 	callbacksByOrder map[int][]shared2.TransformCallback[T]
 	callbackNodes    map[int][]*shared.ParseTree[T]
 }
 
 // NewTransformer creates a new Transformer with the given callbackFinders
-func NewTransformer[T comparable](callbackFinder TransformFindFunc[T]) *Transformer[T] {
+func NewTransformer[T shared3.TokenTypeConstraint](callbackFinder TransformFindFunc[T]) *Transformer[T] {
 	return &Transformer[T]{
 		callbackFinder:   callbackFinder,
 		callbacksByOrder: make(map[int][]shared2.TransformCallback[T]),

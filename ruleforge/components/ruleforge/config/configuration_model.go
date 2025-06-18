@@ -6,4 +6,7 @@ type ConfigurationModel struct {
 
 	// RuleforgeInputDir specifies the directory which filter(s) should be processed.
 	RuleforgeInputDir string `json:"RuleforgeInputDir"`
+
+	// StyleJSONFile indicates the JSON file where all styles are housed.
+	StyleJSONFile string `json:"StyleJSONFile"`
 }

@@ -26,7 +26,7 @@ var (
 func GetParsingRules() []shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	return []shared.ParsingRuleInterface[symbols.LexingTokenType]{
 		// The order of these top-level rules is the priority for parsing.
-		metadataRule(),
+		metadataRule(symbols.ParseSymbolRootMetadata),
 		sectionRule(),
 		variableRule(),
 		// Fallbacks for any remaining standalone tokens.
@@ -39,7 +39,7 @@ func GetParsingRules() []shared.ParsingRuleInterface[symbols.LexingTokenType] {
 // --- High-Level Section Rules ---
 
 // REFACTORED: Now uses the `seq` helper for consistency and readability.
-func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+func metadataRule(metadataSymbol symbols.ParseSymbol) shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	assignments := composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolAssignments.String(),
 		nameAssignment(),
@@ -49,7 +49,7 @@ func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		whitespaceOptional, // Allows whitespace/newlines between assignments.
 	)
 
-	return seq(symbols.ParseSymbolMetadata,
+	return seq(metadataSymbol,
 		token(symbols.ParseSymbolKeyword, symbols.MetadataKeywordToken),
 		token(symbols.ParseSymbolBlockOperator, symbols.OpenCurlyBracketToken),
 		assignments,
@@ -61,7 +61,7 @@ func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	sectionContent := composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolSectionContent.String(),
-		metadataRule(),
+		metadataRule(symbols.ParseSymbolSectionMetadata),
 		conditionListRule(),
 		ruleSectionRule(),
 		whitespaceOptional, // Allow whitespace between inner sections
@@ -202,12 +202,11 @@ func versionAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 }
 
 func strictnessAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	allowedValues := conditional.NewTokenSetRepetitionRule(symbols.ParseSymbolValue.String(),
+	allowedValues := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
 		[]symbols.LexingTokenType{
 			symbols.AllKeywordToken, symbols.SoftKeywordToken, symbols.SemiStrictKeywordToken,
 			symbols.StrictKeywordToken, symbols.SuperStrictKeywordToken,
 		},
-		[]string{symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String()},
 	)
 	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.StrictnessKeywordToken, allowedValues)
 }

@@ -9,7 +9,7 @@ import (
 )
 
 // GetPairsFromChildren collects children
-func GetPairsFromChildren[T comparable](pairSymbol string, storage *[][]shared3.Token[T]) shared2.TransformCallback[T] {
+func GetPairsFromChildren[T shared3.TokenTypeConstraint](pairSymbol string, storage *[][]shared3.Token[T]) shared2.TransformCallback[T] {
 	return func(node *shared.ParseTree[T]) {
 		for _, child := range node.Children {
 			if child.Symbol == pairSymbol {
