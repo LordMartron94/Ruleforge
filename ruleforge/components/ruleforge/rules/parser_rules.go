@@ -62,7 +62,7 @@ func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	// A section can contain other sections. We explicitly handle the whitespace.
 	sectionContent := composite.NewRepetitionRule[symbols.LexingTokenType](
-		"SectionContent",
+		symbols.ParseSymbolSectionContent.String(),
 		metadataRule(),
 		conditionListRule(),
 		whitespaceOptional, // Allow whitespace between inner sections
@@ -78,7 +78,7 @@ func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 }
 
 func conditionListRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	conditions := composite.NewRepetitionRule[symbols.LexingTokenType]("Conditions",
+	conditions := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolConditions.String(),
 		conditionRule(),
 		whitespaceOptional,
 	)
@@ -108,7 +108,7 @@ func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 }
 
 func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType]("ChainedAssignments",
+	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolChainedAssignments.String(),
 		composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolAssignment.String(),
 			whitespaceOptional,
 			token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),

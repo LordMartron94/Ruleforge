@@ -25,6 +25,7 @@ func NewParseTreeValidator(tree *shared.ParseTree[symbols.LexingTokenType]) *Par
 			CorrectSyntaxValidator{
 				blocks: documentBlocks,
 			},
+			NewSectionValidator(documentBlocks),
 			NewVariableValidator(documentBlocks),
 		},
 	}

@@ -6,12 +6,15 @@ type ParseSymbol string
 
 //goland:noinspection GoCommentStart
 const (
-	ParseSymbolMetadata      ParseSymbol = "MetadataSection"
-	ParseSymbolSection       ParseSymbol = "Section"
-	ParseSymbolVariable      ParseSymbol = "VariableDeclaration"
-	ParseSymbolConditionList ParseSymbol = "ConditionList"
-	ParseSymbolCondition     ParseSymbol = "Condition"
-	ParseSymbolAssignment    ParseSymbol = "Assignment"
+	ParseSymbolMetadata           ParseSymbol = "MetadataSection"
+	ParseSymbolSection            ParseSymbol = "Section"
+	ParseSymbolVariable           ParseSymbol = "VariableDeclaration"
+	ParseSymbolConditionList      ParseSymbol = "ConditionList"
+	ParseSymbolCondition          ParseSymbol = "Condition"
+	ParseSymbolAssignment         ParseSymbol = "Assignment"
+	ParseSymbolSectionContent     ParseSymbol = "SectionContent"
+	ParseSymbolConditions         ParseSymbol = "Conditions"
+	ParseSymbolChainedAssignments ParseSymbol = "ChainedAssignments"
 
 	// --- Common Grammatical Roles ---
 	ParseSymbolKey           ParseSymbol = "Key"

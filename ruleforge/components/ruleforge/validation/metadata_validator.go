@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/validation/helpers"
 )
 
 type FilterMetadataValidator struct {
@@ -14,54 +15,24 @@ func NewMetadataDiscoveryValidator(metadataBlock *shared.ParseTree[symbols.Lexin
 	return &FilterMetadataValidator{metadataBlock: metadataBlock}
 }
 
-func (m *FilterMetadataValidator) Validate() error {
-	fv := NewMetadataFieldsValidator(m.metadataBlock)
-	if err := fv.Validate(); err != nil {
-		return fmt.Errorf("metadata block: %w", err)
-	}
-	sv := NewMetadataStrictnessValidator(m.metadataBlock)
-	if err := sv.Validate(); err != nil {
-		return fmt.Errorf("metadata block: %w", err)
-	}
-
-	return nil
-}
-
-// ——————————————————————————————————————————————————————
-// 2) Ensure NAME, VERSION, STRICTNESS appear once, no extras
-// ——————————————————————————————————————————————————————
-
 var requiredOrder = []symbols.LexingTokenType{
 	symbols.NameKeywordToken,
 	symbols.VersionKeywordToken,
 	symbols.StrictnessKeywordToken,
 }
 
-type MetadataFieldsValidator struct {
-	metadataSectionNode *shared.ParseTree[symbols.LexingTokenType]
-}
-
-func NewMetadataFieldsValidator(node *shared.ParseTree[symbols.LexingTokenType]) *MetadataFieldsValidator {
-	return &MetadataFieldsValidator{metadataSectionNode: node}
-}
-
-func (v *MetadataFieldsValidator) Validate() error {
-	list := v.metadataSectionNode.FindSymbolNode(symbols.ParseSymbolAssignments.String())
-	// the 1st gen descendents are Assignment nodes; we expect exactly len(requiredOrder) of them
-	if len(list.Children) != len(requiredOrder) {
-		return fmt.Errorf("metadata must contain exactly %d entries, found %d", len(requiredOrder), len(list.Children))
+func (m *FilterMetadataValidator) Validate() error {
+	fv := helpers.NewMetadataFieldsValidator(m.metadataBlock, helpers.ValidationOptions{
+		RequiredFields:     requiredOrder,
+		OptionalFields:     nil,
+		CheckRequiredOrder: true,
+	})
+	if err := fv.Validate(); err != nil {
+		return fmt.Errorf("metadata block: %w", err)
 	}
-
-	seen := map[symbols.LexingTokenType]bool{}
-	for idx, assign := range list.Children {
-		keyTok := assign.Children[0].Token.Type
-		if keyTok != requiredOrder[idx] {
-			return fmt.Errorf("expected %s at position %d, got %s", requiredOrder[idx], idx+1, keyTok)
-		}
-		if seen[keyTok] {
-			return fmt.Errorf("duplicate metadata field %s", keyTok)
-		}
-		seen[keyTok] = true
+	sv := NewMetadataStrictnessValidator(m.metadataBlock)
+	if err := sv.Validate(); err != nil {
+		return fmt.Errorf("metadata block: %w", err)
 	}
 
 	return nil
