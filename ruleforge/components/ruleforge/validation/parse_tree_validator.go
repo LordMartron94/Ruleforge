@@ -5,7 +5,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 )
 
-// Validator runs a check on the metadata blocks.
+// Validator runs a check on the metadata metadataBlock.
 type Validator interface {
 	Validate() error
 }
@@ -14,17 +14,18 @@ type ParseTreeValidator struct {
 	validators []Validator
 }
 
+// NewParseTreeValidator composes all your validators in one place.
 func NewParseTreeValidator(tree *shared.ParseTree[symbols.LexingTokenType]) *ParseTreeValidator {
-	// The metadata blocks
-	//md := tree.Children[0]
-	blocks := tree.Children[1 : len(tree.Children)-1]
+	metadataBlock := tree.Children[0]
+	documentBlocks := tree.Children[1 : len(metadataBlock.Children)-1]
 
 	return &ParseTreeValidator{
 		validators: []Validator{
-			//FirstBlockValidator{node: md},
-			//RequiredFieldsValidator{node: md},
-			//StrictnessValidator{node: md},
-			CorrectSyntaxValidator{blocks: blocks, ignoreTokens: []symbols.LexingTokenType{symbols.NewLineToken, symbols.WhitespaceToken}},
+			NewMetadataDiscoveryValidator(tree),
+			CorrectSyntaxValidator{
+				blocks:       documentBlocks,
+				ignoreTokens: []symbols.LexingTokenType{symbols.NewLineToken, symbols.WhitespaceToken},
+			},
 		},
 	}
 }

@@ -75,12 +75,30 @@ func (pt *ParseTree[T]) GetNthGenDescendantSymbols(n int) []string {
 	return symbols
 }
 
+// GetNthGenDescendantTokens returns the tokens of all descendants at the given generation depth n.
+// Generation 1 are the immediate children, generation 2 are grandchildren, and so on.
+func (pt *ParseTree[T]) GetNthGenDescendantTokens(n int) []*shared.Token[T] {
+	if n < 1 {
+		return nil
+	}
+	var tokens []*shared.Token[T]
+	for _, child := range pt.Children {
+		if n == 1 {
+			tokens = append(tokens, child.Token)
+		} else {
+			tokens = append(tokens, child.GetNthGenDescendantTokens(n-1)...)
+		}
+	}
+	return tokens
+}
+
 // FindSymbolNode searches the parse tree for the first node whose Symbol equals searchSymbol.
 // It panics if no such node is found in the tree.
 func (pt *ParseTree[T]) FindSymbolNode(searchSymbol string) *ParseTree[T] {
 	if node := pt.findSymbolNode(searchSymbol); node != nil {
 		return node
 	}
+
 	panic(fmt.Sprintf("symbol %q not found in parse tree", searchSymbol))
 }
 
