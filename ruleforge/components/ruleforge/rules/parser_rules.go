@@ -38,7 +38,6 @@ func GetParsingRules() []shared.ParsingRuleInterface[symbols.LexingTokenType] {
 // --- High-Level Section Rules ---
 
 func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	// THE FIX: The repetition of assignments must also be allowed to consume whitespace.
 	// Since RepetitionRule now requires forward progress (consumed > 0), this is safe.
 	assignments := composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolAssignments.String(),
@@ -93,12 +92,11 @@ func conditionListRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 // --- Assignment and Declaration Rules ---
 
 func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	comparisonOps := conditional.NewTokenSetRepetitionRule(symbols.ParseSymbolOperator.String(),
+	comparisonOps := conditional.NewChoiceTokenRule(symbols.ParseSymbolOperator.String(),
 		[]symbols.LexingTokenType{
 			symbols.GreaterThanOrEqualOperatorToken, symbols.LessThanOrEqualOperatorToken,
 			symbols.GreaterThanOperatorToken, symbols.LessThanOperatorToken, symbols.ExactMatchOperatorToken,
 		},
-		[]string{"Operator", "Operator", "Operator", "Operator", "Operator"},
 	)
 	return seq(symbols.ParseSymbolCondition,
 		token(symbols.ParseSymbolKeyword, symbols.ConditionAssignmentKeywordToken),

@@ -31,3 +31,26 @@ func (p *PostProcessor[T]) FilterOutSymbols(filterSymbols []string, node *shared
 
 	return filteredNode
 }
+
+func (p *PostProcessor[T]) RemoveEmptyNodes(node *shared.ParseTree[T]) *shared.ParseTree[T] {
+	if node.Token == nil && len(node.Children) == 0 {
+		return nil
+	}
+
+	// 2. This is a node we want to keep. Create a copy.
+	filteredNode := &shared.ParseTree[T]{
+		Symbol:   node.Symbol,
+		Token:    node.Token,
+		Children: make([]*shared.ParseTree[T], 0),
+	}
+
+	// 3. Recursively filter the children of the current node.
+	for _, child := range node.Children {
+		filteredChild := p.RemoveEmptyNodes(child)
+		if filteredChild != nil {
+			filteredNode.Children = append(filteredNode.Children, filteredChild)
+		}
+	}
+
+	return filteredNode
+}

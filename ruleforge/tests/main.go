@@ -51,6 +51,7 @@ func run() error {
 		symbols.ParseSymbolWhitespace.String(),
 		symbols.ParseSymbolBlockOperator.String(),
 	}, tree)
+	tree = postProcessor.RemoveEmptyNodes(tree)
 
 	tree.Print(2, []symbols.LexingTokenType{})
 
