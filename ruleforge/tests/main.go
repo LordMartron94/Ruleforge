@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/postprocessor"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
@@ -21,10 +24,31 @@ func main() {
 }
 
 func run() error {
-	// 1) Open the input file
-	path := "test_input/test_filter.rf"
-	//path = "test_input/test_filter2.rf"
-	file, err := openFile(path)
+	configurationLoader := config.NewConfigurationLoader()
+	configuration, err := configurationLoader.LoadConfiguration("config.json")
+
+	if err != nil {
+		return fmt.Errorf("configurationLoader.LoadConfiguration: %v", err)
+	}
+
+	ruleforgeScripts, err := listFilesWithExtension(configuration.RuleforgeInputDir, ".rf")
+
+	if err != nil {
+		return fmt.Errorf("listFilesWithExtension: %v", err)
+	}
+
+	for _, ruleforgeScript := range ruleforgeScripts {
+		err = processRuleforgeScript(ruleforgeScript)
+		if err != nil {
+			return fmt.Errorf("processRuleforgeScript: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func processRuleforgeScript(ruleforgeScriptPath string) error {
+	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
 	}
@@ -89,4 +113,31 @@ func printLexemes(lexemes []*shared.Token[symbols.LexingTokenType]) {
 	for i, lex := range lexemes {
 		fmt.Printf("Lexeme (%d): %q\n", i, lex.String())
 	}
+}
+
+// listFilesWithExtension returns all files (not directories) in dir
+// whose names end with the given extension ext. ext may be supplied
+// with or without the leading dot (e.g. "txt" or ".txt").
+func listFilesWithExtension(dir, ext string) ([]string, error) {
+	// Normalize ext to start with a dot
+	if !strings.HasPrefix(ext, ".") {
+		ext = "." + ext
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if filepath.Ext(entry.Name()) == ext {
+			// build the full path
+			matches = append(matches, filepath.Join(dir, entry.Name()))
+		}
+	}
+	return matches, nil
 }
