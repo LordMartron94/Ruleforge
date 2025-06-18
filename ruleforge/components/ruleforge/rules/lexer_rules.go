@@ -90,6 +90,7 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"SECTION", symbols.SectionKeywordToken, "SectionKeywordLexer"},
 		{"SECTION_CONDITIONS", symbols.SectionConditionsKeywordToken, "SectionConditionsKeywordLexer"},
 		{"WHERE", symbols.ConditionAssignmentKeywordToken, "ConditionAssignmentKeywordLexer"},
+		{"DESCRIPTION", symbols.DescriptionAssignmentKeywordToken, "DescriptionAssignmentKeywordToken"},
 		{"var", symbols.VariableKeywordToken, "VariableKeywordLexer"},
 		{"@area_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 	}

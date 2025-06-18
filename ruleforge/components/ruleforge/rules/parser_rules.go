@@ -44,6 +44,7 @@ func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		nameAssignment(),
 		versionAssignment(),
 		strictnessAssignment(),
+		descriptionAssignment(),
 		whitespaceOptional, // This allows whitespace/newlines between assignments.
 	)
 
@@ -160,6 +161,11 @@ func strictnessAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType]
 		[]string{symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String(), symbols.ParseSymbolKeyword.String()},
 	)
 	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.StrictnessKeywordToken, allowedValues)
+}
+
+func descriptionAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.DescriptionAssignmentKeywordToken,
+		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken))
 }
 
 // --- Rule Definition Helpers ---

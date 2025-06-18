@@ -39,12 +39,13 @@ func _() {
 	_ = x[ConditionAssignmentKeywordToken-28]
 	_ = x[ConditionKeywordToken-29]
 	_ = x[SectionKeywordToken-30]
-	_ = x[DotToken-31]
+	_ = x[DescriptionAssignmentKeywordToken-31]
+	_ = x[DotToken-32]
 }
 
-const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenNumberTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenVariableReferenceTokenOpenCurlyBracketTokenCloseCurlyBracketTokenAssignmentOperatorTokenChainOperatorTokenGreaterThanOrEqualOperatorTokenLessThanOrEqualOperatorTokenGreaterThanOperatorTokenLessThanOperatorTokenExactMatchOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenSectionConditionsKeywordTokenConditionAssignmentKeywordTokenConditionKeywordTokenSectionKeywordTokenDotToken"
+const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenNumberTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenVariableReferenceTokenOpenCurlyBracketTokenCloseCurlyBracketTokenAssignmentOperatorTokenChainOperatorTokenGreaterThanOrEqualOperatorTokenLessThanOrEqualOperatorTokenGreaterThanOperatorTokenLessThanOperatorTokenExactMatchOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenSectionConditionsKeywordTokenConditionAssignmentKeywordTokenConditionKeywordTokenSectionKeywordTokenDescriptionAssignmentKeywordTokenDotToken"
 
-var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 49, 60, 78, 98, 120, 141, 163, 186, 204, 235, 263, 287, 308, 331, 351, 367, 386, 408, 423, 439, 461, 479, 502, 522, 551, 582, 603, 622, 630}
+var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 49, 60, 78, 98, 120, 141, 163, 186, 204, 235, 263, 287, 308, 331, 351, 367, 386, 408, 423, 439, 461, 479, 502, 522, 551, 582, 603, 622, 655, 663}
 
 func (i LexingTokenType) String() string {
 	if i < 0 || i >= LexingTokenType(len(_LexingTokenType_index)-1) {
