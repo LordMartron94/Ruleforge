@@ -38,7 +38,7 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript)
+		err = processRuleforgeScript(ruleforgeScript, configuration.FilterOutputDirs)
 		if err != nil {
 			return fmt.Errorf("processRuleforgeScript: %v", err)
 		}
@@ -47,7 +47,7 @@ func run() error {
 	return nil
 }
 
-func processRuleforgeScript(ruleforgeScriptPath string) error {
+func processRuleforgeScript(ruleforgeScriptPath string, outputDirs []string) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -84,6 +84,18 @@ func processRuleforgeScript(ruleforgeScriptPath string) error {
 	// 5) Validation
 	if err := validation.NewParseTreeValidator(tree).Validate(); err != nil {
 		return fmt.Errorf("validating parse tree: %w", err)
+	}
+
+	// 6) Compilation
+
+	// 7) Writing
+	for _, outputDir := range outputDirs {
+		outputFileName := filepath.Join(outputDir, filepath.Base(ruleforgeScriptPath))
+		err = WriteLines([]string{"Bla", "Bla", "Bla"}, outputFileName)
+
+		if err != nil {
+			return fmt.Errorf("writing output file: %w", err)
+		}
 	}
 
 	return nil
@@ -140,4 +152,11 @@ func listFilesWithExtension(dir, ext string) ([]string, error) {
 		}
 	}
 	return matches, nil
+}
+
+// WriteLines writes the provided lines to the file at path.
+// It creates or truncates the file, writing each string on its own line.
+func WriteLines(lines []string, path string) error {
+	content := strings.Join(lines, "\n") + "\n"
+	return os.WriteFile(path, []byte(content), 0644)
 }
