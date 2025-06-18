@@ -46,6 +46,7 @@ const (
 	ConditionKeywordToken
 	SectionKeywordToken
 	DescriptionAssignmentKeywordToken
+	RuleKeywordToken
 
 	// MISC
 	DotToken

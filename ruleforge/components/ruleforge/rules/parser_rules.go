@@ -65,6 +65,7 @@ func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		symbols.ParseSymbolSectionContent.String(),
 		metadataRule(),
 		conditionListRule(),
+		ruleSectionRule(),
 		whitespaceOptional, // Allow whitespace between inner sections
 	)
 	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolSection.String(),
@@ -90,6 +91,34 @@ func conditionListRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	)
 }
 
+func ruleSectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	rules := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolRules.String(),
+		ruleExpressionRule(),
+		whitespaceOptional,
+	)
+
+	return seq(symbols.ParseSymbolRuleSection,
+		token(symbols.ParseSymbolKeyword, symbols.RuleKeywordToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.OpenCurlyBracketToken),
+		rules,
+		token(symbols.ParseSymbolBlockOperator, symbols.CloseCurlyBracketToken),
+	)
+}
+
+func ruleExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	valueOpts := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
+		[]symbols.LexingTokenType{
+			symbols.VariableReferenceToken, symbols.IdentifierValueToken,
+		},
+	)
+
+	return seq(symbols.ParseSymbolRuleExpression,
+		conditionRule(),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		valueOpts,
+	)
+}
+
 // --- Assignment and Declaration Rules ---
 
 func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
@@ -99,31 +128,60 @@ func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 			symbols.GreaterThanOperatorToken, symbols.LessThanOperatorToken, symbols.ExactMatchOperatorToken,
 		},
 	)
-	return seq(symbols.ParseSymbolCondition,
+
+	valueOpts := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
+		[]symbols.LexingTokenType{
+			symbols.VariableReferenceToken, symbols.NumberToken, symbols.IdentifierValueToken,
+		},
+	)
+
+	initialAssignment := composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolConditionExpression.String(),
 		token(symbols.ParseSymbolKeyword, symbols.ConditionAssignmentKeywordToken),
+		whitespaceOptional,
 		token(symbols.ParseSymbolIdentifier, symbols.ConditionKeywordToken),
+		whitespaceOptional,
 		comparisonOps,
-		token(symbols.ParseSymbolIdentifier, symbols.VariableReferenceToken),
+		whitespaceOptional,
+		valueOpts,
+	)
+
+	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolChainedConditions.String(),
+		composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolConditionExpression.String(),
+			whitespaceOptional,
+			token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
+			whitespaceOptional,
+			token(symbols.ParseSymbolIdentifier, symbols.ConditionKeywordToken),
+			whitespaceOptional,
+			comparisonOps,
+			whitespaceOptional,
+			valueOpts,
+		),
+	)
+
+	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolCondition.String(),
+		initialAssignment,
+		chainedPart,
 	)
 }
 
 func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	valueOpts := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
+		[]symbols.LexingTokenType{
+			symbols.NumberToken, symbols.IdentifierValueToken,
+		},
+	)
+
 	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolChainedAssignments.String(),
 		composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolAssignment.String(),
 			whitespaceOptional,
 			token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
-			whitespaceOptional,
+			requiredWhitespace,
 			token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
-			whitespaceOptional,
+			requiredWhitespace,
 			token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
-			whitespaceOptional,
-			token(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
+			requiredWhitespace,
+			valueOpts,
 		),
-	)
-
-	initialValue := conditional.NewTokenSetRepetitionRule(symbols.ParseSymbolValue.String(),
-		[]symbols.LexingTokenType{symbols.IdentifierValueToken, symbols.NumberToken},
-		[]string{symbols.ParseSymbolIdentifier.String(), symbols.ParseSymbolNumber.String()},
 	)
 
 	initialAssignment := composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolAssignment.String(),
@@ -133,7 +191,7 @@ func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		requiredWhitespace,
 		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
 		requiredWhitespace,
-		initialValue,
+		valueOpts,
 	)
 
 	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolVariable.String(),

@@ -91,8 +91,13 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"SECTION_CONDITIONS", symbols.SectionConditionsKeywordToken, "SectionConditionsKeywordLexer"},
 		{"WHERE", symbols.ConditionAssignmentKeywordToken, "ConditionAssignmentKeywordLexer"},
 		{"DESCRIPTION", symbols.DescriptionAssignmentKeywordToken, "DescriptionAssignmentKeywordToken"},
+		{"EQUIPMENT", symbols.IdentifierValueToken, "IdentifierValueToken"},
+		{"RULES", symbols.RuleKeywordToken, "RuleKeywordToken"},
 		{"var", symbols.VariableKeywordToken, "VariableKeywordLexer"},
 		{"@area_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@rarity", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@item_type", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@class_use", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 	}
 
 	output := make([]rules.LexingRuleInterface[symbols.LexingTokenType], len(keywordDefs))
@@ -110,7 +115,7 @@ func buildOperatorRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		symbol  string
 	}{
 		{"=>", symbols.AssignmentOperatorToken, "AssignmentOperatorLexer"},
-		{"->", symbols.ChainOperatorToken, "ChainOperatorLexer"},
+		{"->", symbols.ChainOperatorToken, "ChainOperatorANDLexer"},
 		{"<=", symbols.LessThanOrEqualOperatorToken, "LessThanOrEqualOperatorLexer"},
 		{">=", symbols.GreaterThanOrEqualOperatorToken, "GreaterThanOrEqualOperatorLexer"},
 		{"==", symbols.ExactMatchOperatorToken, "ExactMatchOperatorLexer"},
@@ -153,6 +158,8 @@ func buildStructuralRules() []rules.LexingRuleInterface[symbols.LexingTokenType]
 	return []rules.LexingRuleInterface[symbols.LexingTokenType]{
 		rules.NewSpecificCharacterLexingRule('{', symbols.OpenCurlyBracketToken, "OpenCurlyBracketLexer"),
 		rules.NewSpecificCharacterLexingRule('}', symbols.CloseCurlyBracketToken, "CloseCurlyBracketLexer"),
+		rules.NewSpecificCharacterLexingRule('(', symbols.IgnoreToken, "OpenParenthesesToken"),
+		rules.NewSpecificCharacterLexingRule(')', symbols.IgnoreToken, "CloseParenthesesToken"),
 		rules.NewCharacterOptionLexingRule([]rune{'\r', '\n'}, symbols.NewLineToken, "newline"),
 		whitespaceRule,
 	}

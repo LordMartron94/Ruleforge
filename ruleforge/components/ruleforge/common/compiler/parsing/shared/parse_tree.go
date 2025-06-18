@@ -153,7 +153,7 @@ func (pt *ParseTree[T]) collectSymbolAndTokenTypes(
 	tokenTypes []T,
 	matches *[]*ParseTree[T],
 ) {
-	if pt.Symbol == searchSymbol && slices.Contains(tokenTypes, pt.Token.Type) {
+	if pt.Symbol == searchSymbol && (pt.Token != nil && slices.Contains(tokenTypes, pt.Token.Type)) {
 		*matches = append(*matches, pt)
 	}
 	for _, child := range pt.Children {

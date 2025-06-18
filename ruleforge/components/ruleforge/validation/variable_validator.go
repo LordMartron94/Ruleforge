@@ -20,7 +20,7 @@ func (m *VariableValidator) Validate() error {
 
 	for _, node := range m.documentTree {
 		variableDeclarations := node.FindAllSymbolNodes(symbols.ParseSymbolVariable.String())
-		variableReferences := node.FindAllSymbolAndTokenTypes(symbols.ParseSymbolIdentifier.String(), []symbols.LexingTokenType{
+		variableReferences := node.FindAllSymbolAndTokenTypes(symbols.ParseSymbolValue.String(), []symbols.LexingTokenType{
 			symbols.VariableReferenceToken,
 		})
 

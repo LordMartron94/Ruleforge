@@ -22,7 +22,9 @@ func main() {
 
 func run() error {
 	// 1) Open the input file
-	file, err := openFile("test_input/test_filter.rf")
+	path := "test_input/test_filter.rf"
+	//path = "test_input/test_filter2.rf"
+	file, err := openFile(path)
 	if err != nil {
 		return err
 	}
