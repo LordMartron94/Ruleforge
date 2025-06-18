@@ -5,7 +5,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/rules"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing"
-	rules2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/rules"
+	shared3 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/rules/shared"
 	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"io"
 )
@@ -16,7 +16,7 @@ type FileHandler[T shared.TokenTypeConstraint] struct {
 	parser *parsing.Parser[T]
 }
 
-func NewFileHandler[T shared.TokenTypeConstraint](reader io.Reader, lexingRules []rules.LexingRuleInterface[T], parsingRules []rules2.ParsingRuleInterface[T], ignoreTokenType T) *FileHandler[T] {
+func NewFileHandler[T shared.TokenTypeConstraint](reader io.Reader, lexingRules []rules.LexingRuleInterface[T], parsingRules []shared3.ParsingRuleInterface[T], ignoreTokenType T) *FileHandler[T] {
 	lexer := lexing.NewLexer[T](reader, lexingRules)
 
 	return &FileHandler[T]{

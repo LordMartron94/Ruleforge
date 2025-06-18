@@ -3,10 +3,10 @@ package parsing
 import (
 	"context"
 	"fmt"
+	shared3 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/rules/shared"
 
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/rules"
 	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/patterns/fsm"
 )
@@ -14,16 +14,16 @@ import (
 // Parser is a struct to represent a parser
 type Parser[T shared.TokenTypeConstraint] struct {
 	lexer           lexing.LexerInterface[T]
-	ruleSet         *rules.Ruleset[T]
-	stateMap        map[rules.ParsingRuleInterface[T]]fsm.State[ParsingStateArgs[T]]
+	ruleSet         *Ruleset[T]
+	stateMap        map[shared3.ParsingRuleInterface[T]]fsm.State[ParsingStateArgs[T]]
 	ignoreTokenType T
 }
 
 // NewParser creates a new parser from the given input
-func NewParser[T shared.TokenTypeConstraint](lexer lexing.LexerInterface[T], parsingRules []rules.ParsingRuleInterface[T], ignoreTokenType T) *Parser[T] {
+func NewParser[T shared.TokenTypeConstraint](lexer lexing.LexerInterface[T], parsingRules []shared3.ParsingRuleInterface[T], ignoreTokenType T) *Parser[T] {
 	parser := &Parser[T]{
 		lexer:           lexer,
-		ruleSet:         rules.NewRuleset[T](parsingRules),
+		ruleSet:         NewRuleset[T](parsingRules),
 		ignoreTokenType: ignoreTokenType,
 	}
 
@@ -112,8 +112,8 @@ type ParsingStateArgs[T shared.TokenTypeConstraint] struct {
 }
 
 // generateFSM generates the FSM for parsing
-func (p *Parser[T]) generateFSM() (map[rules.ParsingRuleInterface[T]]fsm.State[ParsingStateArgs[T]], error) {
-	stateMap := make(map[rules.ParsingRuleInterface[T]]fsm.State[ParsingStateArgs[T]])
+func (p *Parser[T]) generateFSM() (map[shared3.ParsingRuleInterface[T]]fsm.State[ParsingStateArgs[T]], error) {
+	stateMap := make(map[shared3.ParsingRuleInterface[T]]fsm.State[ParsingStateArgs[T]])
 
 	for _, rule := range p.ruleSet.Rules {
 		stateMap[rule] = func(ctx context.Context, args ParsingStateArgs[T]) (ParsingStateArgs[T], fsm.State[ParsingStateArgs[T]], error) {

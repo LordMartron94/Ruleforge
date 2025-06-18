@@ -1,4 +1,4 @@
-package rules
+package shared
 
 import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
@@ -6,7 +6,7 @@ import (
 )
 
 type ParsingRuleInterface[T shared.TokenTypeConstraint] interface {
-	// Symbol returns the grammar symbol this rule represents (e.g., "expression", "statement", "term").
+	// Symbol returns the grammar symbolString this rule represents (e.g., "expression", "statement", "term").
 	Symbol() string
 
 	// Match checks if the given sequence of tokens matches this rule's pattern.

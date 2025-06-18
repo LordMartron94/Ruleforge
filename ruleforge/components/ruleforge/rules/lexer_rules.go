@@ -28,8 +28,8 @@ var (
 	)
 )
 
-// GetDefaultRules returns all configured lexing rules in the correct order of precedence.
-func GetDefaultRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
+// GetLexingRules returns all configured lexing rules in the correct order of precedence.
+func GetLexingRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 	// The order is critical for correct tokenization. More specific rules must come first.
 	return appendSlices(
 		// 1. Fixed strings are most specific.
@@ -136,7 +136,7 @@ func buildStructuralRules() []rules.LexingRuleInterface[symbols.LexingTokenType]
 	}
 }
 
-// appendSlices is a small utility to make GetDefaultRules cleaner.
+// appendSlices is a small utility to make GetLexingRules cleaner.
 func appendSlices(slices ...[]rules.LexingRuleInterface[symbols.LexingTokenType]) []rules.LexingRuleInterface[symbols.LexingTokenType] {
 	var totalLen int
 	for _, s := range slices {
