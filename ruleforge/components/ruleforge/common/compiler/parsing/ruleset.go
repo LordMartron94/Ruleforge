@@ -20,7 +20,7 @@ func (rs *Ruleset[T]) GetMatchingRule(input []*shared.Token[T], currentIndex int
 		_, err, _ := rule.Match(input, currentIndex)
 
 		if err == nil {
-			fmt.Println(fmt.Sprintf("Matched rule (ruleSet Matcher): %s for input '%s' (lexeme: %d)", rule.Symbol(), input[currentIndex].Value, currentIndex))
+			//fmt.Println(fmt.Sprintf("Matched rule (ruleSet Matcher): %s for input '%s' (lexeme: %d)", rule.Symbol(), input[currentIndex].Value, currentIndex))
 			return rule, nil
 		}
 	}

@@ -52,11 +52,10 @@ func metadataRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolMetadata.String(),
 		token(symbols.ParseSymbolKeyword, symbols.MetadataKeywordToken),
 		whitespaceOptional,
-		token(symbols.ParseSymbolOperator, symbols.OpenCurlyBracketToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.OpenCurlyBracketToken),
 		whitespaceOptional,
 		assignments,
-		// No need for whitespace here, the last assignment's trailing space is handled by the loop.
-		token(symbols.ParseSymbolOperator, symbols.CloseCurlyBracketToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.CloseCurlyBracketToken),
 	)
 }
 
@@ -71,10 +70,10 @@ func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	return composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolSection.String(),
 		token(symbols.ParseSymbolKeyword, symbols.SectionKeywordToken),
 		whitespaceOptional,
-		token(symbols.ParseSymbolOperator, symbols.OpenCurlyBracketToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.OpenCurlyBracketToken),
 		whitespaceOptional,
 		sectionContent,
-		token(symbols.ParseSymbolOperator, symbols.CloseCurlyBracketToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.CloseCurlyBracketToken),
 	)
 }
 
@@ -85,9 +84,9 @@ func conditionListRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	)
 	return seq(symbols.ParseSymbolConditionList,
 		token(symbols.ParseSymbolKeyword, symbols.SectionConditionsKeywordToken),
-		token(symbols.ParseSymbolOperator, symbols.OpenCurlyBracketToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.OpenCurlyBracketToken),
 		conditions,
-		token(symbols.ParseSymbolOperator, symbols.CloseCurlyBracketToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.CloseCurlyBracketToken),
 	)
 }
 
@@ -111,7 +110,6 @@ func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 
 func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	chainedPart := composite.NewRepetitionRule[symbols.LexingTokenType]("ChainedAssignments",
-		// This sequence represents one "-> key => value" chain link.
 		composite.NewNestedRule[symbols.LexingTokenType](symbols.ParseSymbolAssignment.String(),
 			whitespaceOptional,
 			token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),

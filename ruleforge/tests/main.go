@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/postprocessor"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
 	"os"
@@ -44,7 +45,14 @@ func run() error {
 		return fmt.Errorf("parsing file: %w", err)
 	}
 	fmt.Println("----------------")
-	tree.Print(2, []symbols.LexingTokenType{symbols.NewLineToken})
+
+	postProcessor := postprocessor.PostProcessor[symbols.LexingTokenType]{}
+	tree = postProcessor.FilterOutSymbols([]string{
+		symbols.ParseSymbolWhitespace.String(),
+		symbols.ParseSymbolBlockOperator.String(),
+	}, tree)
+
+	tree.Print(2, []symbols.LexingTokenType{})
 
 	// 5) Validation
 	if err := validation.NewParseTreeValidator(tree).Validate(); err != nil {

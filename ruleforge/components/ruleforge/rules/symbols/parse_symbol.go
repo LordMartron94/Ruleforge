@@ -6,8 +6,6 @@ type ParseSymbol string
 
 //goland:noinspection GoCommentStart
 const (
-	// --- Top-Level Structures ---
-	ParseSymbolRoot          ParseSymbol = "RootNode"
 	ParseSymbolMetadata      ParseSymbol = "MetadataSection"
 	ParseSymbolSection       ParseSymbol = "Section"
 	ParseSymbolVariable      ParseSymbol = "VariableDeclaration"
@@ -16,14 +14,15 @@ const (
 	ParseSymbolAssignment    ParseSymbol = "Assignment"
 
 	// --- Common Grammatical Roles ---
-	ParseSymbolKey         ParseSymbol = "Key"
-	ParseSymbolValue       ParseSymbol = "Value"
-	ParseSymbolIdentifier  ParseSymbol = "Identifier"
-	ParseSymbolNumber      ParseSymbol = "Number"
-	ParseSymbolOperator    ParseSymbol = "Operator"
-	ParseSymbolKeyword     ParseSymbol = "Keyword"
-	ParseSymbolWhitespace  ParseSymbol = "Whitespace"
-	ParseSymbolAssignments ParseSymbol = "AssignmentList"
+	ParseSymbolKey           ParseSymbol = "Key"
+	ParseSymbolValue         ParseSymbol = "Value"
+	ParseSymbolIdentifier    ParseSymbol = "Identifier"
+	ParseSymbolNumber        ParseSymbol = "Number"
+	ParseSymbolOperator      ParseSymbol = "Operator"
+	ParseSymbolKeyword       ParseSymbol = "Keyword"
+	ParseSymbolWhitespace    ParseSymbol = "Whitespace"
+	ParseSymbolAssignments   ParseSymbol = "AssignmentList"
+	ParseSymbolBlockOperator ParseSymbol = "BlockOperator"
 
 	// --- Fallback ---
 	ParseSymbolAny ParseSymbol = "Any"
