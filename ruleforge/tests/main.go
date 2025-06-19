@@ -51,7 +51,7 @@ func run() error {
 	log.Println("Number of essences:", len(essences))
 	log.Println("Number of gems:", len(gems))
 
-	var baseTypes []string
+	baseTypes := []string{"Gold"} // Manually include Gold because it's not really an item, but still a valid basetype.
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(bases)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(essences)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(gems)...)
