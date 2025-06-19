@@ -38,7 +38,6 @@ const (
 	Quiver         WeaponClass = "Quivers"
 	RuneDagger     WeaponClass = "Rune Daggers"
 	Sceptre        WeaponClass = "Sceptres"
-	Shield         WeaponClass = "Shields"
 	Staff          WeaponClass = "Staves"
 	TwoHandedAxe   WeaponClass = "Two Hand Axes"
 	TwoHandedMace  WeaponClass = "Two Hand Maces"
@@ -52,13 +51,14 @@ const (
 	Boot       ArmorClass = "Boots"
 	Glove      ArmorClass = "Gloves"
 	Helmet     ArmorClass = "Helmets"
+	Shield     ArmorClass = "Shields"
 )
 
 var allWeaponClasses = []WeaponClass{
 	Bow, Claw, Dagger,
 	OneHandedAxe, OneHandedMace, OneHandedSword,
 	Quiver, RuneDagger, Sceptre,
-	Shield, Staff,
+	Staff,
 	TwoHandedAxe, TwoHandedMace, TwoHandedSword,
 	Wand, Warstaff,
 }
@@ -84,7 +84,6 @@ var buildWeaponry = map[BuildType][]WeaponClass{
 		OneHandedMace,
 		OneHandedSword,
 		Warstaff,
-		Shield,
 	},
 	Marauder: {
 		TwoHandedAxe,
@@ -93,7 +92,6 @@ var buildWeaponry = map[BuildType][]WeaponClass{
 		OneHandedAxe,
 		OneHandedMace,
 		OneHandedSword,
-		Shield,
 		Sceptre,
 	},
 	Shadow: {
@@ -103,7 +101,6 @@ var buildWeaponry = map[BuildType][]WeaponClass{
 		OneHandedSword,
 		Wand,
 		Bow,
-		Shield,
 	},
 	Ranger: {
 		Bow,
@@ -118,7 +115,6 @@ var buildWeaponry = map[BuildType][]WeaponClass{
 		RuneDagger,
 		Sceptre,
 		Staff,
-		Shield,
 	},
 	Duelist: {
 		OneHandedSword,
@@ -127,7 +123,6 @@ var buildWeaponry = map[BuildType][]WeaponClass{
 		TwoHandedAxe,
 		Bow,
 		Claw,
-		Shield,
 	},
 }
 var buildArmor = map[BuildType][]ArmorType{
@@ -175,7 +170,6 @@ var pobTypeToWeaponClass = map[string]WeaponClass{
 	"Quiver":           Quiver,
 	"Rune Dagger":      RuneDagger,
 	"Sceptre":          Sceptre,
-	"Shield":           Shield,
 	"Staff":            Staff,
 	"Two Handed Axe":   TwoHandedAxe,
 	"Two Handed Mace":  TwoHandedMace,
@@ -189,6 +183,7 @@ var pobTypeToArmorClass = map[string]ArmorClass{
 	"Boots":       Boot,
 	"Gloves":      Glove,
 	"Helmet":      Helmet,
+	"Shield":      Shield,
 }
 var pobArmorTypeToArmorType = map[string]ArmorType{
 	"Armour":                       Armor,
