@@ -5,6 +5,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/postprocessor"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
 	"os"
@@ -32,6 +33,31 @@ func run() error {
 		return fmt.Errorf("configurationLoader.LoadConfiguration: %v", err)
 	}
 
+	exporter := data_generation.NewPathOfBuildingExporter()
+	bases, err := extractItemBases(configuration, exporter)
+	if err != nil {
+		return fmt.Errorf("extractItemBases: %v", err)
+	}
+	essences, err := extractEssenceBases(configuration, exporter)
+	if err != nil {
+		return fmt.Errorf("extractEssenceBases: %v", err)
+	}
+	gems, err := extractGemBases(configuration, exporter)
+	if err != nil {
+		return fmt.Errorf("extractGemBases: %v", err)
+	}
+
+	log.Println("Number of bases:", len(bases))
+	log.Println("Number of essences:", len(essences))
+	log.Println("Number of gems:", len(gems))
+
+	baseTypes := []string{"Gold"} // Manually include Gold because it's not really an item, but still a valid basetype.
+	baseTypes = append(baseTypes, data_generation.GetBaseTypes(bases)...)
+	baseTypes = append(baseTypes, data_generation.GetBaseTypes(essences)...)
+	baseTypes = append(baseTypes, data_generation.GetBaseTypes(gems)...)
+
+	log.Println("Number of BaseTypes: ", len(baseTypes))
+
 	ruleforgeScripts, err := listFilesWithExtension(configuration.RuleforgeInputDir, ".rf")
 
 	if err != nil {
@@ -39,7 +65,7 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript, configuration)
+		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes)
 		if err != nil {
 			return fmt.Errorf("processRuleforgeScript: %v", err)
 		}
@@ -48,7 +74,52 @@ func run() error {
 	return nil
 }
 
-func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel) error {
+func extractItemBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.ItemBase, error) {
+	luaFiles, err := listFilesWithExtension(filepath.Join(configuration.PathOfBuildingDataPath, "Bases"), ".lua")
+
+	if err != nil {
+		return nil, fmt.Errorf("listFilesWithExtension: %v", err)
+	}
+
+	bases := make([]data_generation.ItemBase, 0)
+
+	for _, luaFile := range luaFiles {
+		fileBases, err := exporter.LoadItemBases(luaFile)
+		if err != nil {
+			log.Fatalf("Error processing file: %v", err)
+		}
+
+		bases = append(bases, fileBases...)
+	}
+
+	return bases, nil
+}
+
+func extractEssenceBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.Essence, error) {
+	file := filepath.Join(configuration.PathOfBuildingDataPath, "Essence.lua")
+
+	essences, err := exporter.LoadEssences(file)
+
+	if err != nil {
+		return nil, fmt.Errorf("loadEssences: %v", err)
+	}
+
+	return essences, nil
+}
+
+func extractGemBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.Gem, error) {
+	file := filepath.Join(configuration.PathOfBuildingDataPath, "Gems.lua")
+
+	gems, err := exporter.LoadGems(file)
+
+	if err != nil {
+		return nil, fmt.Errorf("loadEssences: %v", err)
+	}
+
+	return gems, nil
+}
+
+func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel, validBases []string) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -90,7 +161,7 @@ func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.Co
 	// 6) Compilation
 	compiler := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	})
+	}, validBases)
 	outputStrings, err, outputName := compiler.CompileIntoFilter()
 
 	if err != nil {

@@ -15,13 +15,15 @@ type Compiler struct {
 	compilerConfiguration CompilerConfiguration
 	ruleFactory           *RuleFactory
 	styles                *map[string]*config.Style
+	validBaseTypes        []string
 }
 
-func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configuration CompilerConfiguration) *Compiler {
+func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configuration CompilerConfiguration, validBaseTypes []string) *Compiler {
 	return &Compiler{
 		parseTree:             parseTree,
 		compilerConfiguration: configuration,
 		ruleFactory:           &RuleFactory{},
+		validBaseTypes:        validBaseTypes,
 	}
 }
 
@@ -162,7 +164,7 @@ func (c *Compiler) handleSection(output *[]string, variables *map[string][]strin
 		compiledSectionConditions := make([]string, len(conditions))
 		*output = append(*output, "")
 		for i, condition := range conditions {
-			compiledSectionConditions[i] = condition.ConstructCompiledCondition(variables)
+			compiledSectionConditions[i] = condition.ConstructCompiledCondition(variables, c.validBaseTypes)
 		}
 
 		ruleListNode := node.FindSymbolNode(symbols.ParseSymbolRules.String())
@@ -190,7 +192,7 @@ func (c *Compiler) extractRules(ruleListNode *shared.ParseTree[symbols.LexingTok
 		ruleConditionsRaw := c.retrieveConditions(ruleExpressionNode)
 		compiledRuleConditions := make([]string, len(ruleConditionsRaw))
 		for i, condition := range ruleConditionsRaw {
-			compiledRuleConditions[i] = condition.ConstructCompiledCondition(variables)
+			compiledRuleConditions[i] = condition.ConstructCompiledCondition(variables, c.validBaseTypes)
 		}
 
 		mergedConditions := slices.Concat(compiledSectionConditions, compiledRuleConditions)

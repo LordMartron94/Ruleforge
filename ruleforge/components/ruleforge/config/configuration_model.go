@@ -9,4 +9,7 @@ type ConfigurationModel struct {
 
 	// StyleJSONFile indicates the JSON file where all styles are housed.
 	StyleJSONFile string `json:"StyleJSONFile"`
+
+	// PathOfBuildingDataPath is where all Path of Building data is stored.
+	PathOfBuildingDataPath string `json:"PathOfBuildingDataPath"`
 }
