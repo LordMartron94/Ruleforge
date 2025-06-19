@@ -5,10 +5,19 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/transforming/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"slices"
 	"strings"
 )
+
+type ParsedRule struct {
+	Style          *config.Style
+	Action         RuleType
+	Conditions     []condition
+	Variables      *map[string][]string
+	ValidBaseTypes []string
+}
 
 type Compiler struct {
 	parseTree             *shared.ParseTree[symbols.LexingTokenType]
@@ -16,14 +25,26 @@ type Compiler struct {
 	ruleFactory           *RuleFactory
 	styles                *map[string]*config.Style
 	validBaseTypes        []string
+	armorBases            []data_generation.ItemBase
 }
 
-func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configuration CompilerConfiguration, validBaseTypes []string) *Compiler {
+func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configuration CompilerConfiguration, validBaseTypes []string, itemBases []data_generation.ItemBase) *Compiler {
+	var armorBaseTypes []data_generation.ItemBase
+
+	utils := NewPobUtils()
+
+	for _, item := range itemBases {
+		if utils.IsArmor(item) {
+			armorBaseTypes = append(armorBaseTypes, item)
+		}
+	}
+
 	return &Compiler{
 		parseTree:             parseTree,
 		compilerConfiguration: configuration,
 		ruleFactory:           &RuleFactory{},
 		validBaseTypes:        validBaseTypes,
+		armorBases:            armorBaseTypes,
 	}
 }
 
@@ -163,64 +184,172 @@ func (c *Compiler) handleSection(output *[]string, variables *map[string][]strin
 
 		*output = append(*output, c.constructSectionHeading(sectionName, sectionDescription))
 
+		// 1. Get section-wide conditions BUT DO NOT COMPILE THEM YET.
 		conditionListNode := node.FindSymbolNode(symbols.ParseSymbolConditionList.String())
-		conditions := c.retrieveConditions(conditionListNode, build)
+		sectionRuleConditions := c.retrieveConditions(conditionListNode)
 
-		compiledSectionConditions := make([]string, len(conditions))
-		*output = append(*output, "")
-		for i, condition := range conditions {
-			compiledSectionConditions[i] = condition.ConstructCompiledCondition(variables, c.validBaseTypes)
+		// 2. Delegate rule extraction and compilation, passing the RAW conditions.
+		ruleListNode := node.FindSymbolNode(symbols.ParseSymbolRules.String())
+		compiledRules := c.extractAndCompileRules(ruleListNode, sectionRuleConditions, variables, build)
+
+		// 3. Append the results to the output
+		for _, rule := range compiledRules {
+			*output = append(*output, rule...)
+		}
+	}
+}
+
+func (c *Compiler) extractAndCompileRules(
+	ruleListNode *shared.ParseTree[symbols.LexingTokenType],
+	sectionConditions []condition,
+	variables *map[string][]string, buildType BuildType) [][]string {
+	ruleExpressions := ruleListNode.FindAllSymbolNodes(symbols.ParseSymbolRuleExpression.String())
+	var allGeneratedRules [][]string
+
+	for _, ruleExpressionNode := range ruleExpressions {
+		// --- 1. Parse the expression into a high-level ParsedRule struct ---
+		styleValue := ruleExpressionNode.Children[2].Token.ValueToString()
+		style := c.extractStyle(styleValue, variables)
+
+		showOrHideStr := ruleExpressionNode.Children[4].Token.ValueToString()[1:]
+		var action RuleType
+		if showOrHideStr == "Show" {
+			action = ShowRule
+		} else {
+			action = HideRule
 		}
 
-		ruleListNode := node.FindSymbolNode(symbols.ParseSymbolRules.String())
+		ruleSpecificConditions := c.retrieveConditions(ruleExpressionNode)
 
-		rules := c.extractRules(ruleListNode, compiledSectionConditions, variables, build)
-		*output = append(*output, rules...)
+		rule := &ParsedRule{
+			Style:          style,
+			Action:         action,
+			Conditions:     ruleSpecificConditions,
+			Variables:      variables,
+			ValidBaseTypes: c.validBaseTypes,
+		}
+
+		// --- 2. Delegate compilation to a dedicated function ---
+		generatedRules := c.compileParsedRule(rule, sectionConditions, buildType)
+		allGeneratedRules = append(allGeneratedRules, generatedRules...)
 	}
+
+	return allGeneratedRules
+}
+
+func (c *Compiler) compileParsedRule(rule *ParsedRule, sectionConditions []condition, buildType BuildType) [][]string {
+	// 1. Separate the rule's own conditions into standard and macro.
+	var macroConditions []condition
+	var standardRuleConditions []condition
+	macros := []string{"@class_use"}
+
+	for _, cond := range rule.Conditions {
+		if slices.Contains(macros, cond.identifier) {
+			macroConditions = append(macroConditions, cond)
+		} else {
+			standardRuleConditions = append(standardRuleConditions, cond)
+		}
+	}
+
+	// 2. Build the final list of conditions, preserving section order and handling overrides.
+	ruleConditionsMap := make(map[string]condition, len(standardRuleConditions))
+	for _, ruleCond := range standardRuleConditions {
+		key := ruleCond.identifier + ":" + ruleCond.operator
+		ruleConditionsMap[key] = ruleCond
+	}
+
+	finalStandardConditions := make([]condition, 0, len(standardRuleConditions)+len(sectionConditions))
+
+	for _, sectionCond := range sectionConditions {
+		key := sectionCond.identifier + ":" + sectionCond.operator
+
+		if overrideCond, found := ruleConditionsMap[key]; found {
+			finalStandardConditions = append(finalStandardConditions, overrideCond)
+			delete(ruleConditionsMap, key)
+		} else {
+			finalStandardConditions = append(finalStandardConditions, sectionCond)
+		}
+	}
+
+	for _, ruleCond := range standardRuleConditions {
+		key := ruleCond.identifier + ":" + ruleCond.operator
+		if _, found := ruleConditionsMap[key]; found {
+			finalStandardConditions = append(finalStandardConditions, ruleCond)
+		}
+	}
+
+	// 3. Compile the final, merged list of standard conditions into strings.
+	compiledFinalConditions := make([]string, len(finalStandardConditions))
+	for i, cond := range finalStandardConditions {
+		compiledFinalConditions[i] = cond.ConstructCompiledCondition(rule.Variables, rule.ValidBaseTypes)
+	}
+
+	// 4. Handle macros using the final compiled base conditions.
+	if len(macroConditions) == 0 {
+		finalRule := c.ruleFactory.ConstructRule(rule.Action, *rule.Style, compiledFinalConditions)
+		return [][]string{finalRule}
+	}
+
+	var allGeneratedRules [][]string
+	for _, macro := range macroConditions {
+		var generatedForMacro [][]string
+		switch macro.identifier {
+		case "@class_use":
+			generatedForMacro = c.handleClassUseMacro(rule.Action, rule.Style, compiledFinalConditions, macro, buildType, rule.Variables)
+		default:
+			panic("unknown macro: " + macro.identifier)
+		}
+		allGeneratedRules = append(allGeneratedRules, generatedForMacro...)
+	}
+	return allGeneratedRules
+}
+
+// handleClassUseMacro generates all rules associated with a @class_use macro.
+// This is where you will implement your weaponry and equipment logic.
+func (c *Compiler) handleClassUseMacro(
+	action RuleType, style *config.Style, baseConditions []string,
+	macro condition, buildType BuildType, variables *map[string][]string) [][]string {
+	operator := macro.operator
+	value := macro.value[0]
+
+	// --- Rule 1: Weaponry (Example Implementation) ---
+	var weaponClasses []string
+	var armorClasses []string
+	switch value {
+	case "true":
+		weaponClasses = GetAssociatedWeaponClasses(buildType)
+		for _, item := range c.armorBases {
+			if IsArmorAssociatedWithBuild(item, buildType) {
+				armorClasses = append(armorClasses, item.GetBaseType())
+			}
+		}
+	case "false":
+		weaponClasses = GetUnassociatedWeaponClasses(buildType)
+		for _, item := range c.armorBases {
+			if !IsArmorAssociatedWithBuild(item, buildType) {
+				armorClasses = append(armorClasses, item.GetBaseType())
+			}
+		}
+	default:
+		panic(fmt.Sprintf("invalid value for @class_use: %s", value))
+	}
+
+	weaponryCond := condition{identifier: "@item_class", operator: operator, value: weaponClasses}
+	compiledWeaponryCond := weaponryCond.ConstructCompiledCondition(variables, c.validBaseTypes)
+	finalWeaponryConditions := slices.Concat(baseConditions, []string{compiledWeaponryCond})
+	weaponryRule := c.ruleFactory.ConstructRule(action, *style, finalWeaponryConditions)
+
+	armorCond := condition{identifier: "@item_type", operator: operator, value: armorClasses}
+	compiledArmorCond := armorCond.ConstructCompiledCondition(variables, c.validBaseTypes)
+	finalArmorConditions := slices.Concat(baseConditions, []string{compiledArmorCond})
+	armorRule := c.ruleFactory.ConstructRule(action, *style, finalArmorConditions)
+
+	// --- Combine and Return ---
+	return [][]string{weaponryRule, armorRule}
 }
 
 func (c *Compiler) constructSectionHeading(sectionName, sectionDescription string) string {
 	return c.constructComment(fmt.Sprintf("---------------- SECTION: %s (%s) ----------------", sectionName, sectionDescription))
-}
-
-func (c *Compiler) extractRules(
-	ruleListNode *shared.ParseTree[symbols.LexingTokenType],
-	compiledSectionConditions []string, variables *map[string][]string,
-	buildType BuildType) []string {
-	ruleExpressions := ruleListNode.FindAllSymbolNodes(symbols.ParseSymbolRuleExpression.String())
-
-	ruleLines := make([]string, 0)
-
-	for _, ruleExpressionNode := range ruleExpressions {
-		styleValue := ruleExpressionNode.Children[2].Token.ValueToString()
-		style := c.extractStyle(styleValue, variables)
-
-		showOrHide := ruleExpressionNode.Children[4].Token.ValueToString()[1:]
-
-		ruleConditionsRaw := c.retrieveConditions(ruleExpressionNode, buildType)
-		compiledRuleConditions := make([]string, len(ruleConditionsRaw))
-		for i, condition := range ruleConditionsRaw {
-			compiledRuleConditions[i] = condition.ConstructCompiledCondition(variables, c.validBaseTypes)
-		}
-
-		mergedConditions := slices.Concat(compiledSectionConditions, compiledRuleConditions)
-
-		var rule []string
-		switch showOrHide {
-		case "Show":
-			rule = c.ruleFactory.ConstructRule(ShowRule, *style, mergedConditions)
-			break
-		case "Hide":
-			rule = c.ruleFactory.ConstructRule(HideRule, *style, mergedConditions)
-			break
-		default:
-			panic(fmt.Sprintf("unknown showOrHide value: %s", showOrHide))
-		}
-
-		ruleLines = append(ruleLines, rule...)
-	}
-
-	return ruleLines
 }
 
 func (c *Compiler) extractStyle(styleValue string, variables *map[string][]string) *config.Style {
@@ -287,9 +416,8 @@ func (c *Compiler) resolveVariableStyle(styleValue string, variables map[string]
 	return merged
 }
 
-func (c *Compiler) retrieveConditions(conditionListNode *shared.ParseTree[symbols.LexingTokenType], buildType BuildType) []condition {
-	conditionNodes := conditionListNode.FindAllSymbolNodes(symbols.ParseSymbolConditionExpression.String())
-
+func (c *Compiler) retrieveConditions(node *shared.ParseTree[symbols.LexingTokenType]) []condition {
+	conditionNodes := node.FindAllSymbolNodes(symbols.ParseSymbolConditionExpression.String())
 	conditions := make([]condition, len(conditionNodes))
 
 	for i, conditionNode := range conditionNodes {
@@ -297,47 +425,11 @@ func (c *Compiler) retrieveConditions(conditionListNode *shared.ParseTree[symbol
 		operator := conditionNode.Children[2].Token.ValueToString()
 		value := conditionNode.Children[3].Token.ValueToString()
 
-		switch identifier {
-		case "@class_use":
-			c.handleClassUseCondition(i, &conditions, operator, value, buildType)
-		default:
-			c.handleGenericCondition(i, &conditions, identifier, operator, value)
+		conditions[i] = condition{
+			identifier: identifier,
+			operator:   operator,
+			value:      []string{value},
 		}
 	}
-
 	return conditions
-}
-
-func (c *Compiler) handleClassUseCondition(conditionIndex int, conditions *[]condition, operator string, value string, build BuildType) {
-	associatedWeaponry := GetAssociatedWeaponClasses(build)
-	unassociatedWeaponry := GetUnassociatedWeaponClasses(build)
-
-	var classes []string
-
-	switch value {
-	case "false":
-		classes = unassociatedWeaponry
-		break
-	case "true":
-		classes = associatedWeaponry
-		break
-	default:
-		panic(fmt.Sprintf("invalid value for class use condition: %s", value))
-	}
-
-	(*conditions)[conditionIndex] = condition{
-		identifier: "@item_class",
-		operator:   operator,
-		value:      classes,
-	}
-}
-
-func (c *Compiler) handleGenericCondition(
-	conditionIndex int, conditions *[]condition,
-	identifier, operator, value string) {
-	(*conditions)[conditionIndex] = condition{
-		identifier: identifier,
-		operator:   operator,
-		value:      []string{value},
-	}
 }

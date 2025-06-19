@@ -34,7 +34,7 @@ func run() error {
 	}
 
 	exporter := data_generation.NewPathOfBuildingExporter()
-	bases, err := extractItemBases(configuration, exporter)
+	itemBases, err := extractItemBases(configuration, exporter)
 	if err != nil {
 		return fmt.Errorf("extractItemBases: %v", err)
 	}
@@ -47,12 +47,12 @@ func run() error {
 		return fmt.Errorf("extractGemBases: %v", err)
 	}
 
-	log.Println("Number of bases:", len(bases))
+	log.Println("Number of itemBases:", len(itemBases))
 	log.Println("Number of essences:", len(essences))
 	log.Println("Number of gems:", len(gems))
 
 	baseTypes := []string{"Gold"} // Manually include Gold because it's not really an item, but still a valid basetype.
-	baseTypes = append(baseTypes, data_generation.GetBaseTypes(bases)...)
+	baseTypes = append(baseTypes, data_generation.GetBaseTypes(itemBases)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(essences)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(gems)...)
 
@@ -65,7 +65,7 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes)
+		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases)
 		if err != nil {
 			return fmt.Errorf("processRuleforgeScript: %v", err)
 		}
@@ -119,7 +119,7 @@ func extractGemBases(configuration *config.ConfigurationModel, exporter *data_ge
 	return gems, nil
 }
 
-func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel, validBases []string) error {
+func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel, validBases []string, itemBases []data_generation.ItemBase) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.Co
 	// 6) Compilation
 	compiler := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases)
+	}, validBases, itemBases)
 	outputStrings, err, outputName := compiler.CompileIntoFilter()
 
 	if err != nil {

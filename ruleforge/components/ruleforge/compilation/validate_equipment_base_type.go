@@ -2,6 +2,7 @@ package compilation
 
 import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
+	"log"
 	"slices"
 )
 
@@ -65,12 +66,14 @@ var allWeaponClasses = []WeaponClass{
 type ArmorType string
 
 const (
-	Armor         ArmorType = "Armour"
-	Evasion       ArmorType = "Evasion"
-	EnergyShield  ArmorType = "Energy Shield"
-	ArmourEvasion ArmorType = "Armour/Evasion"
-	ArmourEnergy  ArmorType = "Armour/Energy Shield"
-	EvasionEnergy ArmorType = "Evasion/Energy Shield"
+	Armor               ArmorType = "Armour"
+	Evasion             ArmorType = "Evasion"
+	EnergyShield        ArmorType = "Energy Shield"
+	ArmourEvasion       ArmorType = "Armour/Evasion"
+	ArmourEnergy        ArmorType = "Armour/Energy Shield"
+	EvasionEnergy       ArmorType = "Evasion/Energy Shield"
+	ArmourEvasionEnergy ArmorType = "Armour/Evasion/Energy Shield"
+	Ward                ArmorType = "Ward"
 )
 
 var buildWeaponry = map[BuildType][]WeaponClass{
@@ -132,25 +135,34 @@ var buildArmor = map[BuildType][]ArmorType{
 		Armor,
 		EnergyShield,
 		ArmourEnergy,
+		ArmourEvasionEnergy,
+		Ward,
 	},
 	Marauder: {
 		Armor,
+		ArmourEvasionEnergy,
 	},
 	Shadow: {
 		Evasion,
 		EnergyShield,
 		EvasionEnergy,
+		ArmourEvasionEnergy,
+		Ward,
 	},
 	Ranger: {
 		Evasion,
+		ArmourEvasionEnergy,
 	},
 	Witch: {
 		EnergyShield,
+		ArmourEvasionEnergy,
+		Ward,
 	},
 	Duelist: {
 		Armor,
 		Evasion,
 		ArmourEvasion,
+		ArmourEvasionEnergy,
 	},
 }
 var pobTypeToWeaponClass = map[string]WeaponClass{
@@ -179,12 +191,14 @@ var pobTypeToArmorClass = map[string]ArmorClass{
 	"Helmet":      Helmet,
 }
 var pobArmorTypeToArmorType = map[string]ArmorType{
-	"Armour":                Armor,
-	"Evasion":               Armor,
-	"Energy Shield":         EnergyShield,
-	"Armour/Evasion":        ArmourEvasion,
-	"Armour/Energy Shield":  ArmourEnergy,
-	"Evasion/Energy Shield": EnergyShield,
+	"Armour":                       Armor,
+	"Evasion":                      Armor,
+	"Energy Shield":                EnergyShield,
+	"Armour/Evasion":               ArmourEvasion,
+	"Armour/Energy Shield":         ArmourEnergy,
+	"Evasion/Energy Shield":        EnergyShield,
+	"Armour/Evasion/Energy Shield": ArmourEvasionEnergy,
+	"Ward":                         Ward,
 }
 
 func GetBuildType(build string) BuildType {
@@ -265,6 +279,11 @@ func IsArmorAssociatedWithBuild(armor data_generation.ItemBase, characterBuild B
 	}
 
 	if armorClass == Belt {
+		return true
+	}
+
+	if armor.SubType == "" {
+		log.Println("WARNING: Empty armor type. Including for build!")
 		return true
 	}
 

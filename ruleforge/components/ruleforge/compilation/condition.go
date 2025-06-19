@@ -48,8 +48,6 @@ func (c *condition) ConstructCompiledCondition(variables *map[string][]string, v
 			continue
 		}
 
-		debugMap(*variables)
-
 		variableValues, ok := (*variables)[value[1:]]
 
 		if !ok {
