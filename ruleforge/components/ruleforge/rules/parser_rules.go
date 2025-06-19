@@ -20,6 +20,13 @@ var (
 	)
 	// requiredWhitespace matches exactly one mandatory Whitespace token.
 	requiredWhitespace = atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespace.String(), symbols.WhitespaceToken)
+
+	strictnessAssignmentValues = conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
+		[]symbols.LexingTokenType{
+			symbols.AllKeywordToken, symbols.SoftKeywordToken, symbols.SemiStrictKeywordToken,
+			symbols.StrictKeywordToken, symbols.SuperStrictKeywordToken,
+		},
+	)
 )
 
 // GetParsingRules returns the list of all top-level parsing rules.
@@ -109,13 +116,25 @@ func ruleExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		},
 	)
 
-	return seq(symbols.ParseSymbolRuleExpression,
+	normalExpression := seq(symbols.ParseSymbolRuleExpression,
 		conditionRule(),
 		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
 		valueOpts,
 		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
 		valueOpts,
 	)
+
+	elaborateExpression := seq(symbols.ParseSymbolRuleExpression,
+		conditionRule(),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		valueOpts,
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		valueOpts,
+		token(symbols.ParseSymbolKeyword, symbols.RuleStrictnessIndicatorToken),
+		strictnessAssignmentValues,
+	)
+	
+	return composite.NewChoiceRule(symbols.ParseSymbolRuleExpression.String(), []shared.ParsingRuleInterface[symbols.LexingTokenType]{elaborateExpression, normalExpression})
 }
 
 // --- Assignment and Declaration Rules ---
@@ -224,13 +243,7 @@ func versionAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 }
 
 func strictnessAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
-	allowedValues := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
-		[]symbols.LexingTokenType{
-			symbols.AllKeywordToken, symbols.SoftKeywordToken, symbols.SemiStrictKeywordToken,
-			symbols.StrictKeywordToken, symbols.SuperStrictKeywordToken,
-		},
-	)
-	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.StrictnessKeywordToken, allowedValues)
+	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.StrictnessKeywordToken, strictnessAssignmentValues)
 }
 
 func descriptionAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {

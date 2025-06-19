@@ -15,6 +15,7 @@ var (
 	whitespaceRule                = rules.NewWhitespaceLexingRule(symbols.WhitespaceToken, "WhitespaceLexer")
 	identifierAllowedSpecialChars = rules.NewCharacterOptionLexingRule([]rune{'.', '_', '-'}, symbols.IdentifierValueToken, "identifierAllowedSpecialChars")
 	quotedAllowedSpecialChars     = rules.NewCharacterOptionLexingRule([]rune{'[', ']'}, symbols.IdentifierValueToken, "quotedIdentifierAllowedSpecialChars")
+	ruleStrictnessIndicator       = rules.NewSpecificCharacterLexingRule('#', symbols.RuleStrictnessIndicatorToken, "ruleStrictnessIndicator")
 
 	// Composite rules built from the components above.
 	// This rule defines what an unquoted identifier can be made of.
@@ -164,6 +165,7 @@ func buildStructuralRules() []rules.LexingRuleInterface[symbols.LexingTokenType]
 		rules.NewSpecificCharacterLexingRule('(', symbols.IgnoreToken, "OpenParenthesesToken"),
 		rules.NewSpecificCharacterLexingRule(')', symbols.IgnoreToken, "CloseParenthesesToken"),
 		rules.NewCharacterOptionLexingRule([]rune{'\r', '\n'}, symbols.NewLineToken, "newline"),
+		ruleStrictnessIndicator,
 		whitespaceRule,
 	}
 }

@@ -30,6 +30,7 @@ const (
 	LessThanOperatorToken
 	ExactMatchOperatorToken
 	StyleCombineToken
+	RuleStrictnessIndicatorToken
 
 	// KEYWORDS
 	MetadataKeywordToken

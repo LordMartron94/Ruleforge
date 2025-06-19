@@ -10,7 +10,7 @@ type PostProcessor[T shared2.TokenTypeConstraint] struct{}
 
 func (p *PostProcessor[T]) FilterOutSymbols(filterSymbols []string, node *shared.ParseTree[T]) *shared.ParseTree[T] {
 	// 1. Check if the current node represents a symbol to filter.
-	if extensions.Contains(filterSymbols, node.Symbol) {
+	if node == nil || extensions.Contains(filterSymbols, node.Symbol) {
 		return nil
 	}
 
