@@ -9,6 +9,29 @@ import (
 
 // --- Struct Definitions ---
 
+// GemRequirements holds the attribute requirements for a skill gem.
+type GemRequirements struct {
+	Str int `json:"str,omitempty"`
+	Dex int `json:"dex,omitempty"`
+	Int int `json:"int,omitempty"`
+}
+
+// Gem holds the data for a single skill gem.
+type Gem struct {
+	ID                       string          `json:"id"`
+	Name                     string          `json:"name"`
+	BaseTypeName             string          `json:"baseTypeName"`
+	GameID                   string          `json:"gameId"`
+	VariantID                string          `json:"variantId"`
+	GrantedEffectID          string          `json:"grantedEffectId"`
+	SecondaryGrantedEffectID string          `json:"secondaryGrantedEffectId,omitempty"`
+	IsVaalGem                bool            `json:"isVaalGem,omitempty"`
+	Tags                     map[string]bool `json:"tags"`
+	TagString                string          `json:"tagString"`
+	Requirements             GemRequirements `json:"requirements"`
+	NaturalMaxLevel          int             `json:"naturalMaxLevel"`
+}
+
 // Essence holds data for a single Path of Exile essence.
 type Essence struct {
 	ID   string            `json:"id"`
@@ -130,14 +153,25 @@ func (e *PathOfBuildingExporter) LoadEssences(luaFilePath string) ([]Essence, er
 	return models, nil
 }
 
-func newEssenceFromLuaTable(id string, table *lua.LTable) Essence {
-	return Essence{
-		ID:   id,
-		Name: getStringField(table, "name", ""),
-		Type: getIntField(table, "type", 0),
-		Tier: getIntField(table, "tier", 0),
-		Mods: tableToStringMap(table, "mods"),
+func (e *PathOfBuildingExporter) LoadGems(luaFilePath string) ([]Gem, error) {
+	dataTable, err := e.luaExecutor.ExecuteScriptWithReturn(luaFilePath)
+	if err != nil {
+		return nil, err
 	}
+
+	var models []Gem
+	dataTable.ForEach(func(key lua.LValue, value lua.LValue) {
+		gemID := key.String()
+		gemDataTable, ok := value.(*lua.LTable)
+		if !ok {
+			log.Printf("WARN: Value for key '%s' is not a table, skipping.", gemID)
+			return
+		}
+		models = append(models, newGemFromLuaTable(gemID, gemDataTable))
+	})
+
+	log.Printf("Successfully converted %d gem models from %s\n", len(models), filepath.Base(luaFilePath))
+	return models, nil
 }
 
 // --- Internal Factory & Mapping Helpers (Updated) ---
@@ -172,6 +206,37 @@ func newItemBaseFromLuaTable(name string, table *lua.LTable) ItemBase {
 	}
 
 	return model
+}
+
+func newEssenceFromLuaTable(id string, table *lua.LTable) Essence {
+	return Essence{
+		ID:   id,
+		Name: getStringField(table, "name", ""),
+		Type: getIntField(table, "type", 0),
+		Tier: getIntField(table, "tier", 0),
+		Mods: tableToStringMap(table, "mods"),
+	}
+}
+
+func newGemFromLuaTable(id string, table *lua.LTable) Gem {
+	return Gem{
+		ID:                       id,
+		Name:                     getStringField(table, "name", ""),
+		BaseTypeName:             getStringField(table, "baseTypeName", ""),
+		GameID:                   getStringField(table, "gameId", ""),
+		VariantID:                getStringField(table, "variantId", ""),
+		GrantedEffectID:          getStringField(table, "grantedEffectId", ""),
+		SecondaryGrantedEffectID: getStringField(table, "secondaryGrantedEffectId", ""),
+		IsVaalGem:                getBoolField(table, "vaalGem", false),
+		Tags:                     tableToBoolMap(table, "tags"),
+		TagString:                getStringField(table, "tagString", ""),
+		Requirements: GemRequirements{
+			Str: getIntField(table, "reqStr", 0),
+			Dex: getIntField(table, "reqDex", 0),
+			Int: getIntField(table, "reqInt", 0),
+		},
+		NaturalMaxLevel: getIntField(table, "naturalMaxLevel", 0),
+	}
 }
 
 // newArmourProperties creates an ArmourProperties struct from its Lua sub-table.
@@ -267,6 +332,14 @@ func tableToInterfaceMap(table *lua.LTable, key string) map[string]int {
 		})
 	}
 	return result
+}
+
+func getBoolField(table *lua.LTable, key string, defaultValue bool) bool {
+	val := table.RawGetString(key)
+	if b, ok := val.(lua.LBool); ok {
+		return bool(b)
+	}
+	return defaultValue
 }
 
 func getStringField(table *lua.LTable, key string, defaultValue string) string {

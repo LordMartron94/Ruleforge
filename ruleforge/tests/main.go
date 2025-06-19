@@ -42,9 +42,14 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("extractEssenceBases: %v", err)
 	}
+	gems, err := extractGemBases(configuration, exporter)
+	if err != nil {
+		return fmt.Errorf("extractGemBases: %v", err)
+	}
 
 	log.Println("Number of bases:", len(bases))
 	log.Println("Number of essences:", len(essences))
+	log.Println("Number of gems:", len(gems))
 
 	ruleforgeScripts, err := listFilesWithExtension(configuration.RuleforgeInputDir, ".rf")
 
@@ -93,6 +98,18 @@ func extractEssenceBases(configuration *config.ConfigurationModel, exporter *dat
 	}
 
 	return essences, nil
+}
+
+func extractGemBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.Gem, error) {
+	file := filepath.Join(configuration.PathOfBuildingDataPath, "Gems.lua")
+
+	gems, err := exporter.LoadGems(file)
+
+	if err != nil {
+		return nil, fmt.Errorf("loadEssences: %v", err)
+	}
+
+	return gems, nil
 }
 
 func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel) error {
