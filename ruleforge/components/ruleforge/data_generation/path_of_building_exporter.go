@@ -7,7 +7,16 @@ import (
 	"github.com/yuin/gopher-lua"
 )
 
-// --- Struct Definitions (Expanded) ---
+// --- Struct Definitions ---
+
+// Essence holds data for a single Path of Exile essence.
+type Essence struct {
+	ID   string            `json:"id"`
+	Name string            `json:"name"`
+	Type int               `json:"type"`
+	Tier int               `json:"tier"`
+	Mods map[string]string `json:"mods"`
+}
 
 // ArmourProperties holds data specific to armour pieces.
 type ArmourProperties struct {
@@ -96,6 +105,39 @@ func (e *PathOfBuildingExporter) LoadItemBases(luaFilePath string) ([]ItemBase, 
 
 	log.Printf("Successfully converted %d item base models from %s\n", len(models), filepath.Base(luaFilePath))
 	return models, nil
+}
+
+func (e *PathOfBuildingExporter) LoadEssences(luaFilePath string) ([]Essence, error) {
+	// 1. Delegate execution to our new executor method.
+	dataTable, err := e.luaExecutor.ExecuteScriptWithReturn(luaFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Map the results from the Lua table to our Go structs.
+	var models []Essence
+	dataTable.ForEach(func(key lua.LValue, value lua.LValue) {
+		essenceID := key.String()
+		essenceDataTable, ok := value.(*lua.LTable)
+		if !ok {
+			log.Printf("WARN: Value for key '%s' is not a table, skipping.", essenceID)
+			return
+		}
+		models = append(models, newEssenceFromLuaTable(essenceID, essenceDataTable))
+	})
+
+	log.Printf("Successfully converted %d essence models from %s\n", len(models), filepath.Base(luaFilePath))
+	return models, nil
+}
+
+func newEssenceFromLuaTable(id string, table *lua.LTable) Essence {
+	return Essence{
+		ID:   id,
+		Name: getStringField(table, "name", ""),
+		Type: getIntField(table, "type", 0),
+		Tier: getIntField(table, "tier", 0),
+		Mods: tableToStringMap(table, "mods"),
+	}
 }
 
 // --- Internal Factory & Mapping Helpers (Updated) ---

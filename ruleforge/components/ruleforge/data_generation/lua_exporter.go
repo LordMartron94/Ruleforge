@@ -43,3 +43,31 @@ func (e *LuaExecutor) ExecuteScriptAsFunc(luaFilePath string) (*lua.LTable, erro
 	// 6. Return the now-populated table.
 	return argTable, nil
 }
+
+// ExecuteScriptWithReturn handles scripts that return a table directly.
+func (e *LuaExecutor) ExecuteScriptWithReturn(luaFilePath string) (*lua.LTable, error) {
+	L := lua.NewState()
+	defer L.Close()
+
+	// Loading is the same, it compiles the file into a function.
+	fn, err := L.LoadFile(luaFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not load lua file '%s': %w", luaFilePath, err)
+	}
+
+	L.Push(fn)
+	// Execute with 0 arguments, but expect 1 return value.
+	if err := L.PCall(0, 1, nil); err != nil {
+		return nil, fmt.Errorf("error executing lua script '%s': %w", luaFilePath, err)
+	}
+
+	// Get the return value from the top of the stack.
+	ret := L.Get(-1)
+
+	// Check if the return value is actually a table.
+	if tbl, ok := ret.(*lua.LTable); ok {
+		return tbl, nil
+	}
+
+	return nil, fmt.Errorf("lua script did not return a table")
+}

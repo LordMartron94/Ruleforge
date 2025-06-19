@@ -33,12 +33,18 @@ func run() error {
 		return fmt.Errorf("configurationLoader.LoadConfiguration: %v", err)
 	}
 
-	bases, err := extractCSVData(configuration)
+	exporter := data_generation.NewPathOfBuildingExporter()
+	bases, err := extractItemBases(configuration, exporter)
 	if err != nil {
-		return fmt.Errorf("extractCSVData: %v", err)
+		return fmt.Errorf("extractItemBases: %v", err)
 	}
-	
+	essences, err := extractEssenceBases(configuration, exporter)
+	if err != nil {
+		return fmt.Errorf("extractEssenceBases: %v", err)
+	}
+
 	log.Println("Number of bases:", len(bases))
+	log.Println("Number of essences:", len(essences))
 
 	ruleforgeScripts, err := listFilesWithExtension(configuration.RuleforgeInputDir, ".rf")
 
@@ -56,9 +62,7 @@ func run() error {
 	return nil
 }
 
-func extractCSVData(configuration *config.ConfigurationModel) ([]data_generation.ItemBase, error) {
-	exporter := data_generation.NewPathOfBuildingExporter()
-
+func extractItemBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.ItemBase, error) {
 	luaFiles, err := listFilesWithExtension(filepath.Join(configuration.PathOfBuildingDataPath, "Bases"), ".lua")
 
 	if err != nil {
@@ -77,6 +81,18 @@ func extractCSVData(configuration *config.ConfigurationModel) ([]data_generation
 	}
 
 	return bases, nil
+}
+
+func extractEssenceBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.Essence, error) {
+	file := filepath.Join(configuration.PathOfBuildingDataPath, "Essence.lua")
+
+	essences, err := exporter.LoadEssences(file)
+
+	if err != nil {
+		return nil, fmt.Errorf("loadEssences: %v", err)
+	}
+
+	return essences, nil
 }
 
 func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel) error {
