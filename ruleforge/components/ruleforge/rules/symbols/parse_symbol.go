@@ -21,6 +21,9 @@ const (
 	ParseSymbolRuleExpression      ParseSymbol = "RuleExpression"
 	ParseSymbolRuleSection         ParseSymbol = "RuleSection"
 	ParseSymbolRules               ParseSymbol = "Rules"
+	ParseSymbolCombinedValue       ParseSymbol = "CombinedValue"
+	ParseSymbolChainedValues       ParseSymbol = "ChainedValues"
+	ParseSymbolFullValueExpression ParseSymbol = "FullValueExpression"
 
 	// --- Common Grammatical Roles ---
 	ParseSymbolKey           ParseSymbol = "Key"

@@ -14,8 +14,13 @@ const (
 
 type RuleFactory struct{}
 
-func (r *RuleFactory) ConstructRule(ruleType RuleType, style config.Style) []string {
+func (r *RuleFactory) ConstructRule(ruleType RuleType, style config.Style, conditions []string) []string {
 	output := []string{string(ruleType)}
+
+	for _, condition := range conditions {
+		output = append(output, r.prefixLineWithTab(condition))
+	}
+
 	output = append(output, r.transformStyleIntoText(style)...)
 	output = append(output, "")
 
@@ -59,7 +64,7 @@ func (r *RuleFactory) transformStyleIntoText(style config.Style) []string {
 
 	output := make([]string, len(rawOutput))
 	for i, raw := range rawOutput {
-		output[i] = r.constructStyleLine(raw)
+		output[i] = r.prefixLineWithTab(raw)
 	}
 
 	return output
@@ -81,6 +86,6 @@ func (r *RuleFactory) retrieveColorString(element string, color config.Color) st
 	return fmt.Sprintf("%s %d %d %d %d", element, *color.Red, *color.Green, *color.Blue, *color.Alpha)
 }
 
-func (r *RuleFactory) constructStyleLine(line string) string {
+func (r *RuleFactory) prefixLineWithTab(line string) string {
 	return "\t" + line
 }

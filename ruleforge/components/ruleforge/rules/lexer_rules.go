@@ -14,6 +14,7 @@ var (
 	numberRule                    = rules.NewNumberRule("NumberLexer", symbols.NumberToken)
 	whitespaceRule                = rules.NewWhitespaceLexingRule(symbols.WhitespaceToken, "WhitespaceLexer")
 	identifierAllowedSpecialChars = rules.NewCharacterOptionLexingRule([]rune{'.', '_', '-'}, symbols.IdentifierValueToken, "identifierAllowedSpecialChars")
+	quotedAllowedSpecialChars     = rules.NewCharacterOptionLexingRule([]rune{'[', ']'}, symbols.IdentifierValueToken, "quotedIdentifierAllowedSpecialChars")
 
 	// Composite rules built from the components above.
 	// This rule defines what an unquoted identifier can be made of.
@@ -24,7 +25,7 @@ var (
 	// This rule defines what a quoted identifier can contain.
 	quotedIdentifierCharsRule = rules.NewOrLexingRule(
 		symbols.IdentifierValueToken, "quotedIdentifierChars",
-		numberRule, letterRule, whitespaceRule, identifierAllowedSpecialChars,
+		numberRule, letterRule, whitespaceRule, identifierAllowedSpecialChars, quotedAllowedSpecialChars,
 	)
 
 	// Skip everything from "!!" to the end of the line (but keep the newline itself).
@@ -97,6 +98,7 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"@area_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@rarity", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@item_type", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@stack_size", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@class_use", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 	}
 
@@ -121,6 +123,7 @@ func buildOperatorRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"==", symbols.ExactMatchOperatorToken, "ExactMatchOperatorLexer"},
 		{"<", symbols.LessThanOperatorToken, "LessThanOperatorLexer"},
 		{">", symbols.GreaterThanOperatorToken, "GreaterThanOperatorLexer"},
+		{"+", symbols.StyleCombineToken, "StyleCombineToken"},
 	}
 
 	output := make([]rules.LexingRuleInterface[symbols.LexingTokenType], len(operatorDefs))

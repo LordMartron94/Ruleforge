@@ -113,13 +113,15 @@ func ruleExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		conditionRule(),
 		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
 		valueOpts,
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		valueOpts,
 	)
 }
 
 // --- Assignment and Declaration Rules ---
 
-// REFACTORED: Drastically simplified by using the new `makeChainedRule` helper.
 func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	// Defines the set of valid comparison operators (e.g., >=, <=, ==).
 	comparisonOps := conditional.NewChoiceTokenRule(symbols.ParseSymbolOperator.String(),
 		[]symbols.LexingTokenType{
 			symbols.GreaterThanOrEqualOperatorToken, symbols.LessThanOrEqualOperatorToken,
@@ -127,31 +129,33 @@ func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		},
 	)
 
+	// Defines the set of valid value types for a condition.
 	valueOpts := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
 		[]symbols.LexingTokenType{
 			symbols.VariableReferenceToken, symbols.NumberToken, symbols.IdentifierValueToken,
 		},
 	)
 
-	// Defines the `condition <op> <value>` part of the expression.
-	conditionExpression := seqWithSeparator(whitespaceOptional, symbols.ParseSymbolConditionExpression,
+	// Defines the `WHERE <identifier> <op> <value>` part as a single, flat sequence.
+	// This creates one ConditionExpression node with four children.
+	initialPart := seqWithSeparator(whitespaceOptional, symbols.ParseSymbolConditionExpression,
+		token(symbols.ParseSymbolKeyword, symbols.ConditionAssignmentKeywordToken),
 		token(symbols.ParseSymbolIdentifier, symbols.ConditionKeywordToken),
 		comparisonOps,
 		valueOpts,
 	)
 
-	// Defines the `let <expression>` part.
-	initialPart := seqWithSeparator(whitespaceOptional, symbols.ParseSymbolConditionExpression,
-		token(symbols.ParseSymbolKeyword, symbols.ConditionAssignmentKeywordToken),
-		conditionExpression,
-	)
-
-	// Defines the `&& <expression>` part.
+	// Defines the `-> <identifier> <op> <value>` part for chained conditions.
+	// This also creates a single, flat ConditionExpression node.
 	chainedPart := seqWithSeparator(whitespaceOptional, symbols.ParseSymbolConditionExpression,
 		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
-		conditionExpression,
+		token(symbols.ParseSymbolIdentifier, symbols.ConditionKeywordToken),
+		comparisonOps,
+		valueOpts,
 	)
 
+	// The makeChainedRule helper correctly assembles the initial part with any
+	// subsequent chained parts.
 	return makeChainedRule(
 		symbols.ParseSymbolCondition,
 		symbols.ParseSymbolChainedConditions,
@@ -163,24 +167,42 @@ func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	valueOpts := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
 		[]symbols.LexingTokenType{
-			symbols.NumberToken, symbols.IdentifierValueToken,
+			symbols.NumberToken,
+			symbols.IdentifierValueToken,
+			symbols.VariableReferenceToken,
 		},
 	)
 
-	// Defines the `var identifier => <value>` part with a flat structure.
-	initialPart := seqWithSeparator(requiredWhitespace, symbols.ParseSymbolAssignment,
-		token(symbols.ParseSymbolKeyword, symbols.VariableKeywordToken),
-		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
-		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+	combinedValuePart := seq(symbols.ParseSymbolCombinedValue,
+		token(symbols.ParseSymbolOperator, symbols.StyleCombineToken),
 		valueOpts,
 	)
 
-	// Defines the `-> identifier => <value>` part with a flat structure.
-	chainedPart := seqWithSeparator(requiredWhitespace, symbols.ParseSymbolAssignment,
+	repeatingCombinedValues := composite.NewRepetitionRule[symbols.LexingTokenType](
+		symbols.ParseSymbolChainedValues.String(),
+		whitespaceOptional,
+		combinedValuePart,
+	)
+
+	fullValueExpression := composite.NewNestedRule[symbols.LexingTokenType](
+		symbols.ParseSymbolFullValueExpression.String(),
+		valueOpts,
+		repeatingCombinedValues,
+	)
+
+	initialPart := seq(symbols.ParseSymbolAssignment,
+		token(symbols.ParseSymbolKeyword, symbols.VariableKeywordToken),
+		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		fullValueExpression,
+	)
+
+	// Defines the `-> identifier => <value> [+ <value>...]` part.
+	chainedPart := seq(symbols.ParseSymbolAssignment,
 		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
 		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
 		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
-		valueOpts,
+		fullValueExpression,
 	)
 
 	return makeChainedRule(

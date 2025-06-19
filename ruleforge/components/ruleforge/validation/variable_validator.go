@@ -7,6 +7,11 @@ import (
 	"slices"
 )
 
+var builtInVariables = []string{
+	"Show",
+	"Hide",
+}
+
 type VariableValidator struct {
 	documentTree []*shared.ParseTree[symbols.LexingTokenType]
 }
@@ -34,7 +39,11 @@ func (m *VariableValidator) Validate() error {
 
 		for _, variableReference := range variableReferences {
 			referenceValue := variableReference.Token.ValueToString()
-			referenceValue = referenceValue[1:] // Remove the dollar prefix.
+			referenceValue = referenceValue[1:]
+			if slices.Contains(builtInVariables, referenceValue) {
+				continue
+			}
+
 			if !slices.Contains(knownVariables, referenceValue) {
 				return fmt.Errorf(`unknown variable: %s`, referenceValue)
 			}

@@ -1,4 +1,11 @@
 {
+  "Kingsmarch Gold": {
+    "Minimap": {
+      "Shape": "Star",
+      "Color": "Yellow"
+    },
+    "BackgroundColor": {"red": 44, "green": 42, "blue": 74, "alpha": 255}
+  },
   "Celestial": {
     "TextColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
     "BorderColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
@@ -14,7 +21,7 @@
     "BorderColor": {"red": 255, "green": 100, "blue": 100, "alpha": 255},
     "FontSize": 40,
     "Minimap": {
-      "Size": 0
+      "Size": 1
     },
     "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\Maven_amazing.ogg",
     "DropVolume": 300

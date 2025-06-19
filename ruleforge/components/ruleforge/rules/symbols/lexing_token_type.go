@@ -29,6 +29,7 @@ const (
 	GreaterThanOperatorToken
 	LessThanOperatorToken
 	ExactMatchOperatorToken
+	StyleCombineToken
 
 	// KEYWORDS
 	MetadataKeywordToken
