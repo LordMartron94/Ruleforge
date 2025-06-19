@@ -77,6 +77,8 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 		c.handleSection(&output, &variables, buildType)(sectionNode)
 	}
 
+	output = append(output, c.constructSectionHeading("Fallback", "Shows anything that wasn't caught by upstream rules."), "")
+
 	fallbackRule := c.ruleFactory.ConstructRule(ShowRule, *styles["Fallback"], []string{})
 	output = append(output, fallbackRule...)
 
