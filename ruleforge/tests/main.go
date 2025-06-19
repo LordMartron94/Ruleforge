@@ -130,12 +130,12 @@ func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.Co
 	handler := newFileHandler(file)
 
 	// 3) Lexing
-	lexemes, err := handler.Lex()
+	_, err = handler.Lex()
 	if err != nil {
 		return fmt.Errorf("lexing file: %w", err)
 	}
-	printLexemes(lexemes)
-	fmt.Println("----------------")
+	//printLexemes(lexemes)
+	//fmt.Println("----------------")
 
 	// 4) Parsing
 	tree, err := handler.Parse()

@@ -3,11 +3,36 @@ package data_generation
 import (
 	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/yuin/gopher-lua"
 )
 
 // --- Struct Definitions ---
+
+// sanitizeBaseType strips anything between parentheses and any whitespace
+// after the last character.
+func sanitizeBaseType(baseType string) string {
+	// Find the first opening parenthesis.
+	startIndex := strings.Index(baseType, "(")
+	if startIndex == -1 {
+		return strings.TrimSpace(baseType)
+	}
+
+	// Find the last closing parenthesis.
+	endIndex := strings.LastIndex(baseType, ")")
+	if endIndex == -1 || endIndex < startIndex {
+		return strings.TrimSpace(baseType)
+	}
+
+	result := baseType[:startIndex]
+
+	if endIndex < len(baseType)-1 {
+		result += baseType[endIndex+1:]
+	}
+
+	return strings.TrimSpace(result)
+}
 
 // GemRequirements holds the attribute requirements for a skill gem.
 type GemRequirements struct {
@@ -33,7 +58,7 @@ type Gem struct {
 }
 
 func (g Gem) GetBaseType() string {
-	return g.BaseTypeName
+	return sanitizeBaseType(g.BaseTypeName)
 }
 
 // Essence holds data for a single Path of Exile essence.
@@ -46,7 +71,7 @@ type Essence struct {
 }
 
 func (e Essence) GetBaseType() string {
-	return e.Name
+	return sanitizeBaseType(e.Name)
 }
 
 // ArmourProperties holds data specific to armour pieces.
@@ -106,7 +131,7 @@ type ItemBase struct {
 }
 
 func (i ItemBase) GetBaseType() string {
-	return i.Name
+	return sanitizeBaseType(i.Name)
 }
 
 // POBDataType is a generic constraint that lists all concrete structs
