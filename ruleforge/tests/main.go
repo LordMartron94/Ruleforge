@@ -5,6 +5,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/postprocessor"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
 	"os"
@@ -32,6 +33,13 @@ func run() error {
 		return fmt.Errorf("configurationLoader.LoadConfiguration: %v", err)
 	}
 
+	bases, err := extractCSVData(configuration)
+	if err != nil {
+		return fmt.Errorf("extractCSVData: %v", err)
+	}
+	
+	log.Println("Number of bases:", len(bases))
+
 	ruleforgeScripts, err := listFilesWithExtension(configuration.RuleforgeInputDir, ".rf")
 
 	if err != nil {
@@ -46,6 +54,29 @@ func run() error {
 	}
 
 	return nil
+}
+
+func extractCSVData(configuration *config.ConfigurationModel) ([]data_generation.ItemBase, error) {
+	exporter := data_generation.NewPathOfBuildingExporter()
+
+	luaFiles, err := listFilesWithExtension(filepath.Join(configuration.PathOfBuildingDataPath, "Bases"), ".lua")
+
+	if err != nil {
+		return nil, fmt.Errorf("listFilesWithExtension: %v", err)
+	}
+
+	bases := make([]data_generation.ItemBase, 0)
+
+	for _, luaFile := range luaFiles {
+		fileBases, err := exporter.LoadItemBases(luaFile)
+		if err != nil {
+			log.Fatalf("Error processing file: %v", err)
+		}
+
+		bases = append(bases, fileBases...)
+	}
+
+	return bases, nil
 }
 
 func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel) error {
