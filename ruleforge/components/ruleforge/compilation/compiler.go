@@ -39,18 +39,21 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	variables := make(map[string][]string)
 
 	filterName := "UNKNOWN_THIS_SHOULD_NOT_HAPPEN"
+	build := ""
 
 	metadataNode := c.parseTree.FindSymbolNode(symbols.ParseSymbolRootMetadata.String())
-	c.extractMetadataText(&output, &filterName)(metadataNode)
+	c.extractMetadataText(&output, &filterName, &build)(metadataNode)
 
 	variableNodes := c.parseTree.FindAllSymbolNodes(symbols.ParseSymbolVariable.String())
 	for _, variableNode := range variableNodes {
 		c.extractVariables(&variables)(variableNode)
 	}
 
+	buildType := GetBuildType(build)
+
 	sections := c.parseTree.FindAllSymbolNodes(symbols.ParseSymbolSection.String())
 	for _, sectionNode := range sections {
-		c.handleSection(&output, &variables)(sectionNode)
+		c.handleSection(&output, &variables, buildType)(sectionNode)
 	}
 
 	fallbackRule := c.ruleFactory.ConstructRule(ShowRule, *styles["Fallback"], []string{})
@@ -59,7 +62,7 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	return output, nil, filterName
 }
 
-func (c *Compiler) extractMetadataText(metadataText *[]string, filterName *string) shared2.TransformCallback[symbols.LexingTokenType] {
+func (c *Compiler) extractMetadataText(metadataText *[]string, filterName, build *string) shared2.TransformCallback[symbols.LexingTokenType] {
 	return func(node *shared.ParseTree[symbols.LexingTokenType]) {
 		assignments := node.FindAllSymbolNodes(symbols.ParseSymbolAssignment.String())
 
@@ -79,6 +82,8 @@ func (c *Compiler) extractMetadataText(metadataText *[]string, filterName *strin
 			case "STRICTNESS":
 				filterStrictness = value
 				break
+			case "BUILD":
+				*build = value
 			}
 		}
 
@@ -135,7 +140,7 @@ func (c *Compiler) extractVariables(variables *map[string][]string) shared2.Tran
 	}
 }
 
-func (c *Compiler) handleSection(output *[]string, variables *map[string][]string) shared2.TransformCallback[symbols.LexingTokenType] {
+func (c *Compiler) handleSection(output *[]string, variables *map[string][]string, build BuildType) shared2.TransformCallback[symbols.LexingTokenType] {
 	return func(node *shared.ParseTree[symbols.LexingTokenType]) {
 		sectionMetadata := node.FindSymbolNode(symbols.ParseSymbolSectionMetadata.String())
 		assignments := sectionMetadata.FindAllSymbolNodes(symbols.ParseSymbolAssignment.String())
@@ -159,7 +164,7 @@ func (c *Compiler) handleSection(output *[]string, variables *map[string][]strin
 		*output = append(*output, c.constructSectionHeading(sectionName, sectionDescription))
 
 		conditionListNode := node.FindSymbolNode(symbols.ParseSymbolConditionList.String())
-		conditions := c.retrieveConditions(conditionListNode)
+		conditions := c.retrieveConditions(conditionListNode, build)
 
 		compiledSectionConditions := make([]string, len(conditions))
 		*output = append(*output, "")
@@ -169,7 +174,7 @@ func (c *Compiler) handleSection(output *[]string, variables *map[string][]strin
 
 		ruleListNode := node.FindSymbolNode(symbols.ParseSymbolRules.String())
 
-		rules := c.extractRules(ruleListNode, compiledSectionConditions, variables)
+		rules := c.extractRules(ruleListNode, compiledSectionConditions, variables, build)
 		*output = append(*output, rules...)
 	}
 }
@@ -178,7 +183,10 @@ func (c *Compiler) constructSectionHeading(sectionName, sectionDescription strin
 	return c.constructComment(fmt.Sprintf("---------------- SECTION: %s (%s) ----------------", sectionName, sectionDescription))
 }
 
-func (c *Compiler) extractRules(ruleListNode *shared.ParseTree[symbols.LexingTokenType], compiledSectionConditions []string, variables *map[string][]string) []string {
+func (c *Compiler) extractRules(
+	ruleListNode *shared.ParseTree[symbols.LexingTokenType],
+	compiledSectionConditions []string, variables *map[string][]string,
+	buildType BuildType) []string {
 	ruleExpressions := ruleListNode.FindAllSymbolNodes(symbols.ParseSymbolRuleExpression.String())
 
 	ruleLines := make([]string, 0)
@@ -189,7 +197,7 @@ func (c *Compiler) extractRules(ruleListNode *shared.ParseTree[symbols.LexingTok
 
 		showOrHide := ruleExpressionNode.Children[4].Token.ValueToString()[1:]
 
-		ruleConditionsRaw := c.retrieveConditions(ruleExpressionNode)
+		ruleConditionsRaw := c.retrieveConditions(ruleExpressionNode, buildType)
 		compiledRuleConditions := make([]string, len(ruleConditionsRaw))
 		for i, condition := range ruleConditionsRaw {
 			compiledRuleConditions[i] = condition.ConstructCompiledCondition(variables, c.validBaseTypes)
@@ -279,7 +287,7 @@ func (c *Compiler) resolveVariableStyle(styleValue string, variables map[string]
 	return merged
 }
 
-func (c *Compiler) retrieveConditions(conditionListNode *shared.ParseTree[symbols.LexingTokenType]) []condition {
+func (c *Compiler) retrieveConditions(conditionListNode *shared.ParseTree[symbols.LexingTokenType], buildType BuildType) []condition {
 	conditionNodes := conditionListNode.FindAllSymbolNodes(symbols.ParseSymbolConditionExpression.String())
 
 	conditions := make([]condition, len(conditionNodes))
@@ -289,12 +297,47 @@ func (c *Compiler) retrieveConditions(conditionListNode *shared.ParseTree[symbol
 		operator := conditionNode.Children[2].Token.ValueToString()
 		value := conditionNode.Children[3].Token.ValueToString()
 
-		conditions[i] = condition{
-			identifier: identifier,
-			operator:   operator,
-			value:      value,
+		switch identifier {
+		case "@class_use":
+			c.handleClassUseCondition(i, &conditions, operator, value, buildType)
+		default:
+			c.handleGenericCondition(i, &conditions, identifier, operator, value)
 		}
 	}
 
 	return conditions
+}
+
+func (c *Compiler) handleClassUseCondition(conditionIndex int, conditions *[]condition, operator string, value string, build BuildType) {
+	associatedWeaponry := GetAssociatedWeaponClasses(build)
+	unassociatedWeaponry := GetUnassociatedWeaponClasses(build)
+
+	var classes []string
+
+	switch value {
+	case "false":
+		classes = unassociatedWeaponry
+		break
+	case "true":
+		classes = associatedWeaponry
+		break
+	default:
+		panic(fmt.Sprintf("invalid value for class use condition: %s", value))
+	}
+
+	(*conditions)[conditionIndex] = condition{
+		identifier: "@item_class",
+		operator:   operator,
+		value:      classes,
+	}
+}
+
+func (c *Compiler) handleGenericCondition(
+	conditionIndex int, conditions *[]condition,
+	identifier, operator, value string) {
+	(*conditions)[conditionIndex] = condition{
+		identifier: identifier,
+		operator:   operator,
+		value:      []string{value},
+	}
 }

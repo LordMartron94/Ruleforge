@@ -27,6 +27,13 @@ var (
 			symbols.StrictKeywordToken, symbols.SuperStrictKeywordToken,
 		},
 	)
+
+	buildAssignmentValues = conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
+		[]symbols.LexingTokenType{
+			symbols.MeleeBuildToken, symbols.DexBuildToken, symbols.SpellBuildToken,
+			symbols.MeleeSpellHybridBuildToken, symbols.MeleeDexHybridBuildToken, symbols.SpellDexHybridBuildToken,
+		},
+	)
 )
 
 // GetParsingRules returns the list of all top-level parsing rules.
@@ -45,7 +52,6 @@ func GetParsingRules() []shared.ParsingRuleInterface[symbols.LexingTokenType] {
 
 // --- High-Level Section Rules ---
 
-// REFACTORED: Now uses the `seq` helper for consistency and readability.
 func metadataRule(metadataSymbol symbols.ParseSymbol) shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	assignments := composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolAssignments.String(),
@@ -53,6 +59,7 @@ func metadataRule(metadataSymbol symbols.ParseSymbol) shared.ParsingRuleInterfac
 		versionAssignment(),
 		strictnessAssignment(),
 		descriptionAssignment(),
+		buildAssignment(),
 		whitespaceOptional, // Allows whitespace/newlines between assignments.
 	)
 
@@ -98,6 +105,7 @@ func conditionListRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 func ruleSectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	rules := composite.NewRepetitionRule[symbols.LexingTokenType](symbols.ParseSymbolRules.String(),
 		ruleExpressionRule(),
+		macroExpressionRule(),
 		whitespaceOptional,
 	)
 
@@ -133,8 +141,25 @@ func ruleExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		token(symbols.ParseSymbolKeyword, symbols.RuleStrictnessIndicatorToken),
 		strictnessAssignmentValues,
 	)
-	
+
 	return composite.NewChoiceRule(symbols.ParseSymbolRuleExpression.String(), []shared.ParsingRuleInterface[symbols.LexingTokenType]{elaborateExpression, normalExpression})
+}
+
+func macroExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	return seq(symbols.ParseSymbolMacroExpression,
+		token(symbols.ParseSymbolKeyword, symbols.FunctionKeywordToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.OpenSquareBracketToken),
+		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
+		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
+		token(symbols.ParseSymbolKey, symbols.VariableReferenceToken),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		token(symbols.ParseSymbolValue, symbols.VariableReferenceToken),
+		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
+		token(symbols.ParseSymbolKey, symbols.VariableReferenceToken),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		token(symbols.ParseSymbolValue, symbols.VariableReferenceToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.CloseSquareBracketToken),
+	)
 }
 
 // --- Assignment and Declaration Rules ---
@@ -144,7 +169,7 @@ func conditionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	comparisonOps := conditional.NewChoiceTokenRule(symbols.ParseSymbolOperator.String(),
 		[]symbols.LexingTokenType{
 			symbols.GreaterThanOrEqualOperatorToken, symbols.LessThanOrEqualOperatorToken,
-			symbols.GreaterThanOperatorToken, symbols.LessThanOperatorToken, symbols.ExactMatchOperatorToken,
+			symbols.GreaterThanOperatorToken, symbols.LessThanOperatorToken, symbols.ExactMatchOperatorToken, symbols.NotEqualToOperatorToken,
 		},
 	)
 
@@ -249,6 +274,10 @@ func strictnessAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType]
 func descriptionAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.DescriptionAssignmentKeywordToken,
 		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken))
+}
+
+func buildAssignment() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	return makeAssignmentRule(symbols.ParseSymbolAssignment, symbols.BuildKeywordToken, buildAssignmentValues)
 }
 
 // --- Rule Definition Helpers ---

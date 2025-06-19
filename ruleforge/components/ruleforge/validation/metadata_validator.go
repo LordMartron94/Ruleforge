@@ -19,6 +19,7 @@ var requiredOrder = []symbols.LexingTokenType{
 	symbols.NameKeywordToken,
 	symbols.VersionKeywordToken,
 	symbols.StrictnessKeywordToken,
+	symbols.BuildKeywordToken,
 }
 
 func (m *FilterMetadataValidator) Validate() error {

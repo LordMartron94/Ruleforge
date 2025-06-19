@@ -20,6 +20,8 @@ const (
 	// BLOCKS
 	OpenCurlyBracketToken
 	CloseCurlyBracketToken
+	OpenSquareBracketToken
+	CloseSquareBracketToken
 
 	// OPERATORS
 	AssignmentOperatorToken
@@ -31,6 +33,7 @@ const (
 	ExactMatchOperatorToken
 	StyleCombineToken
 	RuleStrictnessIndicatorToken
+	NotEqualToOperatorToken
 
 	// KEYWORDS
 	MetadataKeywordToken
@@ -49,7 +52,17 @@ const (
 	SectionKeywordToken
 	DescriptionAssignmentKeywordToken
 	RuleKeywordToken
+	BuildKeywordToken
+
+	// CLASSES
+	MeleeSpellHybridBuildToken
+	MeleeDexHybridBuildToken
+	SpellDexHybridBuildToken
+	MeleeBuildToken
+	SpellBuildToken
+	DexBuildToken
 
 	// MISC
 	DotToken
+	FunctionKeywordToken
 )

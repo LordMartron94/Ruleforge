@@ -36,6 +36,8 @@ const (
 	ParseSymbolAssignments   ParseSymbol = "AssignmentList"
 	ParseSymbolBlockOperator ParseSymbol = "BlockOperator"
 
+	ParseSymbolMacroExpression ParseSymbol = "MacroExpression"
+
 	// --- Fallback ---
 	ParseSymbolAny ParseSymbol = "Any"
 )

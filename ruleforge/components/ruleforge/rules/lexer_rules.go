@@ -13,8 +13,8 @@ var (
 	letterRule                    = rules.NewAlphaNumericRuleSingle(symbols.LetterToken, "LetterLexer", false)
 	numberRule                    = rules.NewNumberRule("NumberLexer", symbols.NumberToken)
 	whitespaceRule                = rules.NewWhitespaceLexingRule(symbols.WhitespaceToken, "WhitespaceLexer")
-	identifierAllowedSpecialChars = rules.NewCharacterOptionLexingRule([]rune{'.', '_', '-'}, symbols.IdentifierValueToken, "identifierAllowedSpecialChars")
-	quotedAllowedSpecialChars     = rules.NewCharacterOptionLexingRule([]rune{'[', ']'}, symbols.IdentifierValueToken, "quotedIdentifierAllowedSpecialChars")
+	identifierAllowedSpecialChars = rules.NewCharacterOptionLexingRule([]rune{'.', '_'}, symbols.IdentifierValueToken, "identifierAllowedSpecialChars")
+	quotedAllowedSpecialChars     = rules.NewCharacterOptionLexingRule([]rune{'[', ']', '-'}, symbols.IdentifierValueToken, "quotedIdentifierAllowedSpecialChars")
 	ruleStrictnessIndicator       = rules.NewSpecificCharacterLexingRule('#', symbols.RuleStrictnessIndicatorToken, "ruleStrictnessIndicator")
 
 	// Composite rules built from the components above.
@@ -80,27 +80,47 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		token   symbols.LexingTokenType
 		symbol  string
 	}{
+		// Metadata Assignments
 		{"METADATA", symbols.MetadataKeywordToken, "MetadataKeywordLexer"},
+		{"BUILD", symbols.BuildKeywordToken, "BuildKeywordLexer"},
 		{"NAME", symbols.NameKeywordToken, "NameKeywordLexer"},
 		{"VERSION", symbols.VersionKeywordToken, "VersionKeywordLexer"},
 		{"STRICTNESS", symbols.StrictnessKeywordToken, "StrictnessKeywordLexer"},
+
+		// Metadata Assignment Values
 		{"ALL", symbols.AllKeywordToken, "AllKeywordLexer"},
 		{"SOFT", symbols.SoftKeywordToken, "SoftKeywordLexer"},
 		{"SEMI-STRICT", symbols.SemiStrictKeywordToken, "SemiStrictKeywordLexer"},
 		{"STRICT", symbols.StrictKeywordToken, "StrictKeywordLexer"},
 		{"SUPER-STRICT", symbols.SuperStrictKeywordToken, "SuperStrictKeywordLexer"},
+
+		// Structure
 		{"SECTION", symbols.SectionKeywordToken, "SectionKeywordLexer"},
 		{"SECTION_CONDITIONS", symbols.SectionConditionsKeywordToken, "SectionConditionsKeywordLexer"},
 		{"WHERE", symbols.ConditionAssignmentKeywordToken, "ConditionAssignmentKeywordLexer"},
 		{"DESCRIPTION", symbols.DescriptionAssignmentKeywordToken, "DescriptionAssignmentKeywordToken"},
 		{"EQUIPMENT", symbols.IdentifierValueToken, "IdentifierValueToken"},
 		{"RULES", symbols.RuleKeywordToken, "RuleKeywordToken"},
-		{"var", symbols.VariableKeywordToken, "VariableKeywordLexer"},
+
+		// Conditions
 		{"@area_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@rarity", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@item_type", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@item_category", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@stack_size", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@class_use", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+
+		// Builds
+		{"MARAUDER", symbols.MeleeBuildToken, "BuildValueKeywordLexer"},
+		{"RANGER", symbols.DexBuildToken, "BuildValueKeywordLexer"},
+		{"WITCH", symbols.SpellBuildToken, "BuildValueKeywordLexer"},
+		{"TEMPLAR", symbols.MeleeSpellHybridBuildToken, "BuildValueKeywordLexer"},
+		{"DUELIST", symbols.MeleeDexHybridBuildToken, "BuildValueKeywordLexer"},
+		{"SHADOW", symbols.SpellDexHybridBuildToken, "BuildValueKeywordLexer"},
+
+		// Other
+		{"var", symbols.VariableKeywordToken, "VariableKeywordLexer"},
+		{"MACRO", symbols.FunctionKeywordToken, "FunctionKeywordToken"},
 	}
 
 	output := make([]rules.LexingRuleInterface[symbols.LexingTokenType], len(keywordDefs))
@@ -122,6 +142,7 @@ func buildOperatorRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"<=", symbols.LessThanOrEqualOperatorToken, "LessThanOrEqualOperatorLexer"},
 		{">=", symbols.GreaterThanOrEqualOperatorToken, "GreaterThanOrEqualOperatorLexer"},
 		{"==", symbols.ExactMatchOperatorToken, "ExactMatchOperatorLexer"},
+		{"!=", symbols.NotEqualToOperatorToken, "NotEqualToOperatorLexer"},
 		{"<", symbols.LessThanOperatorToken, "LessThanOperatorLexer"},
 		{">", symbols.GreaterThanOperatorToken, "GreaterThanOperatorLexer"},
 		{"+", symbols.StyleCombineToken, "StyleCombineToken"},
@@ -139,9 +160,7 @@ func buildOperatorRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 // buildLiteralValueRules defines rules for explicit data values like numbers and quoted strings.
 func buildLiteralValueRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 	return []rules.LexingRuleInterface[symbols.LexingTokenType]{
-		// Rule for numbers (e.g., 69, 123). This now runs before the general identifier rule.
 		numberRule,
-		// Rule for quoted strings (e.g., "hello world").
 		special.NewQuotedValueRule("IdentifierValueLexer", symbols.IdentifierValueToken, false, quotedIdentifierCharsRule),
 	}
 }
@@ -162,6 +181,8 @@ func buildStructuralRules() []rules.LexingRuleInterface[symbols.LexingTokenType]
 	return []rules.LexingRuleInterface[symbols.LexingTokenType]{
 		rules.NewSpecificCharacterLexingRule('{', symbols.OpenCurlyBracketToken, "OpenCurlyBracketLexer"),
 		rules.NewSpecificCharacterLexingRule('}', symbols.CloseCurlyBracketToken, "CloseCurlyBracketLexer"),
+		rules.NewSpecificCharacterLexingRule('[', symbols.OpenSquareBracketToken, "OpenSquareBracketToken"),
+		rules.NewSpecificCharacterLexingRule(']', symbols.CloseSquareBracketToken, "CloseSquareBracketToken"),
 		rules.NewSpecificCharacterLexingRule('(', symbols.IgnoreToken, "OpenParenthesesToken"),
 		rules.NewSpecificCharacterLexingRule(')', symbols.IgnoreToken, "CloseParenthesesToken"),
 		rules.NewCharacterOptionLexingRule([]rune{'\r', '\n'}, symbols.NewLineToken, "newline"),
