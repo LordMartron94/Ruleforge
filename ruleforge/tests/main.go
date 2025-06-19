@@ -51,6 +51,13 @@ func run() error {
 	log.Println("Number of essences:", len(essences))
 	log.Println("Number of gems:", len(gems))
 
+	var baseTypes []string
+	baseTypes = append(baseTypes, data_generation.GetBaseTypes(bases)...)
+	baseTypes = append(baseTypes, data_generation.GetBaseTypes(essences)...)
+	baseTypes = append(baseTypes, data_generation.GetBaseTypes(gems)...)
+
+	log.Println("Number of BaseTypes: ", len(baseTypes))
+
 	ruleforgeScripts, err := listFilesWithExtension(configuration.RuleforgeInputDir, ".rf")
 
 	if err != nil {
@@ -58,7 +65,7 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript, configuration)
+		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes)
 		if err != nil {
 			return fmt.Errorf("processRuleforgeScript: %v", err)
 		}
@@ -112,7 +119,7 @@ func extractGemBases(configuration *config.ConfigurationModel, exporter *data_ge
 	return gems, nil
 }
 
-func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel) error {
+func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel, validBases []string) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -154,7 +161,7 @@ func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.Co
 	// 6) Compilation
 	compiler := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	})
+	}, validBases)
 	outputStrings, err, outputName := compiler.CompileIntoFilter()
 
 	if err != nil {

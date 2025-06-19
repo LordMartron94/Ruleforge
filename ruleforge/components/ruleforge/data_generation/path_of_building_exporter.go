@@ -32,6 +32,10 @@ type Gem struct {
 	NaturalMaxLevel          int             `json:"naturalMaxLevel"`
 }
 
+func (g Gem) GetBaseType() string {
+	return g.BaseTypeName
+}
+
 // Essence holds data for a single Path of Exile essence.
 type Essence struct {
 	ID   string            `json:"id"`
@@ -39,6 +43,10 @@ type Essence struct {
 	Type int               `json:"type"`
 	Tier int               `json:"tier"`
 	Mods map[string]string `json:"mods"`
+}
+
+func (e Essence) GetBaseType() string {
+	return e.Name
 }
 
 // ArmourProperties holds data specific to armour pieces.
@@ -77,12 +85,12 @@ type TinctureProperties struct {
 	Cooldown float64 `json:"cooldown,omitempty"`
 }
 
-// ItemBase is the master Go model, updated to handle all item types.
+// ItemBase is the primary Go model, updated to handle all item types.
 type ItemBase struct {
 	Name             string            `json:"name"`
 	Type             string            `json:"type"`
-	SubType          string            `json:"subType,omitempty"`     // New field
-	SocketLimit      int               `json:"socketLimit,omitempty"` // New field
+	SubType          string            `json:"subType,omitempty"`
+	SocketLimit      int               `json:"socketLimit,omitempty"`
 	Tags             map[string]bool   `json:"tags,omitempty"`
 	InfluenceTags    map[string]string `json:"influenceTags,omitempty"`
 	Implicit         string            `json:"implicit,omitempty"`
@@ -97,6 +105,18 @@ type ItemBase struct {
 	Tincture *TinctureProperties `json:"tincture,omitempty"`
 }
 
+func (i ItemBase) GetBaseType() string {
+	return i.Name
+}
+
+// POBDataType is a generic constraint that lists all concrete structs
+// that can be treated as an ItemInterface via their pointers.
+type POBDataType interface {
+	ItemBase | Essence | Gem
+
+	GetBaseType() string
+}
+
 // --- Public Exporter Methods (Unchanged) ---
 
 type PathOfBuildingExporter struct {
@@ -107,6 +127,16 @@ func NewPathOfBuildingExporter() *PathOfBuildingExporter {
 	return &PathOfBuildingExporter{
 		luaExecutor: NewLuaExecutor(),
 	}
+}
+
+func GetBaseTypes[T POBDataType](data []T) []string {
+	basetypes := make([]string, len(data))
+
+	for i, dataItem := range data {
+		basetypes[i] = dataItem.GetBaseType()
+	}
+
+	return basetypes
 }
 
 func (e *PathOfBuildingExporter) LoadItemBases(luaFilePath string) ([]ItemBase, error) {
