@@ -1,7 +1,7 @@
 package compilation
 
 import (
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	"log"
 	"slices"
 )
@@ -240,7 +240,7 @@ func GetAssociatedWeaponClasses(characterBuild BuildType) []string {
 	return associatedWeaponClasses
 }
 
-func IsWeaponAssociatedWithBuild(weapon data_generation.ItemBase, characterBuild BuildType) bool {
+func IsWeaponAssociatedWithBuild(weapon model.ItemBase, characterBuild BuildType) bool {
 	associatedWeaponry, ok := buildWeaponry[characterBuild]
 
 	if !ok {
@@ -260,7 +260,7 @@ func IsWeaponAssociatedWithBuild(weapon data_generation.ItemBase, characterBuild
 	return false
 }
 
-func IsArmorAssociatedWithBuild(armor data_generation.ItemBase, characterBuild BuildType) bool {
+func IsArmorAssociatedWithBuild(armor model.ItemBase, characterBuild BuildType) bool {
 	associatedArmorTypes, ok := buildArmor[characterBuild]
 
 	if !ok {

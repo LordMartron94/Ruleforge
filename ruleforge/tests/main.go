@@ -6,6 +6,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
 	"os"
@@ -79,7 +80,7 @@ func run() error {
 	return nil
 }
 
-func extractItemBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.ItemBase, error) {
+func extractItemBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]model.ItemBase, error) {
 	luaFiles, err := listFilesWithExtension(filepath.Join(configuration.PathOfBuildingDataPath, "Bases"), ".lua")
 
 	if err != nil {
@@ -94,7 +95,7 @@ func extractItemBases(configuration *config.ConfigurationModel, exporter *data_g
 	return bases, nil
 }
 
-func extractEssenceBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.Essence, error) {
+func extractEssenceBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]model.Essence, error) {
 	file := filepath.Join(configuration.PathOfBuildingDataPath, "Essence.lua")
 
 	essences, err := exporter.LoadEssences(file)
@@ -106,7 +107,7 @@ func extractEssenceBases(configuration *config.ConfigurationModel, exporter *dat
 	return essences, nil
 }
 
-func extractGemBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]data_generation.Gem, error) {
+func extractGemBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]model.Gem, error) {
 	file := filepath.Join(configuration.PathOfBuildingDataPath, "Gems.lua")
 
 	gems, err := exporter.LoadGems(file)
@@ -118,7 +119,7 @@ func extractGemBases(configuration *config.ConfigurationModel, exporter *data_ge
 	return gems, nil
 }
 
-func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel, validBases []string, itemBases []data_generation.ItemBase) error {
+func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel, validBases []string, itemBases []model.ItemBase) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err

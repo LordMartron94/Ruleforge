@@ -1,7 +1,7 @@
 package compilation
 
 import (
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	"slices"
 )
 
@@ -27,14 +27,14 @@ func NewPobUtils() *PobUtils {
 	}
 }
 
-func (p *PobUtils) IsArmor(pobItem data_generation.ItemBase) bool {
+func (p *PobUtils) IsArmor(pobItem model.ItemBase) bool {
 	return slices.Contains(p.armorClassesPoB, pobItem.Type)
 }
 
-func (p *PobUtils) IsWeapon(pobItem data_generation.ItemBase) bool {
+func (p *PobUtils) IsWeapon(pobItem model.ItemBase) bool {
 	return slices.Contains(p.weaponClassesPoB, pobItem.Type)
 }
 
-func (p *PobUtils) IsFlask(pobItem data_generation.ItemBase) bool {
+func (p *PobUtils) IsFlask(pobItem model.ItemBase) bool {
 	return pobItem.Type == "Flask"
 }

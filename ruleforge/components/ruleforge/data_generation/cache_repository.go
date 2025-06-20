@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/files"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	"os"
 	"path/filepath"
 	"time"
 )
 
 type CacheModel struct {
-	ExpiryDate time.Time  `json:"expiry_date"`
-	Items      []ItemBase `json:"items"`
-	Essences   []Essence  `json:"essences"`
-	Gems       []Gem      `json:"gems"`
+	ExpiryDate time.Time        `json:"expiry_date"`
+	Items      []model.ItemBase `json:"items"`
+	Essences   []model.Essence  `json:"essences"`
+	Gems       []model.Gem      `json:"gems"`
 }
 
 type CacheRepository struct {
@@ -52,9 +53,9 @@ func (c *CacheRepository) LoadCache() (*CacheModel, error) {
 	return &cache, nil
 }
 
-func (c *CacheRepository) SaveCache(items []ItemBase, essences []Essence, gems []Gem) error {
+func (c *CacheRepository) SaveCache(items []model.ItemBase, essences []model.Essence, gems []model.Gem) error {
 	expiryDate := time.Now().AddDate(0, 0, 14)
-	model := CacheModel{expiryDate, items, essences, gems}
+	cache := CacheModel{expiryDate, items, essences, gems}
 
 	dir := filepath.Dir(c.filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -69,5 +70,5 @@ func (c *CacheRepository) SaveCache(items []ItemBase, essences []Essence, gems [
 
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
-	return enc.Encode(model)
+	return enc.Encode(cache)
 }

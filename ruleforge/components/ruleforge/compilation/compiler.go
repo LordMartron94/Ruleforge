@@ -5,7 +5,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/transforming/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
 	"slices"
@@ -27,15 +27,15 @@ type Compiler struct {
 	ruleFactory           *RuleFactory
 	styles                *map[string]*config.Style
 	validBaseTypes        []string
-	armorBases            []data_generation.ItemBase
-	weaponBases           []data_generation.ItemBase
-	flaskBases            []data_generation.ItemBase
+	armorBases            []model.ItemBase
+	weaponBases           []model.ItemBase
+	flaskBases            []model.ItemBase
 }
 
-func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configuration CompilerConfiguration, validBaseTypes []string, itemBases []data_generation.ItemBase) *Compiler {
-	var armorBaseTypes []data_generation.ItemBase
-	var weaponBaseTypes []data_generation.ItemBase
-	var flaskBaseTypes []data_generation.ItemBase
+func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configuration CompilerConfiguration, validBaseTypes []string, itemBases []model.ItemBase) *Compiler {
+	var armorBaseTypes []model.ItemBase
+	var weaponBaseTypes []model.ItemBase
+	var flaskBaseTypes []model.ItemBase
 
 	utils := NewPobUtils()
 
@@ -323,7 +323,7 @@ func (c *Compiler) handleItemProgression(
 	hiddenStyle, shownStyle *config.Style,
 ) {
 	// 1. Group all relevant weapons and armor by their category (Type).
-	itemsByCategory := make(map[string][]*data_generation.ItemBase)
+	itemsByCategory := make(map[string][]*model.ItemBase)
 	for i := range c.weaponBases {
 		weapon := c.weaponBases[i]
 		if IsWeaponAssociatedWithBuild(weapon, buildType) {
@@ -427,7 +427,7 @@ func (c *Compiler) handleItemProgression(
 }
 
 // getDropLevel is a helper function to safely get an item's drop level, defaulting to 0.
-func getDropLevel(item *data_generation.ItemBase) int {
+func getDropLevel(item *model.ItemBase) int {
 	if item.DropLevel != nil {
 		return *item.DropLevel
 	}
@@ -435,7 +435,7 @@ func getDropLevel(item *data_generation.ItemBase) int {
 	return 0
 }
 
-func (c *Compiler) constructItemProgressionRule(variables *map[string][]string, ruleType RuleType, item data_generation.ItemBase, allGeneratedRules *[][]string, style *config.Style, maxAreaLevel string) {
+func (c *Compiler) constructItemProgressionRule(variables *map[string][]string, ruleType RuleType, item model.ItemBase, allGeneratedRules *[][]string, style *config.Style, maxAreaLevel string) {
 	areaCondition := condition{
 		identifier: "@area_level",
 		operator:   "<=",
