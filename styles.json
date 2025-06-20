@@ -1,5 +1,22 @@
 {
   "Special": {
+    "Uniques": {
+      "TextColor": {"red": 255, "green": 235, "blue": 205, "alpha": 255},
+      "BackgroundColor": {"red": 60, "green": 40, "blue": 20, "alpha": 255},
+      "BorderColor": {"red": 100, "green": 220, "blue": 180, "alpha": 255},
+      "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\angels.mp3",
+      "DropVolume": 300,
+      "Minimap": {
+        "Shape": "Diamond",
+        "Color": "Red",
+        "Size": 0
+      },
+      "Beam": {
+        "Color": "Red",
+        "Temp": false
+      },
+      "FontSize": 45
+    },
     "Kingsmarch Gold": {
       "Minimap": {
         "Shape": "Star",
@@ -8,45 +25,123 @@
       "BackgroundColor": {"red": 44, "green": 42, "blue": 74, "alpha": 255}
     }
   },
+  "ItemGroups": {
+    "Comment": "Theme: Dark Steel",
+    "Equipment": {
+      "BackgroundColor": {"red": 70, "green": 80, "blue": 90, "alpha": 255},
+      "Minimap": {
+        "Shape": "Square",
+        "Color": "Grey"
+      }
+    },
+    "OldEquipment": {
+      "Comment": "Theme: Corroded Iron / Rust",
+      "BackgroundColor": {"red": 90, "green": 40, "blue": 25, "alpha": 255},
+      "Minimap": {
+        "Shape": "Square",
+        "Color": "Grey"
+      }
+    },
+    "Flasks": {
+      "BackgroundColor": {"red": 90, "green": 50, "blue": 130, "alpha": 255},
+      "Minimap": {
+        "Shape": "Raindrop",
+        "Color": "Purple"
+      }
+    }
+  },
   "Tiers": {
     "Celestial": {
+      "Comment": "The absolute best drops: Mirror of Kalandra, Mageblood, Headhunter, etc.",
       "TextColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
       "BorderColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
+      "BackgroundColor": {"red": 0, "green": 0, "blue": 0, "alpha": 200},
       "FontSize": 45,
-      "Minimap": {
-        "Size": 0
-      },
+      "Minimap": {"Size": 0},
       "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\Maven_divine1.ogg",
-      "DropVolume": 300
+      "DropVolume": 300,
+      "Beam": {
+        "Color": "Pink",
+        "Temp": false
+      }
+    },
+    "Divine": {
+      "Comment": "Extremely valuable items: Divine Orbs, key Uniques, Stacked Decks, top-tier chase items.",
+      "TextColor": {"red": 0, "green": 255, "blue": 255, "alpha": 255},
+      "BorderColor": {"red": 0, "green": 255, "blue": 255, "alpha": 255},
+      "BackgroundColor": {"red": 0, "green": 0, "blue": 0, "alpha": 180},
+      "FontSize": 42,
+      "Minimap": {"Size": 1 },
+      "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\Maven_amazing.ogg",
+      "DropVolume": 300,
+      "Beam": {
+        "Color": "Pink",
+        "Temp": false
+      }
     },
     "Infernal": {
+      "Comment": "High-value currency and items: Exalted Orbs, Annulment Orbs, valuable fragments.",
       "TextColor": {"red": 255, "green": 100, "blue": 100, "alpha": 255},
       "BorderColor": {"red": 255, "green": 100, "blue": 100, "alpha": 255},
       "FontSize": 40,
-      "Minimap": {
-        "Size": 1
-      },
-      "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\Maven_amazing.ogg",
-      "DropVolume": 300
+      "Minimap": {"Size": 2},
+      "Beam": {
+        "Color": "Pink",
+        "Temp": false
+      }
     },
-    "Abomination": {
+    "Eldritch": {
+      "Comment": "Very good items: Top-tier crafting bases (ilvl 86+), valuable Essences, Conqueror maps.",
       "TextColor": {"red": 220, "green": 130, "blue": 255, "alpha": 255},
       "BorderColor": {"red": 220, "green": 130, "blue": 255, "alpha": 255},
-      "FontSize": 26
+      "FontSize": 36,
+      "Beam": {
+        "Color": "Blue",
+        "Temp": false
+      }
     },
     "Primal": {
+      "Comment": "Good mid-to-high value items: Chaos Orbs, valuable league mechanics, good rare items.",
       "TextColor": {"red": 100, "green": 255, "blue": 100, "alpha": 255},
       "BorderColor": {"red": 100, "green": 255, "blue": 100, "alpha": 255},
-      "FontSize": 32
+      "FontSize": 32,
+      "Beam": {
+        "Color": "Blue",
+        "Temp": false
+      }
+    },
+    "Vivid": {
+      "Comment": "Useful items: Scouring, Regals, Atlas Sextants, good crafting bases (ilvl 84+).",
+      "TextColor": {"red": 255, "green": 165, "blue": 0, "alpha": 255},
+      "BorderColor": {"red": 255, "green": 165, "blue": 0, "alpha": 255},
+      "FontSize": 30,
+      "Beam": {
+        "Color": "Green",
+        "Temp": true
+      }
     },
     "Mortal": {
+      "Comment": "Standard currency and items to pick up: Chromatic Orbs, Jeweller's Orbs, decent rares.",
       "TextColor": {"red": 220, "green": 220, "blue": 220, "alpha": 255},
       "BorderColor": {"red": 220, "green": 220, "blue": 220, "alpha": 255},
       "FontSize": 28
     },
     "Relic": {
+      "Comment": "Lower-value currency and utility: Alteration Orbs, Augmentations, utility flasks.",
+      "TextColor": {"red": 210, "green": 180, "blue": 140, "alpha": 255},
+      "BorderColor": {"red": 210, "green": 180, "blue": 140, "alpha": 255},
+      "FontSize": 26
+    },
+    "Mundane": {
+      "Comment": "Items for recipes or very specific uses: Chisel recipe items, GCP recipe items.",
       "TextColor": {"red": 170, "green": 170, "blue": 170, "alpha": 255},
       "BorderColor": {"red": 170, "green": 170, "blue": 170, "alpha": 255},
+      "FontSize": 24
+    },
+    "Faded": {
+      "Comment": "Lowest tier of visible items, things you might hide later in a league: Portal/Wisdom scrolls.",
+      "TextColor": {"red": 128, "green": 128, "blue": 128, "alpha": 220},
+      "BorderColor": {"red": 128, "green": 128, "blue": 128, "alpha": 220},
       "FontSize": 22
     }
   },

@@ -142,8 +142,10 @@ func (rg *RuleGenerator) handleMacroExpression(
 	}
 
 	switch macroType {
-	case "item_progression":
+	case "item_progression-equipment":
 		return rg.handleItemProgression(variables, buildType, hiddenStyle, shownStyle), nil
+	case "item_progression-flasks":
+		return rg.handleFlaskProgression(variables, hiddenStyle, shownStyle), nil
 	default:
 		return nil, fmt.Errorf("unsupported macro type: %s", macroType)
 	}
@@ -168,6 +170,18 @@ func (rg *RuleGenerator) handleItemProgression(
 			itemsByCategory[armor.Type] = append(itemsByCategory[armor.Type], &rg.armorBases[i])
 		}
 	}
+
+	rg.produceProgression(itemsByCategory, variables, shownStyle, hiddenStyle, &allGeneratedRules)
+
+	return allGeneratedRules
+}
+
+func (rg *RuleGenerator) handleFlaskProgression(
+	variables *map[string][]string,
+	hiddenStyle, shownStyle *config.Style,
+) [][]string {
+	var allGeneratedRules [][]string
+	itemsByCategory := make(map[string][]*model.ItemBase)
 	for i := range rg.flaskBases {
 		flask := rg.flaskBases[i]
 		key := flask.GetBaseType()
@@ -177,6 +191,17 @@ func (rg *RuleGenerator) handleItemProgression(
 		itemsByCategory[key] = append(itemsByCategory[key], &rg.flaskBases[i])
 	}
 
+	rg.produceProgression(itemsByCategory, variables, shownStyle, hiddenStyle, &allGeneratedRules)
+
+	return allGeneratedRules
+}
+
+func (rg *RuleGenerator) produceProgression(
+	itemsByCategory map[string][]*model.ItemBase,
+	variables *map[string][]string,
+	shownStyle, hiddenStyle *config.Style,
+	allGeneratedRules *[][]string,
+) {
 	for category := range itemsByCategory {
 		sort.Slice(itemsByCategory[category], func(i, j int) bool {
 			itemA := itemsByCategory[category][i]
@@ -230,20 +255,19 @@ func (rg *RuleGenerator) handleItemProgression(
 
 			if startLevel <= showEndLevel {
 				for _, tierItem := range currentTierItems {
-					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, &allGeneratedRules, shownStyle, fmt.Sprintf("%d", showEndLevel))
+					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyle, fmt.Sprintf("%d", showEndLevel))
 				}
 			}
 
 			if !isLastTier && hideStartLevel <= 69 {
 				for _, tierItem := range currentTierItems {
-					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, &allGeneratedRules, hiddenStyle, fmt.Sprintf("%d", 69))
+					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyle, fmt.Sprintf("%d", 69))
 				}
 			}
 
 			i = tierEndIndex + 1
 		}
 	}
-	return allGeneratedRules
 }
 
 func (rg *RuleGenerator) constructItemProgressionRule(variables *map[string][]string, ruleType model2.RuleType, item model.ItemBase, allGeneratedRules *[][]string, style *config.Style, maxAreaLevel string) {
