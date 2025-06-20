@@ -7,7 +7,9 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
+	"log"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -26,16 +28,28 @@ type Compiler struct {
 	styles                *map[string]*config.Style
 	validBaseTypes        []string
 	armorBases            []data_generation.ItemBase
+	weaponBases           []data_generation.ItemBase
+	flaskBases            []data_generation.ItemBase
 }
 
 func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configuration CompilerConfiguration, validBaseTypes []string, itemBases []data_generation.ItemBase) *Compiler {
 	var armorBaseTypes []data_generation.ItemBase
+	var weaponBaseTypes []data_generation.ItemBase
+	var flaskBaseTypes []data_generation.ItemBase
 
 	utils := NewPobUtils()
 
 	for _, item := range itemBases {
+		if !slices.Contains(validBaseTypes, item.GetBaseType()) {
+			continue
+		}
+
 		if utils.IsArmor(item) {
 			armorBaseTypes = append(armorBaseTypes, item)
+		} else if utils.IsWeapon(item) {
+			weaponBaseTypes = append(weaponBaseTypes, item)
+		} else if utils.IsFlask(item) {
+			flaskBaseTypes = append(flaskBaseTypes, item)
 		}
 	}
 
@@ -45,6 +59,8 @@ func NewCompiler(parseTree *shared.ParseTree[symbols.LexingTokenType], configura
 		ruleFactory:           &RuleFactory{},
 		validBaseTypes:        validBaseTypes,
 		armorBases:            armorBaseTypes,
+		weaponBases:           weaponBaseTypes,
+		flaskBases:            flaskBaseTypes,
 	}
 }
 
@@ -205,38 +221,242 @@ func (c *Compiler) extractAndCompileRules(
 	ruleListNode *shared.ParseTree[symbols.LexingTokenType],
 	sectionConditions []condition,
 	variables *map[string][]string, buildType BuildType) [][]string {
-	ruleExpressions := ruleListNode.FindAllSymbolNodes(symbols.ParseSymbolRuleExpression.String())
 	var allGeneratedRules [][]string
 
-	for _, ruleExpressionNode := range ruleExpressions {
+	for _, childNode := range ruleListNode.Children {
 		// --- 1. Parse the expression into a high-level ParsedRule struct ---
-		styleValue := ruleExpressionNode.Children[2].Token.ValueToString()
-		style := c.extractStyle(styleValue, variables)
-
-		showOrHideStr := ruleExpressionNode.Children[4].Token.ValueToString()[1:]
-		var action RuleType
-		if showOrHideStr == "Show" {
-			action = ShowRule
-		} else {
-			action = HideRule
+		switch childNode.Symbol {
+		case symbols.ParseSymbolRuleExpression.String():
+			c.handleRuleExpression(childNode, variables, sectionConditions, buildType, &allGeneratedRules)
+		case symbols.ParseSymbolMacroExpression.String():
+			c.handleMacroExpression(childNode, variables, sectionConditions, buildType, &allGeneratedRules)
+		default:
+			panic("Unsupported symbol: " + childNode.Symbol)
 		}
-
-		ruleSpecificConditions := c.retrieveConditions(ruleExpressionNode)
-
-		rule := &ParsedRule{
-			Style:          style,
-			Action:         action,
-			Conditions:     ruleSpecificConditions,
-			Variables:      variables,
-			ValidBaseTypes: c.validBaseTypes,
-		}
-
-		// --- 2. Delegate compilation to a dedicated function ---
-		generatedRules := c.compileParsedRule(rule, sectionConditions, buildType)
-		allGeneratedRules = append(allGeneratedRules, generatedRules...)
 	}
 
 	return allGeneratedRules
+}
+
+func (c *Compiler) handleRuleExpression(
+	ruleExpressionNode *shared.ParseTree[symbols.LexingTokenType],
+	variables *map[string][]string,
+	sectionConditions []condition,
+	buildType BuildType,
+	allGeneratedRules *[][]string) {
+	styleValue := ruleExpressionNode.Children[2].Token.ValueToString()
+	style := c.extractStyle(styleValue, variables)
+
+	showOrHideStr := ruleExpressionNode.Children[4].Token.ValueToString()[1:]
+	var action RuleType
+	if showOrHideStr == "Show" {
+		action = ShowRule
+	} else {
+		action = HideRule
+	}
+
+	ruleSpecificConditions := c.retrieveConditions(ruleExpressionNode)
+
+	rule := &ParsedRule{
+		Style:          style,
+		Action:         action,
+		Conditions:     ruleSpecificConditions,
+		Variables:      variables,
+		ValidBaseTypes: c.validBaseTypes,
+	}
+
+	// --- 2. Delegate compilation to a dedicated function ---
+	generatedRules := c.compileParsedRule(rule, sectionConditions, buildType)
+	*allGeneratedRules = append(*allGeneratedRules, generatedRules...)
+}
+
+func (c *Compiler) handleMacroExpression(
+	macroExpressionNode *shared.ParseTree[symbols.LexingTokenType],
+	variables *map[string][]string,
+	sectionConditions []condition,
+	buildType BuildType,
+	allGeneratedRules *[][]string) {
+	macroType := macroExpressionNode.Children[1].Token.ValueToString()
+	styleOneKey := macroExpressionNode.Children[3].Token.ValueToString()
+	styleOneValue := macroExpressionNode.Children[5].Token.ValueToString()
+	styleTwoKey := macroExpressionNode.Children[7].Token.ValueToString()
+	styleTwoValue := macroExpressionNode.Children[9].Token.ValueToString()
+
+	var hiddenStyle *config.Style
+	var shownStyle *config.Style
+
+	if styleOneKey == "$hidden" {
+		hiddenStyle = c.extractStyle(styleOneValue, variables)
+	} else if styleOneKey == "$show" {
+		shownStyle = c.extractStyle(styleOneValue, variables)
+	} else {
+		panic("Unsupported style state: " + styleOneKey)
+	}
+
+	if styleTwoKey == "$hidden" {
+		hiddenStyle = c.extractStyle(styleTwoValue, variables)
+	} else if styleTwoKey == "$show" {
+		shownStyle = c.extractStyle(styleTwoValue, variables)
+	} else {
+		panic("Unsupported style state: " + styleTwoKey)
+	}
+
+	if hiddenStyle == nil || shownStyle == nil {
+		panic("One or multiple style states missing (ensure you have both 'Hidden' and 'Show' defined)")
+	}
+
+	switch macroType {
+	case "item_progression":
+		c.handleItemProgression(variables, buildType, allGeneratedRules, hiddenStyle, shownStyle)
+	default:
+		panic("Unsupported macro type: " + macroType)
+	}
+}
+
+// handleItemProgression generates rules to show and then hide item base types progressively.
+// It groups items with the same drop level, showing them all as the "current" tier. When a
+// higher-level tier of items becomes available, it generates rules to hide all items from the previous tier.
+func (c *Compiler) handleItemProgression(
+	variables *map[string][]string,
+	buildType BuildType,
+	allGeneratedRules *[][]string,
+	hiddenStyle, shownStyle *config.Style,
+) {
+	// 1. Group all relevant weapons and armor by their category (Type).
+	itemsByCategory := make(map[string][]*data_generation.ItemBase)
+	for i := range c.weaponBases {
+		weapon := c.weaponBases[i]
+		if IsWeaponAssociatedWithBuild(weapon, buildType) {
+			itemsByCategory[weapon.Type] = append(itemsByCategory[weapon.Type], &c.weaponBases[i])
+		}
+	}
+	for i := range c.armorBases {
+		armor := c.armorBases[i]
+		if IsArmorAssociatedWithBuild(armor, buildType) {
+			itemsByCategory[armor.Type] = append(itemsByCategory[armor.Type], &c.armorBases[i])
+		}
+	}
+	for i := range c.flaskBases {
+		flask := c.flaskBases[i]
+
+		if flask.SubType == "Life" || flask.SubType == "Mana" || flask.SubType == "Hybrid" {
+			itemsByCategory[flask.Type+flask.SubType] = append(itemsByCategory[flask.Type+flask.SubType], &c.flaskBases[i])
+		} else {
+			itemsByCategory[flask.GetBaseType()] = append(itemsByCategory[flask.GetBaseType()], &c.flaskBases[i])
+		}
+	}
+
+	// 2. For each category, sort the items by their drop level.
+	for category := range itemsByCategory {
+		sort.Slice(itemsByCategory[category], func(i, j int) bool {
+			itemA := itemsByCategory[category][i]
+			itemB := itemsByCategory[category][j]
+			dropLevelA := 0
+			if itemA.DropLevel != nil {
+				dropLevelA = *itemA.DropLevel
+			}
+			dropLevelB := 0
+			if itemB.DropLevel != nil {
+				dropLevelB = *itemB.DropLevel
+			}
+			if dropLevelA == dropLevelB {
+				return itemA.Name < itemB.Name
+			}
+			return dropLevelA < dropLevelB
+		})
+	}
+
+	// 3. Build the progression rules (Show and Hide) for each sorted category.
+	for _, categoryItems := range itemsByCategory {
+		if len(categoryItems) == 0 {
+			continue
+		}
+
+		i := 0
+		for i < len(categoryItems) {
+			currentItem := categoryItems[i]
+			startLevel := 0
+			if currentItem.DropLevel != nil {
+				startLevel = *currentItem.DropLevel
+			}
+
+			if startLevel > 69 {
+				i++
+				continue
+			}
+
+			tierEndIndex := i
+			for tierEndIndex+1 < len(categoryItems) &&
+				getDropLevel(categoryItems[tierEndIndex+1]) == startLevel {
+				tierEndIndex++
+			}
+			currentTierItems := categoryItems[i : tierEndIndex+1]
+
+			nextTierStartIndex := tierEndIndex + 1
+			isLastTier := nextTierStartIndex >= len(categoryItems)
+
+			showEndLevel := 69
+			hideStartLevel := 69
+
+			if !isLastTier {
+				nextItemDropLevel := getDropLevel(categoryItems[nextTierStartIndex])
+				showEndLevel = nextItemDropLevel - 1
+				hideStartLevel = nextItemDropLevel
+			}
+
+			if showEndLevel > 69 {
+				showEndLevel = 69
+			}
+
+			if startLevel <= showEndLevel {
+				for _, tierItem := range currentTierItems {
+					c.constructItemProgressionRule(variables, ShowRule, *tierItem, allGeneratedRules, shownStyle, fmt.Sprintf("%d", showEndLevel))
+				}
+			}
+
+			if !isLastTier && hideStartLevel <= 69 {
+				hideEndLevel := 69
+				for _, tierItem := range currentTierItems {
+					c.constructItemProgressionRule(variables, HideRule, *tierItem, allGeneratedRules, hiddenStyle, fmt.Sprintf("%d", hideEndLevel))
+				}
+			}
+
+			i = tierEndIndex + 1
+		}
+	}
+}
+
+// getDropLevel is a helper function to safely get an item's drop level, defaulting to 0.
+func getDropLevel(item *data_generation.ItemBase) int {
+	if item.DropLevel != nil {
+		return *item.DropLevel
+	}
+	log.Printf("WARNING: Item '%s' has a nil DropLevel; defaulting to level 0.", item.Name)
+	return 0
+}
+
+func (c *Compiler) constructItemProgressionRule(variables *map[string][]string, ruleType RuleType, item data_generation.ItemBase, allGeneratedRules *[][]string, style *config.Style, maxAreaLevel string) {
+	areaCondition := condition{
+		identifier: "@area_level",
+		operator:   "<=",
+		value:      []string{maxAreaLevel},
+	}
+	baseTypeCondition := condition{
+		identifier: "@item_type",
+		operator:   "==",
+		value:      []string{item.GetBaseType()},
+	}
+	rarityCondition := condition{
+		identifier: "@rarity",
+		operator:   "!=",
+		value:      []string{"Unique"},
+	}
+	compiledConditions := []string{
+		baseTypeCondition.ConstructCompiledCondition(variables, c.validBaseTypes),
+		areaCondition.ConstructCompiledCondition(variables, c.validBaseTypes),
+		rarityCondition.ConstructCompiledCondition(variables, c.validBaseTypes),
+	}
+	*allGeneratedRules = append(*allGeneratedRules, c.ruleFactory.ConstructRule(ruleType, *style, compiledConditions))
 }
 
 func (c *Compiler) compileParsedRule(rule *ParsedRule, sectionConditions []condition, buildType BuildType) [][]string {
@@ -314,7 +534,6 @@ func (c *Compiler) handleClassUseMacro(
 	operator := macro.operator
 	value := macro.value[0]
 
-	// --- Rule 1: Weaponry (Example Implementation) ---
 	var weaponClasses []string
 	var armorClasses []string
 	switch value {

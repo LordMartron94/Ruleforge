@@ -121,6 +121,7 @@ type ItemBase struct {
 	Implicit         string            `json:"implicit,omitempty"`
 	ImplicitModTypes [][]string        `json:"implicitModTypes,omitempty"`
 	Req              map[string]int    `json:"req,omitempty"`
+	DropLevel        *int              `json:"dropLevel,omitempty"`
 
 	// --- Composition: Optional structs for specific data ---
 	// Using pointers makes them optional. They will be nil if not present.
@@ -155,10 +156,16 @@ func NewPathOfBuildingExporter() *PathOfBuildingExporter {
 }
 
 func GetBaseTypes[T POBDataType](data []T) []string {
-	basetypes := make([]string, len(data))
+	basetypes := make([]string, 0)
 
-	for i, dataItem := range data {
-		basetypes[i] = dataItem.GetBaseType()
+	for _, dataItem := range data {
+		baseType := dataItem.GetBaseType()
+
+		if strings.Contains(baseType, "Energy Blade") || strings.Contains(baseType, "Random") {
+			continue
+		}
+
+		basetypes = append(basetypes, baseType)
 	}
 
 	return basetypes
@@ -171,6 +178,8 @@ func (e *PathOfBuildingExporter) LoadItemBases(luaFilePath string) ([]ItemBase, 
 	}
 
 	var models []ItemBase
+
+	// 1. First, create all the item models from the Lua data.
 	dataTable.ForEach(func(key lua.LValue, value lua.LValue) {
 		itemName := key.String()
 		itemDataTable, ok := value.(*lua.LTable)
@@ -181,7 +190,30 @@ func (e *PathOfBuildingExporter) LoadItemBases(luaFilePath string) ([]ItemBase, 
 		models = append(models, newItemBaseFromLuaTable(itemName, itemDataTable))
 	})
 
-	log.Printf("Successfully converted %d item base models from %s\n", len(models), filepath.Base(luaFilePath))
+	// 2. Collect all the unique base type names that need a drop level lookup.
+	baseTypeNames := make([]string, 0, len(models))
+	for _, model := range models {
+		baseTypeNames = append(baseTypeNames, model.GetBaseType())
+	}
+
+	log.Printf("Fetching drop levels for %d base types concurrently...", len(baseTypeNames))
+
+	// 3. Make a single, fast, concurrent call to fetch all drop levels at once.
+	dropLevelsMap := GetBaseTypeDropLevels(baseTypeNames, 150)
+
+	log.Printf("Received %d drop levels. Mapping back to models...", len(dropLevelsMap))
+
+	// 4. Loop through the models again to efficiently assign the fetched drop levels from the map.
+	for i := range models {
+		baseType := models[i].GetBaseType()
+		if dropLevel, ok := dropLevelsMap[baseType]; ok {
+			models[i].DropLevel = &dropLevel
+		} else {
+			log.Printf("WARN: Could not find a drop level for base type '%s'. It will be left as nil.", baseType)
+		}
+	}
+
+	log.Printf("Successfully converted and enriched %d item base models from %s\n", len(models), filepath.Base(luaFilePath))
 	return models, nil
 }
 
