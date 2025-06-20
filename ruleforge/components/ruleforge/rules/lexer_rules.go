@@ -14,7 +14,7 @@ var (
 	numberRule                    = rules.NewNumberRule("NumberLexer", symbols.NumberToken)
 	whitespaceRule                = rules.NewWhitespaceLexingRule(symbols.WhitespaceToken, "WhitespaceLexer")
 	identifierAllowedSpecialChars = rules.NewCharacterOptionLexingRule([]rune{'.', '_'}, symbols.IdentifierValueToken, "identifierAllowedSpecialChars")
-	quotedAllowedSpecialChars     = rules.NewCharacterOptionLexingRule([]rune{'[', ']', '-'}, symbols.IdentifierValueToken, "quotedIdentifierAllowedSpecialChars")
+	quotedAllowedSpecialChars     = rules.NewCharacterOptionLexingRule([]rune{'[', ']', '-', '/'}, symbols.IdentifierValueToken, "quotedIdentifierAllowedSpecialChars")
 	ruleStrictnessIndicator       = rules.NewSpecificCharacterLexingRule('#', symbols.RuleStrictnessIndicatorToken, "ruleStrictnessIndicator")
 
 	// Composite rules built from the components above.
