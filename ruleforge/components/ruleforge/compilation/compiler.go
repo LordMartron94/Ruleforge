@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	model2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation/model"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"slices"
@@ -22,6 +24,8 @@ func NewCompiler(
 	configuration CompilerConfiguration,
 	validBaseTypes []string,
 	itemBases []model.ItemBase,
+	economyCache map[string][]data_generation.EconomyCacheItem,
+	economyWeights config.EconomyWeights,
 ) (*Compiler, error) {
 
 	styleMgr, err := NewStyleManager(configuration.StyleJsonPath)
@@ -42,6 +46,8 @@ func NewCompiler(
 			armorBases,
 			weaponBases,
 			flaskBases,
+			economyCache,
+			economyWeights,
 		),
 	}, nil
 }

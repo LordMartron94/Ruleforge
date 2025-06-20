@@ -14,10 +14,12 @@
         }
       }
     },
-    "Uniques": {
+    "Uniques_T1_Chase": {
+      "Comment": "Tier 1: Chase uniques (e.g., Mageblood, Headhunter).",
       "TextColor": {"red": 255, "green": 235, "blue": 205, "alpha": 255},
-      "BackgroundColor": {"red": 60, "green": 40, "blue": 20, "alpha": 255},
-      "BorderColor": {"red": 100, "green": 220, "blue": 180, "alpha": 255},
+      "BackgroundColor": {"red": 50, "green": 30, "blue": 15, "alpha": 255},
+      "BorderColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
+      "FontSize": 45,
       "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\angels.mp3",
       "DropVolume": 300,
       "Minimap": {
@@ -28,8 +30,60 @@
       "Beam": {
         "Color": "Red",
         "Temp": false
+      }
+    },
+    "Uniques_T2_Exceptional": {
+      "Comment": "Tier 2: Exceptionally valuable uniques.",
+      "TextColor": {"red": 255, "green": 235, "blue": 205, "alpha": 255},
+      "BackgroundColor": {"red": 55, "green": 35, "blue": 18, "alpha": 255},
+      "BorderColor": {"red": 255, "green": 165, "blue": 0, "alpha": 255},
+      "FontSize": 42,
+      "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\angels.mp3",
+      "DropVolume": 300,
+      "Minimap": {
+        "Shape": "Diamond",
+        "Color": "Orange",
+        "Size": 0
       },
-      "FontSize": 45
+      "Beam": {
+        "Color": "Orange",
+        "Temp": false
+      }
+    },
+    "Uniques_T3_Valuable": {
+      "Comment": "Tier 3: High-value, build-enabling uniques.",
+      "TextColor": {"red": 255, "green": 235, "blue": 205, "alpha": 255},
+      "BackgroundColor": {"red": 60, "green": 40, "blue": 20, "alpha": 255},
+      "BorderColor": {"red": 218, "green": 165, "blue": 32, "alpha": 255},
+      "FontSize": 40,
+      "Minimap": {
+        "Shape": "Diamond",
+        "Color": "Yellow",
+        "Size": 1
+      },
+      "Beam": {
+        "Color": "Yellow",
+        "Temp": true
+      }
+    },
+    "Uniques_T4_Useful": {
+      "Comment": "Tier 4: Useful uniques for specific builds or leveling.",
+      "TextColor": {"red": 255, "green": 235, "blue": 205, "alpha": 255},
+      "BackgroundColor": {"red": 65, "green": 45, "blue": 25, "alpha": 235},
+      "BorderColor": {"red": 184, "green": 134, "blue": 11, "alpha": 255},
+      "FontSize": 36,
+      "Minimap": {
+        "Shape": "Diamond",
+        "Color": "Brown",
+        "Size": 2
+      }
+    },
+    "Uniques_T5_Common": {
+      "Comment": "Tier 5: Common uniques for collection or niche uses.",
+      "TextColor": {"red": 255, "green": 235, "blue": 205, "alpha": 255},
+      "BackgroundColor": {"red": 70, "green": 50, "blue": 30, "alpha": 220},
+      "BorderColor": {"red": 139, "green": 69, "blue": 19, "alpha": 255},
+      "FontSize": 32
     },
     "Kingsmarch Gold": {
       "Minimap": {

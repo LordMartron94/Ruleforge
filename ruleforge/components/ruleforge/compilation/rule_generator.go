@@ -5,6 +5,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	model2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation/model"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"log"
@@ -20,6 +21,8 @@ type RuleGenerator struct {
 	armorBases     []model.ItemBase
 	weaponBases    []model.ItemBase
 	flaskBases     []model.ItemBase
+	economyCache   map[string][]data_generation.EconomyCacheItem
+	economyWeights config.EconomyWeights
 }
 
 // NewRuleGenerator creates the rule generation engine.
@@ -28,16 +31,20 @@ func NewRuleGenerator(
 	styleMgr *StyleManager,
 	validBases []string,
 	armor []model.ItemBase,
-	weapon []model.ItemBase,
-	flask []model.ItemBase,
+	weapons []model.ItemBase,
+	flasks []model.ItemBase,
+	economyCache map[string][]data_generation.EconomyCacheItem,
+	economyWeights config.EconomyWeights,
 ) *RuleGenerator {
 	return &RuleGenerator{
 		ruleFactory:    factory,
 		styleManager:   styleMgr,
 		validBaseTypes: validBases,
 		armorBases:     armor,
-		weaponBases:    weapon,
-		flaskBases:     flask,
+		weaponBases:    weapons,
+		flaskBases:     flasks,
+		economyCache:   economyCache,
+		economyWeights: economyWeights,
 	}
 }
 
@@ -111,50 +118,24 @@ func (rg *RuleGenerator) handleMacroExpression(
 	buildType BuildType,
 ) ([][]string, error) {
 	macroType := macroExpressionNode.Children[1].Token.ValueToString()
-	styleOneKey := macroExpressionNode.Children[3].Token.ValueToString()
-	styleOneValue := macroExpressionNode.Children[5].Token.ValueToString()
-	styleTwoKey := macroExpressionNode.Children[7].Token.ValueToString()
-	styleTwoValue := macroExpressionNode.Children[9].Token.ValueToString()
-
-	var hiddenStyle, shownStyle *config.Style
-	var err error
-
-	if styleOneKey == "$hidden" {
-		hiddenStyle, err = rg.styleManager.GetStyle(styleOneValue, *variables)
-	} else if styleOneKey == "$show" {
-		shownStyle, err = rg.styleManager.GetStyle(styleOneValue, *variables)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if styleTwoKey == "$hidden" {
-		hiddenStyle, err = rg.styleManager.GetStyle(styleTwoValue, *variables)
-	} else if styleTwoKey == "$show" {
-		shownStyle, err = rg.styleManager.GetStyle(styleTwoValue, *variables)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if hiddenStyle == nil || shownStyle == nil {
-		return nil, fmt.Errorf("one or multiple style states missing in macro (ensure both 'Hidden' and 'Show' are defined)")
-	}
+	parameters := macroExpressionNode.FindAllSymbolNodes(symbols.ParseSymbolParameter.String())
 
 	switch macroType {
 	case "item_progression-equipment":
-		return rg.handleItemProgression(variables, buildType, hiddenStyle, shownStyle), nil
+		return rg.handleEquipmentProgression(variables, buildType, parameters), nil
 	case "item_progression-flasks":
-		return rg.handleFlaskProgression(variables, hiddenStyle, shownStyle), nil
+		return rg.handleFlaskProgression(variables, parameters), nil
+	case "unique_tiering":
+		return rg.handleUniqueTiering(variables, parameters), nil
 	default:
 		return nil, fmt.Errorf("unsupported macro type: %s", macroType)
 	}
 }
 
-func (rg *RuleGenerator) handleItemProgression(
+func (rg *RuleGenerator) handleEquipmentProgression(
 	variables *map[string][]string,
 	buildType BuildType,
-	hiddenStyle, shownStyle *config.Style,
+	parameters []*shared.ParseTree[symbols.LexingTokenType],
 ) [][]string {
 	var allGeneratedRules [][]string
 	itemsByCategory := make(map[string][]*model.ItemBase)
@@ -171,6 +152,7 @@ func (rg *RuleGenerator) handleItemProgression(
 		}
 	}
 
+	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters, *variables)
 	rg.produceProgression(itemsByCategory, variables, shownStyle, hiddenStyle, &allGeneratedRules)
 
 	return allGeneratedRules
@@ -178,7 +160,7 @@ func (rg *RuleGenerator) handleItemProgression(
 
 func (rg *RuleGenerator) handleFlaskProgression(
 	variables *map[string][]string,
-	hiddenStyle, shownStyle *config.Style,
+	parameters []*shared.ParseTree[symbols.LexingTokenType],
 ) [][]string {
 	var allGeneratedRules [][]string
 	itemsByCategory := make(map[string][]*model.ItemBase)
@@ -191,9 +173,45 @@ func (rg *RuleGenerator) handleFlaskProgression(
 		itemsByCategory[key] = append(itemsByCategory[key], &rg.flaskBases[i])
 	}
 
+	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters, *variables)
 	rg.produceProgression(itemsByCategory, variables, shownStyle, hiddenStyle, &allGeneratedRules)
 
 	return allGeneratedRules
+}
+
+func (rg *RuleGenerator) getHiddenAndShownStyleFromParameters(parameters []*shared.ParseTree[symbols.LexingTokenType], variables map[string][]string) (*config.Style, *config.Style) {
+	var hiddenStyle, shownStyle *config.Style = nil, nil
+
+	for _, parameter := range parameters {
+		key, value := rg.getKeyAndValueFromParameter(parameter)
+		var err error
+
+		switch key {
+		case "$show":
+			shownStyle, err = rg.styleManager.GetStyle(value, variables)
+		case "$hidden":
+			hiddenStyle, err = rg.styleManager.GetStyle(value, variables)
+		default:
+			panic(fmt.Sprintf("invalid style key: %s", key))
+		}
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if hiddenStyle == nil || shownStyle == nil {
+		panic("At least one style mode is absent. Ensure both 'Hidden' and 'Shown' are present!")
+	}
+
+	return hiddenStyle, shownStyle
+}
+
+func (rg *RuleGenerator) getKeyAndValueFromParameter(parameter *shared.ParseTree[symbols.LexingTokenType]) (string, string) {
+	key := parameter.Children[1].Token.ValueToString()
+	value := parameter.Children[3].Token.ValueToString()
+
+	return key, value
 }
 
 func (rg *RuleGenerator) produceProgression(
@@ -292,6 +310,79 @@ func (rg *RuleGenerator) constructItemProgressionRule(variables *map[string][]st
 		rarityCondition.ConstructCompiledCondition(variables, rg.validBaseTypes),
 	}
 	*allGeneratedRules = append(*allGeneratedRules, rg.ruleFactory.ConstructRule(ruleType, *style, compiledConditions))
+}
+
+func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) [][]string {
+	generatedRules := make([][]string, 0)
+
+	rarityCondition := model2.Condition{
+		Identifier: "@rarity",
+		Operator:   "==",
+		Value:      []string{"Unique"},
+	}
+
+	tierStyles := make([]*config.Style, len(parameters))
+	for i, parameter := range parameters {
+		_, value := rg.getKeyAndValueFromParameter(parameter)
+		style, err := rg.styleManager.GetStyle(value, *variables)
+
+		if err != nil {
+			panic(err)
+		}
+
+		tierStyles[i] = style
+	}
+
+	if len(tierStyles) == 1 {
+		style := tierStyles[0]
+		generatedRules = append(generatedRules, rg.ruleFactory.ConstructRule(model2.ShowRule, *style, []string{rarityCondition.ConstructCompiledCondition(variables, rg.validBaseTypes)}))
+		return generatedRules
+	}
+
+	uniqueItemsToCheck := make(map[string][]data_generation.EconomyCacheItem)
+
+	for league, uniques := range rg.economyCache {
+		validUniques := make([]data_generation.EconomyCacheItem, 0)
+
+		for _, unique := range uniques {
+			if !slices.Contains(rg.validBaseTypes, unique.BaseType) {
+				fmt.Printf("WARNING: Unique Basetype skipping: %s\n", unique.BaseType)
+				continue
+			}
+
+			validUniques = append(validUniques, unique)
+		}
+
+		fmt.Printf("Valid Uniques for League %s: %d\n", league, len(validUniques))
+		uniqueItemsToCheck[league] = validUniques
+	}
+
+	tiered, err := data_generation.GenerateTiers(uniqueItemsToCheck, len(tierStyles), data_generation.TieringParameters{
+		ValueWeight:  rg.economyWeights.Value,
+		RarityWeight: rg.economyWeights.Rarity,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	for tier, baseTypes := range tiered {
+		style := tierStyles[tier-1]
+		baseTypeCondition := model2.Condition{
+			Identifier: "@item_type",
+			Operator:   "==",
+			Value:      baseTypes,
+		}
+
+		conditions := []string{
+			rarityCondition.ConstructCompiledCondition(variables, rg.validBaseTypes),
+			baseTypeCondition.ConstructCompiledCondition(variables, rg.validBaseTypes),
+		}
+
+		generatedRules = append(generatedRules, rg.ruleFactory.ConstructRule(model2.ShowRule, *style, conditions))
+	}
+
+	return generatedRules
 }
 
 func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionConditions []model2.Condition, buildType BuildType) [][]string {

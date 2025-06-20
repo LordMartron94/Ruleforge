@@ -3,6 +3,7 @@ package data_generation
 import (
 	"fmt"
 	lua "github.com/yuin/gopher-lua"
+	"strings"
 )
 
 // LuaExecutor is a reusable service for executing Lua scripts.
@@ -70,4 +71,72 @@ func (e *LuaExecutor) ExecuteScriptWithReturn(luaFilePath string) (*lua.LTable, 
 	}
 
 	return nil, fmt.Errorf("lua script did not return a table")
+}
+
+// ExecuteAndGetNestedGlobal runs a script and retrieves a table from a nested global path.
+func (e *LuaExecutor) ExecuteAndGetNestedGlobal(luaFilePath string, path ...string) (*lua.LTable, error) {
+	if len(path) == 0 {
+		return nil, fmt.Errorf("path cannot be empty")
+	}
+
+	L := lua.NewState()
+	defer L.Close()
+
+	setupEnvironment(L)
+
+	if err := L.DoFile(luaFilePath); err != nil {
+		return nil, fmt.Errorf("could not execute lua file '%s': %w", luaFilePath, err)
+	}
+
+	val := L.GetGlobal(path[0])
+	for i := 1; i < len(path); i++ {
+		tbl, ok := val.(*lua.LTable)
+		if !ok {
+			return nil, fmt.Errorf("invalid path: '%s' is not a table in script '%s'", strings.Join(path[:i], "."), luaFilePath)
+		}
+		val = L.GetField(tbl, path[i])
+	}
+
+	if finalTbl, ok := val.(*lua.LTable); ok {
+		return finalTbl, nil
+	}
+
+	return nil, fmt.Errorf("value at path '%s' is not a table in script '%s'", strings.Join(path, "."), luaFilePath)
+}
+
+// luaLoadModule is a stub implementation of the PoB `LoadModule` function.
+// It prevents crashes by returning an empty table for any module it's asked to load.
+func luaLoadModule(L *lua.LState) int {
+	L.Push(L.NewTable())
+	return 1
+}
+
+// setupEnvironment pre-creates the global table structure that PoB scripts expect.
+func setupEnvironment(L *lua.LState) {
+	// Create global 'data' table: data = {}
+	data := L.NewTable()
+	L.SetGlobal("data", data)
+
+	uniques := L.NewTable()
+	data.RawSetString("uniques", uniques)
+
+	veiledMods := L.NewTable()
+	data.RawSetString("veiledMods", veiledMods)
+
+	clusterJewels := L.NewTable()
+	data.RawSetString("clusterJewels", clusterJewels)
+
+	notableSortOrder := L.NewTable()
+	clusterJewels.RawSetString("notableSortOrder", notableSortOrder)
+
+	gems := L.NewTable()
+	data.RawSetString("gems", gems)
+
+	uniqueMods := L.NewTable()
+	data.RawSetString("uniqueMods", uniqueMods)
+
+	watchersEye := L.NewTable()
+	uniqueMods.RawSetString("Watcher's Eye", watchersEye)
+
+	L.SetGlobal("LoadModule", L.NewFunction(luaLoadModule))
 }

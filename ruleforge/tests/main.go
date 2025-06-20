@@ -47,14 +47,29 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("extractGemBases: %v", err)
 	}
+	uniques, err := extractUniqueBases(configuration, exporter)
+	if err != nil {
+		return fmt.Errorf("extractUniqueBases: %v", err)
+	}
+	economyData, err := exporter.GetEconomyData(configuration.EconomyBasedDataLeagues)
+
+	if err != nil {
+		return fmt.Errorf("GetEconomyData: %v", err)
+	}
 
 	log.Println("Number of itemBases:", len(itemBases))
 	log.Println("Number of essences:", len(essences))
 	log.Println("Number of gems:", len(gems))
+	log.Println("Number of uniques:", len(uniques))
 
-	err = exporter.SaveCache(itemBases, essences, gems)
+	err = exporter.SaveItemCache(itemBases, essences, gems, uniques)
 	if err != nil {
-		return fmt.Errorf("exporter.SaveCache: %v", err)
+		return fmt.Errorf("exporter.SaveItemCache: %v", err)
+	}
+
+	err = exporter.SaveEconomyCache(economyData)
+	if err != nil {
+		return fmt.Errorf("exporter.SaveEconomyCache: %v", err)
 	}
 
 	baseTypes := []string{"Gold"} // Manually include Gold because it's not really an item, but still a valid basetype.
@@ -71,7 +86,7 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases)
+		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData)
 		if err != nil {
 			return fmt.Errorf("processRuleforgeScript: %v", err)
 		}
@@ -119,7 +134,45 @@ func extractGemBases(configuration *config.ConfigurationModel, exporter *data_ge
 	return gems, nil
 }
 
-func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.ConfigurationModel, validBases []string, itemBases []model.ItemBase) error {
+func extractUniqueBases(configuration *config.ConfigurationModel, exporter *data_generation.PathOfBuildingExporter) ([]model.Unique, error) {
+	luaFiles, err := listFilesWithExtension(filepath.Join(configuration.PathOfBuildingDataPath, "Uniques"), ".lua")
+
+	if err != nil {
+		return nil, fmt.Errorf("listFilesWithExtension: %v", err)
+	}
+
+	bases, err := exporter.LoadUniques(luaFiles)
+	if err != nil {
+		return nil, fmt.Errorf("loadUniques: %v", err)
+	}
+
+	newUniqueFile := filepath.Join(configuration.PathOfBuildingDataPath, "Uniques", "Special", "New.Lua")
+	newUniqueBases, err := exporter.LoadUpcomingUniqueItems(newUniqueFile)
+
+	if err != nil {
+		return nil, fmt.Errorf("loadUpcomingUniqueItems: %v", err)
+	}
+
+	bases = append(bases, newUniqueBases...)
+
+	generatedUniqueFile := filepath.Join(configuration.PathOfBuildingDataPath, "Uniques", "Special", "Generated.Lua")
+	generatedUniqueBases, err := exporter.LoadGeneratedUniques(generatedUniqueFile)
+
+	if err != nil {
+		return nil, fmt.Errorf("generatedUniqueBases: %v", err)
+	}
+
+	bases = append(bases, generatedUniqueBases...)
+
+	return bases, nil
+}
+
+func processRuleforgeScript(
+	ruleforgeScriptPath string,
+	configuration *config.ConfigurationModel,
+	validBases []string,
+	itemBases []model.ItemBase,
+	economyCache map[string][]data_generation.EconomyCacheItem) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -161,7 +214,7 @@ func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.Co
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases, itemBases)
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)

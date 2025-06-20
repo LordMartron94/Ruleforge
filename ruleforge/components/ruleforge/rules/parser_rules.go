@@ -146,18 +146,38 @@ func ruleExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 }
 
 func macroExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	// --- Parameter Rules ---
+
+	// 1. Define a new rule that accepts either a variable reference or an identifier.
+	//    This creates a <Value> node in the parse tree.
+	parameterValueOptions := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
+		[]symbols.LexingTokenType{
+			symbols.VariableReferenceToken,
+			symbols.IdentifierValueToken,
+		},
+	)
+
+	// 2. Update the parameter definition to use this new choice rule for its value.
+	//    This rule matches '-> $key => ($value | Identifier)'
+	parameter := seq(symbols.ParseSymbolParameter,
+		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
+		token(symbols.ParseSymbolKey, symbols.VariableReferenceToken),
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		parameterValueOptions,
+	)
+
+	// The list of parameters is a simple repetition of the 'parameter' rule.
+	parameterList := composite.NewRepetitionRule[symbols.LexingTokenType](
+		symbols.ParseSymbolParameterList.String(),
+		parameter,
+	)
+
+	// --- Final Macro Expression ---
 	return seq(symbols.ParseSymbolMacroExpression,
 		token(symbols.ParseSymbolKeyword, symbols.FunctionKeywordToken),
 		token(symbols.ParseSymbolBlockOperator, symbols.OpenSquareBracketToken),
 		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
-		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
-		token(symbols.ParseSymbolKey, symbols.VariableReferenceToken),
-		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
-		token(symbols.ParseSymbolValue, symbols.VariableReferenceToken),
-		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
-		token(symbols.ParseSymbolKey, symbols.VariableReferenceToken),
-		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
-		token(symbols.ParseSymbolValue, symbols.VariableReferenceToken),
+		parameterList,
 		token(symbols.ParseSymbolBlockOperator, symbols.CloseSquareBracketToken),
 	)
 }

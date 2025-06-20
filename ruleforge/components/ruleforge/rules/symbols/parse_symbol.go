@@ -24,7 +24,6 @@ const (
 	ParseSymbolCombinedValue       ParseSymbol = "CombinedValue"
 	ParseSymbolChainedValues       ParseSymbol = "ChainedValues"
 	ParseSymbolFullValueExpression ParseSymbol = "FullValueExpression"
-	ParseSymbolRuleStrictness      ParseSymbol = "RuleStrictness"
 
 	// --- Common Grammatical Roles ---
 	ParseSymbolKey           ParseSymbol = "Key"
@@ -37,6 +36,8 @@ const (
 	ParseSymbolBlockOperator ParseSymbol = "BlockOperator"
 
 	ParseSymbolMacroExpression ParseSymbol = "MacroExpression"
+	ParseSymbolParameterList   ParseSymbol = "ParameterList"
+	ParseSymbolParameter       ParseSymbol = "Parameter"
 
 	// --- Fallback ---
 	ParseSymbolAny ParseSymbol = "Any"
