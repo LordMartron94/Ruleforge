@@ -2,19 +2,13 @@ package compilation
 
 import (
 	"fmt"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation/model"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
-)
-
-type RuleType string
-
-const (
-	ShowRule RuleType = "Show"
-	HideRule RuleType = "Hide"
 )
 
 type RuleFactory struct{}
 
-func (r *RuleFactory) ConstructRule(ruleType RuleType, style config.Style, conditions []string) []string {
+func (r *RuleFactory) ConstructRule(ruleType model.RuleType, style config.Style, conditions []string) []string {
 	output := []string{string(ruleType)}
 
 	for _, condition := range conditions {

@@ -159,9 +159,14 @@ func processRuleforgeScript(ruleforgeScriptPath string, configuration *config.Co
 	}
 
 	// 6) Compilation
-	compiler := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
+	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
 	}, validBases, itemBases)
+
+	if err != nil {
+		return fmt.Errorf("compilation.NewCompiler: %w", err)
+	}
+
 	outputStrings, err, outputName := compiler.CompileIntoFilter()
 
 	if err != nil {

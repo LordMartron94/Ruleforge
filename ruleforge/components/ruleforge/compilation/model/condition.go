@@ -1,4 +1,4 @@
-package compilation
+package model
 
 import (
 	"fmt"
@@ -15,10 +15,10 @@ var conditionIdentifierToCompiledIdentifier = map[string]string{
 	"@rarity":     "Rarity",
 }
 
-type condition struct {
-	identifier string
-	operator   string
-	value      []string
+type Condition struct {
+	Identifier string
+	Operator   string
+	Value      []string
 }
 
 func debugMap(m map[string][]string) {
@@ -34,11 +34,11 @@ func debugMap(m map[string][]string) {
 	}
 }
 
-func (c *condition) ConstructCompiledCondition(variables *map[string][]string, validBaseTypes []string) string {
-	compiledIdentifier := compileIdentifier(c.identifier)
+func (c *Condition) ConstructCompiledCondition(variables *map[string][]string, validBaseTypes []string) string {
+	compiledIdentifier := compileIdentifier(c.Identifier)
 	var compiledValues []string
 
-	for _, value := range c.value {
+	for _, value := range c.Value {
 		if value[0] != '$' {
 			if compiledIdentifier == "BaseType" {
 				c.validateBaseType(value, validBaseTypes)
@@ -52,7 +52,7 @@ func (c *condition) ConstructCompiledCondition(variables *map[string][]string, v
 
 		if !ok {
 			debugMap(*variables)
-			panic(fmt.Sprintf("variable value not found in compiled condition: %s -> %s", c.identifier, c.value))
+			panic(fmt.Sprintf("variable Value not found in compiled Condition: %s -> %s", c.Identifier, c.Value))
 		}
 
 		if compiledIdentifier == "BaseType" {
@@ -64,16 +64,16 @@ func (c *condition) ConstructCompiledCondition(variables *map[string][]string, v
 		}
 	}
 
-	return c.constructString(compiledIdentifier, c.operator, compiledValues)
+	return c.constructString(compiledIdentifier, c.Operator, compiledValues)
 }
 
-func (c *condition) validateBaseType(baseType string, validBaseTypes []string) {
+func (c *Condition) validateBaseType(baseType string, validBaseTypes []string) {
 	if !slices.Contains(validBaseTypes, baseType) {
 		log.Printf("WARNING: %s is not a valid BaseType (this could be due to it not being extracted from PoB yet, your game might run fine)", baseType)
 	}
 }
 
-func (c *condition) constructString(identifier, operator string, values []string) string {
+func (c *Condition) constructString(identifier, operator string, values []string) string {
 	valueString := ""
 
 	for _, value := range values {
@@ -87,7 +87,7 @@ func compileIdentifier(identifier string) string {
 	compiled, ok := conditionIdentifierToCompiledIdentifier[identifier]
 
 	if !ok {
-		panic("invalid identifier: " + identifier)
+		panic("invalid Identifier: " + identifier)
 	}
 
 	return compiled

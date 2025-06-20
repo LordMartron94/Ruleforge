@@ -10,6 +10,31 @@ type Color struct {
 	Alpha *uint8 `json:"alpha"`
 }
 
+// Clone creates a deep copy of the Color.
+func (c *Color) Clone() *Color {
+	if c == nil {
+		return nil
+	}
+	clone := &Color{}
+	if c.Red != nil {
+		val := *c.Red
+		clone.Red = &val
+	}
+	if c.Green != nil {
+		val := *c.Green
+		clone.Green = &val
+	}
+	if c.Blue != nil {
+		val := *c.Blue
+		clone.Blue = &val
+	}
+	if c.Alpha != nil {
+		val := *c.Alpha
+		clone.Alpha = &val
+	}
+	return clone
+}
+
 // Minimap settings.
 type Minimap struct {
 	Size   *int    `json:"Size,omitempty"`
@@ -17,10 +42,48 @@ type Minimap struct {
 	Colour *string `json:"Colour,omitempty"`
 }
 
+// Clone creates a deep copy of the Minimap settings.
+func (m *Minimap) Clone() *Minimap {
+	if m == nil {
+		return nil
+	}
+	clone := &Minimap{}
+	if m.Size != nil {
+		val := *m.Size
+		clone.Size = &val
+	}
+	if m.Shape != nil {
+		val := *m.Shape
+		clone.Shape = &val
+	}
+	if m.Colour != nil {
+		val := *m.Colour
+		clone.Colour = &val
+	}
+	return clone
+}
+
 // Beam settings.
 type Beam struct {
 	Color *string `json:"Color,omitempty"`
 	Temp  *bool   `json:"Temp,omitempty"`
+}
+
+// Clone creates a deep copy of the Beam settings.
+func (b *Beam) Clone() *Beam {
+	if b == nil {
+		return nil
+	}
+	clone := &Beam{}
+	if b.Color != nil {
+		val := *b.Color
+		clone.Color = &val
+	}
+	if b.Temp != nil {
+		val := *b.Temp
+		clone.Temp = &val
+	}
+	return clone
 }
 
 // Style holds all possible fields for a style. Every field is a pointer
@@ -36,6 +99,40 @@ type Style struct {
 	DropSound       *string  `json:"DropSound,omitempty"`
 	DropVolume      *int     `json:"DropVolume,omitempty"`
 	Beam            *Beam    `json:"Beam,omitempty"`
+}
+
+// Clone creates a deep, independent copy of the Style.
+func (s *Style) Clone() *Style {
+	if s == nil {
+		return nil
+	}
+
+	clone := &Style{
+		Name: s.Name, // Name is a value type, can be copied directly.
+	}
+
+	// Deep copy pointer fields by creating new variables.
+	if s.FontSize != nil {
+		val := *s.FontSize
+		clone.FontSize = &val
+	}
+	if s.DropSound != nil {
+		val := *s.DropSound
+		clone.DropSound = &val
+	}
+	if s.DropVolume != nil {
+		val := *s.DropVolume
+		clone.DropVolume = &val
+	}
+
+	// For complex types, call their respective Clone methods.
+	clone.TextColor = s.TextColor.Clone()
+	clone.BorderColor = s.BorderColor.Clone()
+	clone.BackgroundColor = s.BackgroundColor.Clone()
+	clone.Minimap = s.Minimap.Clone()
+	clone.Beam = s.Beam.Clone()
+
+	return clone
 }
 
 // MergeStyles deep-merges 'style' with 'other', returning a new Style.
@@ -90,10 +187,10 @@ func (s *Style) MergeStyles(other *Style) (*Style, error) {
 
 func mergeColor(a, b *Color) (*Color, error) {
 	if a == nil {
-		return b, nil
+		return b.Clone(), nil // Return a clone to prevent mutation
 	}
 	if b == nil {
-		return a, nil
+		return a.Clone(), nil // Return a clone to prevent mutation
 	}
 	// both non-nil → deep-merge
 	out := &Color{}
@@ -115,10 +212,10 @@ func mergeColor(a, b *Color) (*Color, error) {
 
 func mergeMinimap(a, b *Minimap) (*Minimap, error) {
 	if a == nil {
-		return b, nil
+		return b.Clone(), nil
 	}
 	if b == nil {
-		return a, nil
+		return a.Clone(), nil
 	}
 	out := &Minimap{}
 	var err error
@@ -136,10 +233,10 @@ func mergeMinimap(a, b *Minimap) (*Minimap, error) {
 
 func mergeBeam(a, b *Beam) (*Beam, error) {
 	if a == nil {
-		return b, nil
+		return b.Clone(), nil
 	}
 	if b == nil {
-		return a, nil
+		return a.Clone(), nil
 	}
 	out := &Beam{}
 	var err error
@@ -158,9 +255,14 @@ func mergePtrInt(a, b *int) (*int, error) {
 		return nil, fmt.Errorf("conflict: both values present (%d vs %d)", *a, *b)
 	}
 	if a != nil {
-		return a, nil
+		val := *a
+		return &val, nil
 	}
-	return b, nil
+	if b != nil {
+		val := *b
+		return &val, nil
+	}
+	return nil, nil
 }
 
 func mergePtrString(a, b *string) (*string, error) {
@@ -168,9 +270,14 @@ func mergePtrString(a, b *string) (*string, error) {
 		return nil, fmt.Errorf("conflict: both values present (%q vs %q)", *a, *b)
 	}
 	if a != nil {
-		return a, nil
+		val := *a
+		return &val, nil
 	}
-	return b, nil
+	if b != nil {
+		val := *b
+		return &val, nil
+	}
+	return nil, nil
 }
 
 func mergePtrBool(a, b *bool) (*bool, error) {
@@ -178,9 +285,14 @@ func mergePtrBool(a, b *bool) (*bool, error) {
 		return nil, fmt.Errorf("conflict: both values present (%t vs %t)", *a, *b)
 	}
 	if a != nil {
-		return a, nil
+		val := *a
+		return &val, nil
 	}
-	return b, nil
+	if b != nil {
+		val := *b
+		return &val, nil
+	}
+	return nil, nil
 }
 
 func mergePtrUint8(a, b *uint8) (*uint8, error) {
@@ -188,7 +300,12 @@ func mergePtrUint8(a, b *uint8) (*uint8, error) {
 		return nil, fmt.Errorf("conflict: both values present (%d vs %d)", *a, *b)
 	}
 	if a != nil {
-		return a, nil
+		val := *a
+		return &val, nil
 	}
-	return b, nil
+	if b != nil {
+		val := *b
+		return &val, nil
+	}
+	return nil, nil
 }
