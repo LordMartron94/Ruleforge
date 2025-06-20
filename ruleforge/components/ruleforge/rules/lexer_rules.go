@@ -109,8 +109,8 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"@item_category", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@stack_size", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@class_use", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		//{"@class_use-weapon", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		//{"@class_use-armor", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@socket_group", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@sockets", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 
 		// Builds
 		{"MARAUDER", symbols.MeleeBuildToken, "BuildValueKeywordLexer"},

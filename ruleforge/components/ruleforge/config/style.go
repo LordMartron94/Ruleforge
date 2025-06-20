@@ -99,6 +99,7 @@ type Style struct {
 	DropSound       *string  `json:"DropSound,omitempty"`
 	DropVolume      *int     `json:"DropVolume,omitempty"`
 	Beam            *Beam    `json:"Beam,omitempty"`
+	Comment         *string  `json:"Comment,omitempty"`
 }
 
 // Clone creates a deep, independent copy of the Style.

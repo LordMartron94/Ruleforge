@@ -27,6 +27,7 @@ var knownStyleKeys = map[string]struct{}{
 	"DropSound":       {},
 	"DropVolume":      {},
 	"Beam":            {},
+	"Comment":         {},
 }
 
 // LoadStyles reads a JSON file and recursively parses it into a flattened map.

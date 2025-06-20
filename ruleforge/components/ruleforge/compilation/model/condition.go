@@ -8,11 +8,13 @@ import (
 )
 
 var conditionIdentifierToCompiledIdentifier = map[string]string{
-	"@area_level": "AreaLevel",
-	"@stack_size": "StackSize",
-	"@item_type":  "BaseType",
-	"@item_class": "Class",
-	"@rarity":     "Rarity",
+	"@area_level":   "AreaLevel",
+	"@stack_size":   "StackSize",
+	"@item_type":    "BaseType",
+	"@item_class":   "Class",
+	"@rarity":       "Rarity",
+	"@sockets":      "Sockets",
+	"@socket_group": "SocketGroup",
 }
 
 type Condition struct {
