@@ -30,7 +30,7 @@ func run() error {
 	configuration, err := configurationLoader.LoadConfiguration("config.json")
 
 	if err != nil {
-		return fmt.Errorf("configurationLoader.LoadConfiguration: %v", err)
+		return fmt.Errorf("configurationLoader.LoadCache: %v", err)
 	}
 
 	exporter := data_generation.NewPathOfBuildingExporter()
@@ -50,6 +50,11 @@ func run() error {
 	log.Println("Number of itemBases:", len(itemBases))
 	log.Println("Number of essences:", len(essences))
 	log.Println("Number of gems:", len(gems))
+
+	err = exporter.SaveCache(itemBases, essences, gems)
+	if err != nil {
+		return fmt.Errorf("exporter.SaveCache: %v", err)
+	}
 
 	baseTypes := []string{"Gold"} // Manually include Gold because it's not really an item, but still a valid basetype.
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(itemBases)...)
@@ -80,16 +85,10 @@ func extractItemBases(configuration *config.ConfigurationModel, exporter *data_g
 	if err != nil {
 		return nil, fmt.Errorf("listFilesWithExtension: %v", err)
 	}
+	bases, err := exporter.LoadItemBases(luaFiles)
 
-	bases := make([]data_generation.ItemBase, 0)
-
-	for _, luaFile := range luaFiles {
-		fileBases, err := exporter.LoadItemBases(luaFile)
-		if err != nil {
-			log.Fatalf("Error processing file: %v", err)
-		}
-
-		bases = append(bases, fileBases...)
+	if err != nil {
+		return nil, fmt.Errorf("loadItemBases: %v", err)
 	}
 
 	return bases, nil

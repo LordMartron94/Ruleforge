@@ -45,3 +45,4 @@ build
 test_input
 go-tmp
 output
+cache

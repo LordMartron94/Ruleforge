@@ -4,9 +4,12 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/yuin/gopher-lua"
 )
+
+// TODO - Refactor
 
 // --- Struct Definitions ---
 
@@ -143,15 +146,23 @@ type POBDataType interface {
 	GetBaseType() string
 }
 
-// --- Public Exporter Methods (Unchanged) ---
+// --- Public Exporter Methods ---
 
 type PathOfBuildingExporter struct {
 	luaExecutor *LuaExecutor
+	cache       *CacheModel
+	cacheRepo   *CacheRepository
 }
 
 func NewPathOfBuildingExporter() *PathOfBuildingExporter {
+	cacheRepository := NewCacheRepository("./cache/basetypes.json")
+
+	cache, _ := cacheRepository.LoadCache()
+
 	return &PathOfBuildingExporter{
 		luaExecutor: NewLuaExecutor(),
+		cache:       cache,
+		cacheRepo:   cacheRepository,
 	}
 }
 
@@ -171,8 +182,28 @@ func GetBaseTypes[T POBDataType](data []T) []string {
 	return basetypes
 }
 
-func (e *PathOfBuildingExporter) LoadItemBases(luaFilePath string) ([]ItemBase, error) {
-	dataTable, err := e.luaExecutor.ExecuteScriptAsFunc(luaFilePath)
+func (e *PathOfBuildingExporter) LoadItemBases(luaFilePaths []string) ([]ItemBase, error) {
+	if e.cache != nil {
+		return (*e.cache).Items, nil
+	}
+
+	bases := make([]ItemBase, 0)
+
+	for _, luaFile := range luaFilePaths {
+		fileBases, err := e.loadModelsSingleFile(luaFile)
+
+		if err != nil {
+			return nil, err
+		}
+
+		bases = append(bases, fileBases...)
+	}
+
+	return bases, nil
+}
+
+func (e *PathOfBuildingExporter) loadModelsSingleFile(luaFile string) ([]ItemBase, error) {
+	dataTable, err := e.luaExecutor.ExecuteScriptAsFunc(luaFile)
 	if err != nil {
 		return nil, err
 	}
@@ -213,11 +244,15 @@ func (e *PathOfBuildingExporter) LoadItemBases(luaFilePath string) ([]ItemBase, 
 		}
 	}
 
-	log.Printf("Successfully converted and enriched %d item base models from %s\n", len(models), filepath.Base(luaFilePath))
+	log.Printf("Successfully converted and enriched %d item base models from %s\n", len(models), filepath.Base(luaFile))
 	return models, nil
 }
 
 func (e *PathOfBuildingExporter) LoadEssences(luaFilePath string) ([]Essence, error) {
+	if e.cache != nil {
+		return (*e.cache).Essences, nil
+	}
+
 	// 1. Delegate execution to our new executor method.
 	dataTable, err := e.luaExecutor.ExecuteScriptWithReturn(luaFilePath)
 	if err != nil {
@@ -241,6 +276,10 @@ func (e *PathOfBuildingExporter) LoadEssences(luaFilePath string) ([]Essence, er
 }
 
 func (e *PathOfBuildingExporter) LoadGems(luaFilePath string) ([]Gem, error) {
+	if e.cache != nil {
+		return (*e.cache).Gems, nil
+	}
+
 	dataTable, err := e.luaExecutor.ExecuteScriptWithReturn(luaFilePath)
 	if err != nil {
 		return nil, err
@@ -259,6 +298,15 @@ func (e *PathOfBuildingExporter) LoadGems(luaFilePath string) ([]Gem, error) {
 
 	log.Printf("Successfully converted %d gem models from %s\n", len(models), filepath.Base(luaFilePath))
 	return models, nil
+}
+
+func (e *PathOfBuildingExporter) SaveCache(items []ItemBase, essences []Essence, gems []Gem) error {
+	currentTime := time.Now()
+	if e.cache != nil && !currentTime.After(e.cache.ExpiryDate) {
+		return nil
+	}
+
+	return e.cacheRepo.SaveCache(items, essences, gems)
 }
 
 // --- Internal Factory & Mapping Helpers (Updated) ---
