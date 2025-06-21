@@ -312,6 +312,7 @@ func (rg *RuleGenerator) constructItemProgressionRule(variables *map[string][]st
 	*allGeneratedRules = append(*allGeneratedRules, rg.ruleFactory.ConstructRule(ruleType, *style, compiledConditions))
 }
 
+// handleUniqueTiering generates tiered rules for unique items based on economy data.
 func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) [][]string {
 	generatedRules := make([][]string, 0)
 
@@ -325,11 +326,9 @@ func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, par
 	for i, parameter := range parameters {
 		_, value := rg.getKeyAndValueFromParameter(parameter)
 		style, err := rg.styleManager.GetStyle(value)
-
 		if err != nil {
 			panic(err)
 		}
-
 		tierStyles[i] = style
 	}
 
@@ -340,20 +339,15 @@ func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, par
 	}
 
 	uniqueItemsToCheck := make(map[string][]data_generation.EconomyCacheItem)
-
 	for league, uniques := range rg.economyCache {
 		validUniques := make([]data_generation.EconomyCacheItem, 0)
-
 		for _, unique := range uniques {
 			if !slices.Contains(rg.validBaseTypes, unique.BaseType) {
-				fmt.Printf("WARNING: Unique Basetype skipping: %s\n", unique.BaseType)
 				continue
 			}
-
 			validUniques = append(validUniques, unique)
 		}
-
-		fmt.Printf("Valid Uniques for League %s: %d\n", league, len(validUniques))
+		log.Printf("Valid Uniques for League %s: %d\n", league, len(validUniques))
 		uniqueItemsToCheck[league] = validUniques
 	}
 
@@ -361,12 +355,22 @@ func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, par
 		ValueWeight:  rg.economyWeights.Value,
 		RarityWeight: rg.economyWeights.Rarity,
 	})
-
 	if err != nil {
 		panic(err)
 	}
 
-	for tier, baseTypes := range tiered {
+	var sortedTiers []int
+	for tier := range tiered {
+		sortedTiers = append(sortedTiers, tier)
+	}
+	sort.Ints(sortedTiers)
+
+	for _, tier := range sortedTiers {
+		baseTypes := tiered[tier]
+		if len(baseTypes) == 0 {
+			continue
+		}
+
 		style := tierStyles[tier-1]
 		baseTypeCondition := model2.Condition{
 			Identifier: "@item_type",
