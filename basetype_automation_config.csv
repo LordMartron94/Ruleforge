@@ -1,0 +1,15 @@
+Category,Basetype,MinStackSize,Style,Tier
+Supplies,Scroll of Wisdom,1,Special/Currencies/Supplies/Low,5
+Supplies,Portal Scroll,1,Special/Currencies/Supplies/Mid,4
+Supplies,Gemcutter's Prism,,Special/Currencies/Supplies/Supreme,2
+Supplies,Glassblower's Bauble,,Special/Currencies/Supplies/High,3
+Supplies,Blacksmith's Whetstone,,Special/Currencies/Supplies/Mid,4
+Supplies,Alteration Shard,,Special/Currencies/Supplies/Mid,4
+Supplies,Transmutation Shard,,Special/Currencies/Supplies/Mid,4
+Supplies,Armourer's Scrap,,Special/Currencies/Supplies/Mid,4
+Supplies,Cartographer's Chisel,,Special/Currencies/Supplies/Fantastic,1
+Supplies,Alchemy Shard,,Special/Currencies/Supplies/Mid,4
+Supplies,Scroll of Wisdom,5,Special/Currencies/Supplies/Mid,4
+Supplies,Portal Scroll,5,Special/Currencies/Supplies/High,3
+Supplies,Scroll of Wisdom,20,Special/Currencies/Supplies/High,3
+Supplies,Portal Scroll,20,Special/Currencies/Supplies/Supreme,2

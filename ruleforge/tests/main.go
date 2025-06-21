@@ -216,10 +216,17 @@ func processRuleforgeScript(
 		return fmt.Errorf("validating parse tree: %w", err)
 	}
 
+	baseTypeDataLoader := config.NewBaseTypeAutomationLoader("./basetype_automation_config.csv")
+	baseTypeData, err := baseTypeDataLoader.Load()
+
+	if err != nil {
+		return fmt.Errorf("loading base type automation data: %w", err)
+	}
+
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor)
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, *baseTypeData)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)

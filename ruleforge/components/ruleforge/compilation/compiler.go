@@ -29,6 +29,7 @@ func NewCompiler(
 	leagueWeights []config.LeagueWeights,
 	normalizationStrategy string,
 	chasePotentialWeight float64,
+	baseTypeData []config.BaseTypeAutomationEntry,
 ) (*Compiler, error) {
 
 	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree)
@@ -54,6 +55,7 @@ func NewCompiler(
 			leagueWeights,
 			normalizationStrategy,
 			chasePotentialWeight,
+			baseTypeData,
 		),
 	}, nil
 }

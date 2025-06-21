@@ -14,6 +14,48 @@
         }
       }
     },
+    "Currencies": {
+      "Supplies": {
+        "Main": {
+          "Comment": "Theme: Workshop Blueprint. A cool, industrial slate blue for foundational crafting supplies. Provides high contrast against Uniques.",
+          "BackgroundColor": { "red": 40, "green": 50, "blue": 75, "alpha": 255 },
+          "Minimap": {
+            "Shape": "Square",
+            "Color": "Blue"
+          }
+        },
+        "Fantastic": {
+          "Combination": [
+            "Special/Currencies/Supplies/Main",
+            "Tiers/Eldritch"
+          ]
+        },
+        "Supreme": {
+          "Combination": [
+            "Special/Currencies/Supplies/Main",
+            "Tiers/Primal"
+          ]
+        },
+        "High": {
+          "Combination": [
+            "Special/Currencies/Supplies/Main",
+            "Tiers/Vivid"
+          ]
+        },
+        "Mid": {
+          "Combination": [
+            "Special/Currencies/Supplies/Main",
+            "Tiers/Mortal"
+          ]
+        },
+        "Low": {
+          "Combination": [
+            "Special/Currencies/Supplies/Main",
+            "Tiers/Relic"
+          ]
+        }
+      }
+    },
     "Uniques_T1_Chase": {
       "Comment": "Tier 1: Chase uniques (e.g., Mageblood, Headhunter).",
       "TextColor": {"red": 255, "green": 235, "blue": 205, "alpha": 255},

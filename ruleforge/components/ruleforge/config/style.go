@@ -83,16 +83,17 @@ func (b *Beam) Clone() *Beam {
 }
 
 type Style struct {
-	Name            string   `json:"-"`
-	TextColor       *Color   `json:"TextColor,omitempty"`
-	BorderColor     *Color   `json:"BorderColor,omitempty"`
-	BackgroundColor *Color   `json:"BackgroundColor,omitempty"`
-	FontSize        *int     `json:"FontSize,omitempty"`
-	Minimap         *Minimap `json:"Minimap,omitempty"`
-	DropSound       *string  `json:"DropSound,omitempty"`
-	DropVolume      *int     `json:"DropVolume,omitempty"`
-	Beam            *Beam    `json:"Beam,omitempty"`
-	Comment         *string  `json:"Comment,omitempty"`
+	Name            string    `json:"-"`
+	TextColor       *Color    `json:"TextColor,omitempty"`
+	BorderColor     *Color    `json:"BorderColor,omitempty"`
+	BackgroundColor *Color    `json:"BackgroundColor,omitempty"`
+	FontSize        *int      `json:"FontSize,omitempty"`
+	Minimap         *Minimap  `json:"Minimap,omitempty"`
+	DropSound       *string   `json:"DropSound,omitempty"`
+	DropVolume      *int      `json:"DropVolume,omitempty"`
+	Beam            *Beam     `json:"Beam,omitempty"`
+	Comment         *string   `json:"Comment,omitempty"`
+	Combination     *[]string `json:"Combination,omitempty"` // <-- Added for new logic
 }
 
 func (s *Style) Clone() *Style {
@@ -121,8 +122,14 @@ func (s *Style) Clone() *Style {
 	clone.BackgroundColor = s.BackgroundColor.Clone()
 	clone.Minimap = s.Minimap.Clone()
 	clone.Beam = s.Beam.Clone()
+
+	// Note: We don't clone Combination as it's only used for initial loading.
 	return clone
 }
+
+// ===================================================================
+// ORIGINAL MERGE LOGIC (Conflict-Aware)
+// ===================================================================
 
 func (s *Style) MergeStyles(other *Style, overrides OverrideMap) (*Style, error) {
 	if s == nil {
@@ -314,4 +321,121 @@ func handleConflict(overrides OverrideMap, propName, baseStyleName, otherStyleNa
 	}
 
 	return fmt.Errorf("property %q has a conflict between styles %q and %q with no !override clause specified", propName, baseStyleName, otherStyleName)
+}
+
+// ===================================================================
+// NEW MERGE LOGIC (Compositional / Last-One-Wins) for Combinations
+// ===================================================================
+
+// MergeOnto merges the non-nil fields from `other` into the receiver `s`.
+// Properties from `other` will overwrite the properties of `s`.
+// This method modifies the receiver and is used for the "Combination" logic.
+func (s *Style) MergeOnto(other *Style) {
+	if other == nil {
+		return
+	}
+
+	if other.TextColor != nil {
+		if s.TextColor == nil {
+			s.TextColor = &Color{}
+		}
+		s.TextColor.MergeOnto(other.TextColor)
+	}
+	if other.BorderColor != nil {
+		if s.BorderColor == nil {
+			s.BorderColor = &Color{}
+		}
+		s.BorderColor.MergeOnto(other.BorderColor)
+	}
+	if other.BackgroundColor != nil {
+		if s.BackgroundColor == nil {
+			s.BackgroundColor = &Color{}
+		}
+		s.BackgroundColor.MergeOnto(other.BackgroundColor)
+	}
+	if other.FontSize != nil {
+		val := *other.FontSize
+		s.FontSize = &val
+	}
+	if other.Minimap != nil {
+		if s.Minimap == nil {
+			s.Minimap = &Minimap{}
+		}
+		s.Minimap.MergeOnto(other.Minimap)
+	}
+	if other.DropSound != nil {
+		val := *other.DropSound
+		s.DropSound = &val
+	}
+	if other.DropVolume != nil {
+		val := *other.DropVolume
+		s.DropVolume = &val
+	}
+	if other.Beam != nil {
+		if s.Beam == nil {
+			s.Beam = &Beam{}
+		}
+		s.Beam.MergeOnto(other.Beam)
+	}
+	if other.Comment != nil {
+		val := *other.Comment
+		s.Comment = &val
+	}
+}
+
+// MergeOnto merges non-nil fields from `other` into receiver `c`.
+func (c *Color) MergeOnto(other *Color) {
+	if other == nil {
+		return
+	}
+	if other.Red != nil {
+		val := *other.Red
+		c.Red = &val
+	}
+	if other.Green != nil {
+		val := *other.Green
+		c.Green = &val
+	}
+	if other.Blue != nil {
+		val := *other.Blue
+		c.Blue = &val
+	}
+	if other.Alpha != nil {
+		val := *other.Alpha
+		c.Alpha = &val
+	}
+}
+
+// MergeOnto merges non-nil fields from `other` into receiver `m`.
+func (m *Minimap) MergeOnto(other *Minimap) {
+	if other == nil {
+		return
+	}
+	if other.Size != nil {
+		val := *other.Size
+		m.Size = &val
+	}
+	if other.Shape != nil {
+		val := *other.Shape
+		m.Shape = &val
+	}
+	if other.Colour != nil {
+		val := *other.Colour
+		m.Colour = &val
+	}
+}
+
+// MergeOnto merges non-nil fields from `other` into receiver `b`.
+func (b *Beam) MergeOnto(other *Beam) {
+	if other == nil {
+		return
+	}
+	if other.Color != nil {
+		val := *other.Color
+		b.Color = &val
+	}
+	if other.Temp != nil {
+		val := *other.Temp
+		b.Temp = &val
+	}
 }

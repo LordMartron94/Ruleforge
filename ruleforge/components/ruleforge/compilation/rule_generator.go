@@ -26,6 +26,7 @@ type RuleGenerator struct {
 	leagueWeights         []config.LeagueWeights
 	normalizationStrategy string
 	chasePotentialWeight  float64
+	baseTypeData          []config.BaseTypeAutomationEntry
 }
 
 // NewRuleGenerator creates the rule generation engine.
@@ -41,6 +42,7 @@ func NewRuleGenerator(
 	leagueWeights []config.LeagueWeights,
 	normalizationStrategy string,
 	chasePotentialWeight float64,
+	baseTypeData []config.BaseTypeAutomationEntry,
 ) *RuleGenerator {
 	return &RuleGenerator{
 		ruleFactory:           factory,
@@ -54,6 +56,7 @@ func NewRuleGenerator(
 		leagueWeights:         leagueWeights,
 		normalizationStrategy: normalizationStrategy,
 		chasePotentialWeight:  chasePotentialWeight,
+		baseTypeData:          baseTypeData,
 	}
 }
 
@@ -138,6 +141,8 @@ func (rg *RuleGenerator) handleMacroExpression(
 		return rg.handleUniqueTiering(variables, parameters), nil
 	case "skill_gem_tiering":
 		return rg.handleGemTiering(variables, parameters), nil
+	case "handle_csv":
+		return rg.handleCSVMacro(variables, parameters), nil
 	default:
 		return nil, fmt.Errorf("unsupported macro type: %s", macroType)
 	}
@@ -453,6 +458,135 @@ func (rg *RuleGenerator) generateTieredRules(
 	}
 
 	return generatedRules
+}
+
+type AutomationGroup struct {
+	MinStackSize *int
+	Style        string
+	Tier         int
+	BaseTypes    []string
+}
+
+// GroupByProperties takes a slice of BaseTypeAutomationEntry and groups them
+// by Style, Tier, and MinStackSize.
+// The final result is a slice of
+// AutomationGroup, sorted by Tier in ascending order.
+func groupByProperties(entries []config.BaseTypeAutomationEntry) []AutomationGroup {
+	if len(entries) == 0 {
+		return []AutomationGroup{}
+	}
+
+	type groupKey struct {
+		Tier         int
+		Style        string
+		MinStackSize int
+	}
+
+	groupsMap := make(map[groupKey]*AutomationGroup)
+
+	for _, entry := range entries {
+		mssValue := -1
+		if entry.MinStackSize != nil {
+			mssValue = *entry.MinStackSize
+		}
+		key := groupKey{
+			Tier:         entry.Tier,
+			Style:        entry.Style,
+			MinStackSize: mssValue,
+		}
+
+		if existingGroup, found := groupsMap[key]; found {
+			existingGroup.BaseTypes = append(existingGroup.BaseTypes, entry.BaseType)
+		} else {
+			newGroup := &AutomationGroup{
+				MinStackSize: entry.MinStackSize,
+				Style:        entry.Style,
+				Tier:         entry.Tier,
+				BaseTypes:    []string{entry.BaseType},
+			}
+			groupsMap[key] = newGroup
+		}
+	}
+
+	groupedResult := make([]AutomationGroup, 0, len(groupsMap))
+	for _, group := range groupsMap {
+		groupedResult = append(groupedResult, *group)
+	}
+
+	sort.Slice(groupedResult, func(i, j int) bool {
+		return groupedResult[i].Tier < groupedResult[j].Tier
+	})
+
+	return groupedResult
+}
+
+func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) [][]string {
+	allGeneratedRules := make([][]string, 0)
+
+	category := ""
+
+	for _, parameter := range parameters {
+		key, value := rg.getKeyAndValueFromParameter(parameter)
+
+		switch key[1:] {
+		case "category":
+			category = value
+		default:
+			panic("unsupported parameter: " + key)
+		}
+	}
+
+	if category == "" {
+		panic("ensure you have 'category' specified")
+	}
+
+	toBeProcessed := make([]config.BaseTypeAutomationEntry, 0)
+
+	for _, entry := range rg.baseTypeData {
+		if entry.Category == category {
+			toBeProcessed = append(toBeProcessed, entry)
+		}
+	}
+
+	ruleGroups := groupByProperties(toBeProcessed)
+
+	for _, ruleGroup := range ruleGroups {
+		baseTypes := ruleGroup.BaseTypes
+		minStackSize := ruleGroup.MinStackSize
+		style := ruleGroup.Style
+
+		conditions := []model2.Condition{
+			{
+				Identifier: "@item_type",
+				Operator:   "==",
+				Value:      baseTypes,
+			},
+		}
+
+		if minStackSize != nil {
+			conditions = append(conditions, model2.Condition{
+				Identifier: "@stack_size",
+				Operator:   ">=",
+				Value:      []string{fmt.Sprintf("%d", *minStackSize)},
+			})
+		}
+
+		compiledConditions := make([]string, len(conditions))
+
+		for i, condition := range conditions {
+			compiledConditions[i] = condition.ConstructCompiledCondition(variables, rg.validBaseTypes)
+		}
+
+		compiledStyle, err := rg.styleManager.GetStyle(style)
+		if err != nil {
+			panic(err)
+		}
+
+		rule := rg.ruleFactory.ConstructRule(model2.ShowRule, *compiledStyle, compiledConditions)
+		allGeneratedRules = append(allGeneratedRules, rule)
+	}
+
+	return allGeneratedRules
 }
 
 func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionConditions []model2.Condition, buildType BuildType) [][]string {
