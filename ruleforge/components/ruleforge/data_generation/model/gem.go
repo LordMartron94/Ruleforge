@@ -1,5 +1,9 @@
 package model
 
+import (
+	"strings"
+)
+
 type GemRequirements struct {
 	Str int `json:"str,omitempty"`
 	Dex int `json:"dex,omitempty"`
@@ -22,5 +26,17 @@ type Gem struct {
 }
 
 func (g Gem) GetBaseType() string {
-	return sanitizeBaseType(g.BaseTypeName)
+	var baseType string
+
+	if g.BaseTypeName != "" {
+		baseType = g.BaseTypeName
+	} else if g.Name != "" {
+		baseType = g.Name
+	}
+
+	if strings.Contains(g.TagString, "Support") && !strings.Contains(baseType, "Support") {
+		baseType = baseType + " Support"
+	}
+
+	return sanitizeBaseType(baseType)
 }

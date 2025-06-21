@@ -210,13 +210,18 @@ func (e *PathOfBuildingExporter) GetEconomyData(leaguesToRetrieve []string) (map
 
 	allEconomyData := make(map[string][]EconomyCacheItem)
 
-	categories := map[string][]string{
+	categories := map[string]map[string][]string{
 		"itemoverview": {
-			"UniqueWeapon",
-			"UniqueArmour",
-			"UniqueAccessory",
-			"UniqueFlask",
-			"UniqueJewel",
+			"Uniques": []string{
+				"UniqueWeapon",
+				"UniqueArmour",
+				"UniqueAccessory",
+				"UniqueFlask",
+				"UniqueJewel",
+			},
+			"Gems": []string{
+				"SkillGem",
+			},
 		},
 	}
 
@@ -225,17 +230,19 @@ func (e *PathOfBuildingExporter) GetEconomyData(leaguesToRetrieve []string) (map
 	for _, league := range leaguesToRetrieve {
 		var leagueEconomyData []EconomyCacheItem
 
-		for endpoint, types := range categories {
-			for _, itemType := range types {
-				items, err := e.economyScraper.FetchData(endpoint, itemType, league)
-				if err != nil {
-					log.Printf("ERROR: Could not fetch data for type '%s': %v", itemType, err)
-					continue
+		for endpoint, classes := range categories {
+			for class, types := range classes {
+				for _, itemType := range types {
+					items, err := e.economyScraper.FetchData(endpoint, itemType, league, class)
+					if err != nil {
+						log.Printf("ERROR: Could not fetch data for type '%s': %v", itemType, err)
+						continue
+					}
+					leagueEconomyData = append(leagueEconomyData, items...)
+					fetched += len(items)
+					log.Printf("Successfully fetched %d items for type '%s'", len(items), itemType)
+					time.Sleep(1 * time.Second)
 				}
-				leagueEconomyData = append(leagueEconomyData, items...)
-				fetched += len(items)
-				log.Printf("Successfully fetched %d items for type '%s'", len(items), itemType)
-				time.Sleep(1 * time.Second)
 			}
 		}
 

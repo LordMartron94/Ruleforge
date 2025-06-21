@@ -43,7 +43,7 @@ func NewPoeNinjaClient() *PoeNinjaClient {
 }
 
 // FetchData makes a request to a specific PoE Ninja endpoint and parses the response.
-func (c *PoeNinjaClient) FetchData(endpoint, itemType, league string) ([]EconomyCacheItem, error) {
+func (c *PoeNinjaClient) FetchData(endpoint, itemType, league, itemClass string) ([]EconomyCacheItem, error) {
 	requestURL, err := url.Parse(fmt.Sprintf("%s/%s", c.baseURL, endpoint))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse base URL: %w", err)
@@ -87,14 +87,15 @@ func (c *PoeNinjaClient) FetchData(endpoint, itemType, league string) ([]Economy
 		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
 	}
 
-	return c.transformResponse(apiResponse), nil
+	return c.transformResponse(apiResponse, itemClass), nil
 }
 
 // transformResponse converts the API-specific structs into our generic EconomyCacheItem.
-func (c *PoeNinjaClient) transformResponse(resp ApiResponse) []EconomyCacheItem {
+func (c *PoeNinjaClient) transformResponse(resp ApiResponse, itemClass string) []EconomyCacheItem {
 	var items []EconomyCacheItem
 	for _, line := range resp.Lines {
 		item := EconomyCacheItem{
+			Class:      itemClass,
 			ChaosValue: line.ChaosValue,
 		}
 

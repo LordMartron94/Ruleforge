@@ -127,6 +127,8 @@ func (rg *RuleGenerator) handleMacroExpression(
 		return rg.handleFlaskProgression(variables, parameters), nil
 	case "unique_tiering":
 		return rg.handleUniqueTiering(variables, parameters), nil
+	case "skill_gem_tiering":
+		return rg.handleGemTiering(variables, parameters), nil
 	default:
 		return nil, fmt.Errorf("unsupported macro type: %s", macroType)
 	}
@@ -312,16 +314,47 @@ func (rg *RuleGenerator) constructItemProgressionRule(variables *map[string][]st
 	*allGeneratedRules = append(*allGeneratedRules, rg.ruleFactory.ConstructRule(ruleType, *style, compiledConditions))
 }
 
+type TieringConfig struct {
+	InitialCondition  model2.Condition
+	ItemClassToFilter string
+	TieredIdentifier  string
+}
+
 // handleUniqueTiering generates tiered rules for unique items based on economy data.
 func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) [][]string {
+	uniqueConfig := TieringConfig{
+		InitialCondition: model2.Condition{
+			Identifier: "@rarity",
+			Operator:   "==",
+			Value:      []string{"Unique"},
+		},
+		ItemClassToFilter: "Uniques",
+		TieredIdentifier:  "@item_type",
+	}
+	return rg.generateTieredRules(variables, parameters, uniqueConfig)
+}
+
+func (rg *RuleGenerator) handleGemTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) [][]string {
+	gemConfig := TieringConfig{
+		InitialCondition: model2.Condition{
+			Identifier: "@item_class",
+			Operator:   "==",
+			Value:      []string{"Skill Gems", "Support Gems"},
+		},
+		ItemClassToFilter: "Gems",
+		TieredIdentifier:  "@item_type",
+	}
+	return rg.generateTieredRules(variables, parameters, gemConfig)
+}
+
+func (rg *RuleGenerator) generateTieredRules(
+	variables *map[string][]string,
+	parameters []*shared.ParseTree[symbols.LexingTokenType],
+	tieringConfiguration TieringConfig,
+) [][]string {
 	generatedRules := make([][]string, 0)
 
-	rarityCondition := model2.Condition{
-		Identifier: "@rarity",
-		Operator:   "==",
-		Value:      []string{"Unique"},
-	}
-
+	// 1. Get tier styles from parameters (Common Logic)
 	tierStyles := make([]*config.Style, len(parameters))
 	for i, parameter := range parameters {
 		_, value := rg.getKeyAndValueFromParameter(parameter)
@@ -332,26 +365,33 @@ func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, par
 		tierStyles[i] = style
 	}
 
+	// 2. Handle the case with only one tier (Common Logic)
 	if len(tierStyles) == 1 {
 		style := tierStyles[0]
-		generatedRules = append(generatedRules, rg.ruleFactory.ConstructRule(model2.ShowRule, *style, []string{rarityCondition.ConstructCompiledCondition(variables, rg.validBaseTypes)}))
+		conditions := []string{tieringConfiguration.InitialCondition.ConstructCompiledCondition(variables, rg.validBaseTypes)}
+		generatedRules = append(generatedRules, rg.ruleFactory.ConstructRule(model2.ShowRule, *style, conditions))
 		return generatedRules
 	}
 
-	uniqueItemsToCheck := make(map[string][]data_generation.EconomyCacheItem)
-	for league, uniques := range rg.economyCache {
-		validUniques := make([]data_generation.EconomyCacheItem, 0)
-		for _, unique := range uniques {
-			if !slices.Contains(rg.validBaseTypes, unique.BaseType) {
+	// 3. Filter items from the economy cache based on the provided class (Customizable Logic)
+	itemsToCheck := make(map[string][]data_generation.EconomyCacheItem)
+	for league, items := range rg.economyCache {
+		validItems := make([]data_generation.EconomyCacheItem, 0)
+		for _, item := range items {
+			if item.Class != tieringConfiguration.ItemClassToFilter {
 				continue
 			}
-			validUniques = append(validUniques, unique)
+			if !slices.Contains(rg.validBaseTypes, item.BaseType) {
+				continue
+			}
+			validItems = append(validItems, item)
 		}
-		log.Printf("Valid Uniques for League %s: %d\n", league, len(validUniques))
-		uniqueItemsToCheck[league] = validUniques
+		log.Printf("Valid %s for League %s: %d\n", tieringConfiguration.ItemClassToFilter, league, len(validItems))
+		itemsToCheck[league] = validItems
 	}
 
-	tiered, err := data_generation.GenerateTiers(uniqueItemsToCheck, len(tierStyles), data_generation.TieringParameters{
+	// 4. Generate tiers using economy data (Common Logic)
+	tiered, err := data_generation.GenerateTiers(itemsToCheck, len(tierStyles), data_generation.TieringParameters{
 		ValueWeight:  rg.economyWeights.Value,
 		RarityWeight: rg.economyWeights.Rarity,
 	})
@@ -359,6 +399,7 @@ func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, par
 		panic(err)
 	}
 
+	// 5. Sort tiers and construct rules (Common Logic)
 	var sortedTiers []int
 	for tier := range tiered {
 		sortedTiers = append(sortedTiers, tier)
@@ -366,21 +407,21 @@ func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, par
 	sort.Ints(sortedTiers)
 
 	for _, tier := range sortedTiers {
-		baseTypes := tiered[tier]
-		if len(baseTypes) == 0 {
+		tieredItems := tiered[tier]
+		if len(tieredItems) == 0 {
 			continue
 		}
 
 		style := tierStyles[tier-1]
-		baseTypeCondition := model2.Condition{
-			Identifier: "@item_type",
+		tieredItemsCondition := model2.Condition{
+			Identifier: tieringConfiguration.TieredIdentifier,
 			Operator:   "==",
-			Value:      baseTypes,
+			Value:      tieredItems,
 		}
 
 		conditions := []string{
-			rarityCondition.ConstructCompiledCondition(variables, rg.validBaseTypes),
-			baseTypeCondition.ConstructCompiledCondition(variables, rg.validBaseTypes),
+			tieringConfiguration.InitialCondition.ConstructCompiledCondition(variables, rg.validBaseTypes),
+			tieredItemsCondition.ConstructCompiledCondition(variables, rg.validBaseTypes),
 		}
 
 		generatedRules = append(generatedRules, rg.ruleFactory.ConstructRule(model2.ShowRule, *style, conditions))

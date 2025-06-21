@@ -19,6 +19,7 @@ type ItemCacheModel struct {
 }
 
 type EconomyCacheItem struct {
+	Class        string  `json:"class"`
 	Name         string  `json:"name"`
 	BaseType     string  `json:"base_type"`
 	Count        int     `json:"count"`
