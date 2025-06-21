@@ -37,6 +37,9 @@ type ConfigurationModel struct {
 
 	// EconomyNormalizationStrategy determines the strategy to use when normalizing data.
 	EconomyNormalizationStrategy string `json:"EconomyNormalizationStrategy"`
+
+	// ChaseVSGeneralPotentialFactor specifies how much to value an item's chase potential vs. its general value.
+	ChaseVSGeneralPotentialFactor float64 `json:"ChaseVSGeneralPotentialFactor"`
 }
 
 var validNormalizationStrategies = []string{
@@ -77,6 +80,10 @@ func (c *ConfigurationModel) Validate() error {
 
 	if totalLeagueWeights != 1.0 {
 		return fmt.Errorf("invalid sum LeagueWeights, expected 1, got %f", totalLeagueWeights)
+	}
+
+	if c.ChaseVSGeneralPotentialFactor < 0.0 || c.ChaseVSGeneralPotentialFactor > 1.0 {
+		return fmt.Errorf("invalid potential factor %f, must be between 0 and 1", c.ChaseVSGeneralPotentialFactor)
 	}
 
 	return nil

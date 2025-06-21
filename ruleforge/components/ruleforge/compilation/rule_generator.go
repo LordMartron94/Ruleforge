@@ -25,6 +25,7 @@ type RuleGenerator struct {
 	economyWeights        config.EconomyWeights
 	leagueWeights         []config.LeagueWeights
 	normalizationStrategy string
+	chasePotentialWeight  float64
 }
 
 // NewRuleGenerator creates the rule generation engine.
@@ -39,6 +40,7 @@ func NewRuleGenerator(
 	economyWeights config.EconomyWeights,
 	leagueWeights []config.LeagueWeights,
 	normalizationStrategy string,
+	chasePotentialWeight float64,
 ) *RuleGenerator {
 	return &RuleGenerator{
 		ruleFactory:           factory,
@@ -51,6 +53,7 @@ func NewRuleGenerator(
 		economyWeights:        economyWeights,
 		leagueWeights:         leagueWeights,
 		normalizationStrategy: normalizationStrategy,
+		chasePotentialWeight:  chasePotentialWeight,
 	}
 }
 
@@ -415,6 +418,7 @@ func (rg *RuleGenerator) generateTieredRules(
 		NormStrategy:             normStrategy,
 		ChaosOutlierPercentile:   0.95,
 		MinListingsForPercentile: 20,
+		ChasePotentialWeight:     rg.chasePotentialWeight,
 	})
 	if err != nil {
 		panic(err)

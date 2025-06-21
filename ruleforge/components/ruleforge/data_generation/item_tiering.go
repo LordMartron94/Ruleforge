@@ -27,6 +27,7 @@ type TieringParameters struct {
 	NormStrategy             NormalizationStrategy
 	ChaosOutlierPercentile   float64
 	MinListingsForPercentile int
+	ChasePotentialWeight     float64
 }
 
 // TieringDataPoint is a one-dimensional data point for K-Means clustering.
@@ -79,117 +80,48 @@ type finalScoredItem struct {
 
 // --- Main Pipeline Function ---
 
-// GenerateTiers takes economy data from multiple leagues and generates a tier list.
-// It returns a map where the key is the tier number (1 is best) and the value is a slice of base types.
+// GenerateTiers takes unique economy data from multiple leagues and generates a tier list.
+// It assumes the input leagueData contains ONLY unique items.
 func GenerateTiers(
 	leagueData map[string][]EconomyCacheItem,
 	numTiers int,
 	params TieringParameters,
 ) (map[int][]string, error) {
 	// --- Input Validation ---
-	total := 0.0
-	for _, leagueWeight := range params.LeagueWeights {
-		total += leagueWeight.Weight
-	}
-	if total != 1.0 {
-		return nil, fmt.Errorf("league weights don't sum to 1")
+	if err := validateParams(leagueData, numTiers, params); err != nil {
+		return nil, err
 	}
 
-	if len(leagueData) == 0 {
-		return nil, fmt.Errorf("league data cannot be empty")
-	}
-	if numTiers <= 0 {
-		return nil, fmt.Errorf("number of tiers must be greater than 0")
-	}
-	if params.ChaosOutlierPercentile <= 0 || params.ChaosOutlierPercentile > 1.0 {
-		return nil, fmt.Errorf("outlier percentile must be between 0 and 1")
+	// --- Aggregation Step ---
+	// The complex aggregation logic is now cleanly separated into its own function.
+	aggregatedData := aggregateAndBlendUniques(leagueData, params)
+	if len(aggregatedData) == 0 {
+		return nil, fmt.Errorf("no items remained after aggregation")
 	}
 
-	// --- Aggregation Step (Now more robust) ---
-	// First, group all chaos values per basetype per league.
-	type itemGroup struct {
-		chaosValues  []float64
-		listingCount int
-	}
-	leagueAggGroups := make(map[string]map[string]itemGroup)
-	for league, items := range leagueData {
-		groups := make(map[string]itemGroup)
-		for _, item := range items {
-			if item.BaseType == "" {
-				continue
-			}
-			g := groups[item.BaseType]
-			g.chaosValues = append(g.chaosValues, item.ChaosValue)
-			g.listingCount += item.ListingCount
-			groups[item.BaseType] = g
-		}
-		leagueAggGroups[league] = groups
-	}
-
-	aggregatedData := make(map[string]map[string]aggregatedItem)
-	for league, groups := range leagueAggGroups {
-		aggMap := make(map[string]aggregatedItem)
-		for bt, group := range groups {
-			if len(group.chaosValues) == 0 {
-				continue
-			}
-
-			// Always sort the values first, as both median and percentile need it.
-			sort.Float64s(group.chaosValues)
-
-			var chaosValueToUse float64
-
-			if len(group.chaosValues) >= params.MinListingsForPercentile {
-				percentileIndex := int(float64(len(group.chaosValues)-1) * params.ChaosOutlierPercentile)
-				chaosValueToUse = group.chaosValues[percentileIndex]
-			} else {
-				medianIndex := (len(group.chaosValues) - 1) / 2
-				chaosValueToUse = group.chaosValues[medianIndex]
-			}
-
-			aggMap[bt] = aggregatedItem{
-				baseType:          bt,
-				percentileChaos:   chaosValueToUse,
-				totalListingCount: group.listingCount,
-			}
-		}
-		aggregatedData[league] = aggMap
-	}
-
-	allNormalizedData := make(map[string]map[string]normalizedItem)
-	var err error
-	switch params.NormStrategy {
-	case Global:
-		allNormalizedData, err = normalizeGlobally(aggregatedData)
-	case PerLeague:
-		allNormalizedData, err = normalizePerLeague(aggregatedData)
-	default:
-		return nil, fmt.Errorf("unknown normalization strategy: %s", params.NormStrategy)
-	}
+	// --- Normalization Step ---
+	allNormalizedData, err := normalizeData(aggregatedData, params.NormStrategy)
 	if err != nil {
 		return nil, fmt.Errorf("failed during normalization: %w", err)
 	}
-
 	if len(allNormalizedData) == 0 {
 		return nil, fmt.Errorf("no valid league data could be processed")
 	}
 
-	// --- Scoring Step (Now with league weighting) ---
+	// --- Scoring Step ---
 	unifiedScores := calculateUnifiedScores(allNormalizedData, params)
 
-	// --- Tier Assignment Step (Unchanged) ---
+	// --- Tier Assignment Step ---
 	basetypeToTierMap, err := assignTiers(unifiedScores, numTiers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign tiers: %w", err)
 	}
 
-	// Invert map for final output
+	// --- Final Formatting ---
 	tierToBasetypesMap := make(map[int][]string)
 	for baseType, tier := range basetypeToTierMap {
 		tierToBasetypesMap[tier] = append(tierToBasetypesMap[tier], baseType)
 	}
-
-	// Sort for deterministic output
 	for tier := range tierToBasetypesMap {
 		sort.Strings(tierToBasetypesMap[tier])
 	}
@@ -198,6 +130,17 @@ func GenerateTiers(
 }
 
 // --- Pipeline Helper Functions ---
+
+func normalizeData(aggregatedData map[string]map[string]aggregatedItem, strategy NormalizationStrategy) (map[string]map[string]normalizedItem, error) {
+	switch strategy {
+	case Global:
+		return normalizeGlobally(aggregatedData)
+	case PerLeague:
+		return normalizePerLeague(aggregatedData)
+	default:
+		return nil, fmt.Errorf("unknown normalization strategy: %s", strategy)
+	}
+}
 
 func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem) (map[string]map[string]normalizedItem, error) {
 	allNormData := make(map[string]map[string]normalizedItem)
@@ -328,16 +271,6 @@ func calculateUnifiedScores(
 	return finalScores
 }
 
-func getWeightFromLeague(league string, leagueWeights []config.LeagueWeights) float64 {
-	for _, leagueWeight := range leagueWeights {
-		if leagueWeight.League == league {
-			return leagueWeight.Weight
-		}
-	}
-
-	panic("no weight found for league: " + league)
-}
-
 func assignTiers(scoredItems []finalScoredItem, numTiers int) (map[string]int, error) {
 	if len(scoredItems) < numTiers {
 		log.Printf("WARN: Number of items (%d) is less than number of tiers (%d). Reducing tiers.", len(scoredItems), numTiers)
@@ -385,6 +318,125 @@ func assignTiers(scoredItems []finalScoredItem, numTiers int) (map[string]int, e
 	return finalTiers, nil
 }
 
+// --- Aggregation Core Logic ---
+
+// aggregateAndBlendUniques is the new, powerful aggregation function.
+// It calculates both the "general" and "chase" potential for each unique base type
+// and blends them based on the ChasePotentialWeight.
+func aggregateAndBlendUniques(
+	leagueData map[string][]EconomyCacheItem,
+	params TieringParameters,
+) map[string]map[string]aggregatedItem {
+
+	finalAggregatedData := make(map[string]map[string]aggregatedItem)
+
+	for league, items := range leagueData {
+		// Group all items by their BaseType to process one base at a time.
+		itemsByBaseType := make(map[string][]EconomyCacheItem)
+		for _, item := range items {
+			if item.BaseType != "" && item.Name != "" {
+				itemsByBaseType[item.BaseType] = append(itemsByBaseType[item.BaseType], item)
+			}
+		}
+
+		leagueAggMap := make(map[string]aggregatedItem)
+		for baseType, baseTypeItems := range itemsByBaseType {
+
+			// --- Step 1: Calculate "General Potential" ---
+			// This is the original logic: a single robust value for the entire base type.
+			var allChaosValues []float64
+			var allListingCount int
+			for _, item := range baseTypeItems {
+				allChaosValues = append(allChaosValues, item.ChaosValue)
+				allListingCount += item.ListingCount
+			}
+			generalChaosValue := calculateRobustValue(allChaosValues, params)
+
+			// --- Step 2: Calculate "Chase Potential" ---
+			// This is the logic to find the single best unique on this base.
+
+			// 2a: Sub-group items by their specific unique Name.
+			itemsByName := make(map[string][]EconomyCacheItem)
+			for _, item := range baseTypeItems {
+				itemsByName[item.Name] = append(itemsByName[item.Name], item)
+			}
+
+			// 2b: Find robust stats for each individual named unique.
+			type namedUniqueStats struct {
+				chaosValue   float64
+				listingCount int
+			}
+			var allNamedStats []namedUniqueStats
+			for _, nameItems := range itemsByName {
+				var chaosValues []float64
+				var listingCount int
+				for _, item := range nameItems {
+					chaosValues = append(chaosValues, item.ChaosValue)
+					listingCount += item.ListingCount
+				}
+				allNamedStats = append(allNamedStats, namedUniqueStats{
+					chaosValue:   calculateRobustValue(chaosValues, params),
+					listingCount: listingCount,
+				})
+			}
+
+			// 2c: Identify the chase item (the one with the highest robust value).
+			var chaseStats namedUniqueStats
+			if len(allNamedStats) > 0 {
+				chaseStats = allNamedStats[0]
+				for _, stats := range allNamedStats {
+					if stats.chaosValue > chaseStats.chaosValue {
+						chaseStats = stats
+					}
+				}
+			}
+
+			// --- Step 3: Blend the two potentials using the weight ---
+			chaseWeight := params.ChasePotentialWeight
+			generalWeight := 1.0 - chaseWeight
+
+			finalChaosValue := (chaseStats.chaosValue * chaseWeight) + (generalChaosValue * generalWeight)
+			finalListingCount := (float64(chaseStats.listingCount) * chaseWeight) + (float64(allListingCount) * generalWeight)
+
+			leagueAggMap[baseType] = aggregatedItem{
+				baseType:          baseType,
+				percentileChaos:   finalChaosValue,
+				totalListingCount: int(finalListingCount),
+			}
+		}
+		finalAggregatedData[league] = leagueAggMap
+	}
+	return finalAggregatedData
+}
+
+// --- Statistical and Utility Helpers ---
+
+// calculateRobustValue extracts a single representative value from a slice of chaos values.
+func calculateRobustValue(chaosValues []float64, params TieringParameters) float64 {
+	if len(chaosValues) == 0 {
+		return 0
+	}
+	sort.Float64s(chaosValues)
+
+	if len(chaosValues) >= params.MinListingsForPercentile {
+		percentileIndex := int(float64(len(chaosValues)-1) * params.ChaosOutlierPercentile)
+		return chaosValues[percentileIndex]
+	}
+
+	medianIndex := (len(chaosValues) - 1) / 2
+	return chaosValues[medianIndex]
+}
+
+func getWeightFromLeague(league string, leagueWeights []config.LeagueWeights) float64 {
+	for _, leagueWeight := range leagueWeights {
+		if leagueWeight.League == league {
+			return leagueWeight.Weight
+		}
+	}
+
+	panic("no weight found for league: " + league)
+}
+
 // calculateMeanStdDev is a helper for the global normalization.
 func calculateMeanStdDev(data []float64) (mean, stdDev float64) {
 	count := float64(len(data))
@@ -420,4 +472,28 @@ func calculateZScores(data []float64) ([]float64, error) {
 		scores[i] = (v - mean) / stdDev
 	}
 	return scores, nil
+}
+
+func validateParams(leagueData map[string][]EconomyCacheItem, numTiers int, params TieringParameters) error {
+	total := 0.0
+	for _, leagueWeight := range params.LeagueWeights {
+		total += leagueWeight.Weight
+	}
+	// Use a small epsilon for float comparison
+	if math.Abs(total-1.0) > 1e-9 {
+		return fmt.Errorf("league weights do not sum to 1.0 (sum: %f)", total)
+	}
+	if len(leagueData) == 0 {
+		return fmt.Errorf("league data cannot be empty")
+	}
+	if numTiers <= 0 {
+		return fmt.Errorf("number of tiers must be greater than 0")
+	}
+	if params.ChaosOutlierPercentile <= 0 || params.ChaosOutlierPercentile > 1.0 {
+		return fmt.Errorf("outlier percentile must be between 0 and 1")
+	}
+	if params.ChasePotentialWeight < 0 || params.ChasePotentialWeight > 1.0 {
+		return fmt.Errorf("ChasePotentialWeight must be between 0 and 1")
+	}
+	return nil
 }

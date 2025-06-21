@@ -219,7 +219,7 @@ func processRuleforgeScript(
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy)
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)

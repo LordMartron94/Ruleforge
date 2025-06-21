@@ -28,6 +28,7 @@ func NewCompiler(
 	economyWeights config.EconomyWeights,
 	leagueWeights []config.LeagueWeights,
 	normalizationStrategy string,
+	chasePotentialWeight float64,
 ) (*Compiler, error) {
 
 	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree)
@@ -52,6 +53,7 @@ func NewCompiler(
 			economyWeights,
 			leagueWeights,
 			normalizationStrategy,
+			chasePotentialWeight,
 		),
 	}, nil
 }
