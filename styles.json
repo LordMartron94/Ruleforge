@@ -2,172 +2,161 @@
   "Essences": {
     "Base": {
       "Comment": "The single, foundational style for ALL essences. Defines the shared background color and default minimap icon.",
-      "BackgroundColor": {"red": 45, "green": 30, "blue": 65, "alpha": 255},
+      "BackgroundColor": {"red": 15, "green": 15, "blue": 25, "alpha": 255},
       "Minimap": {
         "Shape": "Diamond",
         "Color": "Purple"
       }
     },
     "Types": {
-      "Greed": {
-        "TextColor": {"red": 180, "green": 190, "blue": 255, "alpha": 255},
-        "BorderColor": {"red": 140, "green": 150, "blue": 230, "alpha": 255}
-      },
-      "Contempt": {
-        "TextColor": {"red": 170, "green": 190, "blue": 255, "alpha": 255},
-        "BorderColor": {"red": 120, "green": 140, "blue": 230, "alpha": 255}
-      },
-      "Hatred": {
-        "TextColor": {"red": 160, "green": 185, "blue": 250, "alpha": 255},
-        "BorderColor": {"red": 110, "green": 130, "blue": 220, "alpha": 255}
-      },
-      "Woe": {
-        "TextColor": {"red": 150, "green": 180, "blue": 245, "alpha": 255},
-        "BorderColor": {"red": 100, "green": 120, "blue": 210, "alpha": 255}
-      },
-
-      "Fear": {
-        "TextColor": {"red": 170, "green": 255, "blue": 170, "alpha": 255},
-        "BorderColor": {"red": 120, "green": 230, "blue": 120, "alpha": 255}
-      },
-      "Anger": {
-        "TextColor": {"red": 160, "green": 250, "blue": 160, "alpha": 255},
-        "BorderColor": {"red": 110, "green": 220, "blue": 110, "alpha": 255}
-      },
-      "Torment": {
-        "TextColor": {"red": 180, "green": 240, "blue": 150, "alpha": 255},
-        "BorderColor": {"red": 130, "green": 210, "blue": 100, "alpha": 255}
-      },
-      "Sorrow": {
-        "TextColor": {"red": 190, "green": 230, "blue": 140, "alpha": 255},
-        "BorderColor": {"red": 140, "green": 200, "blue": 90, "alpha": 255}
-      },
-
-      "Wrath": {
-        "TextColor": {"red": 255, "green": 210, "blue": 150, "alpha": 255},
-        "BorderColor": {"red": 240, "green": 180, "blue": 100, "alpha": 255}
-      },
-      "Doubt": {
-        "TextColor": {"red": 255, "green": 200, "blue": 140, "alpha": 255},
-        "BorderColor": {"red": 230, "green": 170, "blue": 90, "alpha": 255}
-      },
-      "Loathing": {
-        "TextColor": {"red": 255, "green": 190, "blue": 130, "alpha": 255},
-        "BorderColor": {"red": 220, "green": 160, "blue": 80, "alpha": 255}
-      },
-
-      "Zeal": {
-        "TextColor": {"red": 255, "green": 170, "blue": 170, "alpha": 255},
-        "BorderColor": {"red": 230, "green": 120, "blue": 120, "alpha": 255}
-      },
-      "Anguish": {
-        "TextColor": {"red": 250, "green": 160, "blue": 160, "alpha": 255},
-        "BorderColor": {"red": 220, "green": 110, "blue": 110, "alpha": 255}
-      },
-      "Spite": {
-        "TextColor": {"red": 245, "green": 150, "blue": 150, "alpha": 255},
-        "BorderColor": {"red": 210, "green": 100, "blue": 100, "alpha": 255}
-      },
-      "Scorn": {
-        "TextColor": {"red": 240, "green": 140, "blue": 140, "alpha": 255},
-        "BorderColor": {"red": 200, "green": 90, "blue": 90, "alpha": 255}
-      },
-
-      "Envy": {
-        "TextColor": {"red": 220, "green": 180, "blue": 255, "alpha": 255},
-        "BorderColor": {"red": 190, "green": 130, "blue": 240, "alpha": 255}
-      },
-      "Misery": {
-        "TextColor": {"red": 210, "green": 170, "blue": 255, "alpha": 255},
-        "BorderColor": {"red": 180, "green": 120, "blue": 230, "alpha": 255}
-      },
-      "Dread": {
-        "TextColor": {"red": 200, "green": 160, "blue": 255, "alpha": 255},
-        "BorderColor": {"red": 170, "green": 110, "blue": 220, "alpha": 255}
-      }
+      "Greed":     { "TextColor": {"red": 153, "green": 136, "blue": 231, "alpha": 255}, "BorderColor": {"red": 153, "green": 136, "blue": 231, "alpha": 255} },
+      "Contempt":  { "TextColor": {"red": 135, "green": 163, "blue": 243, "alpha": 255}, "BorderColor": {"red": 135, "green": 163, "blue": 243, "alpha": 255} },
+      "Hatred":    { "TextColor": {"red": 150, "green": 228, "blue": 248, "alpha": 255}, "BorderColor": {"red": 150, "green": 228, "blue": 248, "alpha": 255} },
+      "Woe":       { "TextColor": {"red": 135, "green": 253, "blue": 253, "alpha": 255}, "BorderColor": {"red": 135, "green": 253, "blue": 253, "alpha": 255} },
+      "Fear":      { "TextColor": {"red": 107, "green": 198, "blue": 152, "alpha": 255}, "BorderColor": {"red": 107, "green": 198, "blue": 152, "alpha": 255} },
+      "Anger":     { "TextColor": {"red": 134, "green": 232, "blue": 145, "alpha": 255}, "BorderColor": {"red": 134, "green": 232, "blue": 145, "alpha": 255} },
+      "Torment":   { "TextColor": {"red": 78, "green": 206, "blue": 102, "alpha": 255}, "BorderColor": {"red": 78, "green": 206, "blue": 102, "alpha": 255} },
+      "Sorrow":    { "TextColor": {"red": 174, "green": 208, "blue": 78, "alpha": 255}, "BorderColor": {"red": 174, "green": 208, "blue": 78, "alpha": 255} },
+      "Rage":      { "TextColor": {"red": 221, "green": 229, "blue": 83, "alpha": 255}, "BorderColor": {"red": 221, "green": 229, "blue": 83, "alpha": 255} },
+      "Suffering": { "TextColor": {"red": 243, "green": 186, "blue": 91, "alpha": 255}, "BorderColor": {"red": 243, "green": 186, "blue": 91, "alpha": 255} },
+      "Wrath":     { "TextColor": {"red": 230, "green": 144, "blue": 80, "alpha": 255}, "BorderColor": {"red": 230, "green": 144, "blue": 80, "alpha": 255} },
+      "Doubt":     { "TextColor": {"red": 241, "green": 116, "blue": 87, "alpha": 255}, "BorderColor": {"red": 241, "green": 116, "blue": 87, "alpha": 255} },
+      "Loathing":  { "TextColor": {"red": 254, "green": 100, "blue": 90, "alpha": 255}, "BorderColor": {"red": 254, "green": 100, "blue": 90, "alpha": 255} },
+      "Zeal":      { "TextColor": {"red": 226, "green": 85, "blue": 76, "alpha": 255}, "BorderColor": {"red": 226, "green": 85, "blue": 76, "alpha": 255} },
+      "Anguish":   { "TextColor": {"red": 245, "green": 90, "blue": 86, "alpha": 255}, "BorderColor": {"red": 245, "green": 90, "blue": 86, "alpha": 255} },
+      "Spite":     { "TextColor": {"red": 222, "green": 62, "blue": 88, "alpha": 255}, "BorderColor": {"red": 222, "green": 62, "blue": 88, "alpha": 255} },
+      "Scorn":     { "TextColor": {"red": 190, "green": 76, "blue": 240, "alpha": 255}, "BorderColor": {"red": 190, "green": 76, "blue": 240, "alpha": 255} },
+      "Envy":      { "TextColor": {"red": 132, "green": 76, "blue": 239, "alpha": 255}, "BorderColor": {"red": 132, "green": 76, "blue": 239, "alpha": 255} },
+      "Misery":    { "TextColor": {"red": 120, "green": 87, "blue": 245, "alpha": 255}, "BorderColor": {"red": 120, "green": 87, "blue": 245, "alpha": 255} },
+      "Dread":     { "TextColor": {"red": 76, "green": 99, "blue": 251, "alpha": 255}, "BorderColor": {"red": 76, "green": 99, "blue": 251, "alpha": 255} },
+      "Insanity":  { "TextColor": {"red": 242, "green": 8, "blue": 102, "alpha": 255}, "BorderColor": {"red": 242, "green": 8, "blue": 102, "alpha": 255} },
+      "Horror":    { "TextColor": {"red": 235, "green": 15, "blue": 12, "alpha": 255}, "BorderColor": {"red": 235, "green": 15, "blue": 12, "alpha": 255} },
+      "Delirium":  { "TextColor": {"red": 129, "green": 8, "blue": 174, "alpha": 255}, "BorderColor": {"red": 129, "green": 8, "blue": 174, "alpha": 255} },
+      "Hysteria":  { "TextColor": {"red": 197, "green": 155, "blue": 39, "alpha": 255}, "BorderColor": {"red": 197, "green": 155, "blue": 39, "alpha": 255} }
     },
     "Tiers": {
-      "Whispering": {
-        "FontSize": 26
+      "Low": {
+        "Comment": "For Tiers 1-4 (Whispering to Wailing). Has no border.",
+        "BorderColor": {"red": 0, "green": 0, "blue": 0, "alpha": 0},
+        "FontSize": 32,
+        "Minimap": {"Size": 2}
       },
-      "Muttering": {
-        "FontSize": 28
+      "High": {
+        "Comment": "For Tiers 5-7 (Screaming to Deafening). Has a visible border.",
+        "FontSize": 42,
+        "Minimap": {"Size": 1}
       },
-      "Weeping": {
-        "FontSize": 30,
-        "Minimap": { "Size": 2 }
-      },
-      "Wailing": {
-        "FontSize": 34,
-        "Minimap": { "Size": 2 },
-        "Beam": { "Color": "Green", "Temp": true }
-      },
-      "Screaming": {
-        "FontSize": 38,
-        "Minimap": { "Size": 1 },
-        "Beam": { "Color": "Yellow", "Temp": true }
+      "Special": {
+        "Comment": "For the four corrupted essences.",
+        "FontSize": 45,
+        "Minimap": {"Size": 0, "Shape": "Star"}
       }
     },
     "Final": {
-      "WhisperingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Whispering" ] },
-      "WhisperingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Whispering" ] },
-      "WhisperingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Whispering" ] },
-      "WhisperingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Whispering" ] },
-
-      "MutteringGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Muttering" ] },
-      "MutteringContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Muttering" ] },
-      "MutteringHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Muttering" ] },
-      "MutteringWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Muttering" ] },
-      "MutteringFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Muttering" ] },
-      "MutteringAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Muttering" ] },
-      "MutteringTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Muttering" ] },
-      "MutteringSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Muttering" ] },
-
-      "WeepingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Weeping" ] },
-      "WeepingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Weeping" ] },
-      "WeepingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Weeping" ] },
-      "WeepingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Weeping" ] },
-      "WeepingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Weeping" ] },
-      "WeepingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Weeping" ] },
-      "WeepingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Weeping" ] },
-      "WeepingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Weeping" ] },
-      "WeepingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/Weeping" ] },
-      "WeepingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/Weeping" ] },
-
-      "WailingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Wailing" ] },
-      "WailingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Wailing" ] },
-      "WailingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Wailing" ] },
-      "WailingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Wailing" ] },
-      "WailingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Wailing" ] },
-      "WailingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Wailing" ] },
-      "WailingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Wailing" ] },
-      "WailingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Wailing" ] },
-      "WailingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/Wailing" ] },
-      "WailingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/Wailing" ] },
-      "WailingLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/Wailing" ] },
-      "WailingZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/Wailing" ] },
-      "WailingAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/Wailing" ] },
-      "WailingSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/Wailing" ] },
-      "WailingScorn": { "Combination": [ "Essences/Base", "Essences/Types/Scorn", "Essences/Tiers/Wailing" ] },
-
-      "ScreamingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Screaming" ] },
-      "ScreamingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Screaming" ] },
-      "ScreamingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Screaming" ] },
-      "ScreamingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Screaming" ] },
-      "ScreamingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Screaming" ] },
-      "ScreamingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Screaming" ] },
-      "ScreamingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Screaming" ] },
-      "ScreamingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Screaming" ] },
-      "ScreamingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/Screaming" ] },
-      "ScreamingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/Screaming" ] },
-      "ScreamingLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/Screaming" ] },
-      "ScreamingZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/Screaming" ] },
-      "ScreamingAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/Screaming" ] },
-      "ScreamingSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/Screaming" ] },
-      "ScreamingScorn": { "Combination": [ "Essences/Base", "Essences/Types/Scorn", "Essences/Tiers/Screaming" ] },
-      "ScreamingEnvy": { "Combination": [ "Essences/Base", "Essences/Types/Envy", "Essences/Tiers/Screaming" ] },
-      "ScreamingMisery": { "Combination": [ "Essences/Base", "Essences/Types/Misery", "Essences/Tiers/Screaming" ] },
-      "ScreamingDread": { "Combination": [ "Essences/Base", "Essences/Types/Dread", "Essences/Tiers/Screaming" ] }
+      "WhisperingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Low" ] },
+      "MutteringGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Low" ] },
+      "WeepingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Low" ] },
+      "WailingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Low" ] },
+      "ScreamingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/High" ] },
+      "ShriekingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/High" ] },
+      "DeafeningGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/High" ] },
+      "WhisperingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Low" ] },
+      "MutteringContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Low" ] },
+      "WeepingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Low" ] },
+      "WailingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Low" ] },
+      "ScreamingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/High" ] },
+      "ShriekingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/High" ] },
+      "DeafeningContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/High" ] },
+      "WhisperingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Low" ] },
+      "MutteringHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Low" ] },
+      "WeepingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Low" ] },
+      "WailingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Low" ] },
+      "ScreamingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/High" ] },
+      "ShriekingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/High" ] },
+      "DeafeningHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/High" ] },
+      "WhisperingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Low" ] },
+      "MutteringWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Low" ] },
+      "WeepingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Low" ] },
+      "WailingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Low" ] },
+      "ScreamingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/High" ] },
+      "ShriekingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/High" ] },
+      "DeafeningWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/High" ] },
+      "MutteringFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Low" ] },
+      "WeepingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Low" ] },
+      "WailingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Low" ] },
+      "ScreamingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/High" ] },
+      "ShriekingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/High" ] },
+      "DeafeningFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/High" ] },
+      "MutteringAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Low" ] },
+      "WeepingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Low" ] },
+      "WailingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Low" ] },
+      "ScreamingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/High" ] },
+      "ShriekingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/High" ] },
+      "DeafeningAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/High" ] },
+      "MutteringTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Low" ] },
+      "WeepingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Low" ] },
+      "WailingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Low" ] },
+      "ScreamingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/High" ] },
+      "ShriekingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/High" ] },
+      "DeafeningTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/High" ] },
+      "MutteringSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Low" ] },
+      "WeepingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Low" ] },
+      "WailingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Low" ] },
+      "ScreamingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/High" ] },
+      "ShriekingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/High" ] },
+      "DeafeningSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/High" ] },
+      "WeepingRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/Low" ] },
+      "WailingRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/Low" ] },
+      "ScreamingRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/High" ] },
+      "ShriekingRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/High" ] },
+      "DeafeningRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/High" ] },
+      "WeepingSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/Low" ] },
+      "WailingSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/Low" ] },
+      "ScreamingSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/High" ] },
+      "ShriekingSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/High" ] },
+      "DeafeningSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/High" ] },
+      "WeepingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/Low" ] },
+      "WailingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/Low" ] },
+      "ScreamingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/High" ] },
+      "ShriekingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/High" ] },
+      "DeafeningWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/High" ] },
+      "WeepingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/Low" ] },
+      "WailingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/Low" ] },
+      "ScreamingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/High" ] },
+      "ShriekingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/High" ] },
+      "DeafeningDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/High" ] },
+      "WailingLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/High" ] },
+      "ScreamingLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/High" ] },
+      "ShriekingLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/High" ] },
+      "DeafeningLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/High" ] },
+      "WailingZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/High" ] },
+      "ScreamingZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/High" ] },
+      "ShriekingZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/High" ] },
+      "DeafeningZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/High" ] },
+      "WailingAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/High" ] },
+      "ScreamingAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/High" ] },
+      "ShriekingAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/High" ] },
+      "DeafeningAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/High" ] },
+      "WailingSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/High" ] },
+      "ScreamingSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/High" ] },
+      "ShriekingSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/High" ] },
+      "DeafeningSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/High" ] },
+      "ScreamingScorn": { "Combination": [ "Essences/Base", "Essences/Types/Scorn", "Essences/Tiers/High" ] },
+      "ShriekingScorn": { "Combination": [ "Essences/Base", "Essences/Types/Scorn", "Essences/Tiers/High" ] },
+      "DeafeningScorn": { "Combination": [ "Essences/Base", "Essences/Types/Scorn", "Essences/Tiers/High" ] },
+      "ScreamingEnvy": { "Combination": [ "Essences/Base", "Essences/Types/Envy", "Essences/Tiers/High" ] },
+      "ShriekingEnvy": { "Combination": [ "Essences/Base", "Essences/Types/Envy", "Essences/Tiers/High" ] },
+      "DeafeningEnvy": { "Combination": [ "Essences/Base", "Essences/Types/Envy", "Essences/Tiers/High" ] },
+      "ScreamingMisery": { "Combination": [ "Essences/Base", "Essences/Types/Misery", "Essences/Tiers/High" ] },
+      "ShriekingMisery": { "Combination": [ "Essences/Base", "Essences/Types/Misery", "Essences/Tiers/High" ] },
+      "DeafeningMisery": { "Combination": [ "Essences/Base", "Essences/Types/Misery", "Essences/Tiers/High" ] },
+      "ScreamingDread": { "Combination": [ "Essences/Base", "Essences/Types/Dread", "Essences/Tiers/High" ] },
+      "ShriekingDread": { "Combination": [ "Essences/Base", "Essences/Types/Dread", "Essences/Tiers/High" ] },
+      "DeafeningDread": { "Combination": [ "Essences/Base", "Essences/Types/Dread", "Essences/Tiers/High" ] },
+      "EssenceOfInsanity": { "Combination": [ "Essences/Base", "Essences/Types/Insanity", "Essences/Tiers/Special" ] },
+      "EssenceOfHorror": { "Combination": [ "Essences/Base", "Essences/Types/Horror", "Essences/Tiers/Special" ] },
+      "EssenceOfDelirium": { "Combination": [ "Essences/Base", "Essences/Types/Delirium", "Essences/Tiers/Special" ] },
+      "EssenceOfHysteria": { "Combination": [ "Essences/Base", "Essences/Types/Hysteria", "Essences/Tiers/Special" ] }
     }
   },
   "Special": {
