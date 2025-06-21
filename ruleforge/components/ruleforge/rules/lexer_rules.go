@@ -106,7 +106,7 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"@area_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@rarity", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@item_type", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@item_category", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@item_class", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@stack_size", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@class_use", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@socket_group", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
