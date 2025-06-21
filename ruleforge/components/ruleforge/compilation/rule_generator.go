@@ -15,14 +15,16 @@ import (
 
 // RuleGenerator is the engine for compiling rules. It contains all complex game logic.
 type RuleGenerator struct {
-	ruleFactory    *RuleFactory
-	styleManager   *StyleManager
-	validBaseTypes []string
-	armorBases     []model.ItemBase
-	weaponBases    []model.ItemBase
-	flaskBases     []model.ItemBase
-	economyCache   map[string][]data_generation.EconomyCacheItem
-	economyWeights config.EconomyWeights
+	ruleFactory           *RuleFactory
+	styleManager          *StyleManager
+	validBaseTypes        []string
+	armorBases            []model.ItemBase
+	weaponBases           []model.ItemBase
+	flaskBases            []model.ItemBase
+	economyCache          map[string][]data_generation.EconomyCacheItem
+	economyWeights        config.EconomyWeights
+	leagueWeights         []config.LeagueWeights
+	normalizationStrategy string
 }
 
 // NewRuleGenerator creates the rule generation engine.
@@ -35,16 +37,20 @@ func NewRuleGenerator(
 	flasks []model.ItemBase,
 	economyCache map[string][]data_generation.EconomyCacheItem,
 	economyWeights config.EconomyWeights,
+	leagueWeights []config.LeagueWeights,
+	normalizationStrategy string,
 ) *RuleGenerator {
 	return &RuleGenerator{
-		ruleFactory:    factory,
-		styleManager:   styleMgr,
-		validBaseTypes: validBases,
-		armorBases:     armor,
-		weaponBases:    weapons,
-		flaskBases:     flasks,
-		economyCache:   economyCache,
-		economyWeights: economyWeights,
+		ruleFactory:           factory,
+		styleManager:          styleMgr,
+		validBaseTypes:        validBases,
+		armorBases:            armor,
+		weaponBases:           weapons,
+		flaskBases:            flasks,
+		economyCache:          economyCache,
+		economyWeights:        economyWeights,
+		leagueWeights:         leagueWeights,
+		normalizationStrategy: normalizationStrategy,
 	}
 }
 
@@ -390,10 +396,25 @@ func (rg *RuleGenerator) generateTieredRules(
 		itemsToCheck[league] = validItems
 	}
 
+	var normStrategy data_generation.NormalizationStrategy
+
+	switch rg.normalizationStrategy {
+	case "Global":
+		normStrategy = data_generation.Global
+	case "Per-League":
+		normStrategy = data_generation.PerLeague
+	default:
+		panic("unsupported normalization strategy")
+	}
+
 	// 4. Generate tiers using economy data (Common Logic)
 	tiered, err := data_generation.GenerateTiers(itemsToCheck, len(tierStyles), data_generation.TieringParameters{
-		ValueWeight:  rg.economyWeights.Value,
-		RarityWeight: rg.economyWeights.Rarity,
+		ValueWeight:              rg.economyWeights.Value,
+		RarityWeight:             rg.economyWeights.Rarity,
+		LeagueWeights:            rg.leagueWeights,
+		NormStrategy:             normStrategy,
+		ChaosOutlierPercentile:   0.95,
+		MinListingsForPercentile: 20,
 	})
 	if err != nil {
 		panic(err)

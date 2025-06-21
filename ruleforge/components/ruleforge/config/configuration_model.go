@@ -1,8 +1,19 @@
 package config
 
+import (
+	"fmt"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions"
+	"slices"
+)
+
 type EconomyWeights struct {
 	Rarity float64 `json:"Rarity"`
 	Value  float64 `json:"Value"`
+}
+
+type LeagueWeights struct {
+	League string  `json:"League"`
+	Weight float64 `json:"Weight"`
 }
 
 type ConfigurationModel struct {
@@ -18,8 +29,65 @@ type ConfigurationModel struct {
 	// PathOfBuildingDataPath is where all Path of Building data is stored.
 	PathOfBuildingDataPath string `json:"PathOfBuildingDataPath"`
 
-	// EconomyBasedDataLeagues defines the leagues to be uses for economy-based data.
-	EconomyBasedDataLeagues []string `json:"EconomyBasedDataLeagues"`
+	// LeagueWeights defines the leagues to be used for economy-based data, along with their relative weighting.
+	LeagueWeights map[string]float64 `json:"LeagueWeights"`
 
+	// EconomyWeights provide the weights to use for rarity and value.
 	EconomyWeights *EconomyWeights `json:"EconomyWeights"`
+
+	// EconomyNormalizationStrategy determines the strategy to use when normalizing data.
+	EconomyNormalizationStrategy string `json:"EconomyNormalizationStrategy"`
+}
+
+var validNormalizationStrategies = []string{
+	"Global",
+	"Per-League",
+}
+
+func (c *ConfigurationModel) GetLeagueWeights() []LeagueWeights {
+	leagueWeights := make([]LeagueWeights, 0)
+
+	for league, weight := range c.LeagueWeights {
+		leagueWeights = append(leagueWeights, LeagueWeights{
+			League: league,
+			Weight: weight,
+		})
+	}
+
+	return leagueWeights
+}
+
+func (c *ConfigurationModel) Validate() error {
+	if !slices.Contains(validNormalizationStrategies, c.EconomyNormalizationStrategy) {
+		validString := extensions.GetFormattedString(validNormalizationStrategies)
+		return fmt.Errorf("invalid normalization strategy '%s', expected one of: %s", c.EconomyNormalizationStrategy, validString)
+	}
+
+	totalEconomyWeights := c.EconomyWeights.Rarity + c.EconomyWeights.Value
+
+	if totalEconomyWeights != 1.0 {
+		return fmt.Errorf("invalid sum EconomyWeights, expected 1, got %f", totalEconomyWeights)
+	}
+
+	totalLeagueWeights := 0.0
+
+	for _, weight := range c.LeagueWeights {
+		totalLeagueWeights += weight
+	}
+
+	if totalLeagueWeights != 1.0 {
+		return fmt.Errorf("invalid sum LeagueWeights, expected 1, got %f", totalLeagueWeights)
+	}
+
+	return nil
+}
+
+func (c *ConfigurationModel) GetLeaguesToRetrieve() []string {
+	var leaguesToRetrieve []string
+
+	for league, _ := range c.LeagueWeights {
+		leaguesToRetrieve = append(leaguesToRetrieve, league)
+	}
+
+	return leaguesToRetrieve
 }

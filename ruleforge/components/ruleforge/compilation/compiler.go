@@ -26,6 +26,8 @@ func NewCompiler(
 	itemBases []model.ItemBase,
 	economyCache map[string][]data_generation.EconomyCacheItem,
 	economyWeights config.EconomyWeights,
+	leagueWeights []config.LeagueWeights,
+	normalizationStrategy string,
 ) (*Compiler, error) {
 
 	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree)
@@ -48,6 +50,8 @@ func NewCompiler(
 			flaskBases,
 			economyCache,
 			economyWeights,
+			leagueWeights,
+			normalizationStrategy,
 		),
 	}, nil
 }

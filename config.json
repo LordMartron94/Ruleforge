@@ -6,12 +6,13 @@
   "RuleforgeInputDir": "X:\\Ruleforge\\test_input",
   "StyleJSONFile": "X:\\Ruleforge\\styles.json",
   "PathOfBuildingDataPath": "D:\\[02] Modding\\[01] Tools\\[08] Path of Building\\Path of Building Community\\Data",
-  "EconomyBasedDataLeagues": [
-    "Hardcore Mercenaries",
-    "Mercenaries",
-    "Hardcore",
-    "Standard"
-  ],
+  "LeagueWeights": {
+    "Hardcore Mercenaries" : 0.5,
+    "Mercenaries":  0.3,
+    "Hardcore":  0.15,
+    "Standard": 0.05
+  },
+  "EconomyNormalizationStrategy": "Global",
   "EconomyWeights": {
     "Value": 0.65,
     "Rarity": 0.35
