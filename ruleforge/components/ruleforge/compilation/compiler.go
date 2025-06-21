@@ -28,7 +28,7 @@ func NewCompiler(
 	economyWeights config.EconomyWeights,
 ) (*Compiler, error) {
 
-	styleMgr, err := NewStyleManager(configuration.StyleJsonPath)
+	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	}
 
 	// 4. Add fallback rule
-	fallbackStyle, _ := c.styleManager.GetStyle("Fallback", nil)
+	fallbackStyle, _ := c.styleManager.GetStyle("Fallback")
 	fallbackRule := c.ruleFactory.ConstructRule(model2.ShowRule, *fallbackStyle, []string{})
 	output = append(output, c.constructSectionHeading("Fallback", "Shows anything that wasn't caught by upstream rules."), "")
 	output = append(output, fallbackRule...)

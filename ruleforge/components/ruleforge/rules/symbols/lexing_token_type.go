@@ -65,4 +65,5 @@ const (
 	// MISC
 	DotToken
 	FunctionKeywordToken
+	StyleOverrideToken
 )

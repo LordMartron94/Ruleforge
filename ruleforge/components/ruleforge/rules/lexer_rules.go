@@ -123,6 +123,7 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		// Other
 		{"var", symbols.VariableKeywordToken, "VariableKeywordLexer"},
 		{"MACRO", symbols.FunctionKeywordToken, "FunctionKeywordToken"},
+		{"!override", symbols.StyleOverrideToken, "StyleOverrideToken"},
 	}
 
 	output := make([]rules.LexingRuleInterface[symbols.LexingTokenType], len(keywordDefs))

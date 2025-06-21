@@ -39,6 +39,12 @@ const (
 	ParseSymbolParameterList   ParseSymbol = "ParameterList"
 	ParseSymbolParameter       ParseSymbol = "Parameter"
 
+	ParseSymbolOverrideTarget         ParseSymbol = "OverrideTarget"
+	ParseSymbolOverrideTargetList     ParseSymbol = "OverrideTargetList"
+	ParseSymbolChainedOverrideTargets ParseSymbol = "ChainedOverrideTargets"
+	ParseSymbolStyleOverride          ParseSymbol = "StyleOverride"
+	ParseSymbolOptionalOverrides      ParseSymbol = "OptionalOverrides"
+
 	// --- Fallback ---
 	ParseSymbolAny ParseSymbol = "Any"
 )

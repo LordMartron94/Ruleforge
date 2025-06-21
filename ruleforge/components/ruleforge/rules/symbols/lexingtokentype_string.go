@@ -55,11 +55,12 @@ func _() {
 	_ = x[DexBuildToken-44]
 	_ = x[DotToken-45]
 	_ = x[FunctionKeywordToken-46]
+	_ = x[StyleOverrideToken-47]
 }
 
-const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenNumberTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenVariableReferenceTokenOpenCurlyBracketTokenCloseCurlyBracketTokenOpenSquareBracketTokenCloseSquareBracketTokenAssignmentOperatorTokenChainOperatorTokenGreaterThanOrEqualOperatorTokenLessThanOrEqualOperatorTokenGreaterThanOperatorTokenLessThanOperatorTokenExactMatchOperatorTokenStyleCombineTokenRuleStrictnessIndicatorTokenNotEqualToOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenSectionConditionsKeywordTokenConditionAssignmentKeywordTokenConditionKeywordTokenSectionKeywordTokenDescriptionAssignmentKeywordTokenRuleKeywordTokenBuildKeywordTokenMeleeSpellHybridBuildTokenMeleeDexHybridBuildTokenSpellDexHybridBuildTokenMeleeBuildTokenSpellBuildTokenDexBuildTokenDotTokenFunctionKeywordToken"
+const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenNumberTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenVariableReferenceTokenOpenCurlyBracketTokenCloseCurlyBracketTokenOpenSquareBracketTokenCloseSquareBracketTokenAssignmentOperatorTokenChainOperatorTokenGreaterThanOrEqualOperatorTokenLessThanOrEqualOperatorTokenGreaterThanOperatorTokenLessThanOperatorTokenExactMatchOperatorTokenStyleCombineTokenRuleStrictnessIndicatorTokenNotEqualToOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenSectionConditionsKeywordTokenConditionAssignmentKeywordTokenConditionKeywordTokenSectionKeywordTokenDescriptionAssignmentKeywordTokenRuleKeywordTokenBuildKeywordTokenMeleeSpellHybridBuildTokenMeleeDexHybridBuildTokenSpellDexHybridBuildTokenMeleeBuildTokenSpellBuildTokenDexBuildTokenDotTokenFunctionKeywordTokenStyleOverrideToken"
 
-var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 49, 60, 78, 98, 120, 141, 163, 185, 208, 231, 249, 280, 308, 332, 353, 376, 393, 421, 444, 464, 480, 499, 521, 536, 552, 574, 592, 615, 635, 664, 695, 716, 735, 768, 784, 801, 827, 851, 875, 890, 905, 918, 926, 946}
+var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 49, 60, 78, 98, 120, 141, 163, 185, 208, 231, 249, 280, 308, 332, 353, 376, 393, 421, 444, 464, 480, 499, 521, 536, 552, 574, 592, 615, 635, 664, 695, 716, 735, 768, 784, 801, 827, 851, 875, 890, 905, 918, 926, 946, 964}
 
 func (i LexingTokenType) String() string {
 	if i < 0 || i >= LexingTokenType(len(_LexingTokenType_index)-1) {

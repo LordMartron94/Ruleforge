@@ -84,7 +84,7 @@ func (rg *RuleGenerator) handleRuleExpression(
 	buildType BuildType,
 ) ([][]string, error) {
 	styleValue := ruleExpressionNode.Children[2].Token.ValueToString()
-	style, err := rg.styleManager.GetStyle(styleValue, *variables)
+	style, err := rg.styleManager.GetStyle(styleValue)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (rg *RuleGenerator) handleEquipmentProgression(
 		}
 	}
 
-	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters, *variables)
+	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters)
 	rg.produceProgression(itemsByCategory, variables, shownStyle, hiddenStyle, &allGeneratedRules)
 
 	return allGeneratedRules
@@ -173,13 +173,13 @@ func (rg *RuleGenerator) handleFlaskProgression(
 		itemsByCategory[key] = append(itemsByCategory[key], &rg.flaskBases[i])
 	}
 
-	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters, *variables)
+	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters)
 	rg.produceProgression(itemsByCategory, variables, shownStyle, hiddenStyle, &allGeneratedRules)
 
 	return allGeneratedRules
 }
 
-func (rg *RuleGenerator) getHiddenAndShownStyleFromParameters(parameters []*shared.ParseTree[symbols.LexingTokenType], variables map[string][]string) (*config.Style, *config.Style) {
+func (rg *RuleGenerator) getHiddenAndShownStyleFromParameters(parameters []*shared.ParseTree[symbols.LexingTokenType]) (*config.Style, *config.Style) {
 	var hiddenStyle, shownStyle *config.Style = nil, nil
 
 	for _, parameter := range parameters {
@@ -188,9 +188,9 @@ func (rg *RuleGenerator) getHiddenAndShownStyleFromParameters(parameters []*shar
 
 		switch key {
 		case "$show":
-			shownStyle, err = rg.styleManager.GetStyle(value, variables)
+			shownStyle, err = rg.styleManager.GetStyle(value)
 		case "$hidden":
-			hiddenStyle, err = rg.styleManager.GetStyle(value, variables)
+			hiddenStyle, err = rg.styleManager.GetStyle(value)
 		default:
 			panic(fmt.Sprintf("invalid style key: %s", key))
 		}
@@ -324,7 +324,7 @@ func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, par
 	tierStyles := make([]*config.Style, len(parameters))
 	for i, parameter := range parameters {
 		_, value := rg.getKeyAndValueFromParameter(parameter)
-		style, err := rg.styleManager.GetStyle(value, *variables)
+		style, err := rg.styleManager.GetStyle(value)
 
 		if err != nil {
 			panic(err)

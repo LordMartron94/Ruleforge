@@ -2,7 +2,8 @@ package config
 
 import "fmt"
 
-// Color represents an RGBA color; any component may be omitted.
+type OverrideMap map[string]string
+
 type Color struct {
 	Red   *uint8 `json:"red"`
 	Green *uint8 `json:"green"`
@@ -10,7 +11,6 @@ type Color struct {
 	Alpha *uint8 `json:"alpha"`
 }
 
-// Clone creates a deep copy of the Color.
 func (c *Color) Clone() *Color {
 	if c == nil {
 		return nil
@@ -35,14 +35,12 @@ func (c *Color) Clone() *Color {
 	return clone
 }
 
-// Minimap settings.
 type Minimap struct {
 	Size   *int    `json:"Size,omitempty"`
 	Shape  *string `json:"Shape,omitempty"`
 	Colour *string `json:"Colour,omitempty"`
 }
 
-// Clone creates a deep copy of the Minimap settings.
 func (m *Minimap) Clone() *Minimap {
 	if m == nil {
 		return nil
@@ -63,13 +61,11 @@ func (m *Minimap) Clone() *Minimap {
 	return clone
 }
 
-// Beam settings.
 type Beam struct {
 	Color *string `json:"Color,omitempty"`
 	Temp  *bool   `json:"Temp,omitempty"`
 }
 
-// Clone creates a deep copy of the Beam settings.
 func (b *Beam) Clone() *Beam {
 	if b == nil {
 		return nil
@@ -86,9 +82,6 @@ func (b *Beam) Clone() *Beam {
 	return clone
 }
 
-// Style holds all possible fields for a style. Every field is a pointer
-// so that absence in the JSON yields a nil value here.
-// Name is filled in by the loader based on the JSON map key.
 type Style struct {
 	Name            string   `json:"-"`
 	TextColor       *Color   `json:"TextColor,omitempty"`
@@ -102,17 +95,11 @@ type Style struct {
 	Comment         *string  `json:"Comment,omitempty"`
 }
 
-// Clone creates a deep, independent copy of the Style.
 func (s *Style) Clone() *Style {
 	if s == nil {
 		return nil
 	}
-
-	clone := &Style{
-		Name: s.Name, // Name is a value type, can be copied directly.
-	}
-
-	// Deep copy pointer fields by creating new variables.
+	clone := &Style{Name: s.Name}
 	if s.FontSize != nil {
 		val := *s.FontSize
 		clone.FontSize = &val
@@ -125,188 +112,206 @@ func (s *Style) Clone() *Style {
 		val := *s.DropVolume
 		clone.DropVolume = &val
 	}
-
-	// For complex types, call their respective Clone methods.
+	if s.Comment != nil {
+		val := *s.Comment
+		clone.Comment = &val
+	}
 	clone.TextColor = s.TextColor.Clone()
 	clone.BorderColor = s.BorderColor.Clone()
 	clone.BackgroundColor = s.BackgroundColor.Clone()
 	clone.Minimap = s.Minimap.Clone()
 	clone.Beam = s.Beam.Clone()
-
 	return clone
 }
 
-// MergeStyles deep-merges 'style' with 'other', returning a new Style.
-// Any field set (non-nil) in both will cause an error.
-// Name is treated as metadata: if both names are set and differ, it’s a conflict.
-func (s *Style) MergeStyles(other *Style) (*Style, error) {
-	if s == nil && other == nil {
-		return nil, nil
+func (s *Style) MergeStyles(other *Style, overrides OverrideMap) (*Style, error) {
+	if s == nil {
+		return other.Clone(), nil
 	}
-	result := &Style{}
+	if other == nil {
+		return s.Clone(), nil
+	}
 
-	// --- Name ---
+	result := s.Clone()
 	result.Name = "Merged"
-
-	// --- Colors ---
 	var err error
-	if result.TextColor, err = mergeColor(s.TextColor, other.TextColor); err != nil {
-		return nil, fmt.Errorf("TextColor: %w", err)
+
+	if result.TextColor, err = mergeColor(s.TextColor, other.TextColor, s.Name, other.Name, "TextColor", overrides); err != nil {
+		return nil, fmt.Errorf("property 'TextColor': %w", err)
 	}
-	if result.BorderColor, err = mergeColor(s.BorderColor, other.BorderColor); err != nil {
-		return nil, fmt.Errorf("BorderColor: %w", err)
+	if result.BorderColor, err = mergeColor(s.BorderColor, other.BorderColor, s.Name, other.Name, "BorderColor", overrides); err != nil {
+		return nil, fmt.Errorf("property 'BorderColor': %w", err)
 	}
-	if result.BackgroundColor, err = mergeColor(s.BackgroundColor, other.BackgroundColor); err != nil {
-		return nil, fmt.Errorf("BackgroundColor: %w", err)
+	if result.BackgroundColor, err = mergeColor(s.BackgroundColor, other.BackgroundColor, s.Name, other.Name, "BackgroundColor", overrides); err != nil {
+		return nil, fmt.Errorf("property 'BackgroundColor': %w", err)
+	}
+	if result.Minimap, err = mergeMinimap(s.Minimap, other.Minimap, s.Name, other.Name, "Minimap", overrides); err != nil {
+		return nil, fmt.Errorf("property 'Minimap': %w", err)
+	}
+	if result.Beam, err = mergeBeam(s.Beam, other.Beam, s.Name, other.Name, "Beam", overrides); err != nil {
+		return nil, fmt.Errorf("property 'Beam': %w", err)
 	}
 
-	// --- FontSize ---
-	if result.FontSize, err = mergePtrInt(s.FontSize, other.FontSize); err != nil {
-		return nil, fmt.Errorf("FontSize: %w", err)
+	if other.FontSize != nil {
+		if result.FontSize == nil {
+			result.FontSize = other.FontSize
+		} else if err := handleConflict(overrides, "FontSize", s.Name, other.Name, func() {
+			result.FontSize = other.FontSize
+		}); err != nil {
+			return nil, err
+		}
 	}
-
-	// --- Minimap ---
-	if result.Minimap, err = mergeMinimap(s.Minimap, other.Minimap); err != nil {
-		return nil, fmt.Errorf("minimap: %w", err)
+	if other.DropSound != nil {
+		if result.DropSound == nil {
+			result.DropSound = other.DropSound
+		} else if err := handleConflict(overrides, "DropSound", s.Name, other.Name, func() {
+			result.DropSound = other.DropSound
+		}); err != nil {
+			return nil, err
+		}
 	}
-
-	// --- DropSound & Volume ---
-	if result.DropSound, err = mergePtrString(s.DropSound, other.DropSound); err != nil {
-		return nil, fmt.Errorf("DropSound: %w", err)
+	if other.DropVolume != nil {
+		if result.DropVolume == nil {
+			result.DropVolume = other.DropVolume
+		} else if err := handleConflict(overrides, "DropVolume", s.Name, other.Name, func() {
+			result.DropVolume = other.DropVolume
+		}); err != nil {
+			return nil, err
+		}
 	}
-	if result.DropVolume, err = mergePtrInt(s.DropVolume, other.DropVolume); err != nil {
-		return nil, fmt.Errorf("DropVolume: %w", err)
-	}
-
-	// --- Beam ---
-	if result.Beam, err = mergeBeam(s.Beam, other.Beam); err != nil {
-		return nil, fmt.Errorf("beam: %w", err)
+	if other.Comment != nil && result.Comment == nil {
+		result.Comment = other.Comment
 	}
 
 	return result, nil
 }
 
-func mergeColor(a, b *Color) (*Color, error) {
-	if a == nil {
-		return b.Clone(), nil // Return a clone to prevent mutation
+func mergeColor(base, other *Color, baseName, otherName, parentPropName string, overrides OverrideMap) (*Color, error) {
+	if base == nil {
+		return other.Clone(), nil
 	}
-	if b == nil {
-		return a.Clone(), nil // Return a clone to prevent mutation
+	if other == nil {
+		return base.Clone(), nil
 	}
-	// both non-nil → deep-merge
-	out := &Color{}
-	var err error
-	if out.Red, err = mergePtrUint8(a.Red, b.Red); err != nil {
-		return nil, fmt.Errorf("red: %w", err)
+	result := base.Clone()
+	if other.Red != nil {
+		if result.Red == nil {
+			result.Red = other.Red
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Red = other.Red
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Red': %w", err)
+		}
 	}
-	if out.Green, err = mergePtrUint8(a.Green, b.Green); err != nil {
-		return nil, fmt.Errorf("green: %w", err)
+	if other.Green != nil {
+		if result.Green == nil {
+			result.Green = other.Green
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Green = other.Green
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Green': %w", err)
+		}
 	}
-	if out.Blue, err = mergePtrUint8(a.Blue, b.Blue); err != nil {
-		return nil, fmt.Errorf("blue: %w", err)
+	if other.Blue != nil {
+		if result.Blue == nil {
+			result.Blue = other.Blue
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Blue = other.Blue
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Blue': %w", err)
+		}
 	}
-	if out.Alpha, err = mergePtrUint8(a.Alpha, b.Alpha); err != nil {
-		return nil, fmt.Errorf("alpha: %w", err)
+	if other.Alpha != nil {
+		if result.Alpha == nil {
+			result.Alpha = other.Alpha
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Alpha = other.Alpha
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Alpha': %w", err)
+		}
 	}
-	return out, nil
+	return result, nil
 }
 
-func mergeMinimap(a, b *Minimap) (*Minimap, error) {
-	if a == nil {
-		return b.Clone(), nil
+func mergeMinimap(base, other *Minimap, baseName, otherName, parentPropName string, overrides OverrideMap) (*Minimap, error) {
+	if base == nil {
+		return other.Clone(), nil
 	}
-	if b == nil {
-		return a.Clone(), nil
+	if other == nil {
+		return base.Clone(), nil
 	}
-	out := &Minimap{}
-	var err error
-	if out.Size, err = mergePtrInt(a.Size, b.Size); err != nil {
-		return nil, fmt.Errorf("size: %w", err)
+	result := base.Clone()
+	if other.Size != nil {
+		if result.Size == nil {
+			result.Size = other.Size
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Size = other.Size
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Size': %w", err)
+		}
 	}
-	if out.Shape, err = mergePtrString(a.Shape, b.Shape); err != nil {
-		return nil, fmt.Errorf("shape: %w", err)
+	if other.Shape != nil {
+		if result.Shape == nil {
+			result.Shape = other.Shape
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Shape = other.Shape
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Shape': %w", err)
+		}
 	}
-	if out.Colour, err = mergePtrString(a.Colour, b.Colour); err != nil {
-		return nil, fmt.Errorf("colour: %w", err)
+	if other.Colour != nil {
+		if result.Colour == nil {
+			result.Colour = other.Colour
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Colour = other.Colour
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Colour': %w", err)
+		}
 	}
-	return out, nil
+	return result, nil
 }
 
-func mergeBeam(a, b *Beam) (*Beam, error) {
-	if a == nil {
-		return b.Clone(), nil
+func mergeBeam(base, other *Beam, baseName, otherName, parentPropName string, overrides OverrideMap) (*Beam, error) {
+	if base == nil {
+		return other.Clone(), nil
 	}
-	if b == nil {
-		return a.Clone(), nil
+	if other == nil {
+		return base.Clone(), nil
 	}
-	out := &Beam{}
-	var err error
-	if out.Color, err = mergePtrString(a.Color, b.Color); err != nil {
-		return nil, fmt.Errorf("color: %w", err)
+	result := base.Clone()
+	if other.Color != nil {
+		if result.Color == nil {
+			result.Color = other.Color
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Color = other.Color
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Color': %w", err)
+		}
 	}
-	if out.Temp, err = mergePtrBool(a.Temp, b.Temp); err != nil {
-		return nil, fmt.Errorf("temp: %w", err)
+	if other.Temp != nil {
+		if result.Temp == nil {
+			result.Temp = other.Temp
+		} else if err := handleConflict(overrides, parentPropName, baseName, otherName, func() {
+			result.Temp = other.Temp
+		}); err != nil {
+			return nil, fmt.Errorf("sub-property 'Temp': %w", err)
+		}
 	}
-	return out, nil
+	return result, nil
 }
 
-// mergePtrX returns the non-nil ptr, or errors if both are non-nil.
-func mergePtrInt(a, b *int) (*int, error) {
-	if a != nil && b != nil {
-		return nil, fmt.Errorf("conflict: both values present (%d vs %d)", *a, *b)
+func handleConflict(overrides OverrideMap, propName, baseStyleName, otherStyleName string, applyOverride func()) error {
+	winner, specificOverrideExists := overrides[propName]
+	if specificOverrideExists {
+		if winner == otherStyleName {
+			applyOverride()
+		}
+		return nil
 	}
-	if a != nil {
-		val := *a
-		return &val, nil
-	}
-	if b != nil {
-		val := *b
-		return &val, nil
-	}
-	return nil, nil
-}
 
-func mergePtrString(a, b *string) (*string, error) {
-	if a != nil && b != nil {
-		return nil, fmt.Errorf("conflict: both values present (%q vs %q)", *a, *b)
+	if len(overrides) > 0 {
+		return nil
 	}
-	if a != nil {
-		val := *a
-		return &val, nil
-	}
-	if b != nil {
-		val := *b
-		return &val, nil
-	}
-	return nil, nil
-}
 
-func mergePtrBool(a, b *bool) (*bool, error) {
-	if a != nil && b != nil {
-		return nil, fmt.Errorf("conflict: both values present (%t vs %t)", *a, *b)
-	}
-	if a != nil {
-		val := *a
-		return &val, nil
-	}
-	if b != nil {
-		val := *b
-		return &val, nil
-	}
-	return nil, nil
-}
-
-func mergePtrUint8(a, b *uint8) (*uint8, error) {
-	if a != nil && b != nil {
-		return nil, fmt.Errorf("conflict: both values present (%d vs %d)", *a, *b)
-	}
-	if a != nil {
-		val := *a
-		return &val, nil
-	}
-	if b != nil {
-		val := *b
-		return &val, nil
-	}
-	return nil, nil
+	return fmt.Errorf("property %q has a conflict between styles %q and %q with no !override clause specified", propName, baseStyleName, otherStyleName)
 }

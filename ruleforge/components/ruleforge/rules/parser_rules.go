@@ -254,19 +254,25 @@ func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		repeatingCombinedValues,
 	)
 
+	optionalOverrideBlock := composite.NewRepetitionRule[symbols.LexingTokenType](
+		symbols.ParseSymbolOptionalOverrides.String(),
+		styleOverrideBlockRule(),
+	)
+
 	initialPart := seq(symbols.ParseSymbolAssignment,
 		token(symbols.ParseSymbolKeyword, symbols.VariableKeywordToken),
 		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
 		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
 		fullValueExpression,
+		optionalOverrideBlock,
 	)
 
-	// Defines the `-> identifier => <value> [+ <value>...]` part.
 	chainedPart := seq(symbols.ParseSymbolAssignment,
 		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
 		token(symbols.ParseSymbolIdentifier, symbols.IdentifierKeyToken),
 		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
 		fullValueExpression,
+		optionalOverrideBlock,
 	)
 
 	return makeChainedRule(
@@ -274,6 +280,40 @@ func variableRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		symbols.ParseSymbolChainedAssignments,
 		initialPart,
 		chainedPart,
+	)
+}
+
+func styleOverrideBlockRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	stylePathValue := conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
+		[]symbols.LexingTokenType{
+			symbols.VariableReferenceToken,
+			symbols.IdentifierValueToken,
+		},
+	)
+
+	overrideTarget := seq(symbols.ParseSymbolOverrideTarget,
+		stylePathValue,
+		token(symbols.ParseSymbolOperator, symbols.AssignmentOperatorToken),
+		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
+	)
+
+	chainedOverrideTarget := seq(symbols.ParseSymbolOverrideTarget,
+		token(symbols.ParseSymbolOperator, symbols.ChainOperatorToken),
+		overrideTarget,
+	)
+
+	overrideTargetList := makeChainedRule(
+		symbols.ParseSymbolOverrideTargetList,
+		symbols.ParseSymbolChainedOverrideTargets,
+		overrideTarget,
+		chainedOverrideTarget,
+	)
+
+	return seq(symbols.ParseSymbolStyleOverride,
+		token(symbols.ParseSymbolKeyword, symbols.StyleOverrideToken),
+		token(symbols.ParseSymbolBlockOperator, symbols.OpenSquareBracketToken),
+		overrideTargetList,
+		token(symbols.ParseSymbolBlockOperator, symbols.CloseSquareBracketToken),
 	)
 }
 
