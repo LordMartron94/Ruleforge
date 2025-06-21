@@ -54,6 +54,76 @@
             "Tiers/Relic"
           ]
         }
+      },
+      "Orbs": {
+        "Main": {
+          "Comment": "Theme: Aetherial Core. A deep, mystical indigo for powerful currency orbs.",
+          "BackgroundColor": { "red": 50, "green": 40, "blue": 70, "alpha": 255 },
+          "Minimap": {
+            "Shape": "Hexagon",
+            "Color": "Purple"
+          }
+        },
+        "T1": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Celestial"
+          ]
+        },
+        "T2": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Divine"
+          ]
+        },
+        "T3": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Infernal"
+          ]
+        },
+        "T4": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Eldritch"
+          ]
+        },
+        "T5": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Primal"
+          ]
+        },
+        "T6": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Vivid"
+          ]
+        },
+        "T7": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Mortal"
+          ]
+        },
+        "T8": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Relic"
+          ]
+        },
+        "T9": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Mundane"
+          ]
+        },
+        "T10": {
+          "Combination": [
+            "Special/Currencies/Orbs/Main",
+            "Tiers/Faded"
+          ]
+        }
       }
     },
     "Uniques_T1_Chase": {

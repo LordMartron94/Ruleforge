@@ -45,8 +45,18 @@ func (r *RuleFactory) transformStyleIntoText(style config.Style) []string {
 	}
 
 	if style.Minimap != nil {
-		if style.Minimap.Size != nil && style.Minimap.Shape != nil && style.Minimap.Colour != nil {
+		if style.Minimap.Size != nil && style.Minimap.Shape != nil && style.Minimap.Color != nil {
 			rawOutput = append(rawOutput, r.retrieveMinimapIconString(*style.Minimap))
+		} else {
+			errorComment := fmt.Sprintf("# WARNING: Style '%s' has an incomplete Minimap. All three properties (Size, Shape, Color) are required to render the icon. This can obviously be because of a tier that does not use minimaps.", style.Name)
+
+			size := valOrNil(style.Minimap.Size)
+			color := valOrNil(style.Minimap.Color)
+			shape := valOrNil(style.Minimap.Shape)
+
+			additional := fmt.Sprintf("# MM: [size %v, color %v, shape %v]", size, color, shape)
+			rawOutput = append(rawOutput, errorComment)
+			rawOutput = append(rawOutput, additional)
 		}
 	}
 
@@ -73,7 +83,7 @@ func (r *RuleFactory) retrieveBeamString(beam config.Beam) string {
 }
 
 func (r *RuleFactory) retrieveMinimapIconString(minimap config.Minimap) string {
-	return fmt.Sprintf("MinimapIcon %d %s %s", *minimap.Size, *minimap.Shape, *minimap.Colour)
+	return fmt.Sprintf("MinimapIcon %d %s %s", *minimap.Size, *minimap.Color, *minimap.Shape)
 }
 
 func (r *RuleFactory) retrieveColorString(element string, color config.Color) string {
@@ -82,4 +92,11 @@ func (r *RuleFactory) retrieveColorString(element string, color config.Color) st
 
 func (r *RuleFactory) prefixLineWithTab(line string) string {
 	return "\t" + line
+}
+
+func valOrNil[T any](p *T) interface{} {
+	if p != nil {
+		return *p
+	}
+	return "<nil>"
 }
