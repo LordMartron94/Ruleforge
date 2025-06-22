@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"os"
 	"slices"
 )
@@ -32,7 +33,7 @@ var knownStyleKeys = map[string]struct{}{
 }
 
 // LoadStyles reads a JSON file, recursively parses it, and resolves style combinations.
-func LoadStyles(path string) (map[string]*Style, error) {
+func LoadStyles(path string) (map[string]Style, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read style file: %w", err)
@@ -48,16 +49,22 @@ func LoadStyles(path string) (map[string]*Style, error) {
 		return nil, err
 	}
 
-	resolvedStyles := make(map[string]*Style)
+	resolvedStylesCache := make(map[string]*Style)
 	visiting := make(map[string]bool)
 
 	for name := range allStyles {
-		if _, err := resolveCombination(name, allStyles, resolvedStyles, visiting); err != nil {
+		if _, err := resolveCombination(name, allStyles, resolvedStylesCache, visiting); err != nil {
 			return nil, err
 		}
 	}
 
-	return resolvedStyles, nil
+	// Convert the pointer map to a value map for the final result.
+	finalStyles := make(map[string]Style, len(resolvedStylesCache))
+	for name, stylePtr := range resolvedStylesCache {
+		finalStyles[name] = *stylePtr
+	}
+
+	return finalStyles, nil
 }
 
 func resolveCombination(
@@ -66,14 +73,12 @@ func resolveCombination(
 	resolvedStyles map[string]*Style,
 	visiting map[string]bool,
 ) (*Style, error) {
-	// 1. Cycle detection
 	if visiting[styleName] {
 		return nil, fmt.Errorf("circular dependency detected in style combinations involving %q", styleName)
 	}
 	visiting[styleName] = true
 	defer func() { delete(visiting, styleName) }()
 
-	// 2. Memoization check
 	if resolved, found := resolvedStyles[styleName]; found {
 		return resolved, nil
 	}
@@ -83,7 +88,10 @@ func resolveCombination(
 		return nil, fmt.Errorf("referenced style %q not found", styleName)
 	}
 
-	// 3. Handle base cases (styles without combinations)
+	if originalStyle.Id == "" {
+		originalStyle.Id = uuid.New().String()
+	}
+
 	if originalStyle.Combination == nil || len(*originalStyle.Combination) == 0 {
 		if err := validateStyle(originalStyle); err != nil {
 			return nil, fmt.Errorf("style %q: %w", originalStyle.Name, err)
@@ -92,7 +100,6 @@ func resolveCombination(
 		return originalStyle, nil
 	}
 
-	// 4. Recursively resolve and merge dependencies from the "Combination" list
 	var combinedStyle *Style
 	var err error
 	for _, dependencyName := range *originalStyle.Combination {
@@ -104,9 +111,9 @@ func resolveCombination(
 		if combinedStyle == nil {
 			combinedStyle = dependencyStyle.Clone()
 		} else {
-			combinedStyle, err = combinedStyle.MergeStyles(dependencyStyle, make(OverrideMap))
+			combinedStyle, err = dependencyStyle.MergeStyles(combinedStyle, make(OverrideMap))
 			if err != nil {
-				return nil, fmt.Errorf("unexpected error merging dependency %q for style %q: %w", dependencyName, styleName, err)
+				return nil, fmt.Errorf("unexpected error merging existing combination into dependency %q for style %q: %w", dependencyName, styleName, err)
 			}
 		}
 	}
@@ -118,15 +125,29 @@ func resolveCombination(
 	localProperties := originalStyle.Clone()
 	localProperties.Combination = nil
 
-	finalStyle, err := combinedStyle.MergeStyles(localProperties, make(OverrideMap))
+	finalStyle, err := localProperties.MergeStyles(combinedStyle, make(OverrideMap))
 	if err != nil {
-		return nil, fmt.Errorf("unexpected error merging local properties for style %q: %w", styleName, err)
+		return nil, fmt.Errorf("unexpected error merging combined dependencies into local properties for style %q: %w", styleName, err)
 	}
 	finalStyle.Name = styleName
+
+	var canonicalStyle *Style
+	for _, existingStyle := range resolvedStyles {
+		if finalStyle.IsEqual(existingStyle) {
+			fmt.Printf("Found equal match between %s (%s) and %s (%s)\n", finalStyle.Name, finalStyle.Id, existingStyle.Name, existingStyle.Id)
+			canonicalStyle = existingStyle
+			break
+		}
+	}
+
+	if canonicalStyle != nil {
+		finalStyle = canonicalStyle
+	}
 
 	if err := validateStyle(finalStyle); err != nil {
 		return nil, fmt.Errorf("style %q: %w", finalStyle.Name, err)
 	}
+
 	resolvedStyles[styleName] = finalStyle
 	return finalStyle, nil
 }
@@ -152,9 +173,8 @@ func parseStylesRecursive(data map[string]interface{}, prefix string, styles *ma
 		}
 		var style *Style
 		if err := json.Unmarshal(styleBytes, &style); err != nil {
-			return fmt.Errorf("style %q: failed to unmarshal into Style struct: %w", styleName, err)
+			return fmt.Errorf("style %q: failed to unmarshal into StyleID struct: %w", styleName, err)
 		}
-		style.Name = styleName
 		(*styles)[styleName] = style
 		return nil
 	}

@@ -1,5 +1,10 @@
 package config
 
+import (
+	"fmt"
+	"github.com/google/uuid"
+)
+
 // ===================================================================
 // Data Structures (Unchanged)
 // ===================================================================
@@ -13,10 +18,72 @@ type Color struct {
 	Alpha *uint8 `json:"alpha"`
 }
 
+func (c *Color) IsEqual(other *Color) bool {
+	if c == other {
+		return true
+	}
+	if c == nil || other == nil {
+		return false
+	}
+	if (c.Red == nil) != (other.Red == nil) {
+		return false
+	}
+	if c.Red != nil && *c.Red != *other.Red {
+		return false
+	}
+	if (c.Green == nil) != (other.Green == nil) {
+		return false
+	}
+	if c.Green != nil && *c.Green != *other.Green {
+		return false
+	}
+	if (c.Blue == nil) != (other.Blue == nil) {
+		return false
+	}
+	if c.Blue != nil && *c.Blue != *other.Blue {
+		return false
+	}
+	if (c.Alpha == nil) != (other.Alpha == nil) {
+		return false
+	}
+	if c.Alpha != nil && *c.Alpha != *other.Alpha {
+		return false
+	}
+	return true
+}
+
 type Minimap struct {
 	Size  *int    `json:"Size,omitempty"`
 	Shape *string `json:"Shape,omitempty"`
 	Color *string `json:"Color,omitempty"`
+}
+
+func (m *Minimap) IsEqual(other *Minimap) bool {
+	if m == other {
+		return true
+	}
+	if m == nil || other == nil {
+		return false
+	}
+	if (m.Size == nil) != (other.Size == nil) {
+		return false
+	}
+	if m.Size != nil && *m.Size != *other.Size {
+		return false
+	}
+	if (m.Shape == nil) != (other.Shape == nil) {
+		return false
+	}
+	if m.Shape != nil && *m.Shape != *other.Shape {
+		return false
+	}
+	if (m.Color == nil) != (other.Color == nil) {
+		return false
+	}
+	if m.Color != nil && *m.Color != *other.Color {
+		return false
+	}
+	return true
 }
 
 type Beam struct {
@@ -24,7 +91,30 @@ type Beam struct {
 	Temp  *bool   `json:"Temp,omitempty"`
 }
 
+func (b *Beam) IsEqual(other *Beam) bool {
+	if b == other {
+		return true
+	}
+	if b == nil || other == nil {
+		return false
+	}
+	if (b.Color == nil) != (other.Color == nil) {
+		return false
+	}
+	if b.Color != nil && *b.Color != *other.Color {
+		return false
+	}
+	if (b.Temp == nil) != (other.Temp == nil) {
+		return false
+	}
+	if b.Temp != nil && *b.Temp != *other.Temp {
+		return false
+	}
+	return true
+}
+
 type Style struct {
+	Id              string    `json:"-"`
 	Name            string    `json:"-"`
 	TextColor       *Color    `json:"TextColor,omitempty"`
 	BorderColor     *Color    `json:"BorderColor,omitempty"`
@@ -36,6 +126,66 @@ type Style struct {
 	Beam            *Beam     `json:"Beam,omitempty"`
 	Comment         *string   `json:"Comment,omitempty"`
 	Combination     *[]string `json:"Combination,omitempty"`
+}
+
+func (s *Style) IsEqual(other *Style) bool {
+	if !s.TextColor.IsEqual(other.TextColor) {
+		return false
+	}
+
+	if !s.BorderColor.IsEqual(other.BorderColor) {
+		return false
+	}
+
+	if !s.BackgroundColor.IsEqual(other.BackgroundColor) {
+		return false
+	}
+
+	if !intPtrIsEqual(s.FontSize, other.FontSize) {
+		return false
+	}
+
+	if !s.Minimap.IsEqual(other.Minimap) {
+		return false
+	}
+
+	if !stringPtrIsEqual(s.DropSound, other.DropSound) {
+		return false
+	}
+
+	if !intPtrIsEqual(s.DropVolume, other.DropVolume) {
+		return false
+	}
+
+	if !s.Beam.IsEqual(other.Beam) {
+		return false
+	}
+
+	return true
+}
+
+func intPtrIsEqual(a, b *int) bool {
+	if a == b {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	return *a == *b
+}
+
+func stringPtrIsEqual(a, b *string) bool {
+	if a == b {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	return *a == *b
 }
 
 // ===================================================================
@@ -70,7 +220,7 @@ func (s *Style) Clone() *Style {
 	if s == nil {
 		return nil
 	}
-	clone := &Style{Name: s.Name}
+	clone := &Style{Name: s.Name, Id: s.Id}
 
 	if s.FontSize != nil {
 		val := *s.FontSize
@@ -104,7 +254,7 @@ func (s *Style) Clone() *Style {
 }
 
 // ===================================================================
-// Style Merging Logic (REFACTORED AND FIXED)
+// StyleID Merging Logic (REFACTORED AND FIXED)
 // ===================================================================
 
 // shouldApplyOther checks if the 'other' style should win a conflict.
@@ -150,7 +300,7 @@ func (s *Style) MergeStyles(other *Style, overrides OverrideMap) (*Style, error)
 		return s.Clone(), nil
 	}
 
-	result := &Style{Name: "Merged"}
+	result := &Style{Name: fmt.Sprintf("%s-%s", s.Name, other.Name), Id: uuid.New().String()}
 
 	// --- Merge Root Properties using the generic helper ---
 	result.FontSize = mergeProperty(s.FontSize, other.FontSize, "FontSize", other.Name, overrides)

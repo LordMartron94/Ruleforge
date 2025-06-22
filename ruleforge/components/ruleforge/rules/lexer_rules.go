@@ -110,6 +110,8 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"@stack_size", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@class_use", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@socket_group", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@height", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@width", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@sockets", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 
 		// Builds

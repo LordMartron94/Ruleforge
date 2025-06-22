@@ -15,6 +15,8 @@ var conditionIdentifierToCompiledIdentifier = map[string]string{
 	"@rarity":       "Rarity",
 	"@sockets":      "Sockets",
 	"@socket_group": "SocketGroup",
+	"@height":       "Height",
+	"@width":        "Width",
 }
 
 type Condition struct {

@@ -513,6 +513,11 @@
     "Beam": {
       "Color": "Pink",
       "Temp": false
+    },
+    "Minimap": {
+      "Shape": "UpsideDownHouse",
+      "Color": "Pink",
+      "Size": 0
     }
   }
 }

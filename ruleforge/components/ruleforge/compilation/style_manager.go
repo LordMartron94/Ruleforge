@@ -10,7 +10,7 @@ import (
 )
 
 type StyleManager struct {
-	styles       map[string]*config.Style
+	styles       map[string]config.Style
 	rootNode     *shared.ParseTree[symbols.LexingTokenType]
 	varNodeCache map[string]*shared.ParseTree[symbols.LexingTokenType]
 }
@@ -72,7 +72,7 @@ func (sm *StyleManager) resolveVariableStyle(styleValue string) (*config.Style, 
 		return nil, fmt.Errorf("internal error: resolved base style %q for variable %q is nil but no error was returned", baseStyleRefs[0], varName)
 	}
 
-	// 4. Iteratively merge subsequent styles using the override map.
+	// 4. Iteratively merge later styles using the override map.
 	for i := 1; i < len(baseStyleRefs); i++ {
 		nextStyle, err := sm.GetStyle(baseStyleRefs[i])
 		if err != nil {
@@ -88,7 +88,6 @@ func (sm *StyleManager) resolveVariableStyle(styleValue string) (*config.Style, 
 		}
 	}
 
-	mergedStyle.Name = varName
 	return mergedStyle, nil
 }
 
@@ -118,10 +117,6 @@ func (sm *StyleManager) lookupStyle(key string) (*config.Style, error) {
 	style, ok := sm.styles[key]
 	if !ok {
 		return nil, fmt.Errorf("style %q not found", key)
-	}
-
-	if style == nil {
-		return nil, fmt.Errorf("style key %q exists but the style itself is nil", key)
 	}
 
 	cloned := style.Clone()

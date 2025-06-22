@@ -462,23 +462,22 @@ func (rg *RuleGenerator) generateTieredRules(
 
 type AutomationGroup struct {
 	MinStackSize *int
-	Style        string
+	Style        config.Style
 	Tier         int
 	BaseTypes    []string
 }
 
 // GroupByProperties takes a slice of BaseTypeAutomationEntry and groups them
-// by Style, Tier, and MinStackSize.
+// by StyleID, Tier, and MinStackSize.
 // The final result is a slice of
 // AutomationGroup, sorted by Tier in ascending order.
-func groupByProperties(entries []config.BaseTypeAutomationEntry) []AutomationGroup {
+func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *StyleManager) []AutomationGroup {
 	if len(entries) == 0 {
 		return []AutomationGroup{}
 	}
 
 	type groupKey struct {
-		Tier         int
-		Style        string
+		StyleID      string
 		MinStackSize int
 	}
 
@@ -489,9 +488,14 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry) []AutomationGro
 		if entry.MinStackSize != nil {
 			mssValue = *entry.MinStackSize
 		}
+		style, err := styleManager.GetStyle(entry.Style)
+
+		if err != nil {
+			panic(err)
+		}
+
 		key := groupKey{
-			Tier:         entry.Tier,
-			Style:        entry.Style,
+			StyleID:      style.Id,
 			MinStackSize: mssValue,
 		}
 
@@ -500,7 +504,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry) []AutomationGro
 		} else {
 			newGroup := &AutomationGroup{
 				MinStackSize: entry.MinStackSize,
-				Style:        entry.Style,
+				Style:        *style,
 				Tier:         entry.Tier,
 				BaseTypes:    []string{entry.BaseType},
 			}
@@ -548,7 +552,7 @@ func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, paramete
 		}
 	}
 
-	ruleGroups := groupByProperties(toBeProcessed)
+	ruleGroups := groupByProperties(toBeProcessed, rg.styleManager)
 
 	for _, ruleGroup := range ruleGroups {
 		baseTypes := ruleGroup.BaseTypes
@@ -577,12 +581,7 @@ func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, paramete
 			compiledConditions[i] = condition.ConstructCompiledCondition(variables, rg.validBaseTypes)
 		}
 
-		compiledStyle, err := rg.styleManager.GetStyle(style)
-		if err != nil {
-			panic(err)
-		}
-
-		rule := rg.ruleFactory.ConstructRule(model2.ShowRule, *compiledStyle, compiledConditions)
+		rule := rg.ruleFactory.ConstructRule(model2.ShowRule, style, compiledConditions)
 		allGeneratedRules = append(allGeneratedRules, rule)
 	}
 

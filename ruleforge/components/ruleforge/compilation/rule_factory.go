@@ -48,7 +48,7 @@ func (r *RuleFactory) transformStyleIntoText(style config.Style) []string {
 		if style.Minimap.Size != nil && style.Minimap.Shape != nil && style.Minimap.Color != nil {
 			rawOutput = append(rawOutput, r.retrieveMinimapIconString(*style.Minimap))
 		} else {
-			errorComment := fmt.Sprintf("# WARNING: Style '%s' has an incomplete Minimap. All three properties (Size, Shape, Color) are required to render the icon. This can obviously be because of a tier that does not use minimaps.", style.Name)
+			errorComment := fmt.Sprintf("# WARNING: StyleID '%s' has an incomplete Minimap. All three properties (Size, Shape, Color) are required to render the icon. This can obviously be because of a tier that does not use minimaps.", style.Name)
 
 			size := valOrNil(style.Minimap.Size)
 			color := valOrNil(style.Minimap.Color)
