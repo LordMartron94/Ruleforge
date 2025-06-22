@@ -64,17 +64,27 @@ func NewCompiler(
 func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	var output []string
 
-	// 1. Extract raw data using the TreeWalker
+	// Extract raw data using the TreeWalker
 	metadata := c.treeWalker.ExtractMetadata()
 	variables := c.treeWalker.ExtractVariables()
 	sections := c.treeWalker.ExtractSections()
 
-	// 2. Construct header
+	// Construct header
 	output = append(output, c.constructHeader(metadata)...)
 
 	buildType := GetBuildType(metadata.Build)
 
-	// 3. Generate rules for each section using the RuleGenerator
+	output = append(output, c.constructComment("TABLE OF CONTENTS: "))
+
+	// Generate Table of Contents
+	for _, section := range sections {
+		tocEntry := fmt.Sprintf("\t%s (%s)", section.Name, section.Description)
+		output = append(output, c.constructComment(tocEntry))
+	}
+
+	output = append(output, c.constructDivider()...)
+
+	// Generate rules for each section using the RuleGenerator
 	for _, section := range sections {
 		output = append(output, c.constructSectionHeading(section.Name, section.Description))
 
@@ -85,9 +95,12 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 		for _, rule := range compiledRules {
 			output = append(output, rule...)
 		}
+
+		output = output[:len(output)-1] // Account for last empty line
+		output = append(output, c.constructDivider()...)
 	}
 
-	// 4. Add fallback rule
+	// Add fallback rule
 	fallbackStyle, _ := c.styleManager.GetStyle("Fallback")
 	fallbackRule := c.ruleFactory.ConstructRule(model2.ShowRule, *fallbackStyle, []string{})
 	output = append(output, c.constructSectionHeading("Fallback", "Shows anything that wasn't caught by upstream rules."), "")
@@ -106,7 +119,6 @@ func (c *Compiler) constructHeader(metadata ExtractedMetadata) []string {
 		"For questions reach out to Mr. Hoorn (Ruleforge author):",
 		"Discord: \"mr.hoornasp.learningexpert\" (without quotations)",
 		"Email: md.career@protonmail.com",
-		"-----------------------------------------------------------------------",
 	}
 
 	for _, line := range lines {
@@ -114,15 +126,25 @@ func (c *Compiler) constructHeader(metadata ExtractedMetadata) []string {
 		output = append(output, commented)
 	}
 
+	output = append(output, c.constructDivider()...)
+
 	return output
 }
 
 func (c *Compiler) constructSectionHeading(sectionName, sectionDescription string) string {
-	return c.constructComment(fmt.Sprintf("---------------- SECTION: %s (%s) ----------------", sectionName, sectionDescription))
+	return c.constructComment(fmt.Sprintf(">>>>>>>>>>>>>>>> SECTION: %s (%s)", sectionName, sectionDescription))
 }
 
 func (c *Compiler) constructComment(content string) string {
 	return fmt.Sprintf("# %s", content)
+}
+
+func (c *Compiler) constructDivider() []string {
+	return []string{
+		"",
+		c.constructComment("============================================================================"),
+		"",
+	}
 }
 
 // ----------- HELPERS -----------
