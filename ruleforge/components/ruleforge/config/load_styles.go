@@ -134,7 +134,6 @@ func resolveCombination(
 	var canonicalStyle *Style
 	for _, existingStyle := range resolvedStyles {
 		if finalStyle.IsEqual(existingStyle) {
-			fmt.Printf("Found equal match between %s (%s) and %s (%s)\n", finalStyle.Name, finalStyle.Id, existingStyle.Name, existingStyle.Id)
 			canonicalStyle = existingStyle
 			break
 		}

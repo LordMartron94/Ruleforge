@@ -62,51 +62,84 @@ func NewCompiler(
 
 // CompileIntoFilter is now clean and readable, delegating all work.
 func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
-	var output []string
+	var header, body, toc []string
 
-	// Extract raw data using the TreeWalker
+	// 1. Extract raw data
 	metadata := c.treeWalker.ExtractMetadata()
 	variables := c.treeWalker.ExtractVariables()
 	sections := c.treeWalker.ExtractSections()
 
-	// Construct header
-	output = append(output, c.constructHeader(metadata)...)
-
+	// 2. Construct the header
+	header = c.constructHeader(metadata)
 	buildType := GetBuildType(metadata.Build)
 
-	output = append(output, c.constructComment("TABLE OF CONTENTS: "))
+	// 3. Pre-calculate sizes to determine the starting line number
+	tocSize := 1 + len(sections) + 1
+	dividerSize := len(c.constructDivider())
 
-	// Generate Table of Contents
+	// The first section heading will appear after the header, the ToC, and the divider.
+	lineCounter := len(header) + tocSize + dividerSize + 1
+
+	sectionLineNumbers := make(map[string]int)
+
+	// 4. Generate rules for each section and track final line numbers
 	for _, section := range sections {
-		tocEntry := fmt.Sprintf("\t%s (%s)", section.Name, section.Description)
-		output = append(output, c.constructComment(tocEntry))
-	}
+		// Store the definitive line number for this section
+		sectionLineNumbers[section.Name] = lineCounter
 
-	output = append(output, c.constructDivider()...)
-
-	// Generate rules for each section using the RuleGenerator
-	for _, section := range sections {
-		output = append(output, c.constructSectionHeading(section.Name, section.Description))
+		sectionHeading := c.constructSectionHeading(section.Name, section.Description)
+		body = append(body, sectionHeading)
+		lineCounter++ // Account for the section heading line
 
 		compiledRules, err := c.ruleGenerator.GenerateRulesForSection(section, variables, buildType)
 		if err != nil {
 			return nil, err, metadata.Name
 		}
+
+		// Add each generated rule group and update the line counter
 		for _, rule := range compiledRules {
-			output = append(output, rule...)
+			body = append(body, rule...)
+			lineCounter += len(rule)
 		}
 
-		output = output[:len(output)-1] // Account for last empty line
-		output = append(output, c.constructDivider()...)
+		body = body[:len(body)-1] // Account for last empty line from the rule generator
+		lineCounter--
+
+		divider := c.constructDivider()
+		body = append(body, divider...)
+		lineCounter += len(divider)
 	}
 
-	// Add fallback rule
+	// 5. The current value of lineCounter is now the exact line for the Fallback heading
+	fallbackLineNumber := lineCounter
+	fallbackSectionName := "Fallback"
+	fallbackSectionDesc := "Shows anything that wasn't caught by upstream rules."
+
+	// 6. Generate the complete Table of Contents with final line numbers
+	toc = append(toc, c.constructComment("TABLE OF CONTENTS: "))
+	for _, section := range sections {
+		lineNumber := sectionLineNumbers[section.Name]
+		tocEntry := fmt.Sprintf("\tLine %d: %s (%s)", lineNumber, section.Name, section.Description)
+		toc = append(toc, c.constructComment(tocEntry))
+	}
+	toc = append(toc, c.constructComment(fmt.Sprintf("\tLine %d: %s (%s)", fallbackLineNumber, fallbackSectionName, fallbackSectionDesc)))
+
+	// 7. Add the fallback rule content to the body
 	fallbackStyle, _ := c.styleManager.GetStyle("Fallback")
 	fallbackRule := c.ruleFactory.ConstructRule(model2.ShowRule, *fallbackStyle, []string{})
-	output = append(output, c.constructSectionHeading("Fallback", "Shows anything that wasn't caught by upstream rules."), "")
-	output = append(output, fallbackRule...)
+	fallbackHeading := c.constructSectionHeading(fallbackSectionName, fallbackSectionDesc)
 
-	return output, nil, metadata.Name
+	body = append(body, fallbackHeading, "")
+	body = append(body, fallbackRule...)
+
+	// 8. Assemble the final output
+	var finalOutput []string
+	finalOutput = append(finalOutput, header...)
+	finalOutput = append(finalOutput, toc...)
+	finalOutput = append(finalOutput, c.constructDivider()...)
+	finalOutput = append(finalOutput, body...)
+
+	return finalOutput, nil, metadata.Name
 }
 
 func (c *Compiler) constructHeader(metadata ExtractedMetadata) []string {
