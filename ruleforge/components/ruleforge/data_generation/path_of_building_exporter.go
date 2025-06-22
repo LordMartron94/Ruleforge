@@ -288,6 +288,10 @@ func GetBaseTypes[T model.POBDataType](data []T) []string {
 		if strings.Contains(baseType, "Energy Blade") || strings.Contains(baseType, "Random") {
 			continue
 		}
+		if strings.Contains(dataItem.GetVariantID(), "Alt") {
+			continue
+		}
+
 		basetypes = append(basetypes, baseType)
 	}
 	return basetypes

@@ -11,3 +11,7 @@ type Essence struct {
 func (e Essence) GetBaseType() string {
 	return sanitizeBaseType(e.Name)
 }
+
+func (e Essence) GetVariantID() string {
+	return ""
+}

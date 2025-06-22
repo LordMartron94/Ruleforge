@@ -60,3 +60,7 @@ type ItemBase struct {
 func (i ItemBase) GetBaseType() string {
 	return sanitizeBaseType(i.Name)
 }
+
+func (i ItemBase) GetVariantID() string {
+	return ""
+}

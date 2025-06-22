@@ -6,4 +6,5 @@ type POBDataType interface {
 	ItemBase | Essence | Gem
 
 	GetBaseType() string
+	GetVariantID() string
 }

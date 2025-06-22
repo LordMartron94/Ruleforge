@@ -40,3 +40,7 @@ func (g Gem) GetBaseType() string {
 
 	return sanitizeBaseType(baseType)
 }
+
+func (g Gem) GetVariantID() string {
+	return g.VariantID
+}
