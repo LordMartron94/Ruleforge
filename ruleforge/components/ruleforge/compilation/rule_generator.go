@@ -168,8 +168,14 @@ func (rg *RuleGenerator) handleEquipmentProgression(
 		}
 	}
 
-	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters)
-	rg.produceProgression(itemsByCategory, variables, shownStyle, hiddenStyle, &allGeneratedRules)
+	required := []string{"$hidden_normal", "$hidden_magic", "$hidden_rare", "$show_normal", "$show_magic", "$show_rare"}
+
+	styleMap, err := rg.extractStyleParameters(parameters, required)
+	if err != nil {
+		panic(err)
+	}
+
+	rg.produceProgression(itemsByCategory, variables, styleMap["$show_normal"], styleMap["$show_magic"], styleMap["$show_rare"], styleMap["$hidden_normal"], styleMap["$hidden_magic"], styleMap["$hidden_rare"], &allGeneratedRules)
 
 	return allGeneratedRules
 }
@@ -190,37 +196,54 @@ func (rg *RuleGenerator) handleFlaskProgression(
 	}
 
 	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters)
-	rg.produceProgression(itemsByCategory, variables, shownStyle, hiddenStyle, &allGeneratedRules)
+	rg.produceProgression(itemsByCategory, variables, shownStyle, shownStyle, shownStyle, hiddenStyle, hiddenStyle, hiddenStyle, &allGeneratedRules)
 
 	return allGeneratedRules
 }
 
-func (rg *RuleGenerator) getHiddenAndShownStyleFromParameters(parameters []*shared.ParseTree[symbols.LexingTokenType]) (*config.Style, *config.Style) {
-	var hiddenStyle, shownStyle *config.Style = nil, nil
+func (rg *RuleGenerator) getHiddenAndShownStyleFromParameters(
+	parameters []*shared.ParseTree[symbols.LexingTokenType],
+) (*config.Style, *config.Style) {
+	required := []string{"$hidden", "$show"}
+
+	styleMap, err := rg.extractStyleParameters(parameters, required)
+	if err != nil {
+		panic(err)
+	}
+
+	return styleMap["$hidden"], styleMap["$show"]
+}
+
+func (rg *RuleGenerator) extractStyleParameters(
+	parameters []*shared.ParseTree[symbols.LexingTokenType],
+	requiredKeys []string,
+) (map[string]*config.Style, error) {
+	requiredSet := make(map[string]struct{}, len(requiredKeys))
+	for _, key := range requiredKeys {
+		requiredSet[key] = struct{}{}
+	}
+
+	foundStyles := make(map[string]*config.Style)
 
 	for _, parameter := range parameters {
 		key, value := rg.getKeyAndValueFromParameter(parameter)
-		var err error
 
-		switch key {
-		case "$show":
-			shownStyle, err = rg.styleManager.GetStyle(value)
-		case "$hidden":
-			hiddenStyle, err = rg.styleManager.GetStyle(value)
-		default:
-			panic(fmt.Sprintf("invalid style key: %s", key))
-		}
-
-		if err != nil {
-			panic(err)
+		if _, isRequired := requiredSet[key]; isRequired {
+			style, err := rg.styleManager.GetStyle(value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get style for key '%s': %w", key, err)
+			}
+			foundStyles[key] = style
 		}
 	}
 
-	if hiddenStyle == nil || shownStyle == nil {
-		panic("At least one style mode is absent. Ensure both 'Hidden' and 'Shown' are present!")
+	for _, key := range requiredKeys {
+		if _, found := foundStyles[key]; !found {
+			return nil, fmt.Errorf("required style parameter '%s' is absent", key)
+		}
 	}
 
-	return hiddenStyle, shownStyle
+	return foundStyles, nil
 }
 
 func (rg *RuleGenerator) getKeyAndValueFromParameter(parameter *shared.ParseTree[symbols.LexingTokenType]) (string, string) {
@@ -233,7 +256,7 @@ func (rg *RuleGenerator) getKeyAndValueFromParameter(parameter *shared.ParseTree
 func (rg *RuleGenerator) produceProgression(
 	itemsByCategory map[string][]*model.ItemBase,
 	variables *map[string][]string,
-	shownStyle, hiddenStyle *config.Style,
+	shownStyleNormal, shownStyleMagic, shownStyleRare, hiddenStyleNormal, hiddenStyleMagic, hiddenStyleRare *config.Style,
 	allGeneratedRules *[][]string,
 ) {
 	for category := range itemsByCategory {
@@ -289,13 +312,17 @@ func (rg *RuleGenerator) produceProgression(
 
 			if startLevel <= showEndLevel {
 				for _, tierItem := range currentTierItems {
-					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyle, fmt.Sprintf("%d", showEndLevel))
+					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleRare, fmt.Sprintf("%d", showEndLevel), "Rare")
+					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleMagic, fmt.Sprintf("%d", showEndLevel), "Magic")
+					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleNormal, fmt.Sprintf("%d", showEndLevel), "Normal")
 				}
 			}
 
 			if !isLastTier && hideStartLevel <= 69 {
 				for _, tierItem := range currentTierItems {
-					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyle, fmt.Sprintf("%d", 69))
+					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleRare, fmt.Sprintf("%d", 69), "Rare")
+					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleMagic, fmt.Sprintf("%d", 69), "Magic")
+					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleNormal, fmt.Sprintf("%d", 69), "Normal")
 				}
 			}
 
@@ -304,7 +331,14 @@ func (rg *RuleGenerator) produceProgression(
 	}
 }
 
-func (rg *RuleGenerator) constructItemProgressionRule(variables *map[string][]string, ruleType model2.RuleType, item model.ItemBase, allGeneratedRules *[][]string, style *config.Style, maxAreaLevel string) {
+func (rg *RuleGenerator) constructItemProgressionRule(
+	variables *map[string][]string,
+	ruleType model2.RuleType,
+	item model.ItemBase,
+	allGeneratedRules *[][]string,
+	style *config.Style,
+	maxAreaLevel string,
+	rarity string) {
 	areaCondition := model2.Condition{
 		Identifier: "@area_level",
 		Operator:   "<=",
@@ -317,8 +351,8 @@ func (rg *RuleGenerator) constructItemProgressionRule(variables *map[string][]st
 	}
 	rarityCondition := model2.Condition{
 		Identifier: "@rarity",
-		Operator:   "!=",
-		Value:      []string{"Unique"},
+		Operator:   "==",
+		Value:      []string{rarity},
 	}
 	compiledConditions := []string{
 		baseTypeCondition.ConstructCompiledCondition(variables, rg.validBaseTypes),
