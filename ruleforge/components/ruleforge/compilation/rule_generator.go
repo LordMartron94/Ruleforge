@@ -175,7 +175,7 @@ func (rg *RuleGenerator) handleEquipmentProgression(
 		panic(err)
 	}
 
-	rg.produceProgression(itemsByCategory, variables, styleMap["$show_normal"], styleMap["$show_magic"], styleMap["$show_rare"], styleMap["$hidden_normal"], styleMap["$hidden_magic"], styleMap["$hidden_rare"], &allGeneratedRules, buildType)
+	rg.produceProgression(itemsByCategory, variables, styleMap["$show_normal"], styleMap["$show_magic"], styleMap["$show_rare"], styleMap["$hidden_normal"], styleMap["$hidden_magic"], styleMap["$hidden_rare"], &allGeneratedRules, buildType, false)
 
 	return allGeneratedRules
 }
@@ -197,7 +197,7 @@ func (rg *RuleGenerator) handleFlaskProgression(
 	}
 
 	hiddenStyle, shownStyle := rg.getHiddenAndShownStyleFromParameters(parameters)
-	rg.produceProgression(itemsByCategory, variables, shownStyle, shownStyle, shownStyle, hiddenStyle, hiddenStyle, hiddenStyle, &allGeneratedRules, buildType)
+	rg.produceProgression(itemsByCategory, variables, shownStyle, shownStyle, shownStyle, hiddenStyle, hiddenStyle, hiddenStyle, &allGeneratedRules, buildType, true)
 
 	return allGeneratedRules
 }
@@ -260,6 +260,7 @@ func (rg *RuleGenerator) produceProgression(
 	shownStyleNormal, shownStyleMagic, shownStyleRare, hiddenStyleNormal, hiddenStyleMagic, hiddenStyleRare *config.Style,
 	allGeneratedRules *[][]string,
 	buildType BuildType,
+	disableRare bool,
 ) {
 	for category := range itemsByCategory {
 		sort.Slice(itemsByCategory[category], func(i, j int) bool {
@@ -314,7 +315,9 @@ func (rg *RuleGenerator) produceProgression(
 
 			if startLevel <= showEndLevel {
 				for _, tierItem := range currentTierItems {
-					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleRare, fmt.Sprintf("%d", showEndLevel), "Rare", buildType)
+					if !disableRare {
+						rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleRare, fmt.Sprintf("%d", showEndLevel), "Rare", buildType)
+					}
 					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleMagic, fmt.Sprintf("%d", showEndLevel), "Magic", buildType)
 					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleNormal, fmt.Sprintf("%d", showEndLevel), "Normal", buildType)
 				}
@@ -322,7 +325,10 @@ func (rg *RuleGenerator) produceProgression(
 
 			if !isLastTier && hideStartLevel <= 69 {
 				for _, tierItem := range currentTierItems {
-					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleRare, fmt.Sprintf("%d", 69), "Rare", buildType)
+					if !disableRare {
+						rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleRare, fmt.Sprintf("%d", 69), "Rare", buildType)
+					}
+
 					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleMagic, fmt.Sprintf("%d", 69), "Magic", buildType)
 					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleNormal, fmt.Sprintf("%d", 69), "Normal", buildType)
 				}
