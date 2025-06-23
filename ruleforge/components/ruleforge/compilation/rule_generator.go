@@ -315,22 +315,23 @@ func (rg *RuleGenerator) produceProgression(
 
 			if startLevel <= showEndLevel {
 				for _, tierItem := range currentTierItems {
+					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleNormal, fmt.Sprintf("%d", showEndLevel), "Normal", buildType)
+					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleMagic, fmt.Sprintf("%d", showEndLevel), "Magic", buildType)
+
 					if !disableRare {
 						rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleRare, fmt.Sprintf("%d", showEndLevel), "Rare", buildType)
 					}
-					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleMagic, fmt.Sprintf("%d", showEndLevel), "Magic", buildType)
-					rg.constructItemProgressionRule(variables, model2.ShowRule, *tierItem, allGeneratedRules, shownStyleNormal, fmt.Sprintf("%d", showEndLevel), "Normal", buildType)
 				}
 			}
 
 			if !isLastTier && hideStartLevel <= 69 {
 				for _, tierItem := range currentTierItems {
+					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleNormal, fmt.Sprintf("%d", 69), "Normal", buildType)
+					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleMagic, fmt.Sprintf("%d", 69), "Magic", buildType)
+
 					if !disableRare {
 						rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleRare, fmt.Sprintf("%d", 69), "Rare", buildType)
 					}
-
-					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleMagic, fmt.Sprintf("%d", 69), "Magic", buildType)
-					rg.constructItemProgressionRule(variables, model2.HideRule, *tierItem, allGeneratedRules, hiddenStyleNormal, fmt.Sprintf("%d", 69), "Normal", buildType)
 				}
 			}
 
@@ -490,7 +491,9 @@ func (rg *RuleGenerator) generateTieredRules(
 	for tier := range tiered {
 		sortedTiers = append(sortedTiers, tier)
 	}
-	sort.Ints(sortedTiers)
+	sort.Slice(sortedTiers, func(i, j int) bool {
+		return sortedTiers[i] > sortedTiers[j]
+	})
 
 	for _, tier := range sortedTiers {
 		tieredItems := tiered[tier]
@@ -527,9 +530,9 @@ type AutomationGroup struct {
 }
 
 // GroupByProperties takes a slice of BaseTypeAutomationEntry and groups them
-// by StyleID, Tier, and MinStackSize.
+// by StyleID, Priority, and MinStackSize.
 // The final result is a slice of
-// AutomationGroup, sorted by Tier in ascending order.
+// AutomationGroup, sorted by Priority in ascending order.
 func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *StyleManager) []AutomationGroup {
 	if len(entries) == 0 {
 		return []AutomationGroup{}
@@ -564,7 +567,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 			newGroup := &AutomationGroup{
 				MinStackSize: entry.MinStackSize,
 				Style:        *style,
-				Tier:         entry.Tier,
+				Tier:         entry.Priority,
 				BaseTypes:    []string{entry.BaseType},
 			}
 			groupsMap[key] = newGroup
@@ -577,7 +580,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 	}
 
 	sort.Slice(groupedResult, func(i, j int) bool {
-		return groupedResult[i].Tier < groupedResult[j].Tier
+		return groupedResult[i].Tier > groupedResult[j].Tier
 	})
 
 	return groupedResult

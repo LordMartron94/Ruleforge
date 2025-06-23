@@ -14,7 +14,7 @@ type BaseTypeAutomationEntry struct {
 	BaseType     string
 	MinStackSize *int
 	Style        string
-	Tier         int
+	Priority     int
 }
 
 // BaseTypeAutomationLoader is responsible for loading automation entries from a CSV file.
@@ -73,10 +73,10 @@ func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, erro
 			minStackSize = &val
 		}
 
-		// --- Parse Tier ---
+		// --- Parse Priority ---
 		tier, err := strconv.Atoi(record[4])
 		if err != nil {
-			return nil, fmt.Errorf("could not parse Tier '%s' to int: %w", record[4], err)
+			return nil, fmt.Errorf("could not parse Priority '%s' to int: %w", record[4], err)
 		}
 
 		// --- Create and append entry ---
@@ -85,7 +85,7 @@ func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, erro
 			BaseType:     record[1],
 			MinStackSize: minStackSize,
 			Style:        record[3],
-			Tier:         tier,
+			Priority:     tier,
 		}
 		entries = append(entries, entry)
 	}

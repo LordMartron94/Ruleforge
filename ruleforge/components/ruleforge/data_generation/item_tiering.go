@@ -111,7 +111,7 @@ func GenerateTiers(
 	// --- Scoring Step ---
 	unifiedScores := calculateUnifiedScores(allNormalizedData, params)
 
-	// --- Tier Assignment Step ---
+	// --- Priority Assignment Step ---
 	basetypeToTierMap, err := assignTiers(unifiedScores, numTiers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign tiers: %w", err)
