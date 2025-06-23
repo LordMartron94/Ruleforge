@@ -1,51 +1,51 @@
-Category,Basetype,MinStackSize,Style,Tier
-Supplies,Scroll of Wisdom,1,Special/Currencies/Supplies/Low,5
-Supplies,Portal Scroll,1,Special/Currencies/Supplies/Mid,4
-Supplies,Gemcutter's Prism,,Special/Currencies/Supplies/Supreme,2
-Supplies,Glassblower's Bauble,,Special/Currencies/Supplies/High,3
-Supplies,Blacksmith's Whetstone,,Special/Currencies/Supplies/Mid,4
-Supplies,Alteration Shard,,Special/Currencies/Supplies/Mid,4
-Supplies,Transmutation Shard,,Special/Currencies/Supplies/Mid,4
-Supplies,Armourer's Scrap,,Special/Currencies/Supplies/Mid,4
-Supplies,Cartographer's Chisel,,Special/Currencies/Supplies/Fantastic,1
-Supplies,Alchemy Shard,,Special/Currencies/Supplies/Mid,4
-Supplies,Scroll of Wisdom,5,Special/Currencies/Supplies/Mid,4
-Supplies,Portal Scroll,5,Special/Currencies/Supplies/High,3
-Supplies,Scroll of Wisdom,20,Special/Currencies/Supplies/High,3
-Supplies,Portal Scroll,20,Special/Currencies/Supplies/Supreme,2
-Supplies,Ancient Shard,,Special/Currencies/Supplies/High,3
-Supplies,Annulment Shard,,Special/Currencies/Supplies/High,3
-Supplies,Binding Shard,,Special/Currencies/Supplies/High,3
-Supplies,Chaos Shard,,Special/Currencies/Supplies/Supreme,2
-Supplies,Engineer's Shard,,Special/Currencies/Supplies/High,3
-Supplies,Regal Shard,,Special/Currencies/Supplies/Supreme,2
-Supplies,Exalted Shard,,Special/Currencies/Supplies/Supreme,2
-Supplies,Fracturing Shard,,Special/Currencies/Supplies/High,3
-Supplies,Harbinger's Shard,,Special/Currencies/Supplies/High,3
-Supplies,Horizon Shard,,Special/Currencies/Supplies/Fantastic,1
-Orbs,Mirror of Kalandra,,Special/Currencies/Orbs/T1,1
-Orbs,Hinekora's Lock,,Special/Currencies/Orbs/T1,1
-Orbs,Divine Orb,,Special/Currencies/Orbs/T2,2
-Orbs,Orb of Annulment,,Special/Currencies/Orbs/T2,2
-Orbs,Sacred Orb,,Special/Currencies/Orbs/T2,2
-Orbs,Exalted Orb,,Special/Currencies/Orbs/T3,3
-Orbs,Orb of Fusing,,Special/Currencies/Orbs/T3,3
-Orbs,Orb of Alchemy,,Special/Currencies/Orbs/T4,4
-Orbs,Orb of Scouring,,Special/Currencies/Orbs/T4,4
-Orbs,Orb of Regret,,Special/Currencies/Orbs/T4,4
-Orbs,Vaal Orb,,Special/Currencies/Orbs/T4,4
-Orbs,Regal Orb,,Special/Currencies/Orbs/T4,4
-Orbs,Orb of Alteration,,Special/Currencies/Orbs/T5,5
-Orbs,Chaos Orb,,Special/Currencies/Orbs/T5,5
-Orbs,Chromatic Orb,,Special/Currencies/Orbs/T5,5
-Orbs,Jeweller's Orb,,Special/Currencies/Orbs/T5,5
-Orbs,Orb of Binding,,Special/Currencies/Orbs/T5,5
-Orbs,Blessed Orb,,Special/Currencies/Orbs/T6,6
-Orbs,Orb of Horizons,,Special/Currencies/Orbs/T6,6
-Orbs,Orb of Chance,,Special/Currencies/Orbs/T6,6
-Orbs,Orb of Transmutation,,Special/Currencies/Orbs/T7,7
-Orbs,Instilling Orb,,Special/Currencies/Orbs/T7,7
-Orbs,Orb of Augmentation,,Special/Currencies/Orbs/T8,8
+Category,Basetype,MinStackSize,Style,Priority
+Supplies,Cartographer's Chisel,,Final/Supplies/T1,1
+Supplies,Horizon Shard,,Final/Supplies/T1,1
+Supplies,Gemcutter's Prism,,Final/Supplies/T1,1
+Supplies,Chaos Shard,,Final/Supplies/T2,2
+Supplies,Regal Shard,,Final/Supplies/T2,2
+Supplies,Exalted Shard,,Final/Supplies/T2,2
+Supplies,Alchemy Shard,,Final/Supplies/T3,3
+Supplies,Glassblower's Bauble,,Final/Supplies/T3,3
+Supplies,Binding Shard,,Final/Supplies/T3,3
+Supplies,Annulment Shard,,Final/Supplies/T3,3
+Supplies,Fracturing Shard,,Final/Supplies/T3,3
+Supplies,Alteration Shard,,Final/Supplies/T4,4
+Supplies,Ancient Shard,,Final/Supplies/T4,4
+Supplies,Engineer's Shard,,Final/Supplies/T4,4
+Supplies,Harbinger's Shard,,Final/Supplies/T4,4
+Supplies,Transmutation Shard,,Final/Supplies/T5,5
+Supplies,Blacksmith's Whetstone,,Final/Supplies/T5,5
+Supplies,Armourer's Scrap,,Final/Supplies/T5,5
+Supplies,Portal Scroll,20,Final/Supplies/T5,7
+Supplies,Scroll of Wisdom,20,Final/Supplies/T5,7
+Supplies,Portal Scroll,5,Final/Supplies/T6,6
+Supplies,Scroll of Wisdom,5,Final/Supplies/T6,6
+Supplies,Portal Scroll,1,Final/Supplies/T7,5
+Supplies,Scroll of Wisdom,1,Final/Supplies/T7,5
+Orbs,Mirror of Kalandra,,Final/Orbs/T1,1
+Orbs,Hinekora's Lock,,Final/Orbs/T1,1
+Orbs,Divine Orb,,Final/Orbs/T2,2
+Orbs,Orb of Annulment,,Final/Orbs/T2,2
+Orbs,Sacred Orb,,Final/Orbs/T2,2
+Orbs,Exalted Orb,,Final/Orbs/T3,3
+Orbs,Orb of Fusing,,Final/Orbs/T3,3
+Orbs,Orb of Alchemy,,Final/Orbs/T4,4
+Orbs,Orb of Scouring,,Final/Orbs/T4,4
+Orbs,Orb of Regret,,Final/Orbs/T4,4
+Orbs,Vaal Orb,,Final/Orbs/T4,4
+Orbs,Regal Orb,,Final/Orbs/T4,4
+Orbs,Orb of Alteration,,Final/Orbs/T5,5
+Orbs,Chaos Orb,,Final/Orbs/T5,5
+Orbs,Chromatic Orb,,Final/Orbs/T5,5
+Orbs,Jeweller's Orb,,Final/Orbs/T5,5
+Orbs,Orb of Binding,,Final/Orbs/T5,5
+Orbs,Blessed Orb,,Final/Orbs/T6,6
+Orbs,Orb of Horizons,,Final/Orbs/T6,6
+Orbs,Orb of Chance,,Final/Orbs/T6,6
+Orbs,Orb of Transmutation,,Final/Orbs/T7,7
+Orbs,Instilling Orb,,Final/Orbs/T7,7
+Orbs,Orb of Augmentation,,Final/Orbs/T8,8
 Essences,Whispering Essence of Greed,,Essences/Final/WhisperingGreed,8
 Essences,Muttering Essence of Greed,,Essences/Final/MutteringGreed,7
 Essences,Weeping Essence of Greed,,Essences/Final/WeepingGreed,6
