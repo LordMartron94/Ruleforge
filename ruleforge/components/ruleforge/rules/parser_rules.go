@@ -170,6 +170,7 @@ func macroExpressionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] 
 	parameterList := composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolParameterList.String(),
 		parameter,
+		whitespaceOptional,
 	)
 
 	// --- Final Macro Expression ---
