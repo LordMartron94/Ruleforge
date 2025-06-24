@@ -214,17 +214,17 @@
       "Divine": {
         "T0": {
           "FontSize": 45,
-          "TextColor": {"red": 212, "green": 175, "blue": 55, "alpha": 255},
-          "Beam": {"Color": "White", "Temp": false},
-          "Minimap": {"Color": "White", "Size": 0},
+          "TextColor": { "red": 255, "green": 223, "blue": 0,   "alpha": 255 },
+          "Beam": { "Color": "White",  "Temp": false },
+          "Minimap": { "Color": "White",  "Size": 0 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\hell.mp3",
           "DropVolume": 300
         },
         "T1": {
           "FontSize": 45,
-          "TextColor": {"red": 168, "green": 138, "blue": 41, "alpha": 255},
-          "Beam": {"Color": "Yellow", "Temp": false},
-          "Minimap": {"Color": "Yellow", "Size": 0},
+          "TextColor": { "red": 230, "green": 200, "blue": 0,   "alpha": 255 },
+          "Beam": { "Color": "Yellow", "Temp": false },
+          "Minimap": { "Color": "Yellow", "Size": 0 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\angels.mp3",
           "DropVolume": 300
         }
@@ -232,25 +232,25 @@
       "High": {
         "T2": {
           "FontSize": 40,
-          "TextColor": {"red": 210, "green": 0, "blue": 0, "alpha": 255},
-          "Beam": {"Color": "Red", "Temp": false},
-          "Minimap": {"Color": "Red", "Size": 1},
+          "TextColor": { "red": 255, "green":  50, "blue":  50, "alpha": 255 },
+          "Beam": { "Color": "Red",    "Temp": false },
+          "Minimap": { "Color": "Red",    "Size": 1 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\amazing.mp3",
           "DropVolume": 200
         },
         "T3": {
           "FontSize": 38,
-          "TextColor": {"red": 145, "green": 0, "blue": 0, "alpha": 255},
-          "Beam": {"Color": "Orange", "Temp": true},
-          "Minimap": {"Color": "Orange", "Size": 1},
+          "TextColor": { "red": 220, "green":  30, "blue":  30, "alpha": 255 },
+          "Beam": { "Color": "Orange", "Temp": true },
+          "Minimap": { "Color": "Orange", "Size": 1 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\amazing.mp3",
           "DropVolume": 175
         },
         "T4": {
           "FontSize": 36,
-          "TextColor": {"red": 85, "green": 0, "blue": 0, "alpha": 255},
-          "Beam": {"Color": "Purple", "Temp": true},
-          "Minimap": {"Color": "Purple", "Size": 2},
+          "TextColor": { "red": 180, "green":   0, "blue":   0, "alpha": 255 },
+          "Beam": { "Color": "Purple", "Temp": true },
+          "Minimap": { "Color": "Purple", "Size": 2 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\congrats.mp3",
           "DropVolume": 150
         }
@@ -258,64 +258,64 @@
       "Mid": {
         "T5": {
           "FontSize": 33,
-          "TextColor": {"red": 117, "green": 61, "blue": 253, "alpha": 255},
-          "Minimap": {"Color": "Cyan", "Size": 2},
+          "TextColor": { "red": 100, "green": 180, "blue": 255, "alpha": 255 },
+          "Minimap": { "Color": "Cyan",  "Size": 2 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\click.mp3",
           "DropVolume": 120
         },
         "T6": {
           "FontSize": 30,
-          "TextColor": {"red": 83, "green": 5, "blue": 205, "alpha": 255}
+          "TextColor": { "red":  70, "green": 140, "blue": 255, "alpha": 255 }
         },
         "T7": {
           "FontSize": 28,
-          "TextColor": {"red": 47, "green": 2, "blue": 124, "alpha": 255}
+          "TextColor": { "red":  40, "green": 100, "blue": 255, "alpha": 255 }
         }
       },
       "Low": {
         "T8": {
           "FontSize": 26,
-          "TextColor": {"red": 133, "green": 131, "blue": 137, "alpha": 255}
+          "TextColor": { "red": 230, "green": 230, "blue": 210, "alpha": 255 }
         },
         "T9": {
           "FontSize": 24,
-          "TextColor": {"red": 97, "green": 95, "blue": 102, "alpha": 255}
+          "TextColor": { "red": 200, "green": 200, "blue": 180, "alpha": 255 }
         },
         "T10": {
           "FontSize": 22,
-          "TextColor": {"red": 63, "green": 62, "blue": 67, "alpha": 255}
+          "TextColor": { "red": 170, "green": 170, "blue": 150, "alpha": 255 }
         }
       }
     },
     "Groups": {
       "CurrentEquipment": {
-        "BackgroundColor": {"red": 30, "green": 38, "blue": 51, "alpha": 255},
-        "Minimap": {"Shape": "Triangle"}
+        "Minimap": { "Shape": "Triangle" },
+        "BackgroundColor": { "red": 11, "green": 34, "blue": 63, "alpha": 210 }
       },
       "OldEquipment": {
-        "BackgroundColor": {"red": 51, "green": 38, "blue": 30, "alpha": 255}
+        "BackgroundColor": { "red": 62, "green": 62, "blue": 62, "alpha": 210 }
       },
       "UnassociatedEquipment": {
-        "BackgroundColor": {"red": 46, "green": 46, "blue": 46, "alpha": 255}
+        "BackgroundColor": { "red": 99, "green": 78, "blue": 42, "alpha": 210 }
       },
       "CurrentFlasks": {
-        "BackgroundColor": {"red": 30, "green": 51, "blue": 38, "alpha": 255},
-        "Minimap": {"Shape": "Raindrop"}
+        "Minimap": { "Shape": "Raindrop" },
+        "BackgroundColor": { "red": 23, "green": 73, "blue": 50, "alpha": 210 }
       },
       "OldFlasks": {
-        "BackgroundColor": {"red": 51, "green": 38, "blue": 30, "alpha": 255}
+        "BackgroundColor": { "red": 80, "green": 80, "blue": 46, "alpha": 210 }
       },
       "Orbs": {
-        "Minimap": {"Shape": "Circle"},
-        "BackgroundColor": {"red": 38, "green": 32, "blue": 51, "alpha": 255}
+        "Minimap": { "Shape": "Circle" },
+        "BackgroundColor": { "red": 10, "green": 58, "blue": 58, "alpha": 210 }
       },
       "Supplies": {
-        "BackgroundColor": {"red": 51, "green": 32, "blue": 30, "alpha": 255},
-        "Minimap": {"Shape": "Kite"}
+        "Minimap": { "Shape": "Kite" },
+        "BackgroundColor": { "red": 58, "green": 28, "blue": 28, "alpha": 210 }
       },
       "SkillGems": {
-        "BackgroundColor": {"red": 30, "green": 51, "blue": 33, "alpha": 255},
-        "Minimap": {"Shape": "Cross"}
+        "Minimap": { "Shape": "Cross" },
+        "BackgroundColor": { "red": 28, "green": 25, "blue": 58, "alpha": 210 }
       }
     }
   },
