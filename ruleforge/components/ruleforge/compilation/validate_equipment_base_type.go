@@ -187,11 +187,11 @@ var pobTypeToArmorClass = map[string]ArmorClass{
 }
 var pobArmorTypeToArmorType = map[string]ArmorType{
 	"Armour":                       Armor,
-	"Evasion":                      Armor,
+	"Evasion":                      Evasion,
 	"Energy Shield":                EnergyShield,
 	"Armour/Evasion":               ArmourEvasion,
 	"Armour/Energy Shield":         ArmourEnergy,
-	"Evasion/Energy Shield":        EnergyShield,
+	"Evasion/Energy Shield":        EvasionEnergy,
 	"Armour/Evasion/Energy Shield": ArmourEvasionEnergy,
 	"Ward":                         Ward,
 }
@@ -278,11 +278,12 @@ func IsArmorAssociatedWithBuild(armor model.ItemBase, characterBuild BuildType) 
 	}
 
 	if armor.SubType == "" {
-		log.Println("WARNING: Empty armor type. Including for build!")
+		log.Printf("WARNING: Empty armor type. Including for build: %s (%s)\n", armor.Name, armor.Type)
 		return true
 	}
 
 	armorType, ok := pobArmorTypeToArmorType[armor.SubType]
+
 	if !ok {
 		panic("unknown armor type: " + armor.SubType)
 	}
