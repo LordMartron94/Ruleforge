@@ -196,35 +196,33 @@
     },
     "Rarities": {
       "Normal": {
-        "BorderColor": {"red": 245, "green": 245, "blue": 220, "alpha": 255}
+        "BorderColor": {"red": 133, "green": 131, "blue": 137, "alpha": 255}
       },
       "Magic": {
-        "BorderColor": {"red": 0, "green": 71, "blue": 171, "alpha": 255}
+        "BorderColor": {"red": 117, "green": 61, "blue": 253, "alpha": 255}
       },
       "Rare": {
-        "BorderColor": {"red": 192, "green": 192, "blue": 192, "alpha": 255},
+        "BorderColor": {"red": 210, "green": 0, "blue": 0, "alpha": 255},
         "Minimap": {"Shape": "Square"}
       },
       "Unique": {
-        "BorderColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
+        "BorderColor": {"red": 212, "green": 175, "blue": 55, "alpha": 255},
         "Minimap": {"Shape": "Star"}
       }
     },
     "Tiers": {
       "Divine": {
         "T0": {
-          "Comment": "The absolute highest tier. Unmistakable white beam and stark black text. No change, perfectly themed.",
           "FontSize": 45,
-          "TextColor": {"red": 10, "green": 10, "blue": 10, "alpha": 255},
+          "TextColor": {"red": 212, "green": 175, "blue": 55, "alpha": 255},
           "Beam": {"Color": "White", "Temp": false},
           "Minimap": {"Color": "White", "Size": 0},
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\hell.mp3",
           "DropVolume": 300
         },
         "T1": {
-          "Comment": "Slightly below God-Like. Uses Celestial Gold. No change, perfectly themed.",
           "FontSize": 45,
-          "TextColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
+          "TextColor": {"red": 168, "green": 138, "blue": 41, "alpha": 255},
           "Beam": {"Color": "Yellow", "Temp": false},
           "Minimap": {"Color": "Yellow", "Size": 0},
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\angels.mp3",
@@ -233,7 +231,6 @@
       },
       "High": {
         "T2": {
-          "Comment": "Top of the high-tier. Uses a vibrant Crimson Red for martial power. No change.",
           "FontSize": 40,
           "TextColor": {"red": 210, "green": 0, "blue": 0, "alpha": 255},
           "Beam": {"Color": "Red", "Temp": false},
@@ -242,18 +239,16 @@
           "DropVolume": 200
         },
         "T3": {
-          "Comment": "Replaced Orange. Now a slightly less intense, 'bloodied' red to stay in the Crimson Red family.",
           "FontSize": 38,
-          "TextColor": {"red": 205, "green": 50, "blue": 50, "alpha": 255},
+          "TextColor": {"red": 145, "green": 0, "blue": 0, "alpha": 255},
           "Beam": {"Color": "Orange", "Temp": true},
           "Minimap": {"Color": "Orange", "Size": 1},
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\amazing.mp3",
           "DropVolume": 175
         },
         "T4": {
-          "Comment": "Replaced Purple. Now a darker, more muted red, representing the authority of Imperial Law.",
           "FontSize": 36,
-          "TextColor": {"red": 178, "green": 34, "blue": 34, "alpha": 255},
+          "TextColor": {"red": 85, "green": 0, "blue": 0, "alpha": 255},
           "Beam": {"Color": "Purple", "Temp": true},
           "Minimap": {"Color": "Purple", "Size": 2},
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\congrats.mp3",
@@ -262,74 +257,64 @@
       },
       "Mid": {
         "T5": {
-          "Comment": "Replaced Cyan. Now a strong, vibrant Imperial Blue for items of stability and importance.",
           "FontSize": 33,
-          "TextColor": {"red": 70, "green": 130, "blue": 180, "alpha": 255},
+          "TextColor": {"red": 117, "green": 61, "blue": 253, "alpha": 255},
           "Minimap": {"Color": "Cyan", "Size": 2},
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\click.mp3",
           "DropVolume": 120
         },
         "T6": {
-          "Comment": "Color adjusted to be a distinct, slightly darker shade of Imperial Blue.",
           "FontSize": 30,
-          "TextColor": {"red": 65, "green": 105, "blue": 225, "alpha": 255}
+          "TextColor": {"red": 83, "green": 5, "blue": 205, "alpha": 255}
         },
         "T7": {
-          "Comment": "Replaced Green. Now the lightest shade in the Blue family, representing common but valuable Imperial goods.",
           "FontSize": 28,
-          "TextColor": {"red": 100, "green": 149, "blue": 237, "alpha": 255}
+          "TextColor": {"red": 47, "green": 2, "blue": 124, "alpha": 255}
         }
       },
       "Low": {
         "T8": {
-          "Comment": "Items you want to see, but are not high priority. Starlight Silver color. No change.",
           "FontSize": 26,
-          "TextColor": {"red": 200, "green": 200, "blue": 200, "alpha": 255}
+          "TextColor": {"red": 133, "green": 131, "blue": 137, "alpha": 255}
         },
         "T9": {
-          "Comment": "Commonly dropped items. Uses Bone White color. No change.",
           "FontSize": 24,
-          "TextColor": {"red": 245, "green": 245, "blue": 220, "alpha": 255}
+          "TextColor": {"red": 97, "green": 95, "blue": 102, "alpha": 255}
         },
         "T10": {
-          "Comment": "Lowest visible tier. Muted grey. No change.",
           "FontSize": 22,
-          "TextColor": {"red": 170, "green": 170, "blue": 170, "alpha": 255}
+          "TextColor": {"red": 63, "green": 62, "blue": 67, "alpha": 255}
         }
       }
     },
     "Groups": {
       "CurrentEquipment": {
-        "BackgroundColor": {"red": 81, "green": 86, "blue": 86, "alpha": 255},
+        "BackgroundColor": {"red": 40, "green": 55, "blue": 70, "alpha": 255},
         "Minimap": {"Shape": "Triangle"}
       },
       "OldEquipment": {
-        "BackgroundColor": {"red": 45, "green": 45, "blue": 45, "alpha": 255}
+        "BackgroundColor": {"red": 50, "green": 45, "blue": 40, "alpha": 255}
       },
       "UnassociatedEquipment": {
-        "Comment": "Uses a dark, earthy, neutral brown-grey for gear that is outside the Imperial order, like loot from the battlefield.",
-        "BackgroundColor": {"red": 85, "green": 78, "blue": 70, "alpha": 255}
+        "BackgroundColor": {"red": 48, "green": 48, "blue": 48, "alpha": 255}
       },
       "CurrentFlasks": {
-        "Comment": "A vibrant, magical purple to align with the arcane nature of the Empire's sorcery.",
-        "BackgroundColor": {"red": 148, "green": 0, "blue": 211, "alpha": 255},
+        "BackgroundColor": {"red": 30, "green": 60, "blue": 50, "alpha": 255},
         "Minimap": {"Shape": "Raindrop"}
       },
       "OldFlasks": {
-        "Comment": "A darker, shadowy indigo to represent older, less important magical items.",
-        "BackgroundColor": {"red": 75, "green": 0, "blue": 130, "alpha": 255}
+        "BackgroundColor": {"red": 45, "green": 40, "blue": 30, "alpha": 255}
       },
       "Orbs": {
-        "Comment": "Uses a sleek, metallic Starlight Silver background to represent orbs as a form of advanced, functional resource, akin to the Empire's technology or exotic matter.",
         "Minimap": {"Shape": "Circle"},
-        "BackgroundColor": {"red": 130, "green": 130, "blue": 130, "alpha": 255}
+        "BackgroundColor": {"red": 20, "green": 20, "blue": 30, "alpha": 255}
       },
       "Supplies": {
-        "BackgroundColor": {"red": 245, "green": 245, "blue": 220, "alpha": 255},
+        "BackgroundColor": {"red": 55, "green": 40, "blue": 30, "alpha": 255},
         "Minimap": {"Shape": "Kite"}
       },
       "SkillGems": {
-        "BackgroundColor": {"red": 100, "green": 20, "blue": 20, "alpha": 255},
+        "BackgroundColor": {"red": 35, "green": 55, "blue": 35, "alpha": 255},
         "Minimap": {"Shape": "Cross"}
       }
     }
