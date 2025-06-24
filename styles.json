@@ -289,32 +289,32 @@
     },
     "Groups": {
       "CurrentEquipment": {
-        "BackgroundColor": {"red": 40, "green": 55, "blue": 70, "alpha": 255},
+        "BackgroundColor": {"red": 30, "green": 38, "blue": 51, "alpha": 255},
         "Minimap": {"Shape": "Triangle"}
       },
       "OldEquipment": {
-        "BackgroundColor": {"red": 50, "green": 45, "blue": 40, "alpha": 255}
+        "BackgroundColor": {"red": 51, "green": 38, "blue": 30, "alpha": 255}
       },
       "UnassociatedEquipment": {
-        "BackgroundColor": {"red": 48, "green": 48, "blue": 48, "alpha": 255}
+        "BackgroundColor": {"red": 46, "green": 46, "blue": 46, "alpha": 255}
       },
       "CurrentFlasks": {
-        "BackgroundColor": {"red": 30, "green": 60, "blue": 50, "alpha": 255},
+        "BackgroundColor": {"red": 30, "green": 51, "blue": 38, "alpha": 255},
         "Minimap": {"Shape": "Raindrop"}
       },
       "OldFlasks": {
-        "BackgroundColor": {"red": 45, "green": 40, "blue": 30, "alpha": 255}
+        "BackgroundColor": {"red": 51, "green": 38, "blue": 30, "alpha": 255}
       },
       "Orbs": {
         "Minimap": {"Shape": "Circle"},
-        "BackgroundColor": {"red": 20, "green": 20, "blue": 30, "alpha": 255}
+        "BackgroundColor": {"red": 38, "green": 32, "blue": 51, "alpha": 255}
       },
       "Supplies": {
-        "BackgroundColor": {"red": 55, "green": 40, "blue": 30, "alpha": 255},
+        "BackgroundColor": {"red": 51, "green": 32, "blue": 30, "alpha": 255},
         "Minimap": {"Shape": "Kite"}
       },
       "SkillGems": {
-        "BackgroundColor": {"red": 35, "green": 55, "blue": 35, "alpha": 255},
+        "BackgroundColor": {"red": 30, "green": 51, "blue": 33, "alpha": 255},
         "Minimap": {"Shape": "Cross"}
       }
     }
@@ -324,30 +324,35 @@
       "T0": {
         "Combination": [
           "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
           "Templates/Tiers/Divine/T0"
         ]
       },
       "T1": {
         "Combination": [
           "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
           "Templates/Tiers/Divine/T1"
         ]
       },
       "T2": {
         "Combination": [
           "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
           "Templates/Tiers/High/T2"
         ]
       },
       "T3": {
         "Combination": [
           "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
           "Templates/Tiers/High/T3"
         ]
       },
       "T4": {
         "Combination": [
           "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
           "Templates/Tiers/High/T4"
         ]
       }
