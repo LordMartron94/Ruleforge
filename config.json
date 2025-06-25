@@ -1,0 +1,21 @@
+{
+  "FilterOutputDirs": [
+    "X:\\Ruleforge\\output",
+    "C:\\Users\\LordMartron\\Documents\\My Games\\Path of Exile"
+  ],
+  "RuleforgeInputDir": "X:\\Ruleforge\\main_input",
+  "StyleJSONFile": "X:\\Ruleforge\\styles.json",
+  "PathOfBuildingDataPath": "D:\\[02] Modding\\[01] Tools\\[08] Path of Building\\Path of Building Community\\Data",
+  "LeagueWeights": {
+    "Hardcore Mercenaries" : 0.5,
+    "Mercenaries":  0.3,
+    "Hardcore":  0.15,
+    "Standard": 0.05
+  },
+  "EconomyNormalizationStrategy": "Global",
+  "EconomyWeights": {
+    "Value": 0.65,
+    "Rarity": 0.35
+  },
+  "ChaseVSGeneralPotentialFactor": 0.85
+}

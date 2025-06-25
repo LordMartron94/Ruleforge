@@ -39,4 +39,11 @@ venv
 go.work
 go.work.sum
 
+# ======= PROJECT SPECIFIC =======
+build
 
+test_input
+go-tmp
+output
+cache
+main_input
