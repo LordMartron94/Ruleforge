@@ -41,4 +41,7 @@ root {
 
     /* ======== Skill Gems ======== */
     --bg-skill-gems:               #4A2E66; /* plum purple */
+
+    /* ========== Divination Cards ========== */
+    --bg-div-cards: #8C7E46; /* aged parchment yellow/brown */
 }

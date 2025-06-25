@@ -167,6 +167,71 @@
       "EssenceOfHysteria": { "Combination": [ "Essences/Base", "Essences/Types/Hysteria", "Essences/Tiers/Special" ] }
     }
   },
+  "Oils": {
+    "Base": {
+      "Comment": "The single, foundational style for ALL oils. Defines the shared minimap icon.",
+      "Minimap": {
+        "Shape": "Circle",
+        "Color": "Brown"
+      },
+      "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\oil.mp3",
+      "DropVolume": 300
+    },
+    "Types": {
+      "Clear":      { "BaseType": "Clear Oil",      "TextColor": {"red": 100, "green": 100, "blue": 100, "alpha": 255}, "BorderColor": {"red": 100, "green": 100, "blue": 100, "alpha": 255} },
+      "Sepia":      { "BaseType": "Sepia Oil",      "TextColor": {"red": 87, "green": 51, "blue": 18, "alpha": 255},   "BorderColor": {"red": 87, "green": 51, "blue": 18, "alpha": 255} },
+      "Amber":      { "BaseType": "Amber Oil",      "TextColor": {"red": 203, "green": 116, "blue": 33, "alpha": 255},  "BorderColor": {"red": 203, "green": 116, "blue": 33, "alpha": 255} },
+      "Verdant":    { "BaseType": "Verdant Oil",    "TextColor": {"red": 31, "green": 203, "blue": 57, "alpha": 255},   "BorderColor": {"red": 31, "green": 203, "blue": 57, "alpha": 255} },
+      "Teal":       { "BaseType": "Teal Oil",       "TextColor": {"red": 34, "green": 203, "blue": 182, "alpha": 255},  "BorderColor": {"red": 34, "green": 203, "blue": 182, "alpha": 255} },
+      "Azure":      { "BaseType": "Azure Oil",      "TextColor": {"red": 30, "green": 82, "blue": 197, "alpha": 255},   "BorderColor": {"red": 30, "green": 82, "blue": 197, "alpha": 255} },
+      "Indigo":     { "BaseType": "Indigo Oil",     "TextColor": {"red": 82, "green": 0, "blue": 131, "alpha": 255},    "BorderColor": {"red": 82, "green": 0, "blue": 131, "alpha": 255} },
+      "Violet":     { "BaseType": "Violet Oil",     "TextColor": {"red": 120, "green": 61, "blue": 156, "alpha": 255},  "BorderColor": {"red": 120, "green": 61, "blue": 156, "alpha": 255} },
+      "Crimson":    { "BaseType": "Crimson Oil",    "TextColor": {"red": 156, "green": 20, "blue": 22, "alpha": 255},    "BorderColor": {"red": 156, "green": 20, "blue": 22, "alpha": 255} },
+      "Black":      { "BaseType": "Black Oil",      "TextColor": {"red": 0, "green": 0, "blue": 0, "alpha": 255},       "BorderColor": {"red": 0, "green": 0, "blue": 0, "alpha": 255} },
+      "Opalescent": { "BaseType": "Opalescent Oil", "TextColor": {"red": 127, "green": 216, "blue": 232, "alpha": 255}, "BorderColor": {"red": 122, "green": 67, "blue": 121, "alpha": 255} },
+      "Silver":     { "BaseType": "Silver Oil",     "TextColor": {"red": 171, "green": 166, "blue": 164, "alpha": 255}, "BorderColor": {"red": 171, "green": 166, "blue": 164, "alpha": 255} },
+      "Golden":     { "BaseType": "Golden Oil",     "TextColor": {"red": 211, "green": 188, "blue": 42, "alpha": 255},  "BorderColor": {"red": 211, "green": 188, "blue": 42, "alpha": 255} },
+      "Tainted":    { "BaseType": "Tainted Oil",    "TextColor": {"red": 156, "green": 20, "blue": 22, "alpha": 255},    "BorderColor": {"red": 156, "green": 20, "blue": 22, "alpha": 255} }
+    },
+    "Tiers": {
+      "Common": {
+        "Comment": "Lowest tier of oils.",
+        "FontSize": 32,
+        "Minimap": {"Size": 2}
+      },
+      "Uncommon": {
+        "Comment": "Mid-tier oils.",
+        "FontSize": 36,
+        "Minimap": {"Size": 2}
+      },
+      "Rare": {
+        "Comment": "High-tier oils.",
+        "FontSize": 42,
+        "Minimap": {"Size": 1}
+      },
+      "Legendary": {
+        "Comment": "Highest tier of oils.",
+        "FontSize": 42,
+        "Minimap": {"Size": 0}
+      }
+    },
+    "Final": {
+      "ClearOil":      { "Combination": [ "Oils/Base", "Oils/Types/Clear", "Oils/Tiers/Common" ] },
+      "SepiaOil":      { "Combination": [ "Oils/Base", "Oils/Types/Sepia", "Oils/Tiers/Common" ] },
+      "AmberOil":      { "Combination": [ "Oils/Base", "Oils/Types/Amber", "Oils/Tiers/Uncommon" ] },
+      "VerdantOil":    { "Combination": [ "Oils/Base", "Oils/Types/Verdant", "Oils/Tiers/Uncommon" ] },
+      "TealOil":       { "Combination": [ "Oils/Base", "Oils/Types/Teal", "Oils/Tiers/Rare" ] },
+      "AzureOil":      { "Combination": [ "Oils/Base", "Oils/Types/Azure", "Oils/Tiers/Rare" ] },
+      "IndigoOil":     { "Combination": [ "Oils/Base", "Oils/Types/Indigo", "Oils/Tiers/Rare" ] },
+      "VioletOil":     { "Combination": [ "Oils/Base", "Oils/Types/Violet", "Oils/Tiers/Rare" ] },
+      "CrimsonOil":    { "Combination": [ "Oils/Base", "Oils/Types/Crimson", "Oils/Tiers/Rare" ] },
+      "BlackOil":      { "Combination": [ "Oils/Base", "Oils/Types/Black", "Oils/Tiers/Rare" ] },
+      "OpalescentOil": { "Combination": [ "Oils/Base", "Oils/Types/Opalescent", "Oils/Tiers/Rare" ] },
+      "TaintedOil":    { "Combination": [ "Oils/Base", "Oils/Types/Tainted", "Oils/Tiers/Rare" ] },
+      "SilverOil":     { "Combination": [ "Oils/Base", "Oils/Types/Silver", "Oils/Tiers/Legendary" ] },
+      "GoldenOil":     { "Combination": [ "Oils/Base", "Oils/Types/Golden", "Oils/Tiers/Legendary" ] }
+    }
+  },
   "Templates": {
     "Special": {
       "Vendor": {
@@ -192,6 +257,12 @@
         "BorderColor": {"var": "gold"},
         "BackgroundColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
         "Minimap": {"Shape": "Hexagon"}
+      },
+      "Divination": {
+        "BackgroundColor": {"var": "bg-div-cards"},
+        "Minimap": {
+          "Shape": "Pentagon"
+        }
       }
     },
     "Rarities": {
@@ -668,6 +739,14 @@
         "Combination": [
           "Templates/Groups/SkillGems",
           "Templates/Tiers/Mid/T7"
+        ]
+      }
+    },
+    "Divination": {
+      "Fallback": {
+        "Combination": [
+          "Templates/Special/Divination",
+          "Templates/Tiers/High/T4"
         ]
       }
     }
