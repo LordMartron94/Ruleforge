@@ -262,7 +262,9 @@
         "BackgroundColor": {"var": "bg-div-cards"},
         "Minimap": {
           "Shape": "Pentagon"
-        }
+        },
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\card.mp3",
+        "DropVolume": 300
       }
     },
     "Rarities": {
@@ -745,8 +747,8 @@
     "Divination": {
       "Fallback": {
         "Combination": [
-          "Templates/Special/Divination",
-          "Templates/Tiers/High/T4"
+          "Templates/Tiers/High/T4",
+          "Templates/Special/Divination"
         ]
       }
     }
