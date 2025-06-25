@@ -1,0 +1,166 @@
+Category,Basetype,MinStackSize,Style,Priority
+Supplies,Cartographer's Chisel,,Final/Supplies/T1,1
+Supplies,Horizon Shard,,Final/Supplies/T1,1
+Supplies,Gemcutter's Prism,,Final/Supplies/T1,1
+Supplies,Chaos Shard,,Final/Supplies/T2,2
+Supplies,Regal Shard,,Final/Supplies/T2,2
+Supplies,Exalted Shard,,Final/Supplies/T2,2
+Supplies,Alchemy Shard,,Final/Supplies/T3,3
+Supplies,Glassblower's Bauble,,Final/Supplies/T3,3
+Supplies,Binding Shard,,Final/Supplies/T3,3
+Supplies,Annulment Shard,,Final/Supplies/T3,3
+Supplies,Fracturing Shard,,Final/Supplies/T3,3
+Supplies,Alteration Shard,,Final/Supplies/T4,4
+Supplies,Ancient Shard,,Final/Supplies/T4,4
+Supplies,Engineer's Shard,,Final/Supplies/T4,4
+Supplies,Harbinger's Shard,,Final/Supplies/T4,4
+Supplies,Transmutation Shard,,Final/Supplies/T5,5
+Supplies,Blacksmith's Whetstone,,Final/Supplies/T5,5
+Supplies,Armourer's Scrap,,Final/Supplies/T5,5
+Supplies,Portal Scroll,20,Final/Supplies/T5,7
+Supplies,Scroll of Wisdom,20,Final/Supplies/T5,7
+Supplies,Portal Scroll,5,Final/Supplies/T6,6
+Supplies,Scroll of Wisdom,5,Final/Supplies/T6,6
+Supplies,Portal Scroll,1,Final/Supplies/T7,5
+Supplies,Scroll of Wisdom,1,Final/Supplies/T7,5
+Orbs,Mirror of Kalandra,,Final/Orbs/T1,1
+Orbs,Hinekora's Lock,,Final/Orbs/T1,1
+Orbs,Divine Orb,,Final/Orbs/T2,2
+Orbs,Orb of Annulment,,Final/Orbs/T2,2
+Orbs,Sacred Orb,,Final/Orbs/T2,2
+Orbs,Exalted Orb,,Final/Orbs/T3,3
+Orbs,Orb of Fusing,,Final/Orbs/T3,3
+Orbs,Orb of Alchemy,,Final/Orbs/T4,4
+Orbs,Orb of Scouring,,Final/Orbs/T4,4
+Orbs,Orb of Regret,,Final/Orbs/T4,4
+Orbs,Vaal Orb,,Final/Orbs/T4,4
+Orbs,Regal Orb,,Final/Orbs/T4,4
+Orbs,Orb of Alteration,,Final/Orbs/T5,5
+Orbs,Chaos Orb,,Final/Orbs/T5,5
+Orbs,Chromatic Orb,,Final/Orbs/T5,5
+Orbs,Jeweller's Orb,,Final/Orbs/T5,5
+Orbs,Orb of Binding,,Final/Orbs/T5,5
+Orbs,Blessed Orb,,Final/Orbs/T6,6
+Orbs,Orb of Horizons,,Final/Orbs/T6,6
+Orbs,Orb of Chance,,Final/Orbs/T6,6
+Orbs,Orb of Transmutation,,Final/Orbs/T7,7
+Orbs,Instilling Orb,,Final/Orbs/T7,7
+Orbs,Orb of Augmentation,,Final/Orbs/T8,8
+Essences,Whispering Essence of Greed,,Essences/Final/WhisperingGreed,8
+Essences,Muttering Essence of Greed,,Essences/Final/MutteringGreed,7
+Essences,Weeping Essence of Greed,,Essences/Final/WeepingGreed,6
+Essences,Wailing Essence of Greed,,Essences/Final/WailingGreed,5
+Essences,Screaming Essence of Greed,,Essences/Final/ScreamingGreed,4
+Essences,Shrieking Essence of Greed,,Essences/Final/ShriekingGreed,3
+Essences,Deafening Essence of Greed,,Essences/Final/DeafeningGreed,2
+Essences,Whispering Essence of Contempt,,Essences/Final/WhisperingContempt,8
+Essences,Muttering Essence of Contempt,,Essences/Final/MutteringContempt,7
+Essences,Weeping Essence of Contempt,,Essences/Final/WeepingContempt,6
+Essences,Wailing Essence of Contempt,,Essences/Final/WailingContempt,5
+Essences,Screaming Essence of Contempt,,Essences/Final/ScreamingContempt,4
+Essences,Shrieking Essence of Contempt,,Essences/Final/ShriekingContempt,3
+Essences,Deafening Essence of Contempt,,Essences/Final/DeafeningContempt,2
+Essences,Whispering Essence of Hatred,,Essences/Final/WhisperingHatred,8
+Essences,Muttering Essence of Hatred,,Essences/Final/MutteringHatred,7
+Essences,Weeping Essence of Hatred,,Essences/Final/WeepingHatred,6
+Essences,Wailing Essence of Hatred,,Essences/Final/WailingHatred,5
+Essences,Screaming Essence of Hatred,,Essences/Final/ScreamingHatred,4
+Essences,Shrieking Essence of Hatred,,Essences/Final/ShriekingHatred,3
+Essences,Deafening Essence of Hatred,,Essences/Final/DeafeningHatred,2
+Essences,Whispering Essence of Woe,,Essences/Final/WhisperingWoe,8
+Essences,Muttering Essence of Woe,,Essences/Final/MutteringWoe,7
+Essences,Weeping Essence of Woe,,Essences/Final/WeepingWoe,6
+Essences,Wailing Essence of Woe,,Essences/Final/WailingWoe,5
+Essences,Screaming Essence of Woe,,Essences/Final/ScreamingWoe,4
+Essences,Shrieking Essence of Woe,,Essences/Final/ShriekingWoe,3
+Essences,Deafening Essence of Woe,,Essences/Final/DeafeningWoe,2
+Essences,Muttering Essence of Fear,,Essences/Final/MutteringFear,7
+Essences,Weeping Essence of Fear,,Essences/Final/WeepingFear,6
+Essences,Wailing Essence of Fear,,Essences/Final/WailingFear,5
+Essences,Screaming Essence of Fear,,Essences/Final/ScreamingFear,4
+Essences,Shrieking Essence of Fear,,Essences/Final/ShriekingFear,3
+Essences,Deafening Essence of Fear,,Essences/Final/DeafeningFear,2
+Essences,Muttering Essence of Anger,,Essences/Final/MutteringAnger,7
+Essences,Weeping Essence of Anger,,Essences/Final/WeepingAnger,6
+Essences,Wailing Essence of Anger,,Essences/Final/WailingAnger,5
+Essences,Screaming Essence of Anger,,Essences/Final/ScreamingAnger,4
+Essences,Shrieking Essence of Anger,,Essences/Final/ShriekingAnger,3
+Essences,Deafening Essence of Anger,,Essences/Final/DeafeningAnger,2
+Essences,Muttering Essence of Torment,,Essences/Final/MutteringTorment,7
+Essences,Weeping Essence of Torment,,Essences/Final/WeepingTorment,6
+Essences,Wailing Essence of Torment,,Essences/Final/WailingTorment,5
+Essences,Screaming Essence of Torment,,Essences/Final/ScreamingTorment,4
+Essences,Shrieking Essence of Torment,,Essences/Final/ShriekingTorment,3
+Essences,Deafening Essence of Torment,,Essences/Final/DeafeningTorment,2
+Essences,Muttering Essence of Sorrow,,Essences/Final/MutteringSorrow,7
+Essences,Weeping Essence of Sorrow,,Essences/Final/WeepingSorrow,6
+Essences,Wailing Essence of Sorrow,,Essences/Final/WailingSorrow,5
+Essences,Screaming Essence of Sorrow,,Essences/Final/ScreamingSorrow,4
+Essences,Shrieking Essence of Sorrow,,Essences/Final/ShriekingSorrow,3
+Essences,Deafening Essence of Sorrow,,Essences/Final/DeafeningSorrow,2
+Essences,Weeping Essence of Rage,,Essences/Final/WeepingRage,6
+Essences,Wailing Essence of Rage,,Essences/Final/WailingRage,5
+Essences,Screaming Essence of Rage,,Essences/Final/ScreamingRage,4
+Essences,Shrieking Essence of Rage,,Essences/Final/ShriekingRage,3
+Essences,Deafening Essence of Rage,,Essences/Final/DeafeningRage,2
+Essences,Weeping Essence of Suffering,,Essences/Final/WeepingSuffering,6
+Essences,Wailing Essence of Suffering,,Essences/Final/WailingSuffering,5
+Essences,Screaming Essence of Suffering,,Essences/Final/ScreamingSuffering,4
+Essences,Shrieking Essence of Suffering,,Essences/Final/ShriekingSuffering,3
+Essences,Deafening Essence of Suffering,,Essences/Final/DeafeningSuffering,2
+Essences,Weeping Essence of Wrath,,Essences/Final/WeepingWrath,6
+Essences,Wailing Essence of Wrath,,Essences/Final/WailingWrath,5
+Essences,Screaming Essence of Wrath,,Essences/Final/ScreamingWrath,4
+Essences,Shrieking Essence of Wrath,,Essences/Final/ShriekingWrath,3
+Essences,Deafening Essence of Wrath,,Essences/Final/DeafeningWrath,2
+Essences,Weeping Essence of Doubt,,Essences/Final/WeepingDoubt,6
+Essences,Wailing Essence of Doubt,,Essences/Final/WailingDoubt,5
+Essences,Screaming Essence of Doubt,,Essences/Final/ScreamingDoubt,4
+Essences,Shrieking Essence of Doubt,,Essences/Final/ShriekingDoubt,3
+Essences,Deafening Essence of Doubt,,Essences/Final/DeafeningDoubt,2
+Essences,Wailing Essence of Loathing,,Essences/Final/WailingLoathing,5
+Essences,Screaming Essence of Loathing,,Essences/Final/ScreamingLoathing,4
+Essences,Shrieking Essence of Loathing,,Essences/Final/ShriekingLoathing,3
+Essences,Deafening Essence of Loathing,,Essences/Final/DeafeningLoathing,2
+Essences,Wailing Essence of Zeal,,Essences/Final/WailingZeal,5
+Essences,Screaming Essence of Zeal,,Essences/Final/ScreamingZeal,4
+Essences,Shrieking Essence of Zeal,,Essences/Final/ShriekingZeal,3
+Essences,Deafening Essence of Zeal,,Essences/Final/DeafeningZeal,2
+Essences,Wailing Essence of Anguish,,Essences/Final/WailingAnguish,5
+Essences,Screaming Essence of Anguish,,Essences/Final/ScreamingAnguish,4
+Essences,Shrieking Essence of Anguish,,Essences/Final/ShriekingAnguish,3
+Essences,Deafening Essence of Anguish,,Essences/Final/DeafeningAnguish,2
+Essences,Wailing Essence of Spite,,Essences/Final/WailingSpite,5
+Essences,Screaming Essence of Spite,,Essences/Final/ScreamingSpite,4
+Essences,Shrieking Essence of Spite,,Essences/Final/ShriekingSpite,3
+Essences,Deafening Essence of Spite,,Essences/Final/DeafeningSpite,2
+Essences,Screaming Essence of Scorn,,Essences/Final/ScreamingScorn,4
+Essences,Shrieking Essence of Scorn,,Essences/Final/ShriekingScorn,3
+Essences,Deafening Essence of Scorn,,Essences/Final/DeafeningScorn,2
+Essences,Screaming Essence of Envy,,Essences/Final/ScreamingEnvy,4
+Essences,Shrieking Essence of Envy,,Essences/Final/ShriekingEnvy,3
+Essences,Deafening Essence of Envy,,Essences/Final/DeafeningEnvy,2
+Essences,Screaming Essence of Misery,,Essences/Final/ScreamingMisery,4
+Essences,Shrieking Essence of Misery,,Essences/Final/ShriekingMisery,3
+Essences,Deafening Essence of Misery,,Essences/Final/DeafeningMisery,2
+Essences,Screaming Essence of Dread,,Essences/Final/ScreamingDread,4
+Essences,Shrieking Essence of Dread,,Essences/Final/ShriekingDread,3
+Essences,Deafening Essence of Dread,,Essences/Final/DeafeningDread,2
+Essences,Essence of Hysteria,,Essences/Final/EssenceOfHysteria,1
+Essences,Essence of Insanity,,Essences/Final/EssenceOfInsanity,1
+Essences,Essence of Horror,,Essences/Final/EssenceOfHorror,1
+Essences,Essence of Delirium,,Essences/Final/EssenceOfDelirium,1
+Oils,Clear Oil,,Oils/Final/ClearOil,4
+Oils,Sepia Oil,,Oils/Final/SepiaOil,4
+Oils,Amber Oil,,Oils/Final/AmberOil,3
+Oils,Verdant Oil,,Oils/Final/VerdantOil,3
+Oils,Teal Oil,,Oils/Final/TealOil,2
+Oils,Azure Oil,,Oils/Final/AzureOil,2
+Oils,Indigo Oil,,Oils/Final/IndigoOil,2
+Oils,Violet Oil,,Oils/Final/VioletOil,2
+Oils,Crimson Oil,,Oils/Final/CrimsonOil,2
+Oils,Black Oil,,Oils/Final/BlackOil,2
+Oils,Opalescent Oil,,Oils/Final/OpalescentOil,2
+Oils,Tainted Oil,,Oils/Final/TaintedOil,2
+Oils,Silver Oil,,Oils/Final/SilverOil,1
+Oils,Golden Oil,,Oils/Final/GoldenOil,1

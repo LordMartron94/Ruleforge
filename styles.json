@@ -1,0 +1,771 @@
+{
+  "Essences": {
+    "Base": {
+      "Comment": "The single, foundational style for ALL essences. Defines the shared background color and default minimap icon.",
+      "BackgroundColor": {"red": 15, "green": 15, "blue": 25, "alpha": 255},
+      "Minimap": {
+        "Shape": "Diamond",
+        "Color": "Purple"
+      }
+    },
+    "Types": {
+      "Greed":     { "TextColor": {"red": 153, "green": 136, "blue": 231, "alpha": 255}, "BorderColor": {"red": 153, "green": 136, "blue": 231, "alpha": 255} },
+      "Contempt":  { "TextColor": {"red": 135, "green": 163, "blue": 243, "alpha": 255}, "BorderColor": {"red": 135, "green": 163, "blue": 243, "alpha": 255} },
+      "Hatred":    { "TextColor": {"red": 150, "green": 228, "blue": 248, "alpha": 255}, "BorderColor": {"red": 150, "green": 228, "blue": 248, "alpha": 255} },
+      "Woe":       { "TextColor": {"red": 135, "green": 253, "blue": 253, "alpha": 255}, "BorderColor": {"red": 135, "green": 253, "blue": 253, "alpha": 255} },
+      "Fear":      { "TextColor": {"red": 107, "green": 198, "blue": 152, "alpha": 255}, "BorderColor": {"red": 107, "green": 198, "blue": 152, "alpha": 255} },
+      "Anger":     { "TextColor": {"red": 134, "green": 232, "blue": 145, "alpha": 255}, "BorderColor": {"red": 134, "green": 232, "blue": 145, "alpha": 255} },
+      "Torment":   { "TextColor": {"red": 78, "green": 206, "blue": 102, "alpha": 255}, "BorderColor": {"red": 78, "green": 206, "blue": 102, "alpha": 255} },
+      "Sorrow":    { "TextColor": {"red": 174, "green": 208, "blue": 78, "alpha": 255}, "BorderColor": {"red": 174, "green": 208, "blue": 78, "alpha": 255} },
+      "Rage":      { "TextColor": {"red": 221, "green": 229, "blue": 83, "alpha": 255}, "BorderColor": {"red": 221, "green": 229, "blue": 83, "alpha": 255} },
+      "Suffering": { "TextColor": {"red": 243, "green": 186, "blue": 91, "alpha": 255}, "BorderColor": {"red": 243, "green": 186, "blue": 91, "alpha": 255} },
+      "Wrath":     { "TextColor": {"red": 230, "green": 144, "blue": 80, "alpha": 255}, "BorderColor": {"red": 230, "green": 144, "blue": 80, "alpha": 255} },
+      "Doubt":     { "TextColor": {"red": 241, "green": 116, "blue": 87, "alpha": 255}, "BorderColor": {"red": 241, "green": 116, "blue": 87, "alpha": 255} },
+      "Loathing":  { "TextColor": {"red": 254, "green": 100, "blue": 90, "alpha": 255}, "BorderColor": {"red": 254, "green": 100, "blue": 90, "alpha": 255} },
+      "Zeal":      { "TextColor": {"red": 226, "green": 85, "blue": 76, "alpha": 255}, "BorderColor": {"red": 226, "green": 85, "blue": 76, "alpha": 255} },
+      "Anguish":   { "TextColor": {"red": 245, "green": 90, "blue": 86, "alpha": 255}, "BorderColor": {"red": 245, "green": 90, "blue": 86, "alpha": 255} },
+      "Spite":     { "TextColor": {"red": 222, "green": 62, "blue": 88, "alpha": 255}, "BorderColor": {"red": 222, "green": 62, "blue": 88, "alpha": 255} },
+      "Scorn":     { "TextColor": {"red": 190, "green": 76, "blue": 240, "alpha": 255}, "BorderColor": {"red": 190, "green": 76, "blue": 240, "alpha": 255} },
+      "Envy":      { "TextColor": {"red": 132, "green": 76, "blue": 239, "alpha": 255}, "BorderColor": {"red": 132, "green": 76, "blue": 239, "alpha": 255} },
+      "Misery":    { "TextColor": {"red": 120, "green": 87, "blue": 245, "alpha": 255}, "BorderColor": {"red": 120, "green": 87, "blue": 245, "alpha": 255} },
+      "Dread":     { "TextColor": {"red": 76, "green": 99, "blue": 251, "alpha": 255}, "BorderColor": {"red": 76, "green": 99, "blue": 251, "alpha": 255} },
+      "Insanity":  { "TextColor": {"red": 242, "green": 8, "blue": 102, "alpha": 255}, "BorderColor": {"red": 242, "green": 8, "blue": 102, "alpha": 255} },
+      "Horror":    { "TextColor": {"red": 235, "green": 15, "blue": 12, "alpha": 255}, "BorderColor": {"red": 235, "green": 15, "blue": 12, "alpha": 255} },
+      "Delirium":  { "TextColor": {"red": 129, "green": 8, "blue": 174, "alpha": 255}, "BorderColor": {"red": 129, "green": 8, "blue": 174, "alpha": 255} },
+      "Hysteria":  { "TextColor": {"red": 197, "green": 155, "blue": 39, "alpha": 255}, "BorderColor": {"red": 197, "green": 155, "blue": 39, "alpha": 255} }
+    },
+    "Tiers": {
+      "Low": {
+        "Comment": "For Tiers 1-2 (Whispering/Muttering). Has no border.",
+        "BorderColor": {"red": 0, "green": 0, "blue": 0, "alpha": 0},
+        "FontSize": 28,
+        "Minimap": {"Size": 2}
+      },
+      "Mid": {
+        "Comment": "For Tiers 3-4 (Weeping/Wailing)",
+        "FontSize": 34,
+        "Minimap": {"Size": 2},
+        "Beam": {"Color": "Grey", "Temp": true}
+      },
+      "High": {
+        "Comment": "For Tiers 5-7 (Screaming to Deafening). Has a visible border.",
+        "FontSize": 42,
+        "Minimap": {"Size": 1},
+        "Beam": {"Color": "Grey", "Temp": false}
+      },
+      "Special": {
+        "Comment": "For the four corrupted essences.",
+        "FontSize": 45,
+        "Minimap": {"Size": 0, "Shape": "Star"},
+        "Beam": {"Color": "Yellow", "Temp": false}
+      }
+    },
+    "Final": {
+      "WhisperingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Low" ] },
+      "MutteringGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Low" ] },
+      "WeepingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Mid" ] },
+      "WailingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/Mid" ] },
+      "ScreamingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/High" ] },
+      "ShriekingGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/High" ] },
+      "DeafeningGreed": { "Combination": [ "Essences/Base", "Essences/Types/Greed", "Essences/Tiers/High" ] },
+      "WhisperingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Low" ] },
+      "MutteringContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Low" ] },
+      "WeepingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Mid" ] },
+      "WailingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/Mid" ] },
+      "ScreamingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/High" ] },
+      "ShriekingContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/High" ] },
+      "DeafeningContempt": { "Combination": [ "Essences/Base", "Essences/Types/Contempt", "Essences/Tiers/High" ] },
+      "WhisperingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Low" ] },
+      "MutteringHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Low" ] },
+      "WeepingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Mid" ] },
+      "WailingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/Mid" ] },
+      "ScreamingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/High" ] },
+      "ShriekingHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/High" ] },
+      "DeafeningHatred": { "Combination": [ "Essences/Base", "Essences/Types/Hatred", "Essences/Tiers/High" ] },
+      "WhisperingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Low" ] },
+      "MutteringWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Low" ] },
+      "WeepingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Mid" ] },
+      "WailingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/Mid" ] },
+      "ScreamingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/High" ] },
+      "ShriekingWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/High" ] },
+      "DeafeningWoe": { "Combination": [ "Essences/Base", "Essences/Types/Woe", "Essences/Tiers/High" ] },
+      "MutteringFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Low" ] },
+      "WeepingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Mid" ] },
+      "WailingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/Mid" ] },
+      "ScreamingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/High" ] },
+      "ShriekingFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/High" ] },
+      "DeafeningFear": { "Combination": [ "Essences/Base", "Essences/Types/Fear", "Essences/Tiers/High" ] },
+      "MutteringAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Low" ] },
+      "WeepingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Mid" ] },
+      "WailingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/Mid" ] },
+      "ScreamingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/High" ] },
+      "ShriekingAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/High" ] },
+      "DeafeningAnger": { "Combination": [ "Essences/Base", "Essences/Types/Anger", "Essences/Tiers/High" ] },
+      "MutteringTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Low" ] },
+      "WeepingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Mid" ] },
+      "WailingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/Mid" ] },
+      "ScreamingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/High" ] },
+      "ShriekingTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/High" ] },
+      "DeafeningTorment": { "Combination": [ "Essences/Base", "Essences/Types/Torment", "Essences/Tiers/High" ] },
+      "MutteringSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Low" ] },
+      "WeepingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Mid" ] },
+      "WailingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/Mid" ] },
+      "ScreamingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/High" ] },
+      "ShriekingSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/High" ] },
+      "DeafeningSorrow": { "Combination": [ "Essences/Base", "Essences/Types/Sorrow", "Essences/Tiers/High" ] },
+      "WeepingRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/Mid" ] },
+      "WailingRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/Mid" ] },
+      "ScreamingRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/High" ] },
+      "ShriekingRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/High" ] },
+      "DeafeningRage": { "Combination": [ "Essences/Base", "Essences/Types/Rage", "Essences/Tiers/High" ] },
+      "WeepingSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/Mid" ] },
+      "WailingSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/Mid" ] },
+      "ScreamingSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/High" ] },
+      "ShriekingSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/High" ] },
+      "DeafeningSuffering": { "Combination": [ "Essences/Base", "Essences/Types/Suffering", "Essences/Tiers/High" ] },
+      "WeepingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/Mid" ] },
+      "WailingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/Mid" ] },
+      "ScreamingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/High" ] },
+      "ShriekingWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/High" ] },
+      "DeafeningWrath": { "Combination": [ "Essences/Base", "Essences/Types/Wrath", "Essences/Tiers/High" ] },
+      "WeepingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/Mid" ] },
+      "WailingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/Mid" ] },
+      "ScreamingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/High" ] },
+      "ShriekingDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/High" ] },
+      "DeafeningDoubt": { "Combination": [ "Essences/Base", "Essences/Types/Doubt", "Essences/Tiers/High" ] },
+      "WailingLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/Mid" ] },
+      "ScreamingLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/High" ] },
+      "ShriekingLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/High" ] },
+      "DeafeningLoathing": { "Combination": [ "Essences/Base", "Essences/Types/Loathing", "Essences/Tiers/High" ] },
+      "WailingZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/Mid" ] },
+      "ScreamingZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/High" ] },
+      "ShriekingZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/High" ] },
+      "DeafeningZeal": { "Combination": [ "Essences/Base", "Essences/Types/Zeal", "Essences/Tiers/High" ] },
+      "WailingAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/Mid" ] },
+      "ScreamingAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/High" ] },
+      "ShriekingAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/High" ] },
+      "DeafeningAnguish": { "Combination": [ "Essences/Base", "Essences/Types/Anguish", "Essences/Tiers/High" ] },
+      "WailingSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/Mid" ] },
+      "ScreamingSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/High" ] },
+      "ShriekingSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/High" ] },
+      "DeafeningSpite": { "Combination": [ "Essences/Base", "Essences/Types/Spite", "Essences/Tiers/High" ] },
+      "ScreamingScorn": { "Combination": [ "Essences/Base", "Essences/Types/Scorn", "Essences/Tiers/High" ] },
+      "ShriekingScorn": { "Combination": [ "Essences/Base", "Essences/Types/Scorn", "Essences/Tiers/High" ] },
+      "DeafeningScorn": { "Combination": [ "Essences/Base", "Essences/Types/Scorn", "Essences/Tiers/High" ] },
+      "ScreamingEnvy": { "Combination": [ "Essences/Base", "Essences/Types/Envy", "Essences/Tiers/High" ] },
+      "ShriekingEnvy": { "Combination": [ "Essences/Base", "Essences/Types/Envy", "Essences/Tiers/High" ] },
+      "DeafeningEnvy": { "Combination": [ "Essences/Base", "Essences/Types/Envy", "Essences/Tiers/High" ] },
+      "ScreamingMisery": { "Combination": [ "Essences/Base", "Essences/Types/Misery", "Essences/Tiers/High" ] },
+      "ShriekingMisery": { "Combination": [ "Essences/Base", "Essences/Types/Misery", "Essences/Tiers/High" ] },
+      "DeafeningMisery": { "Combination": [ "Essences/Base", "Essences/Types/Misery", "Essences/Tiers/High" ] },
+      "ScreamingDread": { "Combination": [ "Essences/Base", "Essences/Types/Dread", "Essences/Tiers/High" ] },
+      "ShriekingDread": { "Combination": [ "Essences/Base", "Essences/Types/Dread", "Essences/Tiers/High" ] },
+      "DeafeningDread": { "Combination": [ "Essences/Base", "Essences/Types/Dread", "Essences/Tiers/High" ] },
+      "EssenceOfInsanity": { "Combination": [ "Essences/Base", "Essences/Types/Insanity", "Essences/Tiers/Special" ] },
+      "EssenceOfHorror": { "Combination": [ "Essences/Base", "Essences/Types/Horror", "Essences/Tiers/Special" ] },
+      "EssenceOfDelirium": { "Combination": [ "Essences/Base", "Essences/Types/Delirium", "Essences/Tiers/Special" ] },
+      "EssenceOfHysteria": { "Combination": [ "Essences/Base", "Essences/Types/Hysteria", "Essences/Tiers/Special" ] }
+    }
+  },
+  "Oils": {
+    "Base": {
+      "Comment": "The single, foundational style for ALL oils. Defines the shared minimap icon.",
+      "Minimap": {
+        "Shape": "Circle",
+        "Color": "Brown"
+      },
+      "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\oil.mp3",
+      "DropVolume": 300
+    },
+    "Types": {
+      "Clear":      { "BaseType": "Clear Oil",      "TextColor": {"red": 100, "green": 100, "blue": 100, "alpha": 255}, "BorderColor": {"red": 100, "green": 100, "blue": 100, "alpha": 255} },
+      "Sepia":      { "BaseType": "Sepia Oil",      "TextColor": {"red": 87, "green": 51, "blue": 18, "alpha": 255},   "BorderColor": {"red": 87, "green": 51, "blue": 18, "alpha": 255} },
+      "Amber":      { "BaseType": "Amber Oil",      "TextColor": {"red": 203, "green": 116, "blue": 33, "alpha": 255},  "BorderColor": {"red": 203, "green": 116, "blue": 33, "alpha": 255} },
+      "Verdant":    { "BaseType": "Verdant Oil",    "TextColor": {"red": 31, "green": 203, "blue": 57, "alpha": 255},   "BorderColor": {"red": 31, "green": 203, "blue": 57, "alpha": 255} },
+      "Teal":       { "BaseType": "Teal Oil",       "TextColor": {"red": 34, "green": 203, "blue": 182, "alpha": 255},  "BorderColor": {"red": 34, "green": 203, "blue": 182, "alpha": 255} },
+      "Azure":      { "BaseType": "Azure Oil",      "TextColor": {"red": 30, "green": 82, "blue": 197, "alpha": 255},   "BorderColor": {"red": 30, "green": 82, "blue": 197, "alpha": 255} },
+      "Indigo":     { "BaseType": "Indigo Oil",     "TextColor": {"red": 82, "green": 0, "blue": 131, "alpha": 255},    "BorderColor": {"red": 82, "green": 0, "blue": 131, "alpha": 255} },
+      "Violet":     { "BaseType": "Violet Oil",     "TextColor": {"red": 120, "green": 61, "blue": 156, "alpha": 255},  "BorderColor": {"red": 120, "green": 61, "blue": 156, "alpha": 255} },
+      "Crimson":    { "BaseType": "Crimson Oil",    "TextColor": {"red": 156, "green": 20, "blue": 22, "alpha": 255},    "BorderColor": {"red": 156, "green": 20, "blue": 22, "alpha": 255} },
+      "Black":      { "BaseType": "Black Oil",      "TextColor": {"red": 0, "green": 0, "blue": 0, "alpha": 255},       "BorderColor": {"red": 0, "green": 0, "blue": 0, "alpha": 255} },
+      "Opalescent": { "BaseType": "Opalescent Oil", "TextColor": {"red": 127, "green": 216, "blue": 232, "alpha": 255}, "BorderColor": {"red": 122, "green": 67, "blue": 121, "alpha": 255} },
+      "Silver":     { "BaseType": "Silver Oil",     "TextColor": {"red": 171, "green": 166, "blue": 164, "alpha": 255}, "BorderColor": {"red": 171, "green": 166, "blue": 164, "alpha": 255} },
+      "Golden":     { "BaseType": "Golden Oil",     "TextColor": {"red": 211, "green": 188, "blue": 42, "alpha": 255},  "BorderColor": {"red": 211, "green": 188, "blue": 42, "alpha": 255} },
+      "Tainted":    { "BaseType": "Tainted Oil",    "TextColor": {"red": 156, "green": 20, "blue": 22, "alpha": 255},    "BorderColor": {"red": 156, "green": 20, "blue": 22, "alpha": 255} }
+    },
+    "Tiers": {
+      "Common": {
+        "Comment": "Lowest tier of oils.",
+        "FontSize": 32,
+        "Minimap": {"Size": 2}
+      },
+      "Uncommon": {
+        "Comment": "Mid-tier oils.",
+        "FontSize": 36,
+        "Minimap": {"Size": 2}
+      },
+      "Rare": {
+        "Comment": "High-tier oils.",
+        "FontSize": 42,
+        "Minimap": {"Size": 1}
+      },
+      "Legendary": {
+        "Comment": "Highest tier of oils.",
+        "FontSize": 42,
+        "Minimap": {"Size": 0}
+      }
+    },
+    "Final": {
+      "ClearOil":      { "Combination": [ "Oils/Base", "Oils/Types/Clear", "Oils/Tiers/Common" ] },
+      "SepiaOil":      { "Combination": [ "Oils/Base", "Oils/Types/Sepia", "Oils/Tiers/Common" ] },
+      "AmberOil":      { "Combination": [ "Oils/Base", "Oils/Types/Amber", "Oils/Tiers/Uncommon" ] },
+      "VerdantOil":    { "Combination": [ "Oils/Base", "Oils/Types/Verdant", "Oils/Tiers/Uncommon" ] },
+      "TealOil":       { "Combination": [ "Oils/Base", "Oils/Types/Teal", "Oils/Tiers/Rare" ] },
+      "AzureOil":      { "Combination": [ "Oils/Base", "Oils/Types/Azure", "Oils/Tiers/Rare" ] },
+      "IndigoOil":     { "Combination": [ "Oils/Base", "Oils/Types/Indigo", "Oils/Tiers/Rare" ] },
+      "VioletOil":     { "Combination": [ "Oils/Base", "Oils/Types/Violet", "Oils/Tiers/Rare" ] },
+      "CrimsonOil":    { "Combination": [ "Oils/Base", "Oils/Types/Crimson", "Oils/Tiers/Rare" ] },
+      "BlackOil":      { "Combination": [ "Oils/Base", "Oils/Types/Black", "Oils/Tiers/Rare" ] },
+      "OpalescentOil": { "Combination": [ "Oils/Base", "Oils/Types/Opalescent", "Oils/Tiers/Rare" ] },
+      "TaintedOil":    { "Combination": [ "Oils/Base", "Oils/Types/Tainted", "Oils/Tiers/Rare" ] },
+      "SilverOil":     { "Combination": [ "Oils/Base", "Oils/Types/Silver", "Oils/Tiers/Legendary" ] },
+      "GoldenOil":     { "Combination": [ "Oils/Base", "Oils/Types/Golden", "Oils/Tiers/Legendary" ] }
+    }
+  },
+  "Templates": {
+    "Special": {
+      "Vendor": {
+        "RGB": {
+          "BorderColor": {"var": "purple"}
+        }
+      },
+      "Sockets": {
+        "3-link": {
+          "BorderColor": {"var": "green"}
+        },
+        "4-link": {
+          "BorderColor": {"var": "green-alt"}
+        },
+        "6-link": {
+          "BorderColor": {"var": "blue-alt3"}
+        },
+        "4-socket": {
+          "BorderColor": {"var": "blue-alt4"}
+        }
+      },
+      "Gold": {
+        "BorderColor": {"var": "gold"},
+        "BackgroundColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
+        "Minimap": {"Shape": "Hexagon"}
+      },
+      "Divination": {
+        "BackgroundColor": {"var": "bg-div-cards"},
+        "Minimap": {
+          "Shape": "Pentagon"
+        }
+      }
+    },
+    "Rarities": {
+      "Normal": {
+        "BorderColor": {"var": "bone"}
+      },
+      "Magic": {
+        "BorderColor": {"var": "blue"}
+      },
+      "Rare": {
+        "BorderColor": {"var": "red"},
+        "Minimap": {"Shape": "Square"}
+      },
+      "Unique": {
+        "BorderColor": {"var": "gold"},
+        "Minimap": {"Shape": "Star"}
+      }
+    },
+    "Tiers": {
+      "Divine": {
+        "T0": {
+          "FontSize": 45,
+          "TextColor": { "var": "gold" },
+          "Beam": { "Color": "White",  "Temp": false },
+          "Minimap": { "Color": "White",  "Size": 0 },
+          "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\hell.mp3",
+          "DropVolume": 300
+        },
+        "T1": {
+          "FontSize": 45,
+          "TextColor": { "var": "gold-alt" },
+          "Beam": { "Color": "Yellow", "Temp": false },
+          "Minimap": { "Color": "Yellow", "Size": 0 },
+          "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\angels.mp3",
+          "DropVolume": 300
+        }
+      },
+      "High": {
+        "T2": {
+          "FontSize": 40,
+          "TextColor": { "var": "red" },
+          "Beam": { "Color": "Red",    "Temp": false },
+          "Minimap": { "Color": "Red",    "Size": 1 },
+          "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\amazing.mp3",
+          "DropVolume": 200
+        },
+        "T3": {
+          "FontSize": 38,
+          "TextColor": { "var": "red-alt" },
+          "Beam": { "Color": "Orange", "Temp": true },
+          "Minimap": { "Color": "Orange", "Size": 1 },
+          "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\amazing.mp3",
+          "DropVolume": 175
+        },
+        "T4": {
+          "FontSize": 36,
+          "TextColor": { "var": "red-alt2" },
+          "Beam": { "Color": "Purple", "Temp": true },
+          "Minimap": { "Color": "Purple", "Size": 2 },
+          "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\congrats.mp3",
+          "DropVolume": 150
+        }
+      },
+      "Mid": {
+        "T5": {
+          "FontSize": 33,
+          "TextColor": { "var": "blue" },
+          "Minimap": { "Color": "Cyan",  "Size": 2 },
+          "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\click.mp3",
+          "DropVolume": 120
+        },
+        "T6": {
+          "FontSize": 30,
+          "TextColor": { "var": "blue-alt" }
+        },
+        "T7": {
+          "FontSize": 28,
+          "TextColor": { "var": "blue-alt2" }
+        }
+      },
+      "Low": {
+        "T8": {
+          "FontSize": 26,
+          "TextColor": { "var": "bone" }
+        },
+        "T9": {
+          "FontSize": 24,
+          "TextColor": { "var": "bone-alt" }
+        },
+        "T10": {
+          "FontSize": 22,
+          "TextColor": { "var": "bone-alt2" }
+        }
+      }
+    },
+    "Groups": {
+      "CurrentEquipment": {
+        "Minimap": { "Shape": "Triangle" },
+        "BackgroundColor": { "var": "bg-current-equipment" }
+      },
+      "OldEquipment": {
+        "BackgroundColor": { "var": "bg-old-equipment" }
+      },
+      "UnassociatedEquipment": {
+        "BackgroundColor": { "var": "bg-unassociated-equipment" }
+      },
+      "CurrentFlasks": {
+        "Minimap": { "Shape": "Raindrop" },
+        "BackgroundColor": { "var": "bg-current-flasks" }
+      },
+      "OldFlasks": {
+        "BackgroundColor": { "var": "bg-old-flasks" }
+      },
+      "Orbs": {
+        "Minimap": { "Shape": "Circle" },
+        "BackgroundColor": { "var": "bg-orbs" }
+      },
+      "Supplies": {
+        "Minimap": { "Shape": "Kite" },
+        "BackgroundColor": { "var": "bg-supplies" }
+      },
+      "SkillGems": {
+        "Minimap": { "Shape": "Cross" },
+        "BackgroundColor": { "var": "bg-skill-gems" }
+      }
+    }
+  },
+  "Final": {
+    "Uniques": {
+      "T0": {
+        "Combination": [
+          "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
+          "Templates/Tiers/Divine/T0"
+        ]
+      },
+      "T1": {
+        "Combination": [
+          "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
+          "Templates/Tiers/Divine/T1"
+        ]
+      },
+      "T2": {
+        "Combination": [
+          "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
+          "Templates/Tiers/High/T2"
+        ]
+      },
+      "T3": {
+        "Combination": [
+          "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
+          "Templates/Tiers/High/T3"
+        ]
+      },
+      "T4": {
+        "Combination": [
+          "Templates/Rarities/Unique",
+          "Templates/Groups/CurrentEquipment",
+          "Templates/Tiers/High/T4"
+        ]
+      }
+    },
+    "CurrentEquipment": {
+      "Normal": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/Low/T9",
+          "Templates/Groups/CurrentEquipment"
+        ]
+      },
+      "Magic": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/Low/T8",
+          "Templates/Groups/CurrentEquipment"
+        ]
+      },
+      "Rare": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/Mid/T7",
+          "Templates/Groups/CurrentEquipment"
+        ]
+      }
+    },
+    "OldEquipment": {
+      "Normal": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/Low/T10",
+          "Templates/Groups/OldEquipment"
+        ]
+      },
+      "Magic": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/Low/T9",
+          "Templates/Groups/OldEquipment"
+        ]
+      },
+      "Rare": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/Low/T8",
+          "Templates/Groups/OldEquipment"
+        ]
+      }
+    },
+    "UnassociatedEquipment": {
+      "Normal": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Groups/UnassociatedEquipment",
+          "Templates/Tiers/Low/T10"
+        ]
+      },
+      "Magic": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Groups/UnassociatedEquipment",
+          "Templates/Tiers/Low/T9"
+        ]
+      },
+      "Rare": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Groups/UnassociatedEquipment",
+          "Templates/Tiers/Low/T8"
+        ]
+      }
+    },
+    "CurrentFlasks": {
+      "Combination": [
+        "Templates/Groups/CurrentFlasks",
+        "Templates/Tiers/Mid/T6"
+      ]
+    },
+    "OldFlasks": {
+      "Combination": [
+        "Templates/Groups/OldFlasks",
+        "Templates/Tiers/Mid/T7"
+      ]
+    },
+    "Orbs": {
+      "T1": {
+        "Combination": [
+          "Templates/Groups/Orbs",
+          "Templates/Tiers/Divine/T0"
+        ]
+      },
+      "T2": {
+        "Combination": [
+          "Templates/Groups/Orbs",
+          "Templates/Tiers/Divine/T1"
+        ]
+      },
+      "T3": {
+        "Combination": [
+          "Templates/Groups/Orbs",
+          "Templates/Tiers/High/T2"
+        ]
+      },
+      "T4": {
+        "Combination": [
+          "Templates/Groups/Orbs",
+          "Templates/Tiers/High/T3"
+        ]
+      },
+      "T5": {
+        "Combination": [
+          "Templates/Groups/Orbs",
+          "Templates/Tiers/High/T4"
+        ]
+      },
+      "T6": {
+        "Combination": [
+          "Templates/Groups/Orbs",
+          "Templates/Tiers/Mid/T5"
+        ]
+      },
+      "T7": {
+        "Combination": [
+          "Templates/Groups/Orbs",
+          "Templates/Tiers/Mid/T6"
+        ]
+      },
+      "T8": {
+        "Combination": [
+          "Templates/Groups/Orbs",
+          "Templates/Tiers/Mid/T7"
+        ]
+      }
+    },
+    "Supplies": {
+      "T1": {
+        "Combination": [
+          "Templates/Groups/Supplies",
+          "Templates/Tiers/High/T3"
+        ]
+      },
+      "T2": {
+        "Combination": [
+          "Templates/Groups/Supplies",
+          "Templates/Tiers/High/T4"
+        ]
+      },
+      "T3": {
+        "Combination": [
+          "Templates/Groups/Supplies",
+          "Templates/Tiers/Mid/T5"
+        ]
+      },
+      "T4": {
+        "Combination": [
+          "Templates/Groups/Supplies",
+          "Templates/Tiers/Mid/T6"
+        ]
+      },
+      "T5": {
+        "Combination": [
+          "Templates/Groups/Supplies",
+          "Templates/Tiers/Mid/T7"
+        ]
+      },
+      "T6": {
+        "Combination": [
+          "Templates/Groups/Supplies",
+          "Templates/Tiers/Low/T8"
+        ]
+      },
+      "T7": {
+        "Combination": [
+          "Templates/Groups/Supplies",
+          "Templates/Tiers/Low/T9"
+        ]
+      }
+    },
+    "Special": {
+      "RGB": {
+        "Combination": [
+          "Templates/Groups/CurrentEquipment",
+          "Templates/Special/Vendor/RGB",
+          "Templates/Tiers/Mid/T5"
+        ]
+      },
+      "RGB-4-socket": {
+        "Combination": [
+          "Templates/Groups/CurrentEquipment",
+          "Templates/Special/Vendor/RGB",
+          "Templates/Tiers/Mid/T5"
+        ]
+      },
+      "Sockets": {
+        "3-link": {
+          "Combination": [
+            "Templates/Special/Sockets/3-link",
+            "Templates/Groups/CurrentEquipment",
+            "Templates/Tiers/Mid/T5"
+          ]
+        },
+        "4-link": {
+          "Combination": [
+            "Templates/Special/Sockets/4-link",
+            "Templates/Groups/CurrentEquipment",
+            "Templates/Tiers/High/T4"
+          ]
+        },
+        "6-link": {
+          "Combination": [
+            "Templates/Special/Sockets/6-link",
+            "Templates/Groups/CurrentEquipment",
+            "Templates/Tiers/Divine/T1"
+          ]
+        },
+        "4-socket": {
+          "Combination": [
+            "Templates/Special/Sockets/4-socket",
+            "Templates/Groups/CurrentEquipment",
+            "Templates/Tiers/Mid/T5"
+          ]
+        }
+      }
+    },
+    "Leagues": {
+      "Gold_High": {
+        "Combination": [
+          "Templates/Special/Gold",
+          "Templates/Tiers/Mid/T5"
+        ]
+      },
+      "Gold_Mid": {
+        "Combination": [
+          "Templates/Special/Gold",
+          "Templates/Tiers/Mid/T6"
+        ]
+      },
+      "Gold_Low": {
+        "Combination": [
+          "Templates/Special/Gold",
+          "Templates/Tiers/Mid/T7"
+        ]
+      }
+    },
+    "Jewels": {
+      "Combination": [
+        "Templates/Groups/CurrentEquipment",
+        "Templates/Tiers/Mid/T5"
+      ]
+    },
+    "Jewelry": {
+      "Normal": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/Low/T8",
+          "Templates/Groups/CurrentEquipment"
+        ]
+      },
+      "Magic": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/Mid/T7",
+          "Templates/Groups/CurrentEquipment"
+        ]
+      },
+      "Rare": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/Mid/T6",
+          "Templates/Groups/CurrentEquipment"
+        ]
+      }
+    },
+    "Gems": {
+      "T1": {
+        "Combination": [
+          "Templates/Groups/SkillGems",
+          "Templates/Tiers/Divine/T1"
+        ]
+      },
+      "T2": {
+        "Combination": [
+          "Templates/Groups/SkillGems",
+          "Templates/Tiers/High/T2"
+        ]
+      },
+      "T3": {
+        "Combination": [
+          "Templates/Groups/SkillGems",
+          "Templates/Tiers/High/T3"
+        ]
+      },
+      "T4": {
+        "Combination": [
+          "Templates/Groups/SkillGems",
+          "Templates/Tiers/High/T4"
+        ]
+      },
+      "T5": {
+        "Combination": [
+          "Templates/Groups/SkillGems",
+          "Templates/Tiers/Mid/T5"
+        ]
+      },
+      "T6": {
+        "Combination": [
+          "Templates/Groups/SkillGems",
+          "Templates/Tiers/Mid/T6"
+        ]
+      },
+      "T7": {
+        "Combination": [
+          "Templates/Groups/SkillGems",
+          "Templates/Tiers/Mid/T7"
+        ]
+      }
+    },
+    "Divination": {
+      "Fallback": {
+        "Combination": [
+          "Templates/Special/Divination",
+          "Templates/Tiers/High/T4"
+        ]
+      }
+    }
+  },
+  "Fallback": {
+    "TextColor": {"red": 0, "green": 0, "blue": 0, "alpha": 255},
+    "BackgroundColor": {"red": 255, "green": 0, "blue": 127, "alpha": 255},
+    "BorderColor": {"red": 0, "green": 0, "blue": 0, "alpha": 255},
+    "FontSize": 45,
+    "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\error.mp3",
+    "DropVolume": 300,
+    "Beam": {
+      "Color": "Pink",
+      "Temp": false
+    },
+    "Minimap": {
+      "Shape": "UpsideDownHouse",
+      "Color": "Pink",
+      "Size": 0
+    }
+  }
+}
