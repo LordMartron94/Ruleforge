@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"os"
 	"slices"
+	"strconv"
 )
 
 var allowedMinimapShapes = []string{
@@ -33,7 +34,9 @@ var knownStyleKeys = map[string]struct{}{
 }
 
 // LoadStyles reads a JSON file, recursively parses it, and resolves style combinations.
-func LoadStyles(path string) (map[string]Style, error) {
+//
+//goland:noinspection t
+func LoadStyles(path string, cssVariables map[string]string) (map[string]Style, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read style file: %w", err)
@@ -42,6 +45,10 @@ func LoadStyles(path string) (map[string]Style, error) {
 	var raw map[string]interface{}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal styles json: %w", err)
+	}
+
+	if err := resolveVarColorsInTree(raw, cssVariables); err != nil {
+		return nil, err
 	}
 
 	allStyles := make(map[string]*Style)
@@ -67,6 +74,7 @@ func LoadStyles(path string) (map[string]Style, error) {
 	return finalStyles, nil
 }
 
+//goland:noinspection t
 func resolveCombination(
 	styleName string,
 	allStyles map[string]*Style,
@@ -160,6 +168,7 @@ func isStyleObject(data map[string]interface{}) bool {
 	return false
 }
 
+//goland:noinspection t
 func parseStylesRecursive(data map[string]interface{}, prefix string, styles *map[string]*Style) error {
 	if isStyleObject(data) {
 		styleName := prefix
@@ -192,6 +201,7 @@ func parseStylesRecursive(data map[string]interface{}, prefix string, styles *ma
 	return nil
 }
 
+//goland:noinspection t
 func validateStyle(style *Style) error {
 	if style.Minimap != nil {
 		if style.Minimap.Color != nil && !slices.Contains(allowedColorLiterals, *style.Minimap.Color) {
@@ -205,4 +215,75 @@ func validateStyle(style *Style) error {
 		return fmt.Errorf("invalid beam color: %v", *style.Beam.Color)
 	}
 	return nil
+}
+
+//goland:noinspection t
+func resolveVarColorsInTree(
+	node interface{},
+	cssVars map[string]string,
+) error {
+	switch val := node.(type) {
+	case map[string]interface{}:
+		// first, if this is a color-like object:
+		if hexRef, ok := val["var"].(string); ok {
+			// lookup and parse it
+			hex, found := cssVars[hexRef]
+			if !found {
+				return fmt.Errorf("css variable %q not found", hexRef)
+			}
+			r, g, b, a, err := parseHexRGBA(hex)
+			if err != nil {
+				return fmt.Errorf("invalid css var %q: %w", hexRef, err)
+			}
+			val["red"] = uint8(r)
+			val["green"] = uint8(g)
+			val["blue"] = uint8(b)
+			val["alpha"] = uint8(a)
+			delete(val, "var")
+		}
+		for _, child := range val {
+			if err := resolveVarColorsInTree(child, cssVars); err != nil {
+				return err
+			}
+		}
+
+	case []interface{}:
+		for _, item := range val {
+			if err := resolveVarColorsInTree(item, cssVars); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func parseHexRGBA(hex string) (r, g, b, a uint64, err error) {
+	if len(hex) == 0 || hex[0] != '#' {
+		return 0, 0, 0, 0, fmt.Errorf("missing “#”")
+	}
+	hex = hex[1:]
+
+	switch len(hex) {
+	case 6:
+		hex += "FF"
+	case 8:
+	default:
+		return 0, 0, 0, 0, fmt.Errorf("hex must be 6 or 8 digits")
+	}
+
+	// each pair is one channel
+	r, err = strconv.ParseUint(hex[0:2], 16, 8)
+	if err != nil {
+		return
+	}
+	g, err = strconv.ParseUint(hex[2:4], 16, 8)
+	if err != nil {
+		return
+	}
+	b, err = strconv.ParseUint(hex[4:6], 16, 8)
+	if err != nil {
+		return
+	}
+	a, err = strconv.ParseUint(hex[6:8], 16, 8)
+	return
 }

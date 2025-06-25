@@ -2,21 +2,20 @@ package main
 
 import (
 	"fmt"
+	common_compiler "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/postprocessor"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/validation"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
-
-	common_compiler "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/validation"
 )
 
 func main() {
@@ -26,7 +25,20 @@ func main() {
 	}
 }
 
+//goland:noinspection t
 func run() error {
+	cssParser, err := config.NewCSSParserFromFile("colors.css")
+
+	if err != nil {
+		return fmt.Errorf("NewCSSParserFromFile: %v", err)
+	}
+
+	props, err := cssParser.Parse()
+
+	if err != nil {
+		return fmt.Errorf("parse: %v", err)
+	}
+
 	configurationLoader := config.NewConfigurationLoader()
 	configuration, err := configurationLoader.LoadConfiguration("config.json")
 
@@ -91,7 +103,7 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData)
+		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData, props)
 		if err != nil {
 			return fmt.Errorf("processRuleforgeScript: %v", err)
 		}
@@ -172,12 +184,14 @@ func extractUniqueBases(configuration *config.ConfigurationModel, exporter *data
 	return bases, nil
 }
 
+//goland:noinspection t
 func processRuleforgeScript(
 	ruleforgeScriptPath string,
 	configuration *config.ConfigurationModel,
 	validBases []string,
 	itemBases []model.ItemBase,
-	economyCache map[string][]data_generation.EconomyCacheItem) error {
+	economyCache map[string][]data_generation.EconomyCacheItem,
+	cssVariables map[string]string) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -226,7 +240,7 @@ func processRuleforgeScript(
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, *baseTypeData)
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, *baseTypeData, cssVariables)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)

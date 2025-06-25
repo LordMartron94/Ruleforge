@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"log"
 	"os"
 	"path/filepath"
@@ -60,21 +61,33 @@ func main() {
 
 // Run orchestrates the main application flow.
 func (a *App) Run() error {
-	// 1. Load and validate configuration.
+	cssParser, err := config.NewCSSParserFromFile("colors.css")
+
+	if err != nil {
+		return fmt.Errorf("NewCSSParserFromFile: %v", err)
+	}
+
+	props, err := cssParser.Parse()
+
+	if err != nil {
+		return fmt.Errorf("parse: %v", err)
+	}
+
+	// Load and validate configuration.
 	if err := a.loadConfig(); err != nil {
 		return err
 	}
 
-	// 2. Initialize the exporter, which will attempt to load from cache.
+	// Initialize the exporter, which will attempt to load from cache.
 	a.log.Println("Initializing data exporter (will use cache if available and valid)...")
 	a.exporter = data_generation.NewPathOfBuildingExporter()
 
-	// 3. Fetch data. The exporter will return cached data or re-parse files as needed.
+	// Fetch data. The exporter will return cached data or re-parse files as needed.
 	if err := a.fetchData(); err != nil {
 		return fmt.Errorf("could not fetch data: %w", err)
 	}
 
-	// 4. Save data back to cache. The exporter will skip if the cache is still valid.
+	// Save data back to cache. The exporter will skip if the cache is still valid.
 	if err := a.saveCaches(); err != nil {
 		return fmt.Errorf("could not save data to cache: %w", err)
 	}
@@ -85,11 +98,11 @@ func (a *App) Run() error {
 		return nil
 	}
 
-	// 5. Prepare shared data for compilation.
+	// Prepare shared data for compilation.
 	a.prepareBaseTypes()
 
-	// 6. Compile Ruleforge scripts.
-	if err := a.compileRules(); err != nil {
+	// Compile Ruleforge scripts.
+	if err := a.compileRules(props); err != nil {
 		return fmt.Errorf("error during rule compilation: %w", err)
 	}
 
@@ -168,7 +181,7 @@ func (a *App) prepareBaseTypes() {
 }
 
 // compileRules finds and processes all Ruleforge scripts.
-func (a *App) compileRules() error {
+func (a *App) compileRules(cssVariables map[string]string) error {
 	ruleforgeScripts, err := listFilesWithExtension(a.config.RuleforgeInputDir, ".rf")
 	if err != nil {
 		return fmt.Errorf("could not list Ruleforge scripts in %s: %w", a.config.RuleforgeInputDir, err)
@@ -181,77 +194,138 @@ func (a *App) compileRules() error {
 	a.log.Printf("Found %d Ruleforge scripts to process...", len(ruleforgeScripts))
 
 	for _, scriptPath := range ruleforgeScripts {
-		if err := a.processRuleforgeScript(scriptPath); err != nil {
+		if err := a.processRuleforgeScript(scriptPath, cssVariables); err != nil {
 			return fmt.Errorf("failed to process script %s: %w", scriptPath, err)
 		}
 	}
 	return nil
 }
 
-// processRuleforgeScript handles the full compilation pipeline for a single script file.
-func (a *App) processRuleforgeScript(path string) error {
+func (a *App) processRuleforgeScript(path string, cssVariables map[string]string) error {
 	a.log.Printf("Processing: %s", path)
-	file, err := os.Open(path)
+
+	file, err := a.openScript(path)
 	if err != nil {
-		return fmt.Errorf("opening file: %w", err)
+		return err
 	}
 	defer file.Close()
 
-	// Lexing & Parsing
-	handler := common_compiler.NewFileHandler(file, rules.GetLexingRules(), rules.GetParsingRules(), symbols.IgnoreToken)
+	tree, err := a.lexAndParse(file)
+	if err != nil {
+		return err
+	}
+
+	tree = a.postProcess(tree)
+	if a.verbose {
+		a.logParseTree(tree, path)
+	}
+
+	if err := a.validateTree(tree); err != nil {
+		return err
+	}
+
+	baseTypeData, err := a.loadBaseTypeData()
+	if err != nil {
+		return err
+	}
+
+	lines, name, err := a.compileTree(tree, *baseTypeData, cssVariables)
+	if err != nil {
+		return err
+	}
+
+	return a.writeOutputs(lines, name)
+}
+
+func (a *App) openScript(path string) (*os.File, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("opening file %s: %w", path, err)
+	}
+	return file, nil
+}
+
+func (a *App) lexAndParse(file *os.File) (*shared.ParseTree[symbols.LexingTokenType], error) {
+	handler := common_compiler.NewFileHandler(
+		file,
+		rules.GetLexingRules(),
+		rules.GetParsingRules(),
+		symbols.IgnoreToken,
+	)
 	if _, err := handler.Lex(); err != nil {
-		return fmt.Errorf("lexing failed: %w", err)
+		return nil, fmt.Errorf("lexing failed: %w", err)
 	}
 	tree, err := handler.Parse()
 	if err != nil {
-		return fmt.Errorf("parsing failed: %w", err)
+		return nil, fmt.Errorf("parsing failed: %w", err)
 	}
+	return tree, nil
+}
 
-	// Post-processing
-	postProcessor := postprocessor.PostProcessor[symbols.LexingTokenType]{}
-	tree = postProcessor.FilterOutSymbols([]string{
+func (a *App) postProcess(tree *shared.ParseTree[symbols.LexingTokenType]) *shared.ParseTree[symbols.LexingTokenType] {
+	pp := postprocessor.PostProcessor[symbols.LexingTokenType]{}
+	tree = pp.FilterOutSymbols([]string{
 		symbols.ParseSymbolWhitespace.String(),
 		symbols.ParseSymbolBlockOperator.String(),
 	}, tree)
-	tree = postProcessor.RemoveEmptyNodes(tree)
+	return pp.RemoveEmptyNodes(tree)
+}
 
-	if a.verbose {
-		a.log.Printf("Parse tree for %s:", path)
-		tree.Print(2, []symbols.LexingTokenType{})
-	}
+func (a *App) logParseTree(tree *shared.ParseTree[symbols.LexingTokenType], path string) {
+	a.log.Printf("Parse tree for %s:", path)
+	tree.Print(2, []symbols.LexingTokenType{})
+}
 
-	// Validation
+func (a *App) validateTree(tree *shared.ParseTree[symbols.LexingTokenType]) error {
 	if err := validation.NewParseTreeValidator(tree).Validate(); err != nil {
 		return fmt.Errorf("parse tree validation failed: %w", err)
 	}
+	return nil
+}
 
-	// Load additional compiler-specific configuration
-	baseTypeDataLoader := config.NewBaseTypeAutomationLoader("./basetype_automation_config.csv")
-	baseTypeData, err := baseTypeDataLoader.Load()
+func (a *App) loadBaseTypeData() (*[]config.BaseTypeAutomationEntry, error) {
+	loader := config.NewBaseTypeAutomationLoader("./basetype_automation_config.csv")
+	data, err := loader.Load()
 	if err != nil {
-		return fmt.Errorf("loading base type automation data: %w", err)
+		return nil, fmt.Errorf("loading base type automation data: %w", err)
 	}
+	return data, nil
+}
 
-	// Compilation
-	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
-		StyleJsonPath: a.config.StyleJSONFile,
-	}, a.baseTypes, a.itemBases, a.economyData, *a.config.EconomyWeights, a.config.GetLeagueWeights(), a.config.EconomyNormalizationStrategy, a.config.ChaseVSGeneralPotentialFactor, *baseTypeData)
+func (a *App) compileTree(
+	tree *shared.ParseTree[symbols.LexingTokenType],
+	baseTypeData []config.BaseTypeAutomationEntry,
+	cssVariables map[string]string,
+) ([]string, string, error) {
+	compiler, err := compilation.NewCompiler(
+		tree,
+		compilation.CompilerConfiguration{
+			StyleJsonPath: a.config.StyleJSONFile,
+		},
+		a.baseTypes,
+		a.itemBases,
+		a.economyData,
+		*a.config.EconomyWeights,
+		a.config.GetLeagueWeights(),
+		a.config.EconomyNormalizationStrategy,
+		a.config.ChaseVSGeneralPotentialFactor,
+		baseTypeData,
+		cssVariables,
+	)
 	if err != nil {
-		return fmt.Errorf("compiler initialization failed: %w", err)
+		return nil, "", fmt.Errorf("compiler initialization failed: %w", err)
 	}
+	lines, _, name := compiler.CompileIntoFilter()
+	return lines, name, nil
+}
 
-	outputStrings, err, outputName := compiler.CompileIntoFilter()
-	if err != nil {
-		return fmt.Errorf("compilation failed: %w", err)
-	}
-
-	// Writing output files
-	for _, outputDir := range a.config.FilterOutputDirs {
-		outputFileName := filepath.Join(outputDir, outputName+".filter")
-		if err := writeLines(outputStrings, outputFileName); err != nil {
-			return fmt.Errorf("writing output file to %s failed: %w", outputFileName, err)
+func (a *App) writeOutputs(lines []string, name string) error {
+	for _, dir := range a.config.FilterOutputDirs {
+		path := filepath.Join(dir, name+".filter")
+		if err := writeLines(lines, path); err != nil {
+			return fmt.Errorf("writing output file %s failed: %w", path, err)
 		}
-		a.log.Printf("Successfully wrote filter to %s", outputFileName)
+		a.log.Printf("Successfully wrote filter to %s", path)
 	}
 	return nil
 }

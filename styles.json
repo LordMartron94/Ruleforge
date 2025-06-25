@@ -171,42 +171,42 @@
     "Special": {
       "Vendor": {
         "RGB": {
-          "BorderColor": {"red": 35, "green": 184, "blue": 189, "alpha": 255}
+          "BorderColor": {"var": "purple"}
         }
       },
       "Sockets": {
         "3-link": {
-          "BorderColor": {"red": 123, "green": 178, "blue": 116, "alpha": 255}
+          "BorderColor": {"var": "green"}
         },
         "4-link": {
-          "BorderColor": {"red": 190, "green": 76, "blue": 240, "alpha": 255}
+          "BorderColor": {"var": "green-alt"}
         },
         "6-link": {
-          "BorderColor": {"red": 242, "green": 8, "blue": 102, "alpha": 255}
+          "BorderColor": {"var": "blue-alt3"}
         },
         "4-socket": {
-          "BorderColor": {"red": 80, "green": 90, "blue": 130, "alpha": 255}
+          "BorderColor": {"var": "blue-alt4"}
         }
       },
       "Gold": {
-        "BorderColor": {"red": 10, "green": 10, "blue": 10, "alpha": 255},
+        "BorderColor": {"var": "gold"},
         "BackgroundColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
         "Minimap": {"Shape": "Hexagon"}
       }
     },
     "Rarities": {
       "Normal": {
-        "BorderColor": {"red": 133, "green": 131, "blue": 137, "alpha": 255}
+        "BorderColor": {"var": "bone"}
       },
       "Magic": {
-        "BorderColor": {"red": 117, "green": 61, "blue": 253, "alpha": 255}
+        "BorderColor": {"var": "blue"}
       },
       "Rare": {
-        "BorderColor": {"red": 210, "green": 0, "blue": 0, "alpha": 255},
+        "BorderColor": {"var": "red"},
         "Minimap": {"Shape": "Square"}
       },
       "Unique": {
-        "BorderColor": {"red": 212, "green": 175, "blue": 55, "alpha": 255},
+        "BorderColor": {"var": "gold"},
         "Minimap": {"Shape": "Star"}
       }
     },
@@ -214,7 +214,7 @@
       "Divine": {
         "T0": {
           "FontSize": 45,
-          "TextColor": { "red": 255, "green": 223, "blue": 0,   "alpha": 255 },
+          "TextColor": { "var": "gold" },
           "Beam": { "Color": "White",  "Temp": false },
           "Minimap": { "Color": "White",  "Size": 0 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\hell.mp3",
@@ -222,7 +222,7 @@
         },
         "T1": {
           "FontSize": 45,
-          "TextColor": { "red": 230, "green": 200, "blue": 0,   "alpha": 255 },
+          "TextColor": { "var": "gold-alt" },
           "Beam": { "Color": "Yellow", "Temp": false },
           "Minimap": { "Color": "Yellow", "Size": 0 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\angels.mp3",
@@ -232,7 +232,7 @@
       "High": {
         "T2": {
           "FontSize": 40,
-          "TextColor": { "red": 255, "green":  50, "blue":  50, "alpha": 255 },
+          "TextColor": { "var": "red" },
           "Beam": { "Color": "Red",    "Temp": false },
           "Minimap": { "Color": "Red",    "Size": 1 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\amazing.mp3",
@@ -240,7 +240,7 @@
         },
         "T3": {
           "FontSize": 38,
-          "TextColor": { "red": 220, "green":  30, "blue":  30, "alpha": 255 },
+          "TextColor": { "var": "red-alt" },
           "Beam": { "Color": "Orange", "Temp": true },
           "Minimap": { "Color": "Orange", "Size": 1 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\amazing.mp3",
@@ -248,7 +248,7 @@
         },
         "T4": {
           "FontSize": 36,
-          "TextColor": { "red": 180, "green":   0, "blue":   0, "alpha": 255 },
+          "TextColor": { "var": "red-alt2" },
           "Beam": { "Color": "Purple", "Temp": true },
           "Minimap": { "Color": "Purple", "Size": 2 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\congrats.mp3",
@@ -258,64 +258,64 @@
       "Mid": {
         "T5": {
           "FontSize": 33,
-          "TextColor": { "red": 100, "green": 180, "blue": 255, "alpha": 255 },
+          "TextColor": { "var": "blue" },
           "Minimap": { "Color": "Cyan",  "Size": 2 },
           "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\click.mp3",
           "DropVolume": 120
         },
         "T6": {
           "FontSize": 30,
-          "TextColor": { "red":  70, "green": 140, "blue": 255, "alpha": 255 }
+          "TextColor": { "var": "blue-alt" }
         },
         "T7": {
           "FontSize": 28,
-          "TextColor": { "red":  40, "green": 100, "blue": 255, "alpha": 255 }
+          "TextColor": { "var": "blue-alt2" }
         }
       },
       "Low": {
         "T8": {
           "FontSize": 26,
-          "TextColor": { "red": 230, "green": 230, "blue": 210, "alpha": 255 }
+          "TextColor": { "var": "bone" }
         },
         "T9": {
           "FontSize": 24,
-          "TextColor": { "red": 200, "green": 200, "blue": 180, "alpha": 255 }
+          "TextColor": { "var": "bone-alt" }
         },
         "T10": {
           "FontSize": 22,
-          "TextColor": { "red": 170, "green": 170, "blue": 150, "alpha": 255 }
+          "TextColor": { "var": "bone-alt2" }
         }
       }
     },
     "Groups": {
       "CurrentEquipment": {
         "Minimap": { "Shape": "Triangle" },
-        "BackgroundColor": { "red": 11, "green": 34, "blue": 63, "alpha": 210 }
+        "BackgroundColor": { "var": "bg-current-equipment" }
       },
       "OldEquipment": {
-        "BackgroundColor": { "red": 62, "green": 62, "blue": 62, "alpha": 210 }
+        "BackgroundColor": { "var": "bg-old-equipment" }
       },
       "UnassociatedEquipment": {
-        "BackgroundColor": { "red": 99, "green": 78, "blue": 42, "alpha": 210 }
+        "BackgroundColor": { "var": "bg-unassociated-equipment" }
       },
       "CurrentFlasks": {
         "Minimap": { "Shape": "Raindrop" },
-        "BackgroundColor": { "red": 23, "green": 73, "blue": 50, "alpha": 210 }
+        "BackgroundColor": { "var": "bg-current-flasks" }
       },
       "OldFlasks": {
-        "BackgroundColor": { "red": 80, "green": 80, "blue": 46, "alpha": 210 }
+        "BackgroundColor": { "var": "bg-old-flasks" }
       },
       "Orbs": {
         "Minimap": { "Shape": "Circle" },
-        "BackgroundColor": { "red": 10, "green": 58, "blue": 58, "alpha": 210 }
+        "BackgroundColor": { "var": "bg-orbs" }
       },
       "Supplies": {
         "Minimap": { "Shape": "Kite" },
-        "BackgroundColor": { "red": 58, "green": 28, "blue": 28, "alpha": 210 }
+        "BackgroundColor": { "var": "bg-supplies" }
       },
       "SkillGems": {
         "Minimap": { "Shape": "Cross" },
-        "BackgroundColor": { "red": 28, "green": 25, "blue": 58, "alpha": 210 }
+        "BackgroundColor": { "var": "bg-skill-gems" }
       }
     }
   },

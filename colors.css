@@ -1,0 +1,44 @@
+root {
+    /* TIERING */
+    --gold: #FFDF00FF; /* T0 & Unique Border */
+    --gold-alt: #E6C800FF; /* T1 */
+
+    --red: #FF3232FF; /* T2 & Rare Border */
+    --red-alt: #DC1E1EFF; /* T3 */
+    --red-alt2: #B40000FF; /* T4 */
+
+    --blue: #64B4FFFF; /* T5 & Magic Border */
+    --blue-alt: #468CFFFF; /* T6 */
+    --blue-alt2: #2864FFFF; /* T7 */
+
+    --bone: #E6E6D2FF; /* T8 & Normal Border */
+    --bone-alt: #C8C8B4FF; /* T9 */
+    --bone-alt2: #AAAA96FF; /* T10 */
+
+    /* OTHER */
+    --purple: #B521DAFF; /* RGB Border */
+
+    --green: #5B8C5AFF; /* 3 link */
+    --green-alt: #4CAF50FF; /* 4 link */
+
+    --blue-alt3: #00FFFFFF; /* 6 link */
+    --blue-alt4: #208080FF; /* 4 socket */
+
+    /* ========== Equipment ========== */
+    --bg-current-equipment:        #1E2E4F; /* mid-tone navy (active gear) */
+    --bg-old-equipment:            #5E5E5E; /* medium grey (disabled/old) */
+    --bg-unassociated-equipment:   #6E4A2A; /* warm brown (unlinked) */
+
+    /* =========== Flasks =========== */
+    --bg-current-flasks:           #1E5938; /* forest green (full) */
+    --bg-old-flasks:               #7F7F3F; /* olive green (empty) */
+
+    /* ============ Orbs ============ */
+    --bg-orbs:                     #1A5566; /* deep teal */
+
+    /* =========== Supplies ========= */
+    --bg-supplies:                 #7E3A3A; /* muted maroon */
+
+    /* ======== Skill Gems ======== */
+    --bg-skill-gems:               #4A2E66; /* plum purple */
+}

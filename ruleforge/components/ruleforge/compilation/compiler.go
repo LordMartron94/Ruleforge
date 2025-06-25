@@ -30,9 +30,10 @@ func NewCompiler(
 	normalizationStrategy string,
 	chasePotentialWeight float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
+	cssVariables map[string]string,
 ) (*Compiler, error) {
 
-	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree)
+	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree, cssVariables)
 	if err != nil {
 		return nil, err
 	}

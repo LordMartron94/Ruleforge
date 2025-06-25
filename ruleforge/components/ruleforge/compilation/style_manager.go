@@ -15,8 +15,11 @@ type StyleManager struct {
 	varNodeCache map[string]*shared.ParseTree[symbols.LexingTokenType]
 }
 
-func NewStyleManager(path string, rootNode *shared.ParseTree[symbols.LexingTokenType]) (*StyleManager, error) {
-	styles, err := config.LoadStyles(path)
+func NewStyleManager(
+	path string,
+	rootNode *shared.ParseTree[symbols.LexingTokenType],
+	cssVariables map[string]string) (*StyleManager, error) {
+	styles, err := config.LoadStyles(path, cssVariables)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load styles: %w", err)
 	}
