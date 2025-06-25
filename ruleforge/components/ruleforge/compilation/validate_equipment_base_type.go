@@ -29,21 +29,22 @@ type ArmorClass string
 //goland:noinspection GoCommentStart
 const (
 	// Weapons
-	Bow            WeaponClass = "Bows"
-	Claw           WeaponClass = "Claws"
-	Dagger         WeaponClass = "Daggers"
-	OneHandedAxe   WeaponClass = "One Hand Axes"
-	OneHandedMace  WeaponClass = "One Hand Maces"
-	OneHandedSword WeaponClass = "One Hand Swords"
-	Quiver         WeaponClass = "Quivers"
-	RuneDagger     WeaponClass = "Rune Daggers"
-	Sceptre        WeaponClass = "Sceptres"
-	Staff          WeaponClass = "Staves"
-	TwoHandedAxe   WeaponClass = "Two Hand Axes"
-	TwoHandedMace  WeaponClass = "Two Hand Maces"
-	TwoHandedSword WeaponClass = "Two Hand Swords"
-	Wand           WeaponClass = "Wands"
-	Warstaff       WeaponClass = "Warstaves"
+	Bow                     WeaponClass = "Bows"
+	Claw                    WeaponClass = "Claws"
+	Dagger                  WeaponClass = "Daggers"
+	OneHandedAxe            WeaponClass = "One Hand Axes"
+	OneHandedMace           WeaponClass = "One Hand Maces"
+	OneHandedSword          WeaponClass = "One Hand Swords"
+	ThrustingOneHandedSword WeaponClass = "Thrusting One Hand Swords"
+	Quiver                  WeaponClass = "Quivers"
+	RuneDagger              WeaponClass = "Rune Daggers"
+	Sceptre                 WeaponClass = "Sceptres"
+	Staff                   WeaponClass = "Staves"
+	TwoHandedAxe            WeaponClass = "Two Hand Axes"
+	TwoHandedMace           WeaponClass = "Two Hand Maces"
+	TwoHandedSword          WeaponClass = "Two Hand Swords"
+	Wand                    WeaponClass = "Wands"
+	Warstaff                WeaponClass = "Warstaves"
 
 	// Armors
 	Belt       ArmorClass = "Belts"
@@ -56,7 +57,7 @@ const (
 
 var allWeaponClasses = []WeaponClass{
 	Bow, Claw, Dagger,
-	OneHandedAxe, OneHandedMace, OneHandedSword,
+	OneHandedAxe, OneHandedMace, OneHandedSword, ThrustingOneHandedSword,
 	Quiver, RuneDagger, Sceptre,
 	Staff,
 	TwoHandedAxe, TwoHandedMace, TwoHandedSword,
@@ -99,6 +100,7 @@ var buildWeaponry = map[BuildType][]WeaponClass{
 		Claw,
 		RuneDagger,
 		OneHandedSword,
+		ThrustingOneHandedSword,
 		Wand,
 		Bow,
 	},
@@ -107,6 +109,7 @@ var buildWeaponry = map[BuildType][]WeaponClass{
 		Quiver,
 		OneHandedSword,
 		TwoHandedSword,
+		ThrustingOneHandedSword,
 		Claw,
 		OneHandedAxe,
 	},
@@ -121,6 +124,7 @@ var buildWeaponry = map[BuildType][]WeaponClass{
 		TwoHandedSword,
 		OneHandedAxe,
 		TwoHandedAxe,
+		ThrustingOneHandedSword,
 		Bow,
 		Claw,
 	},
@@ -248,6 +252,10 @@ func IsWeaponAssociatedWithBuild(weapon model.ItemBase, characterBuild BuildType
 	}
 
 	weaponClass, ok := pobTypeToWeaponClass[weapon.Type]
+
+	if weaponClass == OneHandedSword && weapon.SubType == "Thrusting" {
+		weaponClass = ThrustingOneHandedSword
+	}
 
 	if !ok {
 		panic("unknown weapon type: " + weapon.Type)
