@@ -527,6 +527,7 @@ type AutomationGroup struct {
 	Style        config.Style
 	Tier         int
 	BaseTypes    []string
+	Rarity       *string
 }
 
 // GroupByProperties takes a slice of BaseTypeAutomationEntry and groups them
@@ -541,6 +542,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 	type groupKey struct {
 		StyleID      string
 		MinStackSize int
+		Rarity       *string
 	}
 
 	groupsMap := make(map[groupKey]*AutomationGroup)
@@ -559,6 +561,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 		key := groupKey{
 			StyleID:      style.Id,
 			MinStackSize: mssValue,
+			Rarity:       entry.Rarity,
 		}
 
 		if existingGroup, found := groupsMap[key]; found {
@@ -569,6 +572,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 				Style:        *style,
 				Tier:         entry.Priority,
 				BaseTypes:    []string{entry.BaseType},
+				Rarity:       entry.Rarity,
 			}
 			groupsMap[key] = newGroup
 		}
@@ -619,6 +623,7 @@ func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, paramete
 	for _, ruleGroup := range ruleGroups {
 		baseTypes := ruleGroup.BaseTypes
 		minStackSize := ruleGroup.MinStackSize
+		rarity := ruleGroup.Rarity
 		style := ruleGroup.Style
 
 		conditions := []model2.Condition{
@@ -634,6 +639,14 @@ func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, paramete
 				Identifier: "@stack_size",
 				Operator:   ">=",
 				Value:      []string{fmt.Sprintf("%d", *minStackSize)},
+			})
+		}
+
+		if rarity != nil {
+			conditions = append(conditions, model2.Condition{
+				Identifier: "@rarity",
+				Operator:   "==",
+				Value:      []string{*rarity},
 			})
 		}
 
