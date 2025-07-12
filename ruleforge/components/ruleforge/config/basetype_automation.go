@@ -15,6 +15,7 @@ type BaseTypeAutomationEntry struct {
 	MinStackSize *int
 	Style        string
 	Priority     int
+	Rarity       *string
 }
 
 // BaseTypeAutomationLoader is responsible for loading automation entries from a CSV file.
@@ -59,8 +60,8 @@ func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, erro
 			return nil, fmt.Errorf("error reading csv record: %w", err)
 		}
 
-		if len(record) != 5 {
-			return nil, fmt.Errorf("invalid record length: expected 5, got %d for record %v", len(record), record)
+		if len(record) != 6 {
+			return nil, fmt.Errorf("invalid record length: expected 6, got %d for record %v", len(record), record)
 		}
 
 		// --- Parse MinStackSize ---
@@ -71,6 +72,11 @@ func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, erro
 				return nil, fmt.Errorf("could not parse MinStackSize '%s' to int: %w", record[2], err)
 			}
 			minStackSize = &val
+		}
+
+		var rarity *string
+		if record[5] != "" {
+			rarity = &record[5]
 		}
 
 		// --- Parse Priority ---
@@ -86,6 +92,7 @@ func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, erro
 			MinStackSize: minStackSize,
 			Style:        record[3],
 			Priority:     tier,
+			Rarity:       rarity,
 		}
 		entries = append(entries, entry)
 	}

@@ -44,4 +44,16 @@ root {
 
     /* ========== Divination Cards ========== */
     --bg-div-cards: #8C7E46; /* aged parchment yellow/brown */
+
+    /* ========== Labyrinth Trinkets ========== */
+    --bg-trinkets: #3C3D44;  /* slate-gray/blue for labyrinth trinkets */
+
+    /* ========== Heist ========== */
+    --bg-heist: #2A2F33;
+    --heist-normal-border: #6B7378;
+    --heist-special-border: #8B6F47;
+
+    /* ========== Incursion ========== */
+    --bg-incursion: #4A2E2E;
+    --incursion-border: #8B3A3A;
 }

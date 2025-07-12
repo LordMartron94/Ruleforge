@@ -6,7 +6,9 @@
       "Minimap": {
         "Shape": "Diamond",
         "Color": "Purple"
-      }
+      },
+      "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\magic.mp3",
+      "DropVolume": 300
     },
     "Types": {
       "Greed":     { "TextColor": {"red": 153, "green": 136, "blue": 231, "alpha": 255}, "BorderColor": {"red": 153, "green": 136, "blue": 231, "alpha": 255} },
@@ -167,6 +169,85 @@
       "EssenceOfHysteria": { "Combination": [ "Essences/Base", "Essences/Types/Hysteria", "Essences/Tiers/Special" ] }
     }
   },
+  "MapFragments": {
+    "Base": {
+      "Comment": "The single, foundational style for ALL map fragments. Defines the shared background color.",
+      "BackgroundColor": {"red": 15, "green": 15, "blue": 25, "alpha": 255},
+      "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\level-up.mp3",
+      "DropVolume": 300
+    },
+    "Types": {
+      "Vaal":             { "TextColor": {"red": 107, "green": 49, "blue": 46, "alpha": 255}, "BorderColor": {"red": 107, "green": 49, "blue": 46, "alpha": 255} },
+      "Mortal":           { "TextColor": {"red": 42, "green": 67, "blue": 58, "alpha": 255}, "BorderColor": {"red": 42, "green": 67, "blue": 58, "alpha": 255} },
+      "PaleCouncil":      { "TextColor": {"red": 172, "green": 152, "blue": 167, "alpha": 255}, "BorderColor": {"red": 172, "green": 152, "blue": 167, "alpha": 255} },
+      "Shaper":           { "TextColor": {"red": 128, "green": 145, "blue": 127, "alpha": 255}, "BorderColor": {"red": 128, "green": 145, "blue": 127, "alpha": 255} },
+      "ElderGuardian":    { "TextColor": {"red": 44, "green": 88, "blue": 56, "alpha": 255}, "BorderColor": {"red": 44, "green": 88, "blue": 56, "alpha": 255} },
+      "Chimera":          { "TextColor": {"red": 122, "green": 20, "blue": 71, "alpha": 255}, "BorderColor": {"red": 122, "green": 20, "blue": 71, "alpha": 255} },
+      "Phoenix":          { "TextColor": {"red": 228, "green": 75, "blue": 28, "alpha": 255}, "BorderColor": {"red": 228, "green": 75, "blue": 28, "alpha": 255} },
+      "Minotaur":         { "TextColor": {"red": 103, "green": 75, "blue": 86, "alpha": 255}, "BorderColor": {"red": 103, "green": 75, "blue": 86, "alpha": 255} },
+      "Elder":            { "TextColor": {"red": 80, "green": 78, "blue": 84, "alpha": 255}, "BorderColor": {"red": 80, "green": 78, "blue": 84, "alpha": 255} },
+      "UberElder":        { "TextColor": {"red": 166, "green": 24, "blue": 20, "alpha": 255}, "BorderColor": {"red": 166, "green": 24, "blue": 20, "alpha": 255} },
+      "Reliquary":        { "TextColor": {"red": 196, "green": 156, "blue": 75, "alpha": 255}, "BorderColor": {"red": 196, "green": 156, "blue": 75, "alpha": 255} },
+      "Misc":             { "TextColor": {"red": 130, "green": 170, "blue": 189, "alpha": 255}, "BorderColor": {"red": 130, "green": 170, "blue": 189, "alpha": 255} },
+      "Ultimatum":        { "TextColor": {"red": 112, "green": 50, "blue": 17, "alpha": 255}, "BorderColor": {"red": 112, "green": 50, "blue": 17, "alpha": 255} },
+      "Blessings":        { "TextColor": {"red": 50, "green": 92, "blue": 235, "alpha": 255}, "BorderColor": {"red": 50, "green": 92, "blue": 235, "alpha": 255} },
+      "AlHezmin":         { "TextColor": {"red": 27, "green": 100, "blue": 21, "alpha": 255}, "BorderColor": {"red": 27, "green": 100, "blue": 21, "alpha": 255} },
+      "Baran":            { "TextColor": {"red": 125, "green": 15, "blue": 12, "alpha": 255}, "BorderColor": {"red": 125, "green": 15, "blue": 12, "alpha": 255} },
+      "Drox":             { "TextColor": {"red": 205, "green": 130, "blue": 31, "alpha": 255}, "BorderColor": {"red": 205, "green": 130, "blue": 31, "alpha": 255} },
+      "Veritania":        { "TextColor": {"red": 142, "green": 152, "blue": 175, "alpha": 255}, "BorderColor": {"red": 142, "green": 152, "blue": 175, "alpha": 255} }
+    },
+    "Tiers": {
+      "Standard": {
+        "FontSize": 42,
+        "Minimap": {"Size": 1, "Color": "Purple", "Shape": "Star"}
+      },
+      "Small": {
+        "FontSize": 32
+      }
+    },
+    "Final": {
+      "DivineVessel": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Misc", "MapFragments/Tiers/Standard" ] },
+      "OfferingToTheGoddess": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Misc", "MapFragments/Tiers/Standard" ] },
+      "RitualVessel": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Misc", "MapFragments/Tiers/Standard" ] },
+      "Simulacrum": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Misc", "MapFragments/Tiers/Standard" ] },
+      "AnAudienceWithTheKing": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Misc", "MapFragments/Tiers/Standard" ] },
+      "InscribedUltimatum": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Ultimatum", "MapFragments/Tiers/Standard" ] },
+      "TheMavensWrit": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Blessings", "MapFragments/Tiers/Standard" ] },
+      "SacredBlossom": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Blessings", "MapFragments/Tiers/Standard" ] },
+      "TributeToTheGoddess": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Blessings", "MapFragments/Tiers/Standard" ] },
+      "GiftToTheGoddess": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Blessings", "MapFragments/Tiers/Standard" ] },
+      "DedicationToTheGoddess": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Blessings", "MapFragments/Tiers/Standard" ] },
+      "AlHezminsCrest": { "Combination": [ "MapFragments/Base", "MapFragments/Types/AlHezmin", "MapFragments/Tiers/Standard" ] },
+      "BaransCrest": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Baran", "MapFragments/Tiers/Standard" ] },
+      "DroxsCrest": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Drox", "MapFragments/Tiers/Standard" ] },
+      "VeritaniasCrest": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Veritania", "MapFragments/Tiers/Standard" ] },
+      "SacrificeAtMidnight": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Vaal", "MapFragments/Tiers/Small" ] },
+      "SacrificeAtNoon": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Vaal", "MapFragments/Tiers/Small" ] },
+      "SacrificeAtDusk": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Vaal", "MapFragments/Tiers/Small" ] },
+      "SacrificeAtDawn": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Vaal", "MapFragments/Tiers/Small" ] },
+      "MortalGrief": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Mortal", "MapFragments/Tiers/Standard" ] },
+      "MortalRage": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Mortal", "MapFragments/Tiers/Standard" ] },
+      "MortalHope": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Mortal", "MapFragments/Tiers/Standard" ] },
+      "MortalIgnorance": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Mortal", "MapFragments/Tiers/Standard" ] },
+      "EbersKey": { "Combination": [ "MapFragments/Base", "MapFragments/Types/PaleCouncil", "MapFragments/Tiers/Standard" ] },
+      "YrielsKey": { "Combination": [ "MapFragments/Base", "MapFragments/Types/PaleCouncil", "MapFragments/Tiers/Standard" ] },
+      "InyasKey": { "Combination": [ "MapFragments/Base", "MapFragments/Types/PaleCouncil", "MapFragments/Tiers/Standard" ] },
+      "VolkuursKey": { "Combination": [ "MapFragments/Base", "MapFragments/Types/PaleCouncil", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfPurification": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Shaper", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfConstriction": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Shaper", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfEnslavement": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Shaper", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfEradication": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Shaper", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfTheHydra": { "Combination": [ "MapFragments/Base", "MapFragments/Types/ElderGuardian", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfTheChimera": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Chimera", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfThePhoenix": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Phoenix", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfTheMinotaur": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Minotaur", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfTerror": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Elder", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfEmptiness": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Elder", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfKnowledge": { "Combination": [ "MapFragments/Base", "MapFragments/Types/UberElder", "MapFragments/Tiers/Standard" ] },
+      "FragmentOfShape": { "Combination": [ "MapFragments/Base", "MapFragments/Types/UberElder", "MapFragments/Tiers/Standard" ] },
+      "ReliquaryKey": { "Combination": [ "MapFragments/Base", "MapFragments/Types/Reliquary", "MapFragments/Tiers/Standard" ] }
+    }
+  },
   "Oils": {
     "Base": {
       "Comment": "The single, foundational style for ALL oils. Defines the shared minimap icon.",
@@ -258,11 +339,37 @@
         "BackgroundColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
         "Minimap": {"Shape": "Hexagon"}
       },
+      "Rogue's Marker": {
+        "BorderColor": {"var": "gold"},
+        "BackgroundColor": {"var": "bg-heist"},
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\heist.mp3",
+        "Minimap": {"Shape": "Hexagon"}
+      },
+      "Contract": {
+        "BorderColor": {"var": "heist-normal-border"},
+        "BackgroundColor": {"var": "bg-heist"},
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\heist.mp3",
+        "Minimap": {"Shape": "Square"}
+      },
+      "Contract_Special": {
+        "BorderColor": {"var": "heist-special-border"},
+        "BackgroundColor": {"var": "bg-heist"},
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\heist.mp3",
+        "Minimap": {"Shape": "Square"}
+      },
+      "PassageStone": {
+        "BorderColor": {"var": "incursion-border"},
+        "BackgroundColor": {"var": "bg-incursion"},
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\incursion.mp3",
+        "Minimap": {"Shape": "Triangle"}
+      },
       "Divination": {
         "BackgroundColor": {"var": "bg-div-cards"},
         "Minimap": {
           "Shape": "Pentagon"
-        }
+        },
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\card.mp3",
+        "DropVolume": 300
       }
     },
     "Rarities": {
@@ -387,6 +494,10 @@
       "SkillGems": {
         "Minimap": { "Shape": "Cross" },
         "BackgroundColor": { "var": "bg-skill-gems" }
+      },
+      "Lab": {
+        "BackgroundColor": {"var":  "bg-trinkets"},
+        "Minimap": {"Shape": "Cross"}
       }
     }
   },
@@ -650,6 +761,32 @@
       }
     },
     "Leagues": {
+      "Rogue_Marker": {
+        "Combination": [
+          "Templates/Tiers/High/T4",
+          "Templates/Special/Rogue's Marker"
+        ]
+      },
+      "Contracts": {
+        "Bunker_Normal": {
+          "Combination": [
+            "Templates/Tiers/Mid/T6",
+            "Templates/Special/Contract"
+          ]
+        },
+        "Bunker_Magic": {
+          "Combination": [
+            "Templates/Tiers/Mid/T5",
+            "Templates/Special/Contract"
+          ]
+        },
+        "Bunker_Rare": {
+          "Combination": [
+            "Templates/Tiers/High/T4",
+            "Templates/Special/Contract"
+          ]
+        }
+      },
       "Gold_High": {
         "Combination": [
           "Templates/Special/Gold",
@@ -667,6 +804,14 @@
           "Templates/Special/Gold",
           "Templates/Tiers/Mid/T7"
         ]
+      },
+      "Incursion": {
+        "PassageStone": {
+          "Combination": [
+            "Templates/Tiers/High/T2",
+            "Templates/Special/PassageStone"
+          ]
+        }
       }
     },
     "Jewels": {
@@ -743,12 +888,60 @@
       }
     },
     "Divination": {
+      "T0": {
+        "Combination": [
+          "Templates/Tiers/Divine/T0",
+          "Templates/Special/Divination"
+        ]
+      },
+      "T1": {
+        "Combination": [
+          "Templates/Tiers/Divine/T1",
+          "Templates/Special/Divination"
+        ]
+      },
+      "T2": {
+        "Combination": [
+          "Templates/Tiers/High/T2",
+          "Templates/Special/Divination"
+        ]
+      },
+      "T3": {
+        "Combination": [
+          "Templates/Tiers/High/T3",
+          "Templates/Special/Divination"
+        ]
+      },
+      "T4": {
+        "Combination": [
+          "Templates/Tiers/High/T4",
+          "Templates/Special/Divination"
+        ]
+      },
+      "T5": {
+        "Combination": [
+          "Templates/Tiers/Mid/T5",
+          "Templates/Special/Divination"
+        ]
+      },
+      "T6": {
+        "Combination": [
+          "Templates/Tiers/Mid/T6",
+          "Templates/Special/Divination"
+        ]
+      },
       "Fallback": {
         "Combination": [
-          "Templates/Special/Divination",
-          "Templates/Tiers/High/T4"
+          "Templates/Tiers/High/T4",
+          "Templates/Special/Divination"
         ]
       }
+    },
+    "Lab": {
+      "Combination": [
+        "Templates/Groups/Lab",
+        "Templates/Tiers/High/T4"
+      ]
     }
   },
   "Fallback": {
