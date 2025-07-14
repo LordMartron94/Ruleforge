@@ -217,9 +217,9 @@ Div Cards,The Tower,,Final/Divination/T6,6,
 Div Cards,The Warden,,Final/Divination/T5,5,
 Div Cards,Hubris,,Final/Divination/T6,6,
 Heist,Rogue's Marker,,Final/Leagues/Rogue_Marker,1,
-Heist,Contract: Bunker,,Final/Leagues/Contracts/Bunker_Normal,4,Normal
-Heist,Contract: Bunker,,Final/Leagues/Contracts/Bunker_Magic,3,Magic
-Heist,Contract: Bunker,,Final/Leagues/Contracts/Bunker_Rare,2,Rare
+Heist,Contract: Bunker,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Bunker,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Bunker,,Final/Leagues/Contracts/Contract_Rare,2,Rare
 Div Cards,The Metalsmith's Gift,,Final/Divination/T5,5,
 Div Cards,The Hermit,,Final/Divination/T4,4,
 Div Cards,Shard of Fate,,Final/Divination/T5,5,
@@ -228,3 +228,58 @@ Div Cards,The Catalyst,,Final/Divination/T4,4,
 Div Cards,Destined to Crumble,,Final/Divination/T4,4,
 Div Cards,The Harvester,,Final/Divination/T3,3,
 Incursion,Stone of Passage,,Final/Leagues/Incursion/PassageStone,1,
+Div Cards,Rats,,Final/Divination/T3,3,
+Div Cards,The Lunaris Priestess,,Final/Divination/T3,3,
+Div Cards,Mitts,,Final/Divination/T5,5,
+Expedition,Burial Medallion,,Final/Leagues/Expedition/BurialMedallion,1,
+Heist,Contract: Records Office,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Records Office,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Records Office,,Final/Leagues/Contracts/Contract_Rare,2,Rare
+Heist,Contract: Smuggler's Den,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Smuggler's Den,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Smuggler's Den,,Final/Leagues/Contracts/Contract_Rare,2,Rare
+Heist,Contract: Laboratory,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Laboratory,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Laboratory,,Final/Leagues/Contracts/Contract_Rare,2,Rare
+Heist,Contract: Repository,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Repository,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Repository,,Final/Leagues/Contracts/Contract_Rare,2,Rare
+Heist,Contract: Prohibited Library,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Prohibited Library,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Prohibited Library,,Final/Leagues/Contracts/Contract_Rare,2,Rare
+Heist,Contract: Tunnels,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Tunnels,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Tunnels,,Final/Leagues/Contracts/Contract_Rare,2,Rare
+Heist,Contract: Underbelly,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Underbelly,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Underbelly,,Final/Leagues/Contracts/Contract_Rare,2,Rare
+Heist,Contract: Mansion,,Final/Leagues/Contracts/Contract_Normal,4,Normal
+Heist,Contract: Mansion,,Final/Leagues/Contracts/Contract_Magic,3,Magic
+Heist,Contract: Mansion,,Final/Leagues/Contracts/Contract_Rare,2,Rare
+Heist,Blueprint: Bunker,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Bunker,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Bunker,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Heist,Blueprint: Records Office,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Records Office,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Records Office,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Heist,Blueprint: Smuggler's Den,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Smuggler's Den,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Smuggler's Den,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Heist,Blueprint: Laboratory,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Laboratory,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Laboratory,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Heist,Blueprint: Repository,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Repository,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Repository,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Heist,Blueprint: Prohibited Library,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Prohibited Library,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Prohibited Library,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Heist,Blueprint: Tunnels,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Tunnels,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Tunnels,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Heist,Blueprint: Underbelly,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Underbelly,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Underbelly,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Heist,Blueprint: Mansion,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
+Heist,Blueprint: Mansion,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
+Heist,Blueprint: Mansion,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare

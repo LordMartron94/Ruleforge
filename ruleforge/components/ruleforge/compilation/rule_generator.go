@@ -672,6 +672,7 @@ var conditionOrder = map[string]int{
 	"@width":        7,
 	"@item_class":   9,
 	"@item_type":    10,
+	"@map_tier":     11,
 	"@rarity":       12,
 	"@area_level":   13,
 }

@@ -50,10 +50,18 @@ root {
 
     /* ========== Heist ========== */
     --bg-heist: #2A2F33;
-    --heist-normal-border: #6B7378;
-    --heist-special-border: #8B6F47;
+    --heist-contract-normal-border: #6B7378;
+    --heist-contract-special-border: #8B6F47;
+    --heist-blueprint-border: #5A6268;
 
     /* ========== Incursion ========== */
     --bg-incursion: #4A2E2E;
     --incursion-border: #8B3A3A;
+
+    /* ========== Expedition ========== */
+    --bg-expedition: #5A4B33;
+    --bd-expedition: #A68A5E;
+
+    /* ========== Maps ========== */
+    --bg-maps: #D9D1B8; /* pale parchment for all maps */
 }

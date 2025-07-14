@@ -346,13 +346,19 @@
         "Minimap": {"Shape": "Hexagon"}
       },
       "Contract": {
-        "BorderColor": {"var": "heist-normal-border"},
+        "BorderColor": {"var": "heist-contract-normal-border"},
         "BackgroundColor": {"var": "bg-heist"},
         "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\heist.mp3",
         "Minimap": {"Shape": "Square"}
       },
       "Contract_Special": {
-        "BorderColor": {"var": "heist-special-border"},
+        "BorderColor": {"var": "heist-contract-special-border"},
+        "BackgroundColor": {"var": "bg-heist"},
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\heist.mp3",
+        "Minimap": {"Shape": "Square"}
+      },
+      "Blueprint": {
+        "BorderColor": {"var": "heist-blueprint-border"},
         "BackgroundColor": {"var": "bg-heist"},
         "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\heist.mp3",
         "Minimap": {"Shape": "Square"}
@@ -369,6 +375,15 @@
           "Shape": "Pentagon"
         },
         "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\card.mp3",
+        "DropVolume": 300
+      },
+      "Expedition": {
+        "BackgroundColor": {"var": "bg-expedition"},
+        "BorderColor": {"var": "bd-expedition"},
+        "Minimap": {
+          "Shape": "Hexagon"
+        },
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\expedition.mp3",
         "DropVolume": 300
       }
     },
@@ -498,6 +513,10 @@
       "Lab": {
         "BackgroundColor": {"var":  "bg-trinkets"},
         "Minimap": {"Shape": "Cross"}
+      },
+      "Maps": {
+        "BackgroundColor": {"var": "bg-maps"},
+        "Minimap": {"Shape": "Diamond"}
       }
     }
   },
@@ -768,22 +787,42 @@
         ]
       },
       "Contracts": {
-        "Bunker_Normal": {
+        "Contract_Normal": {
           "Combination": [
             "Templates/Tiers/Mid/T6",
             "Templates/Special/Contract"
           ]
         },
-        "Bunker_Magic": {
+        "Contract_Magic": {
           "Combination": [
             "Templates/Tiers/Mid/T5",
             "Templates/Special/Contract"
           ]
         },
-        "Bunker_Rare": {
+        "Contract_Rare": {
           "Combination": [
             "Templates/Tiers/High/T4",
             "Templates/Special/Contract"
+          ]
+        }
+      },
+      "Blueprints": {
+        "Blueprint_Normal": {
+          "Combination": [
+            "Templates/Tiers/Mid/T6",
+            "Templates/Special/Blueprint"
+          ]
+        },
+        "Blueprint_Magic": {
+          "Combination": [
+            "Templates/Tiers/Mid/T5",
+            "Templates/Special/Blueprint"
+          ]
+        },
+        "Blueprint_Rare": {
+          "Combination": [
+            "Templates/Tiers/High/T4",
+            "Templates/Special/Blueprint"
           ]
         }
       },
@@ -810,6 +849,14 @@
           "Combination": [
             "Templates/Tiers/High/T2",
             "Templates/Special/PassageStone"
+          ]
+        }
+      },
+      "Expedition": {
+        "BurialMedallion": {
+          "Combination": [
+            "Templates/Tiers/High/T4",
+            "Templates/Special/Expedition"
           ]
         }
       }
@@ -942,6 +989,162 @@
         "Templates/Groups/Lab",
         "Templates/Tiers/High/T4"
       ]
+    },
+    "Maps": {
+      "LowTierNormalT1T2": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/Mid/T5",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "LowTierMagicT1T2": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/Mid/T5",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "LowTierRareT1T2": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/Mid/T5",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "LowTierNormalT3T4": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/High/T4",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "LowTierMagicT3T4": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/High/T4",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "LowTierRareT3T4": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/High/T4",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "LowTierNormalT5": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/High/T3",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "LowTierMagicT5": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/High/T3",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "LowTierRareT5": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/High/T3",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "MidTierNormalT6T7": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/High/T3",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "MidTierMagicT6T7": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/High/T3",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "MidTierRareT6T7": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/High/T3",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "MidTierNormalT8T10": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/High/T2",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "MidTierMagicT8T10": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/High/T2",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "MidTierRareT8T10": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/High/T2",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "TopTierNormalT11T16": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/Divine/T1",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "TopTierMagicT11T16": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/Divine/T1",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "TopTierRareT11T16": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/Divine/T1",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "SpecialNormalT17": {
+        "Combination": [
+          "Templates/Rarities/Normal",
+          "Templates/Tiers/Divine/T0",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "SpecialMagicT17": {
+        "Combination": [
+          "Templates/Rarities/Magic",
+          "Templates/Tiers/Divine/T0",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "SpecialRareT17": {
+        "Combination": [
+          "Templates/Rarities/Rare",
+          "Templates/Tiers/Divine/T0",
+          "Templates/Groups/Maps"
+        ]
+      },
+      "UniqueMaps": {
+        "Combination": [
+          "Templates/Rarities/Unique",
+          "Templates/Tiers/Divine/T0",
+          "Templates/Groups/Maps"
+        ]
+      }
     }
   },
   "Fallback": {
