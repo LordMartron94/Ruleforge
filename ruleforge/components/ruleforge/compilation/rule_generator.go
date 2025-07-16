@@ -528,12 +528,15 @@ type AutomationGroup struct {
 	Tier         int
 	BaseTypes    []string
 	Rarity       *string
+	Hide         bool
 }
 
 // GroupByProperties takes a slice of BaseTypeAutomationEntry and groups them
 // by StyleID, Priority, and MinStackSize.
 // The final result is a slice of
 // AutomationGroup, sorted by Priority in ascending order.
+//
+//goland:noinspection t
 func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *StyleManager) []AutomationGroup {
 	if len(entries) == 0 {
 		return []AutomationGroup{}
@@ -543,6 +546,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 		StyleID      string
 		MinStackSize int
 		Rarity       *string
+		Hide         bool
 	}
 
 	groupsMap := make(map[groupKey]*AutomationGroup)
@@ -562,6 +566,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 			StyleID:      style.Id,
 			MinStackSize: mssValue,
 			Rarity:       entry.Rarity,
+			Hide:         entry.Hide,
 		}
 
 		if existingGroup, found := groupsMap[key]; found {
@@ -573,6 +578,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 				Tier:         entry.Priority,
 				BaseTypes:    []string{entry.BaseType},
 				Rarity:       entry.Rarity,
+				Hide:         entry.Hide,
 			}
 			groupsMap[key] = newGroup
 		}
@@ -651,9 +657,16 @@ func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, paramete
 			})
 		}
 
+		var ruleAction model2.RuleType
+		if ruleGroup.Hide {
+			ruleAction = model2.HideRule
+		} else {
+			ruleAction = model2.ShowRule
+		}
+
 		rule := &model2.ParsedRule{
 			Style:          &style,
-			Action:         model2.ShowRule,
+			Action:         ruleAction,
 			Conditions:     conditions,
 			Variables:      variables,
 			ValidBaseTypes: rg.validBaseTypes,
@@ -678,6 +691,7 @@ var conditionOrder = map[string]int{
 	"@area_level":   13,
 }
 
+//goland:noinspection t
 func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionConditions []model2.Condition, buildType BuildType) [][]string {
 	var macroConditions []model2.Condition
 	var standardRuleConditions []model2.Condition

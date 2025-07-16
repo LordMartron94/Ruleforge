@@ -16,6 +16,7 @@ type BaseTypeAutomationEntry struct {
 	Style        string
 	Priority     int
 	Rarity       *string
+	Hide         bool
 }
 
 // BaseTypeAutomationLoader is responsible for loading automation entries from a CSV file.
@@ -29,6 +30,8 @@ func NewBaseTypeAutomationLoader(filePath string) *BaseTypeAutomationLoader {
 }
 
 // Load reads and parses the CSV file, returning a slice of BaseTypeAutomationEntry.
+//
+//goland:noinspection t
 func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, error) {
 	// Open the CSV file
 	file, err := os.Open(loader.filePath)
@@ -60,8 +63,8 @@ func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, erro
 			return nil, fmt.Errorf("error reading csv record: %w", err)
 		}
 
-		if len(record) != 6 {
-			return nil, fmt.Errorf("invalid record length: expected 6, got %d for record %v", len(record), record)
+		if len(record) != 7 {
+			return nil, fmt.Errorf("invalid record length: expected 7, got %d for record %v", len(record), record)
 		}
 
 		// --- Parse MinStackSize ---
@@ -79,6 +82,13 @@ func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, erro
 			rarity = &record[5]
 		}
 
+		var hide bool
+		if record[6] == "True" {
+			hide = true
+		} else {
+			hide = false
+		}
+
 		// --- Parse Priority ---
 		tier, err := strconv.Atoi(record[4])
 		if err != nil {
@@ -93,6 +103,7 @@ func (loader *BaseTypeAutomationLoader) Load() (*[]BaseTypeAutomationEntry, erro
 			Style:        record[3],
 			Priority:     tier,
 			Rarity:       rarity,
+			Hide:         hide,
 		}
 		entries = append(entries, entry)
 	}
