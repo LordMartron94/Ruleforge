@@ -142,7 +142,7 @@ func (rg *RuleGenerator) handleMacroExpression(
 	case "skill_gem_tiering":
 		return rg.handleGemTiering(variables, parameters, buildType), nil
 	case "handle_csv":
-		return rg.handleCSVMacro(variables, parameters, buildType), nil
+		return rg.handleCSVMacro(variables, parameters, buildType, sectionConditions), nil
 	default:
 		return nil, fmt.Errorf("unsupported macro type: %s", macroType)
 	}
@@ -590,7 +590,8 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 	return groupedResult
 }
 
-func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], buildType BuildType) [][]string {
+//goland:noinspection t
+func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], buildType BuildType, sectionConditions []model2.Condition) [][]string {
 	allGeneratedRules := make([][]string, 0)
 
 	category := ""
@@ -658,7 +659,7 @@ func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, paramete
 			ValidBaseTypes: rg.validBaseTypes,
 		}
 
-		allGeneratedRules = append(allGeneratedRules, rg.compileParsedRule(rule, []model2.Condition{}, buildType)...)
+		allGeneratedRules = append(allGeneratedRules, rg.compileParsedRule(rule, sectionConditions, buildType)...)
 	}
 
 	return allGeneratedRules
