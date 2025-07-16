@@ -6,7 +6,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing"
 	shared3 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/rules/shared"
-	shared2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
+	parseShared "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"io"
 )
 
@@ -29,7 +29,7 @@ func (fh *FileHandler[T]) Lex() ([]*shared.Token[T], error) {
 	return fh.lexer.GetTokens()
 }
 
-func (fh *FileHandler[T]) Parse() (*shared2.ParseTree[T], error) {
+func (fh *FileHandler[T]) Parse() (*parseShared.ParseTree[T], error) {
 	return fh.parser.Parse()
 }
 

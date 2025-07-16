@@ -24,6 +24,7 @@ const (
 	ParseSymbolCombinedValue       ParseSymbol = "CombinedValue"
 	ParseSymbolChainedValues       ParseSymbol = "ChainedValues"
 	ParseSymbolFullValueExpression ParseSymbol = "FullValueExpression"
+	ParseSymbolImport              ParseSymbol = "Import"
 
 	// --- Common Grammatical Roles ---
 	ParseSymbolKey           ParseSymbol = "Key"

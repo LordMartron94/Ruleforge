@@ -53,6 +53,7 @@ const (
 	DescriptionAssignmentKeywordToken
 	RuleKeywordToken
 	BuildKeywordToken
+	ImportKeywordToken
 
 	// CLASSES
 	MeleeSpellHybridBuildToken

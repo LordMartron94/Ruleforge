@@ -6,6 +6,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -259,7 +260,13 @@ func (a *App) lexAndParse(file *os.File) (*shared.ParseTree[symbols.LexingTokenT
 	if err != nil {
 		return nil, fmt.Errorf("parsing failed: %w", err)
 	}
-	return tree, nil
+	resolvedImportsTree, err := a.ResolveImports(tree)
+
+	if err != nil {
+		return nil, fmt.Errorf("resolving imports failed: %w", err)
+	}
+
+	return resolvedImportsTree, nil
 }
 
 func (a *App) postProcess(tree *shared.ParseTree[symbols.LexingTokenType]) *shared.ParseTree[symbols.LexingTokenType] {
@@ -383,6 +390,67 @@ func (a *App) extractUniqueBases(pobDataPath string) ([]model.Unique, error) {
 	allUniques = append(allUniques, generatedUniques...)
 
 	return allUniques, nil
+}
+
+// --- Imports ---
+
+//goland:noinspection t
+func (a *App) ResolveImports(node *shared.ParseTree[symbols.LexingTokenType]) (*shared.ParseTree[symbols.LexingTokenType], error) {
+	if node.Symbol != symbols.ParseSymbolImport.String() && len(node.Children) == 0 {
+		return node, nil
+	} else if node.Symbol != symbols.ParseSymbolImport.String() && len(node.Children) > 0 {
+		resolvedNode := &shared.ParseTree[symbols.LexingTokenType]{
+			Symbol:   node.Symbol,
+			Token:    node.Token,
+			Children: make([]*shared.ParseTree[symbols.LexingTokenType], 0),
+		}
+
+		for _, child := range node.Children {
+			resolvedChild, err := a.ResolveImports(child)
+
+			if err != nil {
+				return nil, err
+			}
+
+			resolvedNode.Children = append(resolvedNode.Children, resolvedChild)
+		}
+
+		return resolvedNode, nil
+	}
+
+	if node.Symbol == symbols.ParseSymbolImport.String() {
+		importFileNameNode := node.FindSymbolNode(symbols.ParseSymbolValue.String())
+		importFileName := importFileNameNode.Token.ValueToString()
+
+		importFilePath := path.Join(a.config.RuleforgeInputDir, importFileName)
+
+		file, err := a.openScript(importFilePath)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+
+		handler := common_compiler.NewFileHandler(
+			file,
+			rules.GetLexingRules(),
+			rules.GetParsingRules(),
+			symbols.IgnoreToken,
+		)
+
+		_, err = handler.Lex()
+		if err != nil {
+			return nil, err
+		}
+
+		parsed, err := handler.Parse()
+		if err != nil {
+			return nil, err
+		}
+
+		return a.ResolveImports(parsed)
+	}
+
+	return nil, fmt.Errorf("something went wrong when importing symbol '%s'", node.Symbol)
 }
 
 // --- File I/O Helpers ---

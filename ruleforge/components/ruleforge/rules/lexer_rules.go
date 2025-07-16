@@ -101,6 +101,7 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"DESCRIPTION", symbols.DescriptionAssignmentKeywordToken, "DescriptionAssignmentKeywordToken"},
 		{"EQUIPMENT", symbols.IdentifierValueToken, "IdentifierValueToken"},
 		{"RULES", symbols.RuleKeywordToken, "RuleKeywordToken"},
+		{"IMPORT", symbols.ImportKeywordToken, "ImportKeywordToken"},
 
 		// Conditions
 		{"@area_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},

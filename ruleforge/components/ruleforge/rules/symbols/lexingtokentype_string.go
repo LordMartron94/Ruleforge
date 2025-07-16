@@ -47,20 +47,21 @@ func _() {
 	_ = x[DescriptionAssignmentKeywordToken-36]
 	_ = x[RuleKeywordToken-37]
 	_ = x[BuildKeywordToken-38]
-	_ = x[MeleeSpellHybridBuildToken-39]
-	_ = x[MeleeDexHybridBuildToken-40]
-	_ = x[SpellDexHybridBuildToken-41]
-	_ = x[MeleeBuildToken-42]
-	_ = x[SpellBuildToken-43]
-	_ = x[DexBuildToken-44]
-	_ = x[DotToken-45]
-	_ = x[FunctionKeywordToken-46]
-	_ = x[StyleOverrideToken-47]
+	_ = x[ImportKeywordToken-39]
+	_ = x[MeleeSpellHybridBuildToken-40]
+	_ = x[MeleeDexHybridBuildToken-41]
+	_ = x[SpellDexHybridBuildToken-42]
+	_ = x[MeleeBuildToken-43]
+	_ = x[SpellBuildToken-44]
+	_ = x[DexBuildToken-45]
+	_ = x[DotToken-46]
+	_ = x[FunctionKeywordToken-47]
+	_ = x[StyleOverrideToken-48]
 }
 
-const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenNumberTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenVariableReferenceTokenOpenCurlyBracketTokenCloseCurlyBracketTokenOpenSquareBracketTokenCloseSquareBracketTokenAssignmentOperatorTokenChainOperatorTokenGreaterThanOrEqualOperatorTokenLessThanOrEqualOperatorTokenGreaterThanOperatorTokenLessThanOperatorTokenExactMatchOperatorTokenStyleCombineTokenRuleStrictnessIndicatorTokenNotEqualToOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenSectionConditionsKeywordTokenConditionAssignmentKeywordTokenConditionKeywordTokenSectionKeywordTokenDescriptionAssignmentKeywordTokenRuleKeywordTokenBuildKeywordTokenMeleeSpellHybridBuildTokenMeleeDexHybridBuildTokenSpellDexHybridBuildTokenMeleeBuildTokenSpellBuildTokenDexBuildTokenDotTokenFunctionKeywordTokenStyleOverrideToken"
+const _LexingTokenType_name = "IgnoreTokenNewLineTokenWhitespaceTokenNumberTokenLetterTokenIdentifierKeyTokenIdentifierValueTokenVariableReferenceTokenOpenCurlyBracketTokenCloseCurlyBracketTokenOpenSquareBracketTokenCloseSquareBracketTokenAssignmentOperatorTokenChainOperatorTokenGreaterThanOrEqualOperatorTokenLessThanOrEqualOperatorTokenGreaterThanOperatorTokenLessThanOperatorTokenExactMatchOperatorTokenStyleCombineTokenRuleStrictnessIndicatorTokenNotEqualToOperatorTokenMetadataKeywordTokenNameKeywordTokenVersionKeywordTokenStrictnessKeywordTokenAllKeywordTokenSoftKeywordTokenSemiStrictKeywordTokenStrictKeywordTokenSuperStrictKeywordTokenVariableKeywordTokenSectionConditionsKeywordTokenConditionAssignmentKeywordTokenConditionKeywordTokenSectionKeywordTokenDescriptionAssignmentKeywordTokenRuleKeywordTokenBuildKeywordTokenImportKeywordTokenMeleeSpellHybridBuildTokenMeleeDexHybridBuildTokenSpellDexHybridBuildTokenMeleeBuildTokenSpellBuildTokenDexBuildTokenDotTokenFunctionKeywordTokenStyleOverrideToken"
 
-var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 49, 60, 78, 98, 120, 141, 163, 185, 208, 231, 249, 280, 308, 332, 353, 376, 393, 421, 444, 464, 480, 499, 521, 536, 552, 574, 592, 615, 635, 664, 695, 716, 735, 768, 784, 801, 827, 851, 875, 890, 905, 918, 926, 946, 964}
+var _LexingTokenType_index = [...]uint16{0, 11, 23, 38, 49, 60, 78, 98, 120, 141, 163, 185, 208, 231, 249, 280, 308, 332, 353, 376, 393, 421, 444, 464, 480, 499, 521, 536, 552, 574, 592, 615, 635, 664, 695, 716, 735, 768, 784, 801, 819, 845, 869, 893, 908, 923, 936, 944, 964, 982}
 
 func (i LexingTokenType) String() string {
 	if i < 0 || i >= LexingTokenType(len(_LexingTokenType_index)-1) {

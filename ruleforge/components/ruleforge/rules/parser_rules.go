@@ -43,11 +43,20 @@ func GetParsingRules() []shared.ParsingRuleInterface[symbols.LexingTokenType] {
 		metadataRule(symbols.ParseSymbolRootMetadata),
 		sectionRule(),
 		variableRule(),
+		importRule(),
 		// Fallbacks for any remaining standalone tokens.
 		atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespace.String(), symbols.NewLineToken),
 		atomic.NewSingleTokenRule(symbols.ParseSymbolWhitespace.String(), symbols.WhitespaceToken),
 		conditional.NewAnyTokenRule[symbols.LexingTokenType](symbols.ParseSymbolAny.String()),
 	}
+}
+
+func importRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
+	return seq(
+		symbols.ParseSymbolImport,
+		token(symbols.ParseSymbolKey, symbols.ImportKeywordToken),
+		token(symbols.ParseSymbolValue, symbols.IdentifierValueToken),
+	)
 }
 
 // --- High-Level Section Rules ---
@@ -71,7 +80,6 @@ func metadataRule(metadataSymbol symbols.ParseSymbol) shared.ParsingRuleInterfac
 	)
 }
 
-// REFACTORED: Now uses the `seq` helper for consistency and readability.
 func sectionRule() shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	sectionContent := composite.NewRepetitionRule[symbols.LexingTokenType](
 		symbols.ParseSymbolSectionContent.String(),
@@ -367,7 +375,6 @@ func makeChainedRule(
 	)
 }
 
-// (The rest of your helper functions remain the same)
 func makeAssignmentRule(sym symbols.ParseSymbol, keyToken symbols.LexingTokenType, valueRule shared.ParsingRuleInterface[symbols.LexingTokenType]) shared.ParsingRuleInterface[symbols.LexingTokenType] {
 	return seq(sym,
 		token(symbols.ParseSymbolKey, keyToken),
