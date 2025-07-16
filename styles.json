@@ -385,6 +385,15 @@
         },
         "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\expedition.mp3",
         "DropVolume": 300
+      },
+      "Breach": {
+        "BackgroundColor": {"var": "bg-breach"},
+        "BorderColor": {"var": "bd-breach"},
+        "Minimap": {
+          "Shape": "Diamond"
+        },
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\breach.mp3",
+        "DropVolume": 300
       }
     },
     "Rarities": {
@@ -806,6 +815,12 @@
           ]
         }
       },
+      "Heist": {
+        "Combination": [
+          "Templates/Tiers/High/T3",
+          "Templates/Special/Contract"
+        ]
+      },
       "Blueprints": {
         "Blueprint_Normal": {
           "Combination": [
@@ -855,8 +870,61 @@
       "Expedition": {
         "BurialMedallion": {
           "Combination": [
-            "Templates/Tiers/High/T4",
+            "Templates/Tiers/Mid/T5",
             "Templates/Special/Expedition"
+          ]
+        },
+        "LogBookNormal": {
+          "Combination": [
+            "Templates/Tiers/Mid/T6",
+            "Templates/Special/Expedition",
+            "Templates/Rarities/Normal"
+          ]
+        },
+        "LogBookMagic": {
+          "Combination": [
+            "Templates/Tiers/Mid/T5",
+            "Templates/Special/Expedition",
+            "Templates/Rarities/Magic"
+          ]
+        },
+        "LogBookRare": {
+          "Combination": [
+            "Templates/Tiers/High/T4",
+            "Templates/Special/Expedition",
+            "Templates/Rarities/Rare"
+          ]
+        }
+      },
+      "Breach": {
+        "T1": {
+          "Combination": [
+            "Templates/Tiers/Divine/T0",
+            "Templates/Special/Breach"
+          ]
+        },
+        "T2": {
+          "Combination": [
+            "Templates/Tiers/Divine/T1",
+            "Templates/Special/Breach"
+          ]
+        },
+        "T3": {
+          "Combination": [
+            "Templates/Tiers/High/T2",
+            "Templates/Special/Breach"
+          ]
+        },
+        "T4": {
+          "Combination": [
+            "Templates/Tiers/High/T3",
+            "Templates/Special/Breach"
+          ]
+        },
+        "T5": {
+          "Combination": [
+            "Templates/Tiers/High/T4",
+            "Templates/Special/Breach"
           ]
         }
       }

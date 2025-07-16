@@ -64,4 +64,8 @@ root {
 
     /* ========== Maps ========== */
     --bg-maps: #D9D1B8; /* pale parchment for all maps */
+
+    /* ========== Breach ========== */
+    --bg-breach: #2A1A4F;
+    --bd-breach: #B521DAFF;
 }

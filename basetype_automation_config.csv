@@ -227,11 +227,17 @@ Div Cards,Loyalty,,Final/Divination/T5,5,
 Div Cards,The Catalyst,,Final/Divination/T4,4,
 Div Cards,Destined to Crumble,,Final/Divination/T4,4,
 Div Cards,The Harvester,,Final/Divination/T3,3,
+Div Cards,The Ruthless Ceinture,,Final/Divination/T4,4,
+Div Cards,Volatile Power,,Final/Divination/T2,2,
 Incursion,Stone of Passage,,Final/Leagues/Incursion/PassageStone,1,
 Div Cards,Rats,,Final/Divination/T3,3,
 Div Cards,The Lunaris Priestess,,Final/Divination/T3,3,
 Div Cards,Mitts,,Final/Divination/T5,5,
+Div Cards,The Beast,,Final/Divination/T3,3,
 Expedition,Burial Medallion,,Final/Leagues/Expedition/BurialMedallion,1,
+Expedition,Expedition Logbook,,Final/Leagues/Expedition/LogBookNormal,4,Normal
+Expedition,Expedition Logbook,,Final/Leagues/Expedition/LogBookMagic,3,Magic
+Expedition,Expedition Logbook,,Final/Leagues/Expedition/LogBookRare,2,Rare
 Heist,Contract: Records Office,,Final/Leagues/Contracts/Contract_Normal,4,Normal
 Heist,Contract: Records Office,,Final/Leagues/Contracts/Contract_Magic,3,Magic
 Heist,Contract: Records Office,,Final/Leagues/Contracts/Contract_Rare,2,Rare
@@ -283,3 +289,16 @@ Heist,Blueprint: Underbelly,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
 Heist,Blueprint: Mansion,,Final/Leagues/Blueprints/Blueprint_Normal,4,Normal
 Heist,Blueprint: Mansion,,Final/Leagues/Blueprints/Blueprint_Magic,3,Magic
 Heist,Blueprint: Mansion,,Final/Leagues/Blueprints/Blueprint_Rare,2,Rare
+Breach,Splinter of Chayula,,Final/Leagues/Breach/T1,1,
+Breach,Splinter of Esh,,Final/Leagues/Breach/T4,4,
+Breach,Splinter of Tul,,Final/Leagues/Breach/T4,4,
+Breach,Splinter of Uul-Netol,,Final/Leagues/Breach/T2,2,
+Breach,Splinter of Xoph,,Final/Leagues/Breach/T4,4,
+Breach,Timeless Eternal Empire Splinter,,Final/Leagues/Breach/T4,4,
+Breach,Timeless Karui Splinter,,Final/Leagues/Breach/T3,3,
+Breach,Timeless Maraketh Splinter,,Final/Leagues/Breach/T3,3,
+Breach,Timeless Templar Splinter,,Final/Leagues/Breach/T4,4,
+Breach,Timeless Vaal Splinter,,Final/Leagues/Breach/T4,4,
+Breach,Simulacrum Splinter,,Final/Leagues/Breach/T1,1,
+Breach,Ritual Splinter,,Final/Leagues/Breach/T4,4,
+Breach,Crescent Splinter,,Final/Leagues/Breach/T1,1,
