@@ -68,4 +68,8 @@ root {
     /* ========== Breach ========== */
     --bg-breach: #2A1A4F;
     --bd-breach: #B521DAFF;
+
+    /* ========== Scarabs ========== */
+    --bg-scarabs: #6B5E33;
+    --bd-scarabs: #8B6F47;
 }

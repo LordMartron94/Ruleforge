@@ -526,6 +526,13 @@
       "Maps": {
         "BackgroundColor": {"var": "bg-maps"},
         "Minimap": {"Shape": "Diamond"}
+      },
+      "Scarabs": {
+        "BackgroundColor": {"var": "bg-scarabs"},
+        "BorderColor": {"var": "bd-scarabs"},
+        "Minimap": {"Shape": "Triangle"},
+        "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\scarab.mp3",
+        "DropVolume": 300
       }
     }
   },
@@ -1211,6 +1218,32 @@
           "Templates/Rarities/Unique",
           "Templates/Tiers/Divine/T0",
           "Templates/Groups/Maps"
+        ]
+      }
+    },
+    "Scarabs": {
+      "T1": {
+        "Combination": [
+          "Templates/Tiers/High/T2",
+          "Templates/Groups/Scarabs"
+        ]
+      },
+      "T2": {
+        "Combination": [
+          "Templates/Tiers/High/T3",
+          "Templates/Groups/Scarabs"
+        ]
+      },
+      "T3": {
+        "Combination": [
+          "Templates/Tiers/High/T4",
+          "Templates/Groups/Scarabs"
+        ]
+      },
+      "T4": {
+        "Combination": [
+          "Templates/Tiers/Mid/T5",
+          "Templates/Groups/Scarabs"
         ]
       }
     }
