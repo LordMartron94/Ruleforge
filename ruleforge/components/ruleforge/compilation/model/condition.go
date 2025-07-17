@@ -8,16 +8,21 @@ import (
 )
 
 var conditionIdentifierToCompiledIdentifier = map[string]string{
-	"@area_level":   "AreaLevel",
-	"@stack_size":   "StackSize",
-	"@item_type":    "BaseType",
-	"@item_class":   "Class",
-	"@rarity":       "Rarity",
-	"@sockets":      "Sockets",
-	"@socket_group": "SocketGroup",
-	"@height":       "Height",
-	"@width":        "Width",
-	"@map_tier":     "MapTier",
+	"@area_level":         "AreaLevel",
+	"@stack_size":         "StackSize",
+	"@item_type":          "BaseType",
+	"@item_class":         "Class",
+	"@rarity":             "Rarity",
+	"@sockets":            "Sockets",
+	"@socket_group":       "SocketGroup",
+	"@height":             "Height",
+	"@width":              "Width",
+	"@map_tier":           "MapTier",
+	"@quality":            "Quality",
+	"@corrupted":          "Corrupted",
+	"@base_armour":        "BaseArmour",
+	"@base_evasion":       "BaseEvasion",
+	"@base_energy_shield": "BaseEnergyShield",
 }
 
 type Condition struct {

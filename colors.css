@@ -18,11 +18,19 @@ root {
     /* OTHER */
     --purple: #B521DAFF; /* RGB Border */
 
-    --green: #5B8C5AFF; /* 3 link */
-    --green-alt: #4CAF50FF; /* 4 link */
+    --green: #5B8C5AFF; /* 3 link Border */
+    --green-alt: #4CAF50FF; /* 4 link Border */
 
-    --blue-alt3: #00FFFFFF; /* 6 link */
-    --blue-alt4: #208080FF; /* 4 socket */
+    --blue-alt3: #00FFFFFF; /* 6 link Border */
+    --blue-alt4: #208080FF; /* 4 socket Border */
+    --blue-alt5: #11CCCCFF; /* 6 Socket Border */
+
+    --bd-max-quality: #F28C38FF;
+    --bd-mid-quality: #BF7A3DFF;
+    --bd-low-quality: #8C6239FF;
+
+    --bd-max-rolled: #000000FF;
+    --bd-corrupted: #ffa600;
 
     /* ========== Equipment ========== */
     --bg-current-equipment:        #1E2E4F; /* mid-tone navy (active gear) */

@@ -315,6 +315,17 @@
   },
   "Templates": {
     "Special": {
+      "Quality": {
+        "Max": {
+          "BorderColor": {"var": "bd-max-quality"}
+        },
+        "Mid": {
+          "BorderColor": {"var": "bd-mid-quality"}
+        },
+        "Low": {
+          "BorderColor": {"var": "bd-low-quality"}
+        }
+      },
       "Vendor": {
         "RGB": {
           "BorderColor": {"var": "purple"}
@@ -332,6 +343,9 @@
         },
         "4-socket": {
           "BorderColor": {"var": "blue-alt4"}
+        },
+        "6-socket": {
+          "BorderColor": {"var": "blue-alt5"}
         }
       },
       "Gold": {
@@ -394,6 +408,12 @@
         },
         "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\breach.mp3",
         "DropVolume": 300
+      },
+      "Corrupted": {
+        "BorderColor": {"var": "bd-corrupted"}
+      },
+      "MaxRolled": {
+        "BorderColor": {"var": "bd-max-rolled"}
       }
     },
     "Rarities": {
@@ -532,7 +552,7 @@
         "BorderColor": {"var": "bd-scarabs"},
         "Minimap": {"Shape": "Triangle"},
         "DropSound": "D:\\[01] Media\\[05] Audio\\PoE Filter Sounds\\scarab.mp3",
-        "DropVolume": 300
+        "DropVolume": 150
       }
     }
   },
@@ -593,6 +613,20 @@
         "Combination": [
           "Templates/Rarities/Rare",
           "Templates/Tiers/Mid/T7",
+          "Templates/Groups/CurrentEquipment"
+        ]
+      },
+      "Corrupted": {
+        "Combination": [
+          "Templates/Special/Corrupted",
+          "Templates/Tiers/Mid/T6",
+          "Templates/Groups/CurrentEquipment"
+        ]
+      },
+      "MaxRolled": {
+        "Combination": [
+          "Templates/Special/MaxRolled",
+          "Templates/Tiers/Mid/T5",
           "Templates/Groups/CurrentEquipment"
         ]
       }
@@ -792,6 +826,45 @@
             "Templates/Groups/CurrentEquipment",
             "Templates/Tiers/Mid/T5"
           ]
+        },
+        "6-socket": {
+          "Combination": [
+            "Templates/Special/Sockets/6-socket",
+            "Templates/Groups/CurrentEquipment",
+            "Templates/Tiers/High/T3"
+          ]
+        }
+      },
+      "Quality": {
+        "MaxQualityFlask": {
+          "Combination": [
+            "Templates/Groups/CurrentFlasks",
+            "Templates/Tiers/Mid/T5",
+            "Templates/Special/Quality/Max"
+          ]
+        },
+        "Gems": {
+          "Max": {
+            "Combination": [
+              "Templates/Groups/SkillGems",
+              "Templates/Tiers/High/T3",
+              "Templates/Special/Quality/Max"
+            ]
+          },
+          "Mid": {
+            "Combination": [
+              "Templates/Groups/SkillGems",
+              "Templates/Tiers/High/T4",
+              "Templates/Special/Quality/Max"
+            ]
+          },
+          "Low": {
+            "Combination": [
+              "Templates/Groups/SkillGems",
+              "Templates/Tiers/Mid/T5",
+              "Templates/Special/Quality/Max"
+            ]
+          }
         }
       }
     },

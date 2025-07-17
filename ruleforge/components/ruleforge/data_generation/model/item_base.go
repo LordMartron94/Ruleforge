@@ -2,19 +2,19 @@ package model
 
 // ArmourProperties holds data specific to armour pieces.
 type ArmourProperties struct {
-	EvasionBaseMin      float64 `json:"evasionBaseMin,omitempty"`
-	EvasionBaseMax      float64 `json:"evasionBaseMax,omitempty"`
-	ArmourBaseMin       float64 `json:"armourBaseMin,omitempty"`
-	ArmourBaseMax       float64 `json:"armourBaseMax,omitempty"`
-	EnergyShieldBaseMin float64 `json:"energyShieldBaseMin,omitempty"`
-	EnergyShieldBaseMax float64 `json:"energyShieldBaseMax,omitempty"`
+	EvasionBaseMin      int     `json:"evasionBaseMin,omitempty"`
+	EvasionBaseMax      int     `json:"evasionBaseMax,omitempty"`
+	ArmourBaseMin       int     `json:"armourBaseMin,omitempty"`
+	ArmourBaseMax       int     `json:"armourBaseMax,omitempty"`
+	EnergyShieldBaseMin int     `json:"energyShieldBaseMin,omitempty"`
+	EnergyShieldBaseMax int     `json:"energyShieldBaseMax,omitempty"`
 	MovementPenalty     float64 `json:"movementPenalty,omitempty"`
 }
 
 // WeaponProperties holds data specific to weapons.
 type WeaponProperties struct {
-	PhysicalMin    float64 `json:"physicalMin,omitempty"`
-	PhysicalMax    float64 `json:"physicalMax,omitempty"`
+	PhysicalMin    int     `json:"physicalMin,omitempty"`
+	PhysicalMax    int     `json:"physicalMax,omitempty"`
 	CritChanceBase float64 `json:"critChanceBase,omitempty"`
 	AttackRateBase float64 `json:"attackRateBase,omitempty"`
 	Range          float64 `json:"range,omitempty"`

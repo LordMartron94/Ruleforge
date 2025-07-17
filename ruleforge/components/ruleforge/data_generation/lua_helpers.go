@@ -76,7 +76,7 @@ func getIntField(table *lua.LTable, key string, defaultValue int) int {
 	return defaultValue
 }
 
-func getNumberField(table *lua.LTable, key string, defaultValue float64) float64 {
+func getNumberFieldFloat(table *lua.LTable, key string, defaultValue float64) float64 {
 	val := table.RawGetString(key)
 	if n, ok := val.(lua.LNumber); ok {
 		return float64(n)

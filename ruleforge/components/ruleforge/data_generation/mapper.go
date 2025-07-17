@@ -139,42 +139,42 @@ func newGemFromLuaTable(id string, table *lua.LTable) model.Gem {
 // newArmourProperties creates an ArmourProperties struct from its Lua sub-table.
 func newArmourProperties(table *lua.LTable) *model.ArmourProperties {
 	return &model.ArmourProperties{
-		EvasionBaseMin:      getNumberField(table, "EvasionBaseMin", 0),
-		EvasionBaseMax:      getNumberField(table, "EvasionBaseMax", 0),
-		ArmourBaseMin:       getNumberField(table, "ArmourBaseMin", 0),
-		ArmourBaseMax:       getNumberField(table, "ArmourBaseMax", 0),
-		EnergyShieldBaseMin: getNumberField(table, "EnergyShieldBaseMin", 0),
-		EnergyShieldBaseMax: getNumberField(table, "EnergyShieldBaseMax", 0),
-		MovementPenalty:     getNumberField(table, "MovementPenalty", 0),
+		EvasionBaseMin:      getIntField(table, "EvasionBaseMin", 0),
+		EvasionBaseMax:      getIntField(table, "EvasionBaseMax", 0),
+		ArmourBaseMin:       getIntField(table, "ArmourBaseMin", 0),
+		ArmourBaseMax:       getIntField(table, "ArmourBaseMax", 0),
+		EnergyShieldBaseMin: getIntField(table, "EnergyShieldBaseMin", 0),
+		EnergyShieldBaseMax: getIntField(table, "EnergyShieldBaseMax", 0),
+		MovementPenalty:     getNumberFieldFloat(table, "MovementPenalty", 0),
 	}
 }
 
 // newWeaponProperties creates a WeaponProperties struct from its Lua sub-table.
 func newWeaponProperties(table *lua.LTable) *model.WeaponProperties {
 	return &model.WeaponProperties{
-		PhysicalMin:    getNumberField(table, "PhysicalMin", 0),
-		PhysicalMax:    getNumberField(table, "PhysicalMax", 0),
-		CritChanceBase: getNumberField(table, "CritChanceBase", 0),
-		AttackRateBase: getNumberField(table, "AttackRateBase", 0),
-		Range:          getNumberField(table, "Range", 0),
+		PhysicalMin:    getIntField(table, "PhysicalMin", 0),
+		PhysicalMax:    getIntField(table, "PhysicalMax", 0),
+		CritChanceBase: getNumberFieldFloat(table, "CritChanceBase", 0),
+		AttackRateBase: getNumberFieldFloat(table, "AttackRateBase", 0),
+		Range:          getNumberFieldFloat(table, "Range", 0),
 	}
 }
 
 // newFlaskProperties creates a FlaskProperties struct from its Lua sub-table.
 func newFlaskProperties(table *lua.LTable) *model.FlaskProperties {
 	return &model.FlaskProperties{
-		Life:        getNumberField(table, "life", 0),
-		Mana:        getNumberField(table, "mana", 0),
-		Duration:    getNumberField(table, "duration", 0),
-		ChargesUsed: getNumberField(table, "chargesUsed", 0),
-		ChargesMax:  getNumberField(table, "chargesMax", 0),
+		Life:        getNumberFieldFloat(table, "life", 0),
+		Mana:        getNumberFieldFloat(table, "mana", 0),
+		Duration:    getNumberFieldFloat(table, "duration", 0),
+		ChargesUsed: getNumberFieldFloat(table, "chargesUsed", 0),
+		ChargesMax:  getNumberFieldFloat(table, "chargesMax", 0),
 		Buff:        getListStringField(table, "buff"),
 	}
 }
 
 func newTinctureProperties(table *lua.LTable) *model.TinctureProperties {
 	return &model.TinctureProperties{
-		ManaBurn: getNumberField(table, "manaBurn", 0),
-		Cooldown: getNumberField(table, "cooldown", 0),
+		ManaBurn: getNumberFieldFloat(table, "manaBurn", 0),
+		Cooldown: getNumberFieldFloat(table, "cooldown", 0),
 	}
 }
