@@ -2,6 +2,8 @@ package model
 
 // ArmourProperties holds data specific to armour pieces.
 type ArmourProperties struct {
+	WardBaseMin         int     `json:"wardBaseMin,omitempty"`
+	WardBaseMax         int     `json:"wardBaseMax,omitempty"`
 	EvasionBaseMin      int     `json:"evasionBaseMin,omitempty"`
 	EvasionBaseMax      int     `json:"evasionBaseMax,omitempty"`
 	ArmourBaseMin       int     `json:"armourBaseMin,omitempty"`

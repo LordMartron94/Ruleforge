@@ -139,6 +139,8 @@ func newGemFromLuaTable(id string, table *lua.LTable) model.Gem {
 // newArmourProperties creates an ArmourProperties struct from its Lua sub-table.
 func newArmourProperties(table *lua.LTable) *model.ArmourProperties {
 	return &model.ArmourProperties{
+		WardBaseMin:         getIntField(table, "WardBaseMin", 0),
+		WardBaseMax:         getIntField(table, "WardBaseMax", 0),
 		EvasionBaseMin:      getIntField(table, "EvasionBaseMin", 0),
 		EvasionBaseMax:      getIntField(table, "EvasionBaseMax", 0),
 		ArmourBaseMin:       getIntField(table, "ArmourBaseMin", 0),

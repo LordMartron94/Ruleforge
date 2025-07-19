@@ -26,6 +26,7 @@ var conditionIdentifierToCompiledIdentifier = map[string]string{
 	"@fractured":          "FracturedItem",
 	"@has_explicit_mod":   "HasExplicitMod",
 	"@identified":         "Identified",
+	"@base_ward":          "BaseWard",
 }
 
 type Condition struct {
