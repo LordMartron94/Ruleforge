@@ -23,6 +23,9 @@ var conditionIdentifierToCompiledIdentifier = map[string]string{
 	"@base_armour":        "BaseArmour",
 	"@base_evasion":       "BaseEvasion",
 	"@base_energy_shield": "BaseEnergyShield",
+	"@fractured":          "FracturedItem",
+	"@has_explicit_mod":   "HasExplicitMod",
+	"@identified":         "Identified",
 }
 
 type Condition struct {
@@ -90,7 +93,11 @@ func (c *Condition) constructString(identifier, operator string, values []string
 		valueString += fmt.Sprintf("\"%s\" ", value)
 	}
 
-	return fmt.Sprintf("%s %s %s", identifier, operator, valueString)
+	if operator != "" {
+		return fmt.Sprintf("%s %s %s", identifier, operator, valueString)
+	} else {
+		return fmt.Sprintf("%s %s", identifier, valueString)
+	}
 }
 
 func compileIdentifier(identifier string) string {

@@ -62,7 +62,12 @@ func main() {
 
 // Run orchestrates the main application flow.
 func (a *App) Run() error {
-	cssParser, err := config.NewCSSParserFromFile("colors.css")
+	// Load and validate configuration.
+	if err := a.loadConfig(); err != nil {
+		return err
+	}
+
+	cssParser, err := config.NewCSSParserFromFile(a.config.StyleColorCSSFile)
 
 	if err != nil {
 		return fmt.Errorf("NewCSSParserFromFile: %v", err)
@@ -72,11 +77,6 @@ func (a *App) Run() error {
 
 	if err != nil {
 		return fmt.Errorf("parse: %v", err)
-	}
-
-	// Load and validate configuration.
-	if err := a.loadConfig(); err != nil {
-		return err
 	}
 
 	// Initialize the exporter, which will attempt to load from cache.
@@ -291,7 +291,7 @@ func (a *App) validateTree(tree *shared.ParseTree[symbols.LexingTokenType]) erro
 }
 
 func (a *App) loadBaseTypeData() (*[]config.BaseTypeAutomationEntry, error) {
-	loader := config.NewBaseTypeAutomationLoader("./basetype_automation_config.csv")
+	loader := config.NewBaseTypeAutomationLoader(a.config.BaseTypeCSVFile)
 	data, err := loader.Load()
 	if err != nil {
 		return nil, fmt.Errorf("loading base type automation data: %w", err)
@@ -322,7 +322,12 @@ func (a *App) compileTree(
 	if err != nil {
 		return nil, "", fmt.Errorf("compiler initialization failed: %w", err)
 	}
-	lines, _, name := compiler.CompileIntoFilter()
+	lines, err, name := compiler.CompileIntoFilter()
+
+	if err != nil {
+		return nil, "", fmt.Errorf("compile failed: %w", err)
+	}
+
 	return lines, name, nil
 }
 

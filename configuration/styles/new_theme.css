@@ -1,0 +1,78 @@
+:root {
+    /* ========== Tier Text Colors ========== */
+
+    /* Divine (T0-T1): Gold, brightest */
+    --t0-divine: #FFD700; /* Pure gold */
+    --t1-divine: #E6B800; /* Darker gold */
+
+    /* High (T2-T4): Red, vibrant */
+    --t2-high: #FF4040; /* Bright red */
+    --t3-high: #D32F2F; /* Deeper red */
+    --t4-high: #A62626; /* Dark red */
+
+    /* Mid (T5-T7): Blue, moderately bright */
+    --t5-mid: #4FC3F7; /* Sky blue */
+    --t6-mid: #2196F3; /* Medium blue */
+    --t7-mid: #1565C0; /* Darker blue */
+
+    /* Low (T8-T10): Grey, muted */
+    --t8-low: #B0BEC5; /* Light grey */
+    --t9-low: #90A4AE; /* Medium grey */
+    --t10-low: #78909C; /* Darker grey */
+
+    /* ========== Background Colors (Item Groups) ========== */
+    --bg-equipment: #2E2E4B; /* Dark navy, metallic */
+    --bg-old-equipment: #4B4B4B; /* Darker grey, disabled/old gear */
+    --bg-unassociated-equipment: #4B3C2A; /* Dark brown, unlinked gear */
+    --bg-flasks: #1A3C34; /* Deep teal, natural */
+    --bg-old-flasks: #2E4B33; /* Darker teal, empty flasks */
+    --bg-orbs: #2E4B4B; /* Dark cyan, mystical */
+    --bg-skill-gems: #3C2E4B; /* Dark purple, arcane */
+    --bg-div-cards: #4B3C2E; /* Dark brown, parchment */
+    --bg-maps: #4B4B33; /* Dark olive, aged paper */
+    --bg-scarabs: #3C3C2E; /* Dark khaki, beetle-like */
+    --bg-heist: #2E3C3C; /* Dark slate, stealthy */
+    --bg-incursion: #4B2E2E; /* Dark maroon, temple */
+    --bg-expedition: #4B3C33; /* Dark sienna, earthy */
+    --bg-breach: #2E1A3C; /* Dark violet, otherworldly */
+    --bg-trinkets: #3C3C44; /* Dark slate-blue, mysterious */
+    --bg-supplies: #4B2E3A; /* Dark maroon, supplies */
+    --bg-harvest: #2E4B2E;
+    --bg-delve: #2E4B44;
+
+    /* ========== Border Colors (Rarities & Features) ========== */
+
+    /* Rarities */
+    --bd-normal: #B0BEC5; /* Light grey, matches T8 */
+    --bd-magic: #4FC3F7; /* Sky blue, matches T5 */
+    --bd-rare: #FFD700; /* Gold, matches T0 */
+    --bd-unique: #AF4E00; /* Burnt orange, distinct */
+
+    /* Special Features */
+    --bd-rgb: #D81B60; /* Vivid purple for RGB linked sockets */
+    --bd-max-rolled: #FF00FF; /* Magenta, vibrant for max rolled items */
+    --bd-3-link: #4CAF50; /* Forest green */
+    --bd-4-link: #2E7D32; /* Darker green */
+    --bd-6-link: #00E5FF; /* Cyan, vibrant */
+    --bd-4-socket: #0288D1; /* Deep blue */
+    --bd-6-socket: #4DD0E1; /* Lighter blue */
+    --bd-corrupted: #F57C00; /* Orange */
+    --bd-max-quality: #FF8A65; /* Coral */
+    --bd-mid-quality: #FFAB91; /* Light coral */
+    --bd-low-quality: #BCAAA4; /* Neutral beige */
+    --bd-scarabs: #8D6E41; /* Bright bronze */
+    --bd-harvest: #66BB6A; /* Vivid green for Lifeforce */
+    --bd-eldritch-ember: #FF5722; /* Deep orange for Eldritch Embers */
+    --bd-catalyst: #CFD8DC; /* Silver-grey for Catalysts */
+    --bd-fractured: #0288D1;
+    --bd-veiled: #9CCC65;
+    --bd-delve: #26A69A;
+
+    /* Leagues */
+    --bd-heist-contract-normal: #78909C; /* Grey, matches T10 */
+    --bd-heist-contract-special: #8D6E63; /* Muted bronze */
+    --bd-heist-blueprint: #80DEEA; /* Slate blue */
+    --bd-incursion: #D32F2F; /* Dark red */
+    --bd-expedition: #A1887F; /* Muted bronze, shared */
+    --bd-breach: #AB47BC; /* Purple, vibrant */
+}

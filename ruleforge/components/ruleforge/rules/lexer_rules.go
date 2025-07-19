@@ -117,6 +117,7 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"@map_tier", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@quality", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@corrupted", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@fractured", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 
 		// Builds
 		{"MARAUDER", symbols.MeleeBuildToken, "BuildValueKeywordLexer"},

@@ -4,7 +4,9 @@
     "C:\\Users\\LordMartron\\Documents\\My Games\\Path of Exile"
   ],
   "RuleforgeInputDir": "X:\\Ruleforge\\main_input",
-  "StyleJSONFile": "X:\\Ruleforge\\styles.json",
+  "StyleJSONFile": "X:\\Ruleforge\\configuration\\styles\\new_theme.json",
+  "StyleColorCSSFile": "X:\\Ruleforge\\configuration\\styles\\new_theme.css",
+  "BaseTypeCSVFile": "X:\\Ruleforge\\configuration\\basetypes\\basetype_automation_config_new_theme.csv",
   "PathOfBuildingDataPath": "D:\\[02] Modding\\[01] Tools\\[08] Path of Building\\Path of Building Community\\Data",
   "LeagueWeights": {
     "Hardcore Mercenaries" : 0.5,

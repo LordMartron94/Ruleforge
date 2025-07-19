@@ -26,6 +26,12 @@ type ConfigurationModel struct {
 	// StyleJSONFile indicates the JSON file where all styles are housed.
 	StyleJSONFile string `json:"StyleJSONFile"`
 
+	// StyleColorCSSFile indicates the CSS file where all colors are housed.
+	StyleColorCSSFile string `json:"StyleColorCSSFile"`
+
+	// BaseTypeCSVFile indicates the CSV file where all base type automation data is housed.
+	BaseTypeCSVFile string `json:"BaseTypeCSVFile"`
+
 	// PathOfBuildingDataPath is where all Path of Building data is stored.
 	PathOfBuildingDataPath string `json:"PathOfBuildingDataPath"`
 
