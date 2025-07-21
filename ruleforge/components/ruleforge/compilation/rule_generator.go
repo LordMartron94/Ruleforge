@@ -27,6 +27,7 @@ type RuleGenerator struct {
 	normalizationStrategy string
 	chasePotentialWeight  float64
 	baseTypeData          []config.BaseTypeAutomationEntry
+	build                 *Build
 }
 
 // NewRuleGenerator creates the rule generation engine.
@@ -43,6 +44,7 @@ func NewRuleGenerator(
 	normalizationStrategy string,
 	chasePotentialWeight float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
+	build *Build,
 ) *RuleGenerator {
 	sort.Slice(armors, func(i, j int) bool {
 		itemA := armors[i]
@@ -90,6 +92,7 @@ func NewRuleGenerator(
 		normalizationStrategy: normalizationStrategy,
 		chasePotentialWeight:  chasePotentialWeight,
 		baseTypeData:          baseTypeData,
+		build:                 build,
 	}
 }
 
@@ -97,7 +100,6 @@ func NewRuleGenerator(
 func (rg *RuleGenerator) GenerateRulesForSection(
 	section ExtractedSection,
 	variables map[string][]string,
-	buildType BuildType,
 ) ([][]string, error) {
 	var allGeneratedRules [][]string
 
@@ -107,9 +109,9 @@ func (rg *RuleGenerator) GenerateRulesForSection(
 
 		switch childNode.Symbol {
 		case symbols.ParseSymbolRuleExpression.String():
-			generatedRules, err = rg.handleRuleExpression(childNode, &variables, section.Conditions, buildType)
+			generatedRules, err = rg.handleRuleExpression(childNode, &variables, section.Conditions)
 		case symbols.ParseSymbolMacroExpression.String():
-			generatedRules, err = rg.handleMacroExpression(childNode, &variables, section.Conditions, buildType)
+			generatedRules, err = rg.handleMacroExpression(childNode, &variables, section.Conditions)
 		default:
 			return nil, fmt.Errorf("unsupported symbol in rule list: %s", childNode.Symbol)
 		}
@@ -126,7 +128,6 @@ func (rg *RuleGenerator) handleRuleExpression(
 	ruleExpressionNode *shared.ParseTree[symbols.LexingTokenType],
 	variables *map[string][]string,
 	sectionConditions []model2.Condition,
-	buildType BuildType,
 ) ([][]string, error) {
 	styleValue := ruleExpressionNode.Children[2].Token.ValueToString()
 	style, err := rg.styleManager.GetStyle(styleValue)
@@ -142,7 +143,6 @@ func (rg *RuleGenerator) handleRuleExpression(
 		action = model2.HideRule
 	}
 
-	// retrieveConditions is a free function from treewalker.go
 	ruleSpecificConditions := retrieveConditions(ruleExpressionNode)
 
 	rule := &model2.ParsedRule{
@@ -153,33 +153,32 @@ func (rg *RuleGenerator) handleRuleExpression(
 		ValidBaseTypes: rg.validBaseTypes,
 	}
 
-	return rg.compileParsedRule(rule, sectionConditions, buildType), nil
+	return rg.compileParsedRule(rule, sectionConditions), nil
 }
 
 func (rg *RuleGenerator) handleMacroExpression(
 	macroExpressionNode *shared.ParseTree[symbols.LexingTokenType],
 	variables *map[string][]string,
 	sectionConditions []model2.Condition,
-	buildType BuildType,
 ) ([][]string, error) {
 	macroType := macroExpressionNode.Children[1].Token.ValueToString()
 	parameters := macroExpressionNode.FindAllSymbolNodes(symbols.ParseSymbolParameter.String())
 
 	switch macroType {
 	case "item_progression-equipment-leveling":
-		return rg.handleEquipmentProgression(variables, buildType, parameters, 0, 67)
+		return rg.handleEquipmentProgression(variables, parameters, 0, 67)
 	case "item_progression-equipment-mapping":
-		return rg.handleEquipmentProgression(variables, buildType, parameters, 68, 84) // 84 is max zone level for maps (T17)
+		return rg.handleEquipmentProgression(variables, parameters, 68, 84) // 84 is max zone level for maps (T17)
 	case "item_progression-flasks":
-		return rg.handleFlaskProgression(variables, parameters, buildType)
+		return rg.handleFlaskProgression(variables, parameters)
 	case "unique_tiering":
-		return rg.handleUniqueTiering(variables, parameters, buildType)
+		return rg.handleUniqueTiering(variables, parameters)
 	case "skill_gem_tiering":
-		return rg.handleGemTiering(variables, parameters, buildType)
+		return rg.handleGemTiering(variables, parameters)
 	case "handle_csv":
-		return rg.handleCSVMacro(variables, parameters, buildType, sectionConditions)
+		return rg.handleCSVMacro(variables, parameters, sectionConditions)
 	case "veiled":
-		return rg.handleVeiledEquipment(variables, parameters, buildType)
+		return rg.handleVeiledEquipment(variables, parameters)
 	default:
 		return nil, fmt.Errorf("unsupported macro type: %s", macroType)
 	}
@@ -189,7 +188,6 @@ func (rg *RuleGenerator) handleMacroExpression(
 func (rg *RuleGenerator) handleVeiledEquipment(
 	variables *map[string][]string,
 	parameters []*shared.ParseTree[symbols.LexingTokenType],
-	buildType BuildType,
 ) ([][]string, error) {
 	var allGeneratedRules [][]string
 
@@ -219,7 +217,7 @@ func (rg *RuleGenerator) handleVeiledEquipment(
 		ValidBaseTypes: rg.validBaseTypes,
 	}
 
-	allGeneratedRules = append(allGeneratedRules, rg.compileParsedRule(rule, []model2.Condition{}, buildType)...)
+	allGeneratedRules = append(allGeneratedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
 
 	return allGeneratedRules, nil
 }
@@ -252,7 +250,6 @@ func (rg *RuleGenerator) extractStyle(parameters []*shared.ParseTree[symbols.Lex
 
 func (rg *RuleGenerator) handleEquipmentProgression(
 	variables *map[string][]string,
-	buildType BuildType,
 	parameters []*shared.ParseTree[symbols.LexingTokenType],
 	minAreaLevel int,
 	maxAreaLevel int,
@@ -261,13 +258,13 @@ func (rg *RuleGenerator) handleEquipmentProgression(
 	itemsByCategory := make(map[string][]*model.ItemBase)
 	for i := range rg.weaponBases {
 		weapon := rg.weaponBases[i]
-		if IsWeaponAssociatedWithBuild(weapon, buildType) {
+		if rg.build.IsWeaponAssociated(weapon) {
 			itemsByCategory[weapon.Type] = append(itemsByCategory[weapon.Type], &rg.weaponBases[i])
 		}
 	}
 	for i := range rg.armorBases {
 		armor := rg.armorBases[i]
-		if IsArmorAssociatedWithBuild(armor, buildType) {
+		if rg.build.IsArmorAssociated(armor) {
 			itemsByCategory[armor.Type] = append(itemsByCategory[armor.Type], &rg.armorBases[i])
 		}
 	}
@@ -284,7 +281,7 @@ func (rg *RuleGenerator) handleEquipmentProgression(
 		styleMap["$show_normal"], styleMap["$show_magic"], styleMap["$show_rare"],
 		styleMap["$hidden_normal"], styleMap["$hidden_magic"], styleMap["$hidden_rare"],
 		styleMap["$max_roll"],
-		&allGeneratedRules, buildType, false, minAreaLevel, maxAreaLevel)
+		&allGeneratedRules, false, minAreaLevel, maxAreaLevel)
 
 	return allGeneratedRules, nil
 }
@@ -292,7 +289,6 @@ func (rg *RuleGenerator) handleEquipmentProgression(
 func (rg *RuleGenerator) handleFlaskProgression(
 	variables *map[string][]string,
 	parameters []*shared.ParseTree[symbols.LexingTokenType],
-	buildType BuildType,
 ) ([][]string, error) {
 	var allGeneratedRules [][]string
 	itemsByCategory := make(map[string][]*model.ItemBase)
@@ -311,7 +307,7 @@ func (rg *RuleGenerator) handleFlaskProgression(
 		return allGeneratedRules, err
 	}
 
-	rg.produceProgression(itemsByCategory, variables, shownStyle, shownStyle, shownStyle, hiddenStyle, hiddenStyle, hiddenStyle, nil, &allGeneratedRules, buildType, true, 0, 100)
+	rg.produceProgression(itemsByCategory, variables, shownStyle, shownStyle, shownStyle, hiddenStyle, hiddenStyle, hiddenStyle, nil, &allGeneratedRules, true, 0, 100)
 
 	return allGeneratedRules, nil
 }
@@ -458,7 +454,6 @@ func (rg *RuleGenerator) produceProgression(
 	shownNormal, shownMagic, shownRare,
 	hiddenNormal, hiddenMagic, hiddenRare, maxRoll *config.Style,
 	allGeneratedRules *[][]string,
-	buildType BuildType,
 	disableRare bool,
 	minAreaLevel, maxAreaLevel int,
 ) {
@@ -471,31 +466,31 @@ func (rg *RuleGenerator) produceProgression(
 		for _, b := range buckets {
 			for _, item := range b.items {
 				if item.Armour != nil {
-					rg.constructMaxRolledGearRule(variables, model2.ShowRule, *item, allGeneratedRules, maxRoll, fmt.Sprintf("%d", b.showEndLevel), buildType)
+					rg.constructMaxRolledGearRule(variables, model2.ShowRule, *item, allGeneratedRules, maxRoll, fmt.Sprintf("%d", b.showEndLevel))
 				}
 
-				rg.constructItemProgressionRule(variables, model2.ShowRule, *item, allGeneratedRules, shownNormal, fmt.Sprintf("%d", b.showEndLevel), "Normal", buildType)
-				rg.constructItemProgressionRule(variables, model2.ShowRule, *item, allGeneratedRules, shownMagic, fmt.Sprintf("%d", b.showEndLevel), "Magic", buildType)
+				rg.constructItemProgressionRule(variables, model2.ShowRule, *item, allGeneratedRules, shownNormal, fmt.Sprintf("%d", b.showEndLevel), "Normal")
+				rg.constructItemProgressionRule(variables, model2.ShowRule, *item, allGeneratedRules, shownMagic, fmt.Sprintf("%d", b.showEndLevel), "Magic")
 				if !disableRare {
-					rg.constructItemProgressionRule(variables, model2.ShowRule, *item, allGeneratedRules, shownRare, fmt.Sprintf("%d", b.showEndLevel), "Rare", buildType)
+					rg.constructItemProgressionRule(variables, model2.ShowRule, *item, allGeneratedRules, shownRare, fmt.Sprintf("%d", b.showEndLevel), "Rare")
 				}
 
 				if !b.isLastTier && b.hideStartLevel <= maxAreaLevel {
 					if item.Armour != nil {
-						rg.constructMaxRolledGearRule(variables, model2.HideRule, *item, allGeneratedRules, maxRoll, fmt.Sprintf("%d", b.showEndLevel), buildType)
+						rg.constructMaxRolledGearRule(variables, model2.HideRule, *item, allGeneratedRules, maxRoll, fmt.Sprintf("%d", b.showEndLevel))
 					}
 
-					rg.constructItemProgressionRule(variables, model2.HideRule, *item, allGeneratedRules, hiddenNormal, fmt.Sprintf("%d", maxAreaLevel), "Normal", buildType)
-					rg.constructItemProgressionRule(variables, model2.HideRule, *item, allGeneratedRules, hiddenMagic, fmt.Sprintf("%d", maxAreaLevel), "Magic", buildType)
+					rg.constructItemProgressionRule(variables, model2.HideRule, *item, allGeneratedRules, hiddenNormal, fmt.Sprintf("%d", maxAreaLevel), "Normal")
+					rg.constructItemProgressionRule(variables, model2.HideRule, *item, allGeneratedRules, hiddenMagic, fmt.Sprintf("%d", maxAreaLevel), "Magic")
 					if !disableRare {
-						rg.constructItemProgressionRule(variables, model2.HideRule, *item, allGeneratedRules, hiddenRare, fmt.Sprintf("%d", maxAreaLevel), "Rare", buildType)
+						rg.constructItemProgressionRule(variables, model2.HideRule, *item, allGeneratedRules, hiddenRare, fmt.Sprintf("%d", maxAreaLevel), "Rare")
 					}
 				}
 			}
 		}
 
 		if len(outdated) > 0 {
-			rg.appendOutdatedHideRules(outdated, hiddenNormal, hiddenMagic, hiddenRare, variables, allGeneratedRules, buildType, minAreaLevel)
+			rg.appendOutdatedHideRules(outdated, hiddenNormal, hiddenMagic, hiddenRare, variables, allGeneratedRules, minAreaLevel)
 		}
 	}
 }
@@ -507,7 +502,6 @@ func (rg *RuleGenerator) constructMaxRolledGearRule(
 	allGeneratedRules *[][]string,
 	maxRolledStyle *config.Style,
 	maxAreaLevel string,
-	buildType BuildType,
 ) {
 	// Always-present conditions
 	areaCondition := model2.Condition{
@@ -565,7 +559,7 @@ func (rg *RuleGenerator) constructMaxRolledGearRule(
 
 	*allGeneratedRules = append(
 		*allGeneratedRules,
-		rg.compileParsedRule(rule, []model2.Condition{}, buildType)...,
+		rg.compileParsedRule(rule, []model2.Condition{})...,
 	)
 }
 
@@ -574,7 +568,6 @@ func (rg *RuleGenerator) appendOutdatedHideRules(
 	hiddenNormal, hiddenMagic, hiddenRare *config.Style,
 	variables *map[string][]string,
 	allGeneratedRules *[][]string,
-	buildType BuildType,
 	minAreaLevel int,
 ) {
 	areaCond := model2.Condition{Identifier: "@area_level", Operator: ">=", Value: []string{fmt.Sprintf("%d", minAreaLevel)}}
@@ -595,7 +588,7 @@ func (rg *RuleGenerator) appendOutdatedHideRules(
 			Variables:      variables,
 			ValidBaseTypes: rg.validBaseTypes,
 		}
-		*allGeneratedRules = append(*allGeneratedRules, rg.compileParsedRule(pr, nil, buildType)...)
+		*allGeneratedRules = append(*allGeneratedRules, rg.compileParsedRule(pr, nil)...)
 	}
 }
 
@@ -606,8 +599,7 @@ func (rg *RuleGenerator) constructItemProgressionRule(
 	allGeneratedRules *[][]string,
 	style *config.Style,
 	maxAreaLevel string,
-	rarity string,
-	buildType BuildType) {
+	rarity string) {
 	areaCondition := model2.Condition{
 		Identifier: "@area_level",
 		Operator:   "<=",
@@ -632,7 +624,7 @@ func (rg *RuleGenerator) constructItemProgressionRule(
 		ValidBaseTypes: rg.validBaseTypes,
 	}
 
-	*allGeneratedRules = append(*allGeneratedRules, rg.compileParsedRule(rule, []model2.Condition{}, buildType)...)
+	*allGeneratedRules = append(*allGeneratedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
 }
 
 type TieringConfig struct {
@@ -642,7 +634,7 @@ type TieringConfig struct {
 }
 
 // handleUniqueTiering generates tiered rules for unique items based on economy data.
-func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], buildType BuildType) ([][]string, error) {
+func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) ([][]string, error) {
 	uniqueConfig := TieringConfig{
 		InitialCondition: model2.Condition{
 			Identifier: "@rarity",
@@ -652,10 +644,10 @@ func (rg *RuleGenerator) handleUniqueTiering(variables *map[string][]string, par
 		ItemClassToFilter: "Uniques",
 		TieredIdentifier:  "@item_type",
 	}
-	return rg.generateTieredRules(variables, parameters, uniqueConfig, buildType)
+	return rg.generateTieredRules(variables, parameters, uniqueConfig)
 }
 
-func (rg *RuleGenerator) handleGemTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], buildType BuildType) ([][]string, error) {
+func (rg *RuleGenerator) handleGemTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) ([][]string, error) {
 	gemConfig := TieringConfig{
 		InitialCondition: model2.Condition{
 			Identifier: "@item_class",
@@ -665,14 +657,13 @@ func (rg *RuleGenerator) handleGemTiering(variables *map[string][]string, parame
 		ItemClassToFilter: "Gems",
 		TieredIdentifier:  "@item_type",
 	}
-	return rg.generateTieredRules(variables, parameters, gemConfig, buildType)
+	return rg.generateTieredRules(variables, parameters, gemConfig)
 }
 
 func (rg *RuleGenerator) generateTieredRules(
 	variables *map[string][]string,
 	parameters []*shared.ParseTree[symbols.LexingTokenType],
 	tieringConfiguration TieringConfig,
-	buildType BuildType,
 ) ([][]string, error) {
 	generatedRules := make([][]string, 0)
 
@@ -699,7 +690,7 @@ func (rg *RuleGenerator) generateTieredRules(
 			ValidBaseTypes: rg.validBaseTypes,
 		}
 
-		generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{}, buildType)...)
+		generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
 		return generatedRules, nil
 	}
 
@@ -775,7 +766,7 @@ func (rg *RuleGenerator) generateTieredRules(
 			ValidBaseTypes: rg.validBaseTypes,
 		}
 
-		generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{}, buildType)...)
+		generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
 	}
 
 	return generatedRules, nil
@@ -856,7 +847,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 }
 
 //goland:noinspection t
-func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], buildType BuildType, sectionConditions []model2.Condition) ([][]string, error) {
+func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], sectionConditions []model2.Condition) ([][]string, error) {
 	allGeneratedRules := make([][]string, 0)
 
 	category := ""
@@ -934,7 +925,7 @@ func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, paramete
 			ValidBaseTypes: rg.validBaseTypes,
 		}
 
-		allGeneratedRules = append(allGeneratedRules, rg.compileParsedRule(rule, sectionConditions, buildType)...)
+		allGeneratedRules = append(allGeneratedRules, rg.compileParsedRule(rule, sectionConditions)...)
 	}
 
 	return allGeneratedRules, nil
@@ -972,7 +963,7 @@ var conditionOrder = map[string]int{
 }
 
 //goland:noinspection t
-func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionConditions []model2.Condition, buildType BuildType) [][]string {
+func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionConditions []model2.Condition) [][]string {
 	var macroConditions []model2.Condition
 	var standardRuleConditions []model2.Condition
 	macros := []string{"@class_use"}
@@ -1026,7 +1017,7 @@ func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionCondi
 		var generatedForMacro [][]string
 		switch macro.Identifier {
 		case "@class_use":
-			generatedForMacro = rg.handleClassUseMacro(rule.Action, rule.Style, finalStandardConditions, macro, buildType, rule.Variables)
+			generatedForMacro = rg.handleClassUseMacro(rule.Action, rule.Style, finalStandardConditions, macro, rule.Variables)
 		default:
 			panic("unknown macro: " + macro.Identifier)
 		}
@@ -1038,7 +1029,7 @@ func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionCondi
 //goland:noinspection t
 func (rg *RuleGenerator) handleClassUseMacro(
 	action model2.RuleType, style *config.Style, baseConditions []model2.Condition,
-	macro model2.Condition, buildType BuildType, variables *map[string][]string,
+	macro model2.Condition, variables *map[string][]string,
 ) [][]string {
 	generateRule := func(newCond model2.Condition) []string {
 		finalConditions := make([]model2.Condition, 0, len(baseConditions)+1)
@@ -1068,16 +1059,16 @@ func (rg *RuleGenerator) handleClassUseMacro(
 	var armorClasses []string
 	switch macro.Value[0] {
 	case "true":
-		weaponClasses = GetAssociatedWeaponClasses(buildType)
+		weaponClasses = rg.build.AssociatedWeaponClasses()
 		for _, item := range rg.armorBases {
-			if IsArmorAssociatedWithBuild(item, buildType) {
+			if rg.build.IsArmorAssociated(item) {
 				armorClasses = append(armorClasses, item.GetBaseType())
 			}
 		}
 	case "false":
-		weaponClasses = GetUnassociatedWeaponClasses(buildType)
+		weaponClasses = rg.build.UnassociatedWeaponClasses()
 		for _, item := range rg.armorBases {
-			if !IsArmorAssociatedWithBuild(item, buildType) {
+			if !rg.build.IsArmorAssociated(item) {
 				armorClasses = append(armorClasses, item.GetBaseType())
 			}
 		}

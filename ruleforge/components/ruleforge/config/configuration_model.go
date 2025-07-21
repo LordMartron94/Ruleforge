@@ -16,6 +16,11 @@ type LeagueWeights struct {
 	Weight float64 `json:"Weight"`
 }
 
+type EquipmentPreset struct {
+	DesiredWeaponClasses []string `json:"DesiredWeaponClasses"`
+	DesiredArmourTypes   []string `json:"DesiredArmourTypes"`
+}
+
 type ConfigurationModel struct {
 	// FilterOutputDirs defines the directories where the filters should be outputted to.
 	FilterOutputDirs []string `json:"FilterOutputDirs"`
@@ -46,6 +51,9 @@ type ConfigurationModel struct {
 
 	// ChaseVSGeneralPotentialFactor specifies how much to value an item's chase potential vs. its general value.
 	ChaseVSGeneralPotentialFactor float64 `json:"ChaseVSGeneralPotentialFactor"`
+
+	// CustomEquipmentPresets lets you specify named presets with weapons/armour lists.
+	CustomEquipmentPresets map[string]EquipmentPreset `json:"CustomEquipmentPresets"`
 }
 
 var validNormalizationStrategies = []string{
@@ -66,6 +74,7 @@ func (c *ConfigurationModel) GetLeagueWeights() []LeagueWeights {
 	return leagueWeights
 }
 
+//goland:noinspection t
 func (c *ConfigurationModel) Validate() error {
 	if !slices.Contains(validNormalizationStrategies, c.EconomyNormalizationStrategy) {
 		validString := extensions.GetFormattedString(validNormalizationStrategies)
@@ -92,6 +101,12 @@ func (c *ConfigurationModel) Validate() error {
 		return fmt.Errorf("invalid potential factor %f, must be between 0 and 1", c.ChaseVSGeneralPotentialFactor)
 	}
 
+	for name, preset := range c.CustomEquipmentPresets {
+		if len(preset.DesiredWeaponClasses) == 0 && len(preset.DesiredArmourTypes) == 0 {
+			return fmt.Errorf("preset %q must specify at least one DesiredWeaponClasses or DesiredArmourTypes", name)
+		}
+	}
+
 	return nil
 }
 
@@ -103,4 +118,9 @@ func (c *ConfigurationModel) GetLeaguesToRetrieve() []string {
 	}
 
 	return leaguesToRetrieve
+}
+
+func (c *ConfigurationModel) GetEquipmentPreset(name string) (EquipmentPreset, bool) {
+	preset, ok := c.CustomEquipmentPresets[name]
+	return preset, ok
 }

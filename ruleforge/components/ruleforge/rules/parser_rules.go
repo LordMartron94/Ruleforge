@@ -31,7 +31,7 @@ var (
 	buildAssignmentValues = conditional.NewChoiceTokenRule(symbols.ParseSymbolValue.String(),
 		[]symbols.LexingTokenType{
 			symbols.MeleeBuildToken, symbols.DexBuildToken, symbols.SpellBuildToken,
-			symbols.MeleeSpellHybridBuildToken, symbols.MeleeDexHybridBuildToken, symbols.SpellDexHybridBuildToken,
+			symbols.MeleeSpellHybridBuildToken, symbols.MeleeDexHybridBuildToken, symbols.SpellDexHybridBuildToken, symbols.IdentifierValueToken,
 		},
 	)
 )

@@ -318,6 +318,7 @@ func (a *App) compileTree(
 		a.config.ChaseVSGeneralPotentialFactor,
 		baseTypeData,
 		cssVariables,
+		a.config.CustomEquipmentPresets,
 	)
 	if err != nil {
 		return nil, "", fmt.Errorf("compiler initialization failed: %w", err)

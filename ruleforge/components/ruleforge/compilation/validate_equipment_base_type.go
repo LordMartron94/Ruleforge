@@ -1,34 +1,23 @@
 package compilation
 
 import (
+	"fmt"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	"log"
 	"slices"
+	"strings"
 )
 
-type BuildType string
-
-const (
-	Templar  BuildType = "TEMPLAR"
-	Marauder BuildType = "MARAUDER"
-	Shadow   BuildType = "SHADOW"
-	Ranger   BuildType = "RANGER"
-	Witch    BuildType = "WITCH"
-	Duelist  BuildType = "DUELIST"
-)
-
-var allBuilds = []BuildType{Templar, Marauder, Shadow, Ranger, Witch, Duelist}
-
-func (b *BuildType) String() string {
-	return string(*b)
-}
-
+// WeaponClass represents the class of a weapon.
 type WeaponClass string
+
 type ArmorClass string
 
-//goland:noinspection GoCommentStart
+type ArmorType string
+
+// Predefined weapon classes
 const (
-	// Weapons
 	Bow                     WeaponClass = "Bows"
 	Claw                    WeaponClass = "Claws"
 	Dagger                  WeaponClass = "Daggers"
@@ -45,8 +34,10 @@ const (
 	TwoHandedSword          WeaponClass = "Two Hand Swords"
 	Wand                    WeaponClass = "Wands"
 	Warstaff                WeaponClass = "Warstaves"
+)
 
-	// Armors
+// Predefined armor types
+const (
 	Belt       ArmorClass = "Belts"
 	BodyArmors ArmorClass = "Body Armours"
 	Boot       ArmorClass = "Boots"
@@ -55,17 +46,7 @@ const (
 	Shield     ArmorClass = "Shields"
 )
 
-var allWeaponClasses = []WeaponClass{
-	Bow, Claw, Dagger,
-	OneHandedAxe, OneHandedMace, OneHandedSword, ThrustingOneHandedSword,
-	Quiver, RuneDagger, Sceptre,
-	Staff,
-	TwoHandedAxe, TwoHandedMace, TwoHandedSword,
-	Wand, Warstaff,
-}
-
-type ArmorType string
-
+// Predefined armor subtype categories
 const (
 	Armor               ArmorType = "Armour"
 	Evasion             ArmorType = "Evasion"
@@ -77,93 +58,24 @@ const (
 	Ward                ArmorType = "Ward"
 )
 
-var buildWeaponry = map[BuildType][]WeaponClass{
-	Templar: {
-		Sceptre,
-		Staff,
-		Wand,
-		OneHandedMace,
-		OneHandedSword,
-		Warstaff,
-	},
-	Marauder: {
-		TwoHandedAxe,
-		TwoHandedMace,
-		TwoHandedSword,
-		OneHandedAxe,
-		OneHandedMace,
-		OneHandedSword,
-		Sceptre,
-	},
-	Shadow: {
-		Dagger,
-		Claw,
-		RuneDagger,
-		OneHandedSword,
-		ThrustingOneHandedSword,
-		Wand,
-		Bow,
-	},
-	Ranger: {
-		Bow,
-		Quiver,
-		OneHandedSword,
-		TwoHandedSword,
-		ThrustingOneHandedSword,
-		Claw,
-		OneHandedAxe,
-	},
-	Witch: {
-		Wand,
-		RuneDagger,
-		Sceptre,
-		Staff,
-	},
-	Duelist: {
-		OneHandedSword,
-		TwoHandedSword,
-		OneHandedAxe,
-		TwoHandedAxe,
-		ThrustingOneHandedSword,
-		Bow,
-		Claw,
-	},
+// All possible weapon classes
+var allWeaponClasses = []WeaponClass{
+	Bow, Claw, Dagger,
+	OneHandedAxe, OneHandedMace, OneHandedSword, ThrustingOneHandedSword,
+	Quiver, RuneDagger, Sceptre,
+	Staff,
+	TwoHandedAxe, TwoHandedMace, TwoHandedSword,
+	Wand, Warstaff,
 }
-var buildArmor = map[BuildType][]ArmorType{
-	Templar: {
-		Armor,
-		EnergyShield,
-		ArmourEnergy,
-		ArmourEvasionEnergy,
-		Ward,
-	},
-	Marauder: {
-		Armor,
-		ArmourEvasionEnergy,
-	},
-	Shadow: {
-		Evasion,
-		EnergyShield,
-		EvasionEnergy,
-		ArmourEvasionEnergy,
-		Ward,
-	},
-	Ranger: {
-		Evasion,
-		ArmourEvasionEnergy,
-	},
-	Witch: {
-		EnergyShield,
-		ArmourEvasionEnergy,
-		Ward,
-	},
-	Duelist: {
-		Armor,
-		Evasion,
-		ArmourEvasion,
-		ArmourEvasionEnergy,
-	},
+
+// allArmorTypes is the list of valid ArmorType values.
+var allArmorTypes = []ArmorType{
+	Armor, Evasion, EnergyShield,
+	ArmourEvasion, ArmourEnergy, EvasionEnergy,
+	ArmourEvasionEnergy, Ward,
 }
+
+// Mappings from Path of Building strings to our enums
 var pobTypeToWeaponClass = map[string]WeaponClass{
 	"Bow":              Bow,
 	"Claw":             Claw,
@@ -181,6 +93,7 @@ var pobTypeToWeaponClass = map[string]WeaponClass{
 	"Wand":             Wand,
 	"Warstaff":         Warstaff,
 }
+
 var pobTypeToArmorClass = map[string]ArmorClass{
 	"Belt":        Belt,
 	"Body Armour": BodyArmors,
@@ -189,6 +102,7 @@ var pobTypeToArmorClass = map[string]ArmorClass{
 	"Helmet":      Helmet,
 	"Shield":      Shield,
 }
+
 var pobArmorTypeToArmorType = map[string]ArmorType{
 	"Armour":                       Armor,
 	"Evasion":                      Evasion,
@@ -200,105 +114,153 @@ var pobArmorTypeToArmorType = map[string]ArmorType{
 	"Ward":                         Ward,
 }
 
-func GetBuildType(build string) BuildType {
-	for _, buildType := range allBuilds {
-		if buildType.String() == build {
-			return buildType
+// EquipmentPreset groups the allowed weapon classes and armor types for a build.
+type EquipmentPreset struct {
+	WeaponClasses []WeaponClass
+	ArmorTypes    []ArmorType
+}
+
+// NewEquipmentPresetFromConfig converts a config.EquipmentPreset into a compilation.EquipmentPreset.
+// It validates that every entry exists in our known enums.
+func NewEquipmentPresetFromConfig(cp config.EquipmentPreset) (EquipmentPreset, error) {
+	var wc []WeaponClass
+	for _, w := range cp.DesiredWeaponClasses {
+		candidate := WeaponClass(w)
+		if !slices.Contains(allWeaponClasses, candidate) {
+			return EquipmentPreset{}, fmt.Errorf("invalid weapon class %q", w)
+		}
+		wc = append(wc, candidate)
+	}
+
+	var at []ArmorType
+	for _, a := range cp.DesiredArmourTypes {
+		candidate := ArmorType(a)
+		if !slices.Contains(allArmorTypes, candidate) {
+			return EquipmentPreset{}, fmt.Errorf("invalid armor type %q", a)
+		}
+		at = append(at, candidate)
+	}
+
+	return EquipmentPreset{
+		WeaponClasses: wc,
+		ArmorTypes:    at,
+	}, nil
+}
+
+// Build represents a character archetype with its equipment preset.
+type Build struct {
+	Name   string
+	Preset EquipmentPreset
+}
+
+// DefaultBuilds holds all built-in presets.
+var DefaultBuilds = []*Build{
+	{
+		Name: "TEMPLAR",
+		Preset: EquipmentPreset{
+			WeaponClasses: []WeaponClass{Sceptre, Staff, Wand, OneHandedMace, OneHandedSword, Warstaff},
+			ArmorTypes:    []ArmorType{Armor, EnergyShield, ArmourEnergy, ArmourEvasionEnergy, Ward},
+		},
+	},
+	{
+		Name: "MARAUDER",
+		Preset: EquipmentPreset{
+			WeaponClasses: []WeaponClass{TwoHandedAxe, TwoHandedMace, TwoHandedSword, OneHandedAxe, OneHandedMace, OneHandedSword, Sceptre},
+			ArmorTypes:    []ArmorType{Armor, ArmourEvasionEnergy},
+		},
+	},
+	{
+		Name: "SHADOW",
+		Preset: EquipmentPreset{
+			WeaponClasses: []WeaponClass{Dagger, Claw, RuneDagger, OneHandedSword, ThrustingOneHandedSword, Wand, Bow},
+			ArmorTypes:    []ArmorType{Evasion, EnergyShield, EvasionEnergy, ArmourEvasionEnergy, Ward},
+		},
+	},
+	{
+		Name: "RANGER",
+		Preset: EquipmentPreset{
+			WeaponClasses: []WeaponClass{Bow, Quiver, OneHandedSword, TwoHandedSword, ThrustingOneHandedSword, Claw, OneHandedAxe},
+			ArmorTypes:    []ArmorType{Evasion, ArmourEvasionEnergy},
+		},
+	},
+	{
+		Name: "WITCH",
+		Preset: EquipmentPreset{
+			WeaponClasses: []WeaponClass{Wand, RuneDagger, Sceptre, Staff},
+			ArmorTypes:    []ArmorType{EnergyShield, ArmourEvasionEnergy, Ward},
+		},
+	},
+	{
+		Name: "DUELIST",
+		Preset: EquipmentPreset{
+			WeaponClasses: []WeaponClass{OneHandedSword, TwoHandedSword, OneHandedAxe, TwoHandedAxe, ThrustingOneHandedSword, Bow, Claw},
+			ArmorTypes:    []ArmorType{Armor, Evasion, ArmourEvasion, ArmourEvasionEnergy},
+		},
+	},
+}
+
+// GetDefaultBuild retrieves one of the built-in presets by its name.
+// Name matching is case-insensitive.
+func GetDefaultBuild(name string) (*Build, error) {
+	for _, b := range DefaultBuilds {
+		if strings.EqualFold(b.Name, name) {
+			return b, nil
 		}
 	}
-
-	panic("unknown build type: " + build)
+	return nil, fmt.Errorf("default build preset %q not found", name)
 }
 
-func GetUnassociatedWeaponClasses(characterBuild BuildType) []string {
-	unassociatedWeaponClasses := make([]string, 0)
-
-	associatedWeaponry, ok := buildWeaponry[characterBuild]
-	if !ok {
-		panic("unknown build type: " + characterBuild)
-	}
-
-	for _, weaponClass := range allWeaponClasses {
-		if !slices.Contains(associatedWeaponry, weaponClass) {
-			unassociatedWeaponClasses = append(unassociatedWeaponClasses, string(weaponClass))
+// UnassociatedWeaponClasses returns all weapon classes not in the preset.
+func (b *Build) UnassociatedWeaponClasses() []string {
+	var list []string
+	for _, wc := range allWeaponClasses {
+		if !slices.Contains(b.Preset.WeaponClasses, wc) {
+			list = append(list, string(wc))
 		}
 	}
-
-	return unassociatedWeaponClasses
+	return list
 }
 
-func GetAssociatedWeaponClasses(characterBuild BuildType) []string {
-	associatedWeaponClasses := make([]string, 0)
-
-	associatedWeaponry, ok := buildWeaponry[characterBuild]
-	if !ok {
-		panic("unknown build type: " + characterBuild)
-	}
-
-	for _, weaponClass := range allWeaponClasses {
-		if slices.Contains(associatedWeaponry, weaponClass) {
-			associatedWeaponClasses = append(associatedWeaponClasses, string(weaponClass))
+// AssociatedWeaponClasses returns all weapon classes in the preset.
+func (b *Build) AssociatedWeaponClasses() []string {
+	var list []string
+	for _, wc := range allWeaponClasses {
+		if slices.Contains(b.Preset.WeaponClasses, wc) {
+			list = append(list, string(wc))
 		}
 	}
-
-	return associatedWeaponClasses
+	return list
 }
 
-func IsWeaponAssociatedWithBuild(weapon model.ItemBase, characterBuild BuildType) bool {
-	associatedWeaponry, ok := buildWeaponry[characterBuild]
-
+// IsWeaponAssociated checks if an ItemBase's weapon type matches the build preset.
+func (b *Build) IsWeaponAssociated(item model.ItemBase) bool {
+	wc, ok := pobTypeToWeaponClass[item.Type]
+	if item.Type == string(OneHandedSword) && item.SubType == "Thrusting" {
+		wc = ThrustingOneHandedSword
+	}
 	if !ok {
-		panic("unknown build type: " + characterBuild.String())
+		panic("unknown weapon type: " + item.Type)
 	}
-
-	weaponClass, ok := pobTypeToWeaponClass[weapon.Type]
-
-	if weaponClass == OneHandedSword && weapon.SubType == "Thrusting" {
-		weaponClass = ThrustingOneHandedSword
-	}
-
-	if !ok {
-		panic("unknown weapon type: " + weapon.Type)
-	}
-
-	if slices.Contains(associatedWeaponry, weaponClass) {
-		return true
-	}
-
-	return false
+	return slices.Contains(b.Preset.WeaponClasses, wc)
 }
 
-func IsArmorAssociatedWithBuild(armor model.ItemBase, characterBuild BuildType) bool {
-	associatedArmorTypes, ok := buildArmor[characterBuild]
-
+// IsArmorAssociated checks if an ItemBase's armor type matches the build preset.
+func (b *Build) IsArmorAssociated(item model.ItemBase) bool {
+	ac, ok := pobTypeToArmorClass[item.Type]
 	if !ok {
-		panic("unknown build type: " + characterBuild.String())
+		panic("unknown armor class: " + item.Type)
 	}
-
-	armorClass, ok := pobTypeToArmorClass[armor.Type]
-
-	if !ok {
-		panic("unknown armor class: " + armor.Type)
-	}
-
-	if armorClass == Belt {
+	// Belts are always included.
+	if ac == Belt {
 		return true
 	}
-
-	if armor.SubType == "" {
-		log.Printf("WARNING: Empty armor type. Including for build: %s (%s)\n", armor.Name, armor.Type)
+	if item.SubType == "" {
+		log.Printf("WARNING: Empty armor subtype, including by default: %s (%s)\n", item.Name, item.Type)
 		return true
 	}
-
-	armorType, ok := pobArmorTypeToArmorType[armor.SubType]
-
+	at, ok := pobArmorTypeToArmorType[item.SubType]
 	if !ok {
-		panic("unknown armor type: " + armor.SubType)
+		panic("unknown armor subtype: " + item.SubType)
 	}
-
-	if slices.Contains(associatedArmorTypes, armorType) {
-		return true
-	}
-
-	return false
+	return slices.Contains(b.Preset.ArmorTypes, at)
 }

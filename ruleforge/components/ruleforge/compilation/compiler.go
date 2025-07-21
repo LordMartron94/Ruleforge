@@ -2,6 +2,7 @@ package compilation
 
 import (
 	"fmt"
+
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	model2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation/model"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
@@ -11,14 +12,27 @@ import (
 	"slices"
 )
 
-// Compiler is now a lean orchestrator.
+// Compiler is now a lean orchestrator without prewired build.
 type Compiler struct {
-	treeWalker    *TreeWalker
-	ruleGenerator *RuleGenerator
-	styleManager  *StyleManager
-	ruleFactory   *RuleFactory
+	treeWalker   *TreeWalker
+	styleManager *StyleManager
+	ruleFactory  *RuleFactory
+
+	validBaseTypes        []string
+	armorBases            []model.ItemBase
+	weaponBases           []model.ItemBase
+	flaskBases            []model.ItemBase
+	economyCache          map[string][]data_generation.EconomyCacheItem
+	economyWeights        config.EconomyWeights
+	leagueWeights         []config.LeagueWeights
+	normalizationStrategy string
+	chasePotentialWeight  float64
+	baseTypeData          []config.BaseTypeAutomationEntry
+	cssVariables          map[string]string
+	customPresets         map[string]config.EquipmentPreset
 }
 
+// NewCompiler constructs a Compiler and captures all dependencies except the Build.
 func NewCompiler(
 	parseTree *shared.ParseTree[symbols.LexingTokenType],
 	configuration CompilerConfiguration,
@@ -31,8 +45,8 @@ func NewCompiler(
 	chasePotentialWeight float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
 	cssVariables map[string]string,
+	customPresets map[string]config.EquipmentPreset,
 ) (*Compiler, error) {
-
 	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree, cssVariables)
 	if err != nil {
 		return nil, err
@@ -44,24 +58,25 @@ func NewCompiler(
 		treeWalker:   NewTreeWalker(parseTree),
 		styleManager: styleMgr,
 		ruleFactory:  &RuleFactory{},
-		ruleGenerator: NewRuleGenerator(
-			&RuleFactory{},
-			styleMgr,
-			validBaseTypes,
-			armorBases,
-			weaponBases,
-			flaskBases,
-			economyCache,
-			economyWeights,
-			leagueWeights,
-			normalizationStrategy,
-			chasePotentialWeight,
-			baseTypeData,
-		),
+
+		validBaseTypes:        validBaseTypes,
+		armorBases:            armorBases,
+		weaponBases:           weaponBases,
+		flaskBases:            flaskBases,
+		economyCache:          economyCache,
+		economyWeights:        economyWeights,
+		leagueWeights:         leagueWeights,
+		normalizationStrategy: normalizationStrategy,
+		chasePotentialWeight:  chasePotentialWeight,
+		baseTypeData:          baseTypeData,
+		cssVariables:          cssVariables,
+		customPresets:         customPresets,
 	}, nil
 }
 
-// CompileIntoFilter is now clean and readable, delegating all work.
+// CompileIntoFilter orchestrates compilation, wiring the correct Build based on metadata.
+//
+//goland:noinspection t
 func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	var header, body, toc []string
 
@@ -70,40 +85,67 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	variables := c.treeWalker.ExtractVariables()
 	sections := c.treeWalker.ExtractSections()
 
+	// 1b. Determine Build: default first, then custom preset
+	buildName := metadata.Build
+	var buildInstance *Build
+	if b, err := GetDefaultBuild(buildName); err == nil {
+		buildInstance = b
+	} else if cp, ok := c.customPresets[buildName]; ok {
+		ep, err := NewEquipmentPresetFromConfig(cp)
+		if err != nil {
+			return nil, err, metadata.Name
+		}
+		buildInstance = &Build{Name: buildName, Preset: ep}
+	} else {
+		return nil, fmt.Errorf("build preset %q not found", buildName), metadata.Name
+	}
+
 	// 2. Construct the header
 	header = c.constructHeader(metadata)
-	buildType := GetBuildType(metadata.Build)
 
 	// 3. Pre-calculate sizes to determine the starting line number
 	tocSize := 1 + len(sections) + 1
 	dividerSize := len(c.constructDivider())
 
-	// The first section heading will appear after the header, the ToC, and the divider.
+	// The first section heading appears after header, ToC, divider
 	lineCounter := len(header) + tocSize + dividerSize + 1
-
 	sectionLineNumbers := make(map[string]int)
 
-	// 4. Generate rules for each section and track final line numbers
+	// 4. Instantiate a RuleGenerator with the resolved build
+	ruleGenerator := NewRuleGenerator(
+		c.ruleFactory,
+		c.styleManager,
+		c.validBaseTypes,
+		c.armorBases,
+		c.weaponBases,
+		c.flaskBases,
+		c.economyCache,
+		c.economyWeights,
+		c.leagueWeights,
+		c.normalizationStrategy,
+		c.chasePotentialWeight,
+		c.baseTypeData,
+		buildInstance,
+	)
+
+	// 5. Generate rules for each section and track final line numbers
 	for _, section := range sections {
-		// Store the definitive line number for this section
 		sectionLineNumbers[section.Name] = lineCounter
 
-		sectionHeading := c.constructSectionHeading(section.Name, section.Description)
-		body = append(body, sectionHeading)
-		lineCounter++ // Account for the section heading line
+		body = append(body, c.constructSectionHeading(section.Name, section.Description))
+		lineCounter++
 
-		compiledRules, err := c.ruleGenerator.GenerateRulesForSection(section, variables, buildType)
+		compiledRules, err := ruleGenerator.GenerateRulesForSection(section, variables)
 		if err != nil {
 			return nil, err, metadata.Name
 		}
 
-		// Add each generated rule group and update the line counter
 		for _, rule := range compiledRules {
 			body = append(body, rule...)
 			lineCounter += len(rule)
 		}
 
-		body = body[:len(body)-1] // Account for last empty line from the rule generator
+		body = body[:len(body)-1]
 		lineCounter--
 
 		divider := c.constructDivider()
@@ -111,29 +153,28 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 		lineCounter += len(divider)
 	}
 
-	// 5. The current value of lineCounter is now the exact line for the Fallback heading
+	// 6. Fallback section
 	fallbackLineNumber := lineCounter
-	fallbackSectionName := "Fallback"
-	fallbackSectionDesc := "Shows anything that wasn't caught by upstream rules."
+	fallbackName := "Fallback"
+	fallbackDesc := "Shows anything that wasn't caught by upstream rules."
 
-	// 6. Generate the complete Table of Contents with final line numbers
+	// 7. Build Table of Contents
 	toc = append(toc, c.constructComment("TABLE OF CONTENTS: "))
 	for _, section := range sections {
-		lineNumber := sectionLineNumbers[section.Name]
-		tocEntry := fmt.Sprintf("\tLine %d: %s (%s)", lineNumber, section.Name, section.Description)
-		toc = append(toc, c.constructComment(tocEntry))
+		line := sectionLineNumbers[section.Name]
+		toc = append(toc, c.constructComment(fmt.Sprintf("\tLine %d: %s (%s)", line, section.Name, section.Description)))
 	}
-	toc = append(toc, c.constructComment(fmt.Sprintf("\tLine %d: %s (%s)", fallbackLineNumber, fallbackSectionName, fallbackSectionDesc)))
+	toc = append(toc, c.constructComment(fmt.Sprintf("\tLine %d: %s (%s)", fallbackLineNumber, fallbackName, fallbackDesc)))
 
-	// 7. Add the fallback rule content to the body
+	// 8. Add fallback rules
 	fallbackStyle, _ := c.styleManager.GetStyle("Fallback")
 	fallbackRule := c.ruleFactory.ConstructRule(model2.ShowRule, *fallbackStyle, []string{})
-	fallbackHeading := c.constructSectionHeading(fallbackSectionName, fallbackSectionDesc)
+	fallbackHeading := c.constructSectionHeading(fallbackName, fallbackDesc)
 
 	body = append(body, fallbackHeading, "")
 	body = append(body, fallbackRule...)
 
-	// 8. Assemble the final output
+	// 9. Assemble and return
 	var finalOutput []string
 	finalOutput = append(finalOutput, header...)
 	finalOutput = append(finalOutput, toc...)
@@ -156,17 +197,14 @@ func (c *Compiler) constructHeader(metadata ExtractedMetadata) []string {
 	}
 
 	for _, line := range lines {
-		commented := c.constructComment(line)
-		output = append(output, commented)
+		output = append(output, c.constructComment(line))
 	}
-
 	output = append(output, c.constructDivider()...)
-
 	return output
 }
 
-func (c *Compiler) constructSectionHeading(sectionName, sectionDescription string) string {
-	return c.constructComment(fmt.Sprintf(">>>>>>>>>>>>>>>> SECTION: %s (%s)", sectionName, sectionDescription))
+func (c *Compiler) constructSectionHeading(name, desc string) string {
+	return c.constructComment(fmt.Sprintf(">>>>>>>>>>>>>>>> SECTION: %s (%s)", name, desc))
 }
 
 func (c *Compiler) constructComment(content string) string {
@@ -174,27 +212,18 @@ func (c *Compiler) constructComment(content string) string {
 }
 
 func (c *Compiler) constructDivider() []string {
-	return []string{
-		"",
-		c.constructComment("============================================================================"),
-		"",
-	}
+	return []string{"", c.constructComment("============================================================================"), ""}
 }
 
-// ----------- HELPERS -----------
 // prepareItemData filters and categorizes a raw list of item bases.
 func prepareItemData(itemBases []model.ItemBase, validBaseTypes []string) ([]model.ItemBase, []model.ItemBase, []model.ItemBase) {
-	var armorBases []model.ItemBase
-	var weaponBases []model.ItemBase
-	var flaskBases []model.ItemBase
-
-	utils := NewPobUtils() // Assuming NewPobUtils() is available in this package
+	var armorBases, weaponBases, flaskBases []model.ItemBase
+	utils := NewPobUtils()
 
 	for _, item := range itemBases {
 		if !slices.Contains(validBaseTypes, item.GetBaseType()) {
 			continue
 		}
-
 		if utils.IsArmor(item) {
 			armorBases = append(armorBases, item)
 		} else if utils.IsWeapon(item) {
@@ -203,6 +232,5 @@ func prepareItemData(itemBases []model.ItemBase, validBaseTypes []string) ([]mod
 			flaskBases = append(flaskBases, item)
 		}
 	}
-
 	return armorBases, weaponBases, flaskBases
 }

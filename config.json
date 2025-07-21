@@ -19,5 +19,11 @@
     "Value": 0.65,
     "Rarity": 0.35
   },
-  "ChaseVSGeneralPotentialFactor": 0.85
+  "ChaseVSGeneralPotentialFactor": 0.85,
+  "CustomEquipmentPresets": {
+    "LightningTendrilsMartron": {
+      "DesiredWeaponClasses": ["Sceptres"],
+      "DesiredArmourTypes": ["Armour", "Armour/Energy Shield", "Armour/Evasion/Energy Shield"]
+    }
+  }
 }
