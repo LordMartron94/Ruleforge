@@ -8,9 +8,9 @@
 		{
 			"name": "Ruleforge Project",
 			"working_dir": "${project_path}",
-			// "env": {
-			// 	"PATH": "$HOME/.local/bin:$PATH"
-			// },
+			"env": {
+				"GOFLAGS": "-mod=vendor",
+			},
 			"variants": [
 				{
 					"name": "Run (Default)",
@@ -46,6 +46,22 @@
 					"working_dir": "${project_path}",
 					"target": "terminus_exec",
 					"cancel": "terminus_cancel_build",
+				},
+				{
+					"name": "Refresh Vendor",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+					"shell_cmd": "./refresh_vendor.sh",
+					"working_dir": "${project_path}",
+					"quiet": false,
+				},
+				{
+					"name": "Add Module",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+					"shell_cmd": "./add_module.sh",
+					"working_dir": "${project_path}",
+					"quiet": false,
 				},
 			]
 		}

@@ -1,9 +1,15 @@
+github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler v0.0.0-20251103190150-1572761805fc h1:yj71HqnXCe+uBahCoohtBLCQBBISLp1WexpmKWrfgqM=
+github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler v0.0.0-20251103190150-1572761805fc/go.mod h1:RMxWcOy2S/UVCnvFnYBp0ysr95Daj7n6aReeDyebH7M=
 github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions v0.0.0-20251103190150-1572761805fc h1:nG2/rNc+QVz8tJR5M0XBsYayQwj3IEwvSnzFs7UYTdo=
 github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions v0.0.0-20251103190150-1572761805fc/go.mod h1:XUIg2GTMC7kohHUZQK4OpHAS1Hqxg4gPSjbrxmi2Uio=
 github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/files v0.0.0-20251103190150-1572761805fc h1:f6u9E5rRhaxZeZf4b8K0hrqeo82pk3WRQws1HMiWuV0=
 github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/files v0.0.0-20251103190150-1572761805fc/go.mod h1:1DUt7w16KwTPqOIq5fw09IL64ub805gx5bscbAgouEk=
 github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config v0.0.0-20251103190150-1572761805fc h1:RPWGXEY7wNaAknH+JgrJevXZo3pRWyktYXv73iOkzy8=
 github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config v0.0.0-20251103190150-1572761805fc/go.mod h1:WY3ZTq/jayIqQK1DUO9sqLxj9Ra7PlAz5osyh0Bx2oY=
+github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation v0.0.0-20251103190150-1572761805fc h1:h3PQmy924wbMfS5PPnELQx4RtEbTTvoSxFAgyU6qcH4=
+github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation v0.0.0-20251103190150-1572761805fc/go.mod h1:RfnwURZcKwCaVD1tS7BrujA8d8eX116DsuLD2+QbAGo=
+github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules v0.0.0-20251103190150-1572761805fc h1:MV6RYV8e1Nw4pg9JcbKv0unkYNtzxIVqF1EyAlNonmA=
+github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules v0.0.0-20251103190150-1572761805fc/go.mod h1:KmoE4tMHlCPtx5Qv1SERrllY8mXDZc5DY/gTrQa9EDY=
 github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0/go.mod h1:E/TSTwGwJL78qG/PmXZO1EjYhfJinVAhrmmHX6Z8B9k=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=

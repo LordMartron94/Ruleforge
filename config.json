@@ -6,10 +6,10 @@
   "StyleJSONFile": "/home/user/Repos/Ruleforge/configuration/styles/new_theme.json",
   "StyleColorCSSFile": "/home/user/Repos/Ruleforge/configuration/styles/new_theme.css",
   "BaseTypeCSVFile": "/home/user/Repos/Ruleforge/configuration/basetypes/basetype_automation_config_new_theme.csv",
-  "PathOfBuildingDataPath": "/home/user/Repos/Ruleforge/pob/src/Data",
+  "PathOfBuildingDataPath": "/home/user/Repos/Ruleforge/tools/pob/src/Data",
   "LeagueWeights": {
-    "Hardcore Mercenaries": 0.5,
-    "Mercenaries": 0.3,
+    "Hardcore Keepers": 0.5,
+    "Keepers": 0.3,
     "Hardcore": 0.15,
     "Standard": 0.05
   },

@@ -27,6 +27,7 @@ type App struct {
 	configPath      string
 	verbose         bool
 	updateCacheOnly bool
+	forceSaveCache  bool
 
 	// Core Components
 	log      *log.Logger
@@ -150,13 +151,50 @@ func (a *App) fetchData() error {
 	if err != nil {
 		return fmt.Errorf("extractUniqueBases: %w", err)
 	}
-	a.economyData, err = a.exporter.GetEconomyData(a.config.GetLeaguesToRetrieve())
+	err = a.fetchEconomyData(false)
 	if err != nil {
-		return fmt.Errorf("GetEconomyData: %w", err)
+		return fmt.Errorf("fetchEconomyData: %w", err)
 	}
 
 	a.log.Printf("Data loaded: %d item bases, %d essences, %d gems, %d uniques.", len(a.itemBases), len(a.essences), len(a.gems), len(a.uniques))
 	return nil
+}
+
+func (a *App) fetchEconomyData(regenerate bool) error {
+	var err error
+
+	if !regenerate {
+		a.economyData, err = a.exporter.GetEconomyData(a.config.GetLeaguesToRetrieve(), false)
+		if err != nil {
+			return fmt.Errorf("GetEconomyData: %w", err)
+		}
+
+		var invalid bool
+		for _, v := range a.economyData {
+			if v == nil {
+				invalid = true
+				break
+			}
+		}
+		if invalid {
+			return a.fetchEconomyData(true)
+		}
+
+		return nil
+	} else {
+		a.economyData, err = a.exporter.GetEconomyData(a.config.GetLeaguesToRetrieve(), true)
+		if err != nil {
+			return fmt.Errorf("GetEconomyData: %w", err)
+		}
+		for key, v := range a.economyData {
+			if v == nil {
+				return fmt.Errorf("economy data for league %s is invalid", key)
+			}
+		}
+
+		a.forceSaveCache = true
+		return nil
+	}
 }
 
 // saveCaches persists the fetched data. The exporter's Save* methods
@@ -165,7 +203,7 @@ func (a *App) saveCaches() error {
 	if err := a.exporter.SaveItemCache(a.itemBases, a.essences, a.gems, a.uniques); err != nil {
 		return fmt.Errorf("exporter.SaveItemCache: %w", err)
 	}
-	if err := a.exporter.SaveEconomyCache(a.economyData); err != nil {
+	if err := a.exporter.SaveEconomyCache(a.economyData, a.forceSaveCache); err != nil {
 		return fmt.Errorf("exporter.SaveEconomyCache: %w", err)
 	}
 	return nil

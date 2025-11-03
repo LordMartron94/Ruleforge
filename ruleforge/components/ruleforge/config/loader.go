@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -27,6 +28,8 @@ func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationMode
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
+
+	fmt.Println(cfg.String())
 
 	return &cfg, nil
 }

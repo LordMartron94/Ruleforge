@@ -2,3 +2,6 @@
 	path = ruleforge/components/cli_bench
 	url = https://github.com/LordMartron94/CLI-Bench
 	branch = main
+[submodule "pob"]
+	path = tools/pob
+	url = https://github.com/LordMartron94/PathOfBuilding

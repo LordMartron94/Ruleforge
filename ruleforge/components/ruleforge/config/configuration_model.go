@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions"
 	"slices"
+	"strings"
+
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions"
 )
 
 type EconomyWeights struct {
@@ -54,6 +56,60 @@ type ConfigurationModel struct {
 
 	// CustomEquipmentPresets lets you specify named presets with weapons/armour lists.
 	CustomEquipmentPresets map[string]EquipmentPreset `json:"CustomEquipmentPresets"`
+}
+
+func (c *ConfigurationModel) String() string {
+	var sb strings.Builder
+
+	sb.WriteString("\n───────────────────────────────\n")
+	sb.WriteString("  ⚙️  CONFIGURATION SUMMARY\n")
+	sb.WriteString("───────────────────────────────\n\n")
+
+	sb.WriteString("📂 Filter Output Dirs:\n")
+	if len(c.FilterOutputDirs) > 0 {
+		for _, dir := range c.FilterOutputDirs {
+			sb.WriteString(fmt.Sprintf("   • %s\n", dir))
+		}
+	} else {
+		sb.WriteString("   (none)\n")
+	}
+
+	sb.WriteString(fmt.Sprintf("\n📥 Ruleforge Input Dir: %s\n", c.RuleforgeInputDir))
+	sb.WriteString(fmt.Sprintf("🎨 Style JSON File:     %s\n", c.StyleJSONFile))
+	sb.WriteString(fmt.Sprintf("🎨 Style Color CSS:     %s\n", c.StyleColorCSSFile))
+	sb.WriteString(fmt.Sprintf("📊 BaseType CSV File:   %s\n", c.BaseTypeCSVFile))
+	sb.WriteString(fmt.Sprintf("📘 PoB Data Path:       %s\n", c.PathOfBuildingDataPath))
+
+	sb.WriteString("\n💰 League Weights:\n")
+	if len(c.LeagueWeights) > 0 {
+		for league, weight := range c.LeagueWeights {
+			sb.WriteString(fmt.Sprintf("   • %-15s %.2f\n", league, weight))
+		}
+	} else {
+		sb.WriteString("   (none)\n")
+	}
+
+	if c.EconomyWeights != nil {
+		sb.WriteString(fmt.Sprintf("\n💎 Economy Weights: %+v\n", *c.EconomyWeights))
+	} else {
+		sb.WriteString("\n💎 Economy Weights: (none)\n")
+	}
+
+	sb.WriteString(fmt.Sprintf("\n📈 Normalization Strategy: %s\n", c.EconomyNormalizationStrategy))
+	sb.WriteString(fmt.Sprintf("⚖️  Chase vs General Factor: %.2f\n", c.ChaseVSGeneralPotentialFactor))
+
+	sb.WriteString("\n🧩 Custom Equipment Presets:\n")
+	if len(c.CustomEquipmentPresets) > 0 {
+		for name, preset := range c.CustomEquipmentPresets {
+			sb.WriteString(fmt.Sprintf("   • %s → %+v\n", name, preset))
+		}
+	} else {
+		sb.WriteString("   (none)\n")
+	}
+
+	sb.WriteString("\n───────────────────────────────\n")
+
+	return sb.String()
 }
 
 var validNormalizationStrategies = []string{
@@ -113,7 +169,7 @@ func (c *ConfigurationModel) Validate() error {
 func (c *ConfigurationModel) GetLeaguesToRetrieve() []string {
 	var leaguesToRetrieve []string
 
-	for league, _ := range c.LeagueWeights {
+	for league := range c.LeagueWeights {
 		leaguesToRetrieve = append(leaguesToRetrieve, league)
 	}
 

@@ -1,5 +1,8 @@
+github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions v0.0.0-20251103190150-1572761805fc h1:nG2/rNc+QVz8tJR5M0XBsYayQwj3IEwvSnzFs7UYTdo=
+github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions v0.0.0-20251103190150-1572761805fc/go.mod h1:XUIg2GTMC7kohHUZQK4OpHAS1Hqxg4gPSjbrxmi2Uio=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/tdewolff/parse/v2 v2.8.1 h1:J5GSHru6o3jF1uLlEKVXkDxxcVx6yzOlIVIotK4w2po=
 github.com/tdewolff/parse/v2 v2.8.1/go.mod h1:Hwlni2tiVNKyzR1o6nUs4FOF07URA+JLBLd6dlIXYqo=
+github.com/tdewolff/test v1.0.11 h1:FdLbwQVHxqG16SlkGveC0JVyrJN62COWTRyUFzfbtBE=
 github.com/tdewolff/test v1.0.11/go.mod h1:XPuWBzvdUzhCuxWO1ojpXsyzsA5bFoS3tO/Q3kFuTG8=

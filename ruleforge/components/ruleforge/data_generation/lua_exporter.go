@@ -2,8 +2,10 @@ package data_generation
 
 import (
 	"fmt"
-	lua "github.com/yuin/gopher-lua"
+	"sort"
 	"strings"
+
+	lua "github.com/yuin/gopher-lua"
 )
 
 // LuaExecutor is a reusable service for executing Lua scripts.
@@ -139,4 +141,26 @@ func setupEnvironment(L *lua.LState) {
 	uniqueMods.RawSetString("Watcher's Eye", watchersEye)
 
 	L.SetGlobal("LoadModule", L.NewFunction(luaLoadModule))
+
+	L.SetGlobal("pairsSortByKey", L.NewFunction(func(L *lua.LState) int {
+		t := L.CheckTable(1)
+		keys := make([]string, 0)
+		t.ForEach(func(k lua.LValue, _ lua.LValue) {
+			keys = append(keys, k.String())
+		})
+		sort.Strings(keys)
+		fn := L.NewFunction(func(L *lua.LState) int {
+			if len(keys) == 0 {
+				return 0
+			}
+			k := lua.LString(keys[0])
+			v := t.RawGet(k)
+			keys = keys[1:]
+			L.Push(k)
+			L.Push(v)
+			return 2
+		})
+		L.Push(fn)
+		return 1
+	}))
 }

@@ -203,8 +203,8 @@ func (e *PathOfBuildingExporter) LoadGeneratedUniques(luaFilePath string) ([]mod
 	return models, nil
 }
 
-func (e *PathOfBuildingExporter) GetEconomyData(leaguesToRetrieve []string) (map[string][]EconomyCacheItem, error) {
-	if e.economyCache != nil {
+func (e *PathOfBuildingExporter) GetEconomyData(leaguesToRetrieve []string, forceRegenerate bool) (map[string][]EconomyCacheItem, error) {
+	if !forceRegenerate && e.economyCache != nil {
 		return (*e.economyCache).EconomyCacheItems, nil
 	}
 
@@ -270,8 +270,8 @@ func (e *PathOfBuildingExporter) SaveItemCache(items []model.ItemBase, essences 
 
 // SaveEconomyCache saves the economy data.
 // It checks the economy cache's expiry date and only saves if the cache is missing or expired.
-func (e *PathOfBuildingExporter) SaveEconomyCache(economy map[string][]EconomyCacheItem) error {
-	if e.economyCache != nil && time.Now().Before(e.economyCache.ExpiryDate) {
+func (e *PathOfBuildingExporter) SaveEconomyCache(economy map[string][]EconomyCacheItem, forceSave bool) error {
+	if !forceSave && e.economyCache != nil && time.Now().Before(e.economyCache.ExpiryDate) {
 		log.Println("Economy cache is still valid. Skipping save.")
 		return nil
 	}
