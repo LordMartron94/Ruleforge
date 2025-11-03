@@ -378,7 +378,7 @@ func (a *App) extractUniqueBases(pobDataPath string) ([]model.Unique, error) {
 	allUniques = append(allUniques, bases...)
 
 	// New uniques
-	newUniqueFile := filepath.Join(pobDataPath, "Uniques", "Special", "New.Lua")
+	newUniqueFile := filepath.Join(pobDataPath, "Uniques", "Special", "New.lua")
 	newUniques, err := a.exporter.LoadUpcomingUniqueItems(newUniqueFile)
 	if err != nil {
 		// Log as warning, as this file might not always exist
@@ -388,7 +388,7 @@ func (a *App) extractUniqueBases(pobDataPath string) ([]model.Unique, error) {
 	}
 
 	// Generated uniques
-	generatedUniqueFile := filepath.Join(pobDataPath, "Uniques", "Special", "Generated.Lua")
+	generatedUniqueFile := filepath.Join(pobDataPath, "Uniques", "Special", "Generated.lua")
 	generatedUniques, err := a.exporter.LoadGeneratedUniques(generatedUniqueFile)
 	if err != nil {
 		return nil, fmt.Errorf("loading generated uniques: %w", err)

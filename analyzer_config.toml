@@ -1,0 +1,11 @@
+[analyzer]
+includes=[
+  "."
+]
+excludes=[
+  "./src_analyzer/main.go",
+  "./build",
+  "./cache",
+  "./pob",
+  "./ruleforge/components/cli_bench"
+]

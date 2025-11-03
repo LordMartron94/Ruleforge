@@ -1,0 +1,53 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"build_systems": [
+		{
+			"name": "Ruleforge Project",
+			"working_dir": "${project_path}",
+			// "env": {
+			// 	"PATH": "$HOME/.local/bin:$PATH"
+			// },
+			"variants": [
+				{
+					"name": "Run (Default)",
+					"shell_cmd": "./run.sh --config=config.json",
+					"working_dir": "${project_path}",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+				},
+				{
+					"name": "Run (Verbose)",
+					"shell_cmd": "./run.sh --verbose",
+					"working_dir": "${project_path}",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+				},
+				{
+					"name": "Run (Update Cache Only)",
+					"shell_cmd": "./run.sh --update-cache-only",
+					"working_dir": "${project_path}",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+				},
+				{
+					"name": "Run (Dev Config + Verbose)",
+					"shell_cmd": "./run.sh --config=config.json --verbose",
+					"working_dir": "${project_path}",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+				},
+				{
+					"name": "Run Project Analysis",
+					"shell_cmd": "./run_analyzer.sh",
+					"working_dir": "${project_path}",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+				},
+			]
+		}
+	]
+}

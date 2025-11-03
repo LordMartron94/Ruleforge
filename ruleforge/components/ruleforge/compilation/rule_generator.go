@@ -465,7 +465,7 @@ func (rg *RuleGenerator) produceProgression(
 		buckets, outdated := groupProgressionBuckets(categoryItems, minAreaLevel, maxAreaLevel)
 		for _, b := range buckets {
 			for _, item := range b.items {
-				if item.Armour != nil {
+				if item.Armour != nil && maxRoll != nil {
 					rg.constructMaxRolledGearRule(variables, model2.ShowRule, *item, allGeneratedRules, maxRoll, fmt.Sprintf("%d", b.showEndLevel))
 				}
 
@@ -476,7 +476,7 @@ func (rg *RuleGenerator) produceProgression(
 				}
 
 				if !b.isLastTier && b.hideStartLevel <= maxAreaLevel {
-					if item.Armour != nil {
+					if item.Armour != nil && maxRoll != nil {
 						rg.constructMaxRolledGearRule(variables, model2.HideRule, *item, allGeneratedRules, maxRoll, fmt.Sprintf("%d", b.showEndLevel))
 					}
 
@@ -1008,6 +1008,11 @@ func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionCondi
 		for i, cond := range finalStandardConditions {
 			compiledFinalConditions[i] = cond.ConstructCompiledCondition(rule.Variables, rule.ValidBaseTypes)
 		}
+
+		if rule.Style == nil {
+			panic(fmt.Errorf("rule style is nil, rule: %v", rule.Conditions))
+		}
+
 		finalRule := rg.ruleFactory.ConstructRule(rule.Action, *rule.Style, compiledFinalConditions)
 		return [][]string{finalRule}
 	}

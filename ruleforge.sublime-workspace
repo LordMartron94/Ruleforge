@@ -1,0 +1,606 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"funct",
+				"function-call"
+			],
+			[
+				"SE",
+				"SECTION_CONDITIONS"
+			],
+			[
+				"bui",
+				"\"build_systems\""
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": ".gitignore",
+			"settings":
+			{
+				"buffer_size": 719,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+				[
+					5,
+					1,
+					"insert",
+					{
+						"characters": "\n\n"
+					},
+					"AgAAAHYCAAAAAAAAdwIAAAAAAAAAAAAAdwIAAAAAAAB4AgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAdgIAAAAAAAB2AgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					6,
+					2,
+					"left_delete",
+					null,
+					"AgAAAHcCAAAAAAAAdwIAAAAAAAABAAAACnYCAAAAAAAAdgIAAAAAAAABAAAACg",
+					"AQAAAAAAAAABAAAAeAIAAAAAAAB4AgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					10,
+					1,
+					"insert",
+					{
+						"characters": "pob"
+					},
+					"AwAAAMwCAAAAAAAAzQIAAAAAAAAAAAAAzQIAAAAAAADOAgAAAAAAAAAAAADOAgAAAAAAAM8CAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAzAIAAAAAAADMAgAAAAAAAAAAAAAAQFNA"
+				]
+			]
+		}
+	],
+	"build_system": "Ruleforge Project",
+	"build_system_choices":
+	[
+		[
+			[
+				[
+					"Go Deps Project",
+					""
+				],
+				[
+					"Go Deps Project",
+					"Mod Vendor"
+				],
+				[
+					"Packages/ShellScript/ShellScript.sublime-build",
+					""
+				]
+			],
+			[
+				"Go Deps Project",
+				"Mod Vendor"
+			]
+		],
+		[
+			[
+				[
+					"Ruleforge Project",
+					""
+				],
+				[
+					"Ruleforge Project",
+					"Run (Default)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Verbose)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Update Cache Only)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Dev Config + Verbose)"
+				]
+			],
+			[
+				"Ruleforge Project",
+				"Run (Default)"
+			]
+		],
+		[
+			[
+				[
+					"Ruleforge Project",
+					""
+				],
+				[
+					"Ruleforge Project",
+					"Run (Default)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Verbose)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Update Cache Only)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Dev Config + Verbose)"
+				],
+				[
+					"Packages/PackageDev/Package/Convert to ....sublime-build",
+					""
+				],
+				[
+					"Packages/PackageDev/Package/Convert to ....sublime-build",
+					"JSON"
+				],
+				[
+					"Packages/PackageDev/Package/Convert to ....sublime-build",
+					"Property List"
+				],
+				[
+					"Packages/PackageDev/Package/Convert to ....sublime-build",
+					"YAML (Block Style)"
+				],
+				[
+					"Packages/PackageDev/Package/Convert to ....sublime-build",
+					"YAML (Default Style)"
+				]
+			],
+			[
+				"Ruleforge Project",
+				"Run (Default)"
+			]
+		],
+		[
+			[
+				[
+					"Ruleforge Project",
+					""
+				],
+				[
+					"Ruleforge Project",
+					"Run (Default)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Verbose)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Update Cache Only)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Dev Config + Verbose)"
+				],
+				[
+					"Packages/ShellScript/ShellScript.sublime-build",
+					""
+				]
+			],
+			[
+				"Ruleforge Project",
+				"Run (Default)"
+			]
+		],
+		[
+			[
+				[
+					"Ruleforge Project",
+					""
+				],
+				[
+					"Ruleforge Project",
+					"Run (Default)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Verbose)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Update Cache Only)"
+				],
+				[
+					"Ruleforge Project",
+					"Run (Dev Config + Verbose)"
+				],
+				[
+					"Ruleforge Project",
+					"Run Project Analysis"
+				]
+			],
+			[
+				"Ruleforge Project",
+				"Run (Default)"
+			]
+		]
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"wrap",
+				"Word Wrap: Toggle"
+			],
+			[
+				"intall p",
+				"Package Control: Install Package"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"wor",
+				"Word Wrap: Toggle"
+			],
+			[
+				"displa",
+				"ScopeView: Toggle Scope Display"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			],
+			[
+				"select",
+				"UI: Select Theme"
+			],
+			[
+				"remove ",
+				"Package Control: Remove Package"
+			],
+			[
+				"select the",
+				"UI: Select Theme"
+			],
+			[
+				"enable ",
+				"Package Control: Enable Package"
+			],
+			[
+				"defaul",
+				"ChannelRepositoryTools: Test Default Channel"
+			],
+			[
+				"disable pac",
+				"Package Control: Disable Package"
+			],
+			[
+				"channel",
+				"ChannelRepositoryTools: Test Default Channel"
+			],
+			[
+				"install p",
+				"Package Control: Install Package"
+			],
+			[
+				"markdown",
+				"MarkdownEditing: Run markdownlint"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"toggle dis",
+				"ScopeView: Toggle Scope Display"
+			],
+			[
+				"scope",
+				"ScopeView: Toggle Scope Display"
+			],
+			[
+				"remov",
+				"Package Control: Remove Package"
+			],
+			[
+				"add repo",
+				"Package Control: Add Repository"
+			],
+			[
+				"install ",
+				"Package Control: Install Package"
+			],
+			[
+				"Install",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 249.0,
+		"history":
+		[
+			"import shutil; print(shutil.which(\"node\"))"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/home/user/Repos/Ruleforge",
+		"/home/user/Repos/Ruleforge/main_input",
+		"/home/user/Repos/Ruleforge/output",
+		"/home/user/Repos/Ruleforge/ruleforge",
+		"/home/user/Repos/Ruleforge/ruleforge/components",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/compilation",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/compilation/model",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/rules",
+		"/home/user/Repos/Ruleforge/ruleforge/tests",
+		"/home/user/Repos/Ruleforge/src_analyzer"
+	],
+	"file_history":
+	[
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/compilation/rule_generator.go",
+		"/home/user/Repos/Ruleforge/test.js",
+		"/home/user/Repos/Ruleforge/main_input/main.rf",
+		"/home/user/.config/sublime-text/Packages/User/Path of Exile Item Filter.sublime-syntax",
+		"/home/user/Repos/Ruleforge/configuration/styles/new_theme.json",
+		"/home/user/.config/sublime-text/Packages/User/ruleforge.sublime-syntax",
+		"/home/user/.config/sublime-text/Packages/Noesis-Coding-Theme/Noesis_Color.sublime-color-scheme",
+		"/home/user/Repos/Ruleforge/src_analyzer/main.go",
+		"/home/user/Repos/Ruleforge/analyzer_config.toml",
+		"/home/user/Repos/Ruleforge/src_analyzer/go.mod",
+		"/home/user/Repos/Ruleforge/ruleforge.sublime-project",
+		"/home/user/Repos/noesis-coding-theme/Noesis_Color.sublime-color-scheme",
+		"/home/user/Repos/Ruleforge/output/Yalric.filter",
+		"/home/user/Repos/Ruleforge/run_analyzer.sh",
+		"/home/user/Repos/Ruleforge/config.json",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/compilation/model/parsed_rule.go",
+		"/home/user/Repos/sublime-text/.config/sublime-text/Packages/User/Path of Exile Item Filter.sublime-syntax",
+		"/home/user/Repos/Noesis-Color-Scheme/Noesis_Color.sublime-color-scheme",
+		"/home/user/Repos/sublime-text/.config/sublime-text/Packages/User/ruleforge.sublime-syntax",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/data_generation/path_of_building_exporter.go",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/entry/main.go",
+		"/home/user/Repos/Ruleforge/run.sh",
+		"/home/user/Repos/Ruleforge/go.work",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/entry/go.mod",
+		"/home/user/Repos/Ruleforge/ruleforge/components/ruleforge/validation/go.mod",
+		"/home/user/Repos/go-deps/mod_vendor.sh",
+		"/home/user/Repos/go-deps/tools.go",
+		"/home/user/Repos/go-deps/go_deps.sublime-project",
+		"/home/user/Repos/package_control_channel/main.go",
+		"/home/user/Repos/package_control_channel/repository/n.json",
+		"/home/user/Repos/Noesis-Color-Scheme/README.md",
+		"/home/user/Desktop/test/main.py"
+	],
+	"find":
+	{
+		"height": 39.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"shield",
+			"class",
+			"maxrol",
+			"funct",
+			"uniqu",
+			"operator",
+			".mp3",
+			"new"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": ".gitignore",
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 719,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								631,
+								631
+							]
+						],
+						"settings":
+						{
+							"color_helper.scan":
+							{
+								"allow_scanning": false,
+								"color_class":
+								[
+									{
+										"class": "css-level-4",
+										"scopes": ""
+									}
+								],
+								"color_trigger": "(?xi)\n(?:\n    \\b(?<![-#&$])(?:\n        color\\((?!\\s*-)|(?:hsla?|(?:ok)?(?:lch|lab)|hwb|rgba?)\\(\n) |\n\\b(?<![-#&$])[\\w]{3,}(?![(-])\\b|(?<![&])\\#)\n",
+								"current_ext": "",
+								"current_syntax": "Theme - Seti Monokai/icons/Langs/Git",
+								"enabled": true,
+								"last_updated": 1762184348.83,
+								"scanning": "-comment"
+							},
+							"git_gutter_is_enabled": true,
+							"lsp_uri": "file:///home/user/Repos/Ruleforge/.gitignore",
+							"syntax": "Packages/Theme - Seti Monokai/icons/Langs/Git.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 204.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 40.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.LSP Log Panel":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"output.diagnostics":
+	{
+		"height": 370.0,
+		"history":
+		[
+		]
+	},
+	"output.exec":
+	{
+		"height": 743.0,
+		"history":
+		[
+		]
+	},
+	"output.find_results":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"output.mdpopups":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"pinned_build_system": "",
+	"project": "ruleforge.sublime-project",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+		"lsp_show_inlay_hints": true
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 455.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
