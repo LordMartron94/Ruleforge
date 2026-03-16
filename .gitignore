@@ -43,4 +43,9 @@ go.work.sum
 *.sublime-project
 *.sublime-workspace
 
+.build_cache/
+
 build/
+
+analysis.txt
+tree.txt

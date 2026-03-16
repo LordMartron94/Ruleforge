@@ -1,0 +1,16 @@
+{
+  "file_extensions": [
+    ".rf"
+  ],
+  "scope_extension": ".rf",
+  "scope_manifest": {
+    "base_token_scopes": {
+      "TokBlockComment": "comment.block",
+      "TokLineComment": "comment.line.double-slash",
+      "TokWhitespace": "punctuation.whitespace",
+      "TokEOF": "meta.eof"
+    },
+    "node_bindings": {},
+    "invalid_scope": "invalid.illegal.unexpected-token"
+  }
+}

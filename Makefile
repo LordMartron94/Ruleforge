@@ -44,7 +44,7 @@ endef
 $(foreach dir,$(MODULE_DIRS),$(eval $(call GEN_RULE,$(dir),$(CACHE_DIR)/$(subst /,_,$(dir)).gen)))
 
 ## 🛠 Build Mode
-build: generate $(SASS_OUT)
+build: generate
 	@echo "● Compiling Go binary..."
 	@mkdir -p $(dir $(BINARY_NAME))
 	@go build -v -o $(BINARY_NAME) ./client

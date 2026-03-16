@@ -25,6 +25,8 @@ staleness_excludes=[
 Library = ["libs/"]
 Tool = ["tools/"]
 Source = ["src/"]
+Test = ["tests/"]
+Asset = ["assets/"]
 
 [language_extensions]
 ".s" = "Go Assembly"
