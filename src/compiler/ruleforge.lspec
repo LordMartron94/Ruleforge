@@ -3,7 +3,7 @@
 PRAGMA {
 	tool.sublime {
 		enable = true;
-		output-path = "assets/lang/ruleforge.sublime-syntax";
+		output-path = "/home/user/.config/sublime-text/Packages/User/ruleforge.sublime-syntax";
 		configuration-path = "assets/lang/sublime_manifest.json";
 	}
 };

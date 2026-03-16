@@ -6,6 +6,7 @@ import (
 	"foundation/domain"
 	"foundation/system"
 	"langspec"
+	"langspec/bootstrap"
 	"langspec/dsl"
 	"langspec/editor"
 	"langspec/toolchain"
@@ -56,33 +57,16 @@ type RuleforgeCompiler struct {
 }
 
 func RuleforgeCompilerCreate(config *RuleforgeCompilerConfiguration) (*RuleforgeCompiler, error) {
-	compilerConfig := dsl.LangSpecCompilerConfigurationCreate(
+	parser, err := bootstrap.CompileParserFromSpec(
+		config.ruleForgeSpecFile,
 		config.scratchAllocationFn,
-		nil,
-	).WithDiagnosticSink(config.diagnosticSink)
-
-	langSpecCompiler := dsl.LangSpecCompilerCreate(compilerConfig)
-	defer dsl.LangSpecCompilerDestroy(langSpecCompiler) // We do not need the langspec compiler after getting the initial compiled result.
-
-	ruleforgeSpecCompileResult, err := dsl.LangSpecCompilerCompile(langSpecCompiler, config.ruleForgeSpecFile)
-	if err != nil {
-		return nil, fmt.Errorf("compilation failed with error: %w", err)
-	}
-
-	err = toolchain.RunSublimeToolchain(ruleforgeSpecCompileResult, ruleforgeOverrideProducer())
-	if err != nil {
-		return nil, fmt.Errorf("sublime toolchain failed with error: %w", err)
-	}
-
-	langSpec := langspec.LangSpecCreate(
-		ruleforgeSpecCompileResult.CompiledLexerSpec, ruleforgeSpecCompileResult.CompiledParserSpec,
+		bootstrap.WithDiagnosticSink(config.diagnosticSink),
+		bootstrap.WithSublimeOverrides(ruleforgeOverrideProducer()),
 	)
 
-	parserConfig := langspec.LangParserConfigurationCreate(
-		langSpec,
-		config.scratchAllocationFn,
-	)
-	parser := langspec.LangParserCreate(parserConfig)
+	if err != nil {
+		return nil, fmt.Errorf("ruleforge compiler bootstrap failed: %w", err)
+	}
 
 	return &RuleforgeCompiler{
 		parser: parser,
@@ -90,55 +74,24 @@ func RuleforgeCompilerCreate(config *RuleforgeCompilerConfiguration) (*Ruleforge
 }
 
 func ruleforgeOverrideProducer() func(ec *EditorCtx) (*EditorOverride, bool) {
-	return func(ec *EditorCtx) (*EditorOverride, bool) {
-		if ec.Token == nil {
-			return nil, false
-		}
+	registry := editor.NewOverrideRegistry[rune, string, string, string, string, toolchain.SublimeContext]()
+	patterns := editor.NewTextPatternBuilder[string, string, string, string, toolchain.SublimeContext](runeFactory)
 
-		switch *ec.Token {
-		case "TokBlockComment":
-			return blockCommentOverride(), true
-		case "TokLineCOmment":
-			return lineCommentOverride(), true
-		default:
-			return nil, false
-		}
-	}
-}
+	registry.Register("TokLineComment", patterns.LineComment(
+		"//",
+		toolchain.SublimeContext{Scope: "comment.line.double-slash"},
+		toolchain.SublimeContext{Scope: "punctuation.definition.comment"},
+	))
 
-func lineCommentOverride() *EditorOverride {
-	slashes := pattern.LiteralString(runeFactory, "//").Capture()
-	notTerminator := runeFactory.NegatedClass(
-		runeFactory.Range('\n', '\n'),
-		runeFactory.Range('\r', '\r'),
-	).Star().Capture()
+	registry.Register("TokBlockComment", patterns.BlockComment(
+		"/*",
+		"*/",
+		toolchain.SublimeContext{MetaScope: "comment.block"},
+		toolchain.SublimeContext{Scope: "punctuation.definition.comment.begin"},
+		toolchain.SublimeContext{Scope: "punctuation.definition.comment.end"},
+	))
 
-	newPattern := slashes.Then(notTerminator)
-	matchCtx := toolchain.SublimeContext{Scope: "comment.line.double-slash"}
-
-	return &EditorOverride{
-		Pattern:      &newPattern,
-		MatchContext: &matchCtx,
-		Captures: map[int]toolchain.SublimeContext{
-			1: {Scope: "punctuation.definition.comment"},
-		},
-	}
-}
-
-func blockCommentOverride() *EditorOverride {
-	openPattern := pattern.LiteralString(runeFactory, "/*")
-	closePattern := pattern.LiteralString(runeFactory, "*/")
-
-	return &EditorOverride{
-		Pattern:      &openPattern,
-		MatchContext: &toolchain.SublimeContext{Scope: "punctuation.definition.comment.begin"},
-		DelimitedPayload: &editor.DelimitedPayload[rune, toolchain.SublimeContext]{
-			StateLabel:   "block_comment_inner",
-			BodyContext:  toolchain.SublimeContext{MetaScope: "comment.block"},
-			ClosePattern: closePattern,
-			CloseContext: toolchain.SublimeContext{Scope: "punctuation.definition.comment.end"},
-		},
-	}
+	return registry.Producer()
 }
 
 func RuleforgeCompilerDestroy(compiler *RuleforgeCompiler) {
