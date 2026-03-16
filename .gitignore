@@ -40,11 +40,7 @@ go.work
 go.work.sum
 
 # ======= PROJECT SPECIFIC =======
-build
+*.sublime-project
+*.sublime-workspace
 
-test_input
-go-tmp
-output
-cache
-main_input
-vendor
+build/

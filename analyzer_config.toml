@@ -1,0 +1,34 @@
+[analyzer]
+includes=[
+  "."
+]
+excludes=[
+  "./tools",
+  "./build",
+  "./vendor",
+  "./.pprof-snapshots",
+]
+
+staleness_excludes=[
+  ".mod",
+  ".md",
+  ".json",
+  ".sh",
+  ".toml",
+  ".scss",
+  ".css",
+  "doc.go",
+  "go.sum",
+]
+
+[category_prefixes]
+Library = ["libs/"]
+Tool = ["tools/"]
+Source = ["src/"]
+
+[language_extensions]
+".s" = "Go Assembly"
+".sql" = "SQL"
+".sum" = "Go Environment Artifacts"
+".work" = "Go Environment Artifacts"
+".lspec" = "LangSpec Meta-DSL"
