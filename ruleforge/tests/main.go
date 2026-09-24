@@ -51,7 +51,7 @@ func run() error {
 		return fmt.Errorf("configuration.Validate: %v", err)
 	}
 
-	exporter := data_generation.NewPathOfBuildingExporter()
+	exporter := data_generation.NewPathOfBuildingExporter(filepath.Join(filepath.Dir(configuration.PathOfBuildingDataPath), "data-cache"))
 	itemBases, err := extractItemBases(configuration, exporter)
 	if err != nil {
 		return fmt.Errorf("extractItemBases: %v", err)
@@ -68,7 +68,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("extractUniqueBases: %v", err)
 	}
-	economyData, err := exporter.GetEconomyData(configuration.GetLeaguesToRetrieve())
+	economyData, err := exporter.GetEconomyData(configuration.GetLeaguesToRetrieve(), false)
 
 	if err != nil {
 		return fmt.Errorf("GetEconomyData: %v", err)
@@ -84,7 +84,7 @@ func run() error {
 		return fmt.Errorf("exporter.SaveItemCache: %v", err)
 	}
 
-	err = exporter.SaveEconomyCache(economyData)
+	err = exporter.SaveEconomyCache(economyData, false)
 	if err != nil {
 		return fmt.Errorf("exporter.SaveEconomyCache: %v", err)
 	}
@@ -240,7 +240,7 @@ func processRuleforgeScript(
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, *baseTypeData, cssVariables)
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, *baseTypeData, cssVariables, configuration.CustomEquipmentPresets)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)

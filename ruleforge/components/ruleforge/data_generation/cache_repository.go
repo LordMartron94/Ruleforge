@@ -10,7 +10,11 @@ import (
 	"time"
 )
 
+const itemCacheSchemaVersion = 3
+const economyCacheSchemaVersion = 2
+
 type ItemCacheModel struct {
+	Version    int              `json:"version"`
 	ExpiryDate time.Time        `json:"expiry_date"`
 	Items      []model.ItemBase `json:"items"`
 	Essences   []model.Essence  `json:"essences"`
@@ -30,6 +34,7 @@ type EconomyCacheItem struct {
 }
 
 type EconomyCacheModel struct {
+	Version           int                           `json:"version"`
 	ExpiryDate        time.Time                     `json:"expiry_date"`
 	EconomyCacheItems map[string][]EconomyCacheItem `json:"items"`
 }
@@ -69,7 +74,7 @@ func (c *CacheRepository) LoadCache() (*ItemCacheModel, *EconomyCacheModel, erro
 			return nil, nil, err
 		}
 		// Only use the cache if it's not expired
-		if time.Now().Before(cache.ExpiryDate) {
+		if cache.Version == itemCacheSchemaVersion && time.Now().Before(cache.ExpiryDate) {
 			itemCache = &cache
 		}
 	}
@@ -89,7 +94,7 @@ func (c *CacheRepository) LoadCache() (*ItemCacheModel, *EconomyCacheModel, erro
 			return nil, nil, err
 		}
 		// Only use the cache if it's not expired
-		if time.Now().Before(cache.ExpiryDate) {
+		if cache.Version == economyCacheSchemaVersion && time.Now().Before(cache.ExpiryDate) {
 			economyCache = &cache
 		}
 	}
@@ -100,7 +105,14 @@ func (c *CacheRepository) LoadCache() (*ItemCacheModel, *EconomyCacheModel, erro
 // SaveItemCache saves the item, essence, gem, and unique data to the item cache file.
 func (c *CacheRepository) SaveItemCache(items []model.ItemBase, essences []model.Essence, gems []model.Gem, uniques []model.Unique) error {
 	expiryDate := time.Now().AddDate(0, 0, 14)
-	cache := ItemCacheModel{expiryDate, items, essences, gems, uniques}
+	cache := ItemCacheModel{
+		Version:    itemCacheSchemaVersion,
+		ExpiryDate: expiryDate,
+		Items:      items,
+		Essences:   essences,
+		Gems:       gems,
+		Uniques:    uniques,
+	}
 
 	dir := filepath.Dir(c.baseTypeCachePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -122,6 +134,7 @@ func (c *CacheRepository) SaveItemCache(items []model.ItemBase, essences []model
 func (c *CacheRepository) SaveEconomyCache(economyItems map[string][]EconomyCacheItem) error {
 	expiryDate := time.Now().Add(24 * time.Hour)
 	cache := EconomyCacheModel{
+		Version:           economyCacheSchemaVersion,
 		ExpiryDate:        expiryDate,
 		EconomyCacheItems: economyItems,
 	}

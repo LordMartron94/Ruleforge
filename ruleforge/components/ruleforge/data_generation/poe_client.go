@@ -7,13 +7,17 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
+	"strings"
 	"time"
 )
 
-// ResponseLine is a generic struct that fits the 'lines' array for most PoE Ninja items.
+const poeNinjaEconomyAPI = "https://poe.ninja/poe1/api/economy"
+
+// ResponseLine contains the PoE 1 stash-item pricing fields used by Ruleforge.
 type ResponseLine struct {
-	Name         string  `json:"name,omitempty"`
-	BaseType     string  `json:"baseType,omitempty"`
+	Name         string  `json:"name"`
+	BaseType     string  `json:"baseType"`
 	ChaosValue   float64 `json:"chaosValue"`
 	DivineValue  float64 `json:"divineValue"`
 	ExaltedValue float64 `json:"exaltedValue"`
@@ -21,111 +25,124 @@ type ResponseLine struct {
 	Count        int     `json:"count"`
 }
 
-// ApiResponse is the top-level structure for a PoE Ninja API response.
 type ApiResponse struct {
 	Lines []ResponseLine `json:"lines"`
 }
 
-// --- API Client ---
-
-// PoeNinjaClient handles requests to the PoE Ninja API.
-type PoeNinjaClient struct {
-	httpClient *http.Client
-	baseURL    string
+type economyLeague struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
-// NewPoeNinjaClient creates a new client for the API.
+// PoeNinjaClient fetches PoE 1 economy data using poe.ninja's public economy API.
+type PoeNinjaClient struct {
+	httpClient   *http.Client
+	baseURL      string
+	requestDelay time.Duration
+}
+
 func NewPoeNinjaClient() *PoeNinjaClient {
 	return &PoeNinjaClient{
-		httpClient: &http.Client{Timeout: 20 * time.Second},
-		baseURL:    "https://poe.ninja/api/data",
+		httpClient:   &http.Client{Timeout: 30 * time.Second},
+		baseURL:      poeNinjaEconomyAPI,
+		requestDelay: time.Second,
 	}
 }
 
-// FetchData makes a request to a specific PoE Ninja endpoint and parses the response.
+// getJSON bounds each response and rejects unsuccessful HTTP statuses before decoding.
+func (c *PoeNinjaClient) getJSON(path string, params url.Values, out interface{}) error {
+	address := strings.TrimRight(c.baseURL, "/") + "/" + strings.TrimLeft(path, "/")
+	if len(params) > 0 {
+		address += "?" + params.Encode()
+	}
+	req, err := http.NewRequest(http.MethodGet, address, nil)
+	if err != nil {
+		return fmt.Errorf("create request %s: %w", address, err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "Ruleforge/1.1 (PoE 1 economy data; https://github.com/LordMartron94/Ruleforge)")
+	log.Printf("Fetching economy data from: %s", address)
+	response, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("GET %s: %w", address, err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		// HTTP failures are not empty price datasets. Fail with the request context.
+		excerpt, _ := io.ReadAll(io.LimitReader(response.Body, 256))
+		return fmt.Errorf("GET %s: HTTP %s: %s", address, response.Status, strings.TrimSpace(string(excerpt)))
+	}
+	decoder := json.NewDecoder(io.LimitReader(response.Body, 32<<20))
+	if err := decoder.Decode(out); err != nil {
+		return fmt.Errorf("decode %s: %w", address, err)
+	}
+	return nil
+}
+
+// ResolveLeagues resolves the user's configured league name or ID to the actual
+// economy API ID. Preserve configured names as map keys for tiering weights.
+func (c *PoeNinjaClient) ResolveLeagues(configured []string) (map[string]string, error) {
+	var available []economyLeague
+	if err := c.getJSON("leagues", nil, &available); err != nil {
+		return nil, fmt.Errorf("retrieve active poe.ninja PoE 1 economy leagues: %w", err)
+	}
+	if len(available) == 0 {
+		return nil, fmt.Errorf("poe.ninja returned no active PoE 1 economy leagues")
+	}
+	resolved := make(map[string]string, len(configured))
+	names := make([]string, 0, len(available))
+	for _, league := range available {
+		if league.ID == "" {
+			return nil, fmt.Errorf("poe.ninja returned a league without an id")
+		}
+		names = append(names, league.Name+" ("+league.ID+")")
+	}
+	sort.Strings(names)
+	for _, requested := range configured {
+		found := false
+		for _, league := range available {
+			if requested == league.ID || requested == league.Name {
+				resolved[requested] = league.ID
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("configured league %q is not in the active poe.ninja PoE 1 economy leagues; available: %s", requested, strings.Join(names, ", "))
+		}
+	}
+	return resolved, nil
+}
+
+// FetchData retrieves one category from the PoE 1 stash-item API. The league
+// argument must be an ID returned by ResolveLeagues.
 func (c *PoeNinjaClient) FetchData(endpoint, itemType, league, itemClass string) ([]EconomyCacheItem, error) {
-	requestURL, err := url.Parse(fmt.Sprintf("%s/%s", c.baseURL, endpoint))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse base URL: %w", err)
+	if endpoint != "itemoverview" {
+		return nil, fmt.Errorf("unsupported economy endpoint %q", endpoint)
 	}
-
-	// Create a new query parameters map.
-	params := url.Values{}
-	params.Add("league", league)
-	params.Add("type", itemType)
-
-	// Encode the parameters and add them to the URL.
-	requestURL.RawQuery = params.Encode()
-	finalURL := requestURL.String()
-
-	log.Printf("Fetching data from: %s", finalURL)
-
-	req, err := http.NewRequest("GET", finalURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+	parameters := url.Values{"league": {league}, "type": {itemType}}
+	var result ApiResponse
+	if err := c.getJSON("stash/current/item/overview", parameters, &result); err != nil {
+		return nil, err
 	}
-
-	req.Header.Set("User-Agent", "Ruleforge-Economy-Scraper/1.0")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
+	if result.Lines == nil {
+		return nil, fmt.Errorf("poe.ninja returned no lines array for league %q, type %q", league, itemType)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("api request failed with status: %s", resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	var apiResponse ApiResponse
-	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
-	}
-
-	return c.transformResponse(apiResponse, itemClass), nil
+	return c.transformResponse(result, itemClass), nil
 }
 
-// transformResponse converts the API-specific structs into our generic EconomyCacheItem.
-func (c *PoeNinjaClient) transformResponse(resp ApiResponse, itemClass string) []EconomyCacheItem {
-	var items []EconomyCacheItem
-	for _, line := range resp.Lines {
-		item := EconomyCacheItem{
-			Class:      itemClass,
-			ChaosValue: line.ChaosValue,
+func (c *PoeNinjaClient) transformResponse(response ApiResponse, itemClass string) []EconomyCacheItem {
+	items := make([]EconomyCacheItem, 0, len(response.Lines))
+	for _, line := range response.Lines {
+		if line.BaseType == "" {
+			continue
 		}
-
-		// Determine the name and listing count from various possible fields.
-		if line.BaseType != "" {
-			item.BaseType = line.BaseType
-		}
-		if line.Name != "" {
-			item.Name = line.Name
-		}
-
-		if line.Count > 0 {
-			item.Count = line.Count
-		}
-		if line.ListingCount > 0 {
-			item.ListingCount = line.ListingCount
-		}
-		if line.ChaosValue > 0 {
-			item.ChaosValue = line.ChaosValue
-		}
-		if line.DivineValue > 0 {
-			item.DivineValue = line.DivineValue
-		}
-		if line.ExaltedValue > 0 {
-			item.ExaltedValue = line.ExaltedValue
-		}
-
-		if item.BaseType != "" {
-			items = append(items, item)
-		}
+		items = append(items, EconomyCacheItem{
+			Class: itemClass, Name: line.Name, BaseType: line.BaseType,
+			ChaosValue: line.ChaosValue, DivineValue: line.DivineValue,
+			ExaltedValue: line.ExaltedValue, Count: line.Count,
+			ListingCount: line.ListingCount,
+		})
 	}
 	return items
 }

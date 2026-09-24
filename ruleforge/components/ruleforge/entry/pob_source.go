@@ -117,10 +117,14 @@ func completePoBSnapshot(dir string, snapshot pobSnapshot) bool {
 	if !pobCommitPattern.MatchString(snapshot.Commit) || len(snapshot.Files) < 4 {
 		return false
 	}
-	required := map[string]bool{"Essence.lua": false, "Gems.lua": false, "Uniques/Special/Generated.lua": false}
+	required := map[string]bool{
+		"Essence.lua": false,
+		"Gems.lua":    false,
+	}
+
 	bases, uniques := 0, 0
 	for _, name := range snapshot.Files {
-		if name == "Essence.lua" || name == "Gems.lua" || name == "Uniques/Special/Generated.lua" {
+		if _, requiredFile := required[name]; requiredFile {
 			required[name] = true
 		}
 		if strings.HasPrefix(name, "Bases/") {
@@ -186,7 +190,9 @@ func (s pobSource) currentCommit(ctx context.Context) (string, error) {
 
 func (s pobSource) fetchSnapshot(ctx context.Context, dir, commit string) (pobSnapshot, error) {
 	snapshot := pobSnapshot{Commit: commit, CheckedAt: time.Now()}
-	snapshot.Files = append(snapshot.Files, "Essence.lua", "Gems.lua", "Uniques/Special/Generated.lua")
+	// Standard item bases, gems, essences and uniques are sufficient for
+	// low-memory mode. Never download the generated-unique dependencies.
+	snapshot.Files = append(snapshot.Files, "Essence.lua", "Gems.lua")
 	for _, directory := range []string{"Bases", "Uniques"} {
 		files, err := s.listLuaFiles(ctx, commit, directory)
 		if err != nil {
@@ -235,7 +241,7 @@ func (s pobSource) ensure(ctx context.Context, dir string, force bool) (bool, er
 	if valid && !force && time.Since(existing.CheckedAt) >= 0 && time.Since(existing.CheckedAt) < pobRefreshInterval {
 		return false, nil
 	}
-	if !valid {
+	if !valid && (err != nil || !pobCommitPattern.MatchString(existing.Commit)) {
 		if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
 			return false, fmt.Errorf("%s contains files but is not a complete Ruleforge-managed PoB snapshot; choose a different PathOfBuildingDataPath", dir)
 		} else if err != nil && !os.IsNotExist(err) {

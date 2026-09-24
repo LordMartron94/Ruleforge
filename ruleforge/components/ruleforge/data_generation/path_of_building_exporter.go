@@ -20,7 +20,7 @@ type PathOfBuildingExporter struct {
 }
 
 func NewPathOfBuildingExporter(cacheDir string) *PathOfBuildingExporter {
-	cacheRepository := NewCacheRepository(filepath.Join(cacheDir, "basetypes.json"), filepath.Join(cacheDir, "economy_cache.json"))
+	cacheRepository := NewCacheRepository(filepath.Join(cacheDir, "basetypes-standard-only.json"), filepath.Join(cacheDir, "economy_cache.json"))
 	baseTypeCache, economyCache, err := cacheRepository.LoadCache()
 
 	if err != nil {
@@ -34,6 +34,15 @@ func NewPathOfBuildingExporter(cacheDir string) *PathOfBuildingExporter {
 		cacheRepo:      cacheRepository,
 		economyCache:   economyCache,
 	}
+}
+
+// CachedUniques returns the previously parsed standard/upcoming unique-item set.
+// The low-memory cache is separate from caches containing generated uniques.
+func (e *PathOfBuildingExporter) CachedUniques() ([]model.Unique, bool) {
+	if e.baseTypeCache == nil {
+		return nil, false
+	}
+	return e.baseTypeCache.Uniques, true
 }
 
 // InvalidateItemCache ensures a new PoB snapshot cannot reuse parsed data
@@ -175,89 +184,83 @@ func (e *PathOfBuildingExporter) LoadUpcomingUniqueItems(luaFilePath string) ([]
 	return models, nil
 }
 
-// LoadGeneratedUniques handles the `generated.lua` file. It executes the script to populate
-// the initial `data.uniques.generated` table and parses the resulting items.
-// Note: This does NOT call functions that require external data (like `buildTreeDependentUniques`).
+// LoadGeneratedUniques executes Generated.lua with its source dependencies.
 func (e *PathOfBuildingExporter) LoadGeneratedUniques(luaFilePath string) ([]model.Unique, error) {
-	dataTable, err := e.luaExecutor.ExecuteAndGetNestedGlobal(luaFilePath, "data", "uniques", "generated")
+	log.Printf("Loading generated uniques from %s (selective PoB modifier loading)", filepath.Base(luaFilePath))
+	started := time.Now()
+	source, err := e.luaExecutor.ExecuteGeneratedUniques(luaFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load generated uniques from %s: %w", luaFilePath, err)
+		return nil, fmt.Errorf("load generated uniques from %s: %w", luaFilePath, err)
 	}
-
-	if dataTable == nil {
-		return nil, fmt.Errorf("table 'data.uniques.generated' not found in script: %s", luaFilePath)
+	result := make([]model.Unique, 0, len(source))
+	for index, text := range source {
+		item := parseUniqueItemString(text)
+		if item == nil {
+			return nil, fmt.Errorf("invalid generated unique at index %d in %s", index+1, luaFilePath)
+		}
+		result = append(result, *item)
 	}
-
-	var models []model.Unique
-
-	dataTable.ForEach(func(key lua.LValue, value lua.LValue) {
-		itemString, ok := value.(lua.LString)
-		if !ok {
-			log.Printf("WARN: Value in generated uniques at key '%s' is not a string, skipping.", key.String())
-			return
-		}
-
-		parsedItem := parseUniqueItemString(string(itemString))
-		if parsedItem != nil {
-			models = append(models, *parsedItem)
-		}
-	})
-
-	log.Printf("Successfully converted %d generated unique item models from %s\n", len(models), filepath.Base(luaFilePath))
-	return models, nil
+	log.Printf("Successfully converted %d generated unique item models from %s in %s", len(result), filepath.Base(luaFilePath), time.Since(started).Round(time.Millisecond))
+	return result, nil
 }
 
 func (e *PathOfBuildingExporter) GetEconomyData(leaguesToRetrieve []string, forceRegenerate bool) (map[string][]EconomyCacheItem, error) {
-	if !forceRegenerate && e.economyCache != nil {
-		return (*e.economyCache).EconomyCacheItems, nil
+	if !forceRegenerate && e.economyCache != nil && completeEconomyData(e.economyCache.EconomyCacheItems, leaguesToRetrieve) {
+		return e.economyCache.EconomyCacheItems, nil
 	}
 
-	allEconomyData := make(map[string][]EconomyCacheItem)
-
-	categories := map[string]map[string][]string{
-		"itemoverview": {
-			"Uniques": []string{
-				"UniqueWeapon",
-				"UniqueArmour",
-				"UniqueAccessory",
-				"UniqueFlask",
-				"UniqueJewel",
-			},
-			"Gems": []string{
-				"SkillGem",
-			},
-		},
+	leagues, err := e.economyScraper.ResolveLeagues(leaguesToRetrieve)
+	if err != nil {
+		return nil, err
 	}
 
-	fetched := 0
-
-	for _, league := range leaguesToRetrieve {
-		var leagueEconomyData []EconomyCacheItem
-
-		for endpoint, classes := range categories {
-			for class, types := range classes {
-				for _, itemType := range types {
-					items, err := e.economyScraper.FetchData(endpoint, itemType, league, class)
-					if err != nil {
-						log.Printf("ERROR: Could not fetch data for type '%s': %v", itemType, err)
-						continue
-					}
-					leagueEconomyData = append(leagueEconomyData, items...)
-					fetched += len(items)
-					log.Printf("Successfully fetched %d items for type '%s'", len(items), itemType)
-					time.Sleep(1 * time.Second)
-				}
+	categories := []struct{ kind, class string }{
+		{"UniqueWeapon", "Uniques"},
+		{"UniqueArmour", "Uniques"},
+		{"UniqueAccessory", "Uniques"},
+		{"UniqueFlask", "Uniques"},
+		{"UniqueJewel", "Uniques"},
+		{"SkillGem", "Gems"},
+	}
+	all := make(map[string][]EconomyCacheItem, len(leaguesToRetrieve))
+	total := 0
+	requestCount := 0
+	for _, configured := range leaguesToRetrieve {
+		leagueID := leagues[configured]
+		var items []EconomyCacheItem
+		for _, category := range categories {
+			// Avoid bursts; no delay before the first request.
+			if requestCount > 0 && e.economyScraper.requestDelay > 0 {
+				time.Sleep(e.economyScraper.requestDelay)
 			}
+			requestCount++
+			fetched, fetchErr := e.economyScraper.FetchData("itemoverview", category.kind, leagueID, category.class)
+			if fetchErr != nil {
+				return nil, fmt.Errorf("fetch poe.ninja league %q (id %q), category %q: %w", configured, leagueID, category.kind, fetchErr)
+			}
+			log.Printf("Fetched %d %s records for %s", len(fetched), category.kind, configured)
+			items = append(items, fetched...)
 		}
-
-		allEconomyData[league] = leagueEconomyData
+		if len(items) == 0 {
+			return nil, fmt.Errorf("no item prices returned for league %q (id %q); refusing to cache an empty economy", configured, leagueID)
+		}
+		all[configured] = items
+		total += len(items)
 	}
+	log.Printf("Fetched %d economy items across %d configured leagues", total, len(all))
+	return all, nil
+}
 
-	log.Printf("-----------------------------------------")
-	log.Printf("Total economy items fetched (across leagues): %d", fetched)
-	log.Println("Economy data fetching complete.")
-
-	return allEconomyData, nil
+func completeEconomyData(data map[string][]EconomyCacheItem, configured []string) bool {
+	if len(configured) == 0 {
+		return false
+	}
+	for _, league := range configured {
+		if len(data[league]) == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // SaveItemCache saves the item, essence, gem, and unique data.
@@ -274,8 +277,16 @@ func (e *PathOfBuildingExporter) SaveItemCache(items []model.ItemBase, essences 
 
 // SaveEconomyCache saves the economy data.
 // It checks the economy cache's expiry date and only saves if the cache is missing or expired.
+func economyLeagues(economy map[string][]EconomyCacheItem) []string {
+	names := make([]string, 0, len(economy))
+	for name := range economy {
+		names = append(names, name)
+	}
+	return names
+}
+
 func (e *PathOfBuildingExporter) SaveEconomyCache(economy map[string][]EconomyCacheItem, forceSave bool) error {
-	if !forceSave && e.economyCache != nil && time.Now().Before(e.economyCache.ExpiryDate) {
+	if !forceSave && e.economyCache != nil && completeEconomyData(e.economyCache.EconomyCacheItems, economyLeagues(economy)) && time.Now().Before(e.economyCache.ExpiryDate) {
 		log.Println("Economy cache is still valid. Skipping save.")
 		return nil
 	}

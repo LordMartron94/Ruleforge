@@ -69,12 +69,19 @@ func TestPoBSnapshotFirstDownloadReuseAndRefresh(t *testing.T) {
 		t.Fatalf("initial download: changed=%v, err=%v", changed, err)
 	}
 	count := downloads.Load()
-	if count != 6 {
-		t.Fatalf("expected 6 files, got %d", count)
+	if count != 5 {
+		t.Fatalf("expected 5 files, got %d", count)
 	}
 	snap, err := readPoBSnapshot(dir)
 	if err != nil || snap.Commit != revision || !completePoBSnapshot(dir, snap) {
 		t.Fatalf("invalid initial snapshot: %+v %v", snap, err)
+	}
+	for _, name := range snap.Files {
+		if name == "Uniques/Special/Generated.lua" || name == "ModItemExclusive.lua" ||
+			name == "ModVeiled.lua" || name == "ClusterJewels.lua" ||
+			name == "Uniques/Special/WatchersEye.lua" {
+			t.Fatalf("low-memory snapshot downloaded unused generated-unique dependency %s", name)
+		}
 	}
 	changed, err = source.ensure(ctx, dir, false)
 	if err != nil || changed || downloads.Load() != count {
@@ -144,5 +151,49 @@ func TestPoBSnapshotRefusesExistingUnmanagedDirectory(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "personal.txt")); err != nil {
 		t.Fatal("personal data deleted:", err)
+	}
+}
+
+func TestPoBSnapshotReusesEarlierManagedCache(t *testing.T) {
+	revision := firstCommit
+	broken := false
+	var downloads atomic.Int32
+	server, source := mockPoB(t, &revision, &broken, &downloads)
+	defer server.Close()
+
+	dir := filepath.Join(t.TempDir(), "pob")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	oldFiles := []string{
+		"Essence.lua", "Gems.lua", "Uniques/Special/Generated.lua",
+		"Bases/axe.lua", "Uniques/axe.lua", "Uniques/Special/New.lua",
+	}
+	for _, name := range oldFiles {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("-- old managed snapshot\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	bytes, err := json.Marshal(pobSnapshot{
+		Commit: revision, CheckedAt: time.Now(), Files: oldFiles,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".ruleforge-source.json"), bytes, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := source.ensure(context.Background(), dir, false)
+	if err != nil || changed {
+		t.Fatalf("reuse previous managed snapshot: changed=%v err=%v", changed, err)
+	}
+	snapshot, err := readPoBSnapshot(dir)
+	if err != nil || !completePoBSnapshot(dir, snapshot) || downloads.Load() != 0 {
+		t.Fatalf("invalid reused snapshot: snapshot=%+v err=%v downloads=%d", snapshot, err, downloads.Load())
 	}
 }

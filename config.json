@@ -8,7 +8,10 @@
   "BaseTypeCSVFile": "configuration/basetypes/basetype_automation_config_new_theme.csv",
   "PathOfBuildingDataPath": ".ruleforge-cache/pob",
   "LeagueWeights": {
-    "Standard": 1.0
+    "Hardcore Allflame": 0.5,
+    "Allflame": 0.3,
+    "Hardcore": 0.15,
+    "Standard": 0.05
   },
   "EconomyNormalizationStrategy": "Global",
   "EconomyWeights": {

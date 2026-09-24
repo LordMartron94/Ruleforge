@@ -159,6 +159,7 @@ func (a *App) fetchData() error {
 	if err != nil {
 		return fmt.Errorf("extractUniqueBases: %w", err)
 	}
+	a.log.Println("Item data loaded; fetching economy data (may require network access)...")
 	err = a.fetchEconomyData(false)
 	if err != nil {
 		return fmt.Errorf("fetchEconomyData: %w", err)
@@ -410,6 +411,11 @@ func (a *App) extractGemBases(pobDataPath string) ([]model.Gem, error) {
 }
 
 func (a *App) extractUniqueBases(pobDataPath string) ([]model.Unique, error) {
+	if cached, ok := a.exporter.CachedUniques(); ok {
+		a.log.Printf("Using %d cached standard/upcoming uniques (generated uniques disabled in low-memory mode)", len(cached))
+		return cached, nil
+	}
+
 	var allUniques []model.Unique
 
 	// Standard uniques
@@ -433,13 +439,11 @@ func (a *App) extractUniqueBases(pobDataPath string) ([]model.Unique, error) {
 		allUniques = append(allUniques, newUniques...)
 	}
 
-	// Generated uniques
-	generatedUniqueFile := filepath.Join(pobDataPath, "Uniques", "Special", "Generated.lua")
-	generatedUniques, err := a.exporter.LoadGeneratedUniques(generatedUniqueFile)
-	if err != nil {
-		return nil, fmt.Errorf("loading generated uniques: %w", err)
-	}
-	allUniques = append(allUniques, generatedUniques...)
+	// Deliberately do not execute PoB Generated.lua. Its full Lua data graph
+	// uses excessive RAM on memory-constrained Linux installations.
+	// Standard and upcoming uniques remain available; generator-only items
+	// are omitted until a separate resource-bounded implementation exists.
+	a.log.Printf("Low-memory mode: loaded %d standard/upcoming uniques; skipping PoB Generated.lua", len(allUniques))
 
 	return allUniques, nil
 }

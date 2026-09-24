@@ -76,7 +76,18 @@ directory. Absolute paths also work. Use your platform's path syntax.
   data directory**: Ruleforge only manages a directory it created itself.
 - `LeagueWeights`, `EconomyWeights`, `EconomyNormalizationStrategy`, and
   `ChaseVSGeneralPotentialFactor`: Settings for economy-based compilation.
-  If your chosen league is no longer available on poe.ninja, update its name.
+  League names are resolved using poe.ninja's active PoE 1 economy leagues API;
+  each configured league must be available there. If a league is unavailable,
+  the error lists the currently advertised names and IDs. Do not change the
+  weights to another league silently: update `LeagueWeights` deliberately.
+
+Ruleforge uses poe.ninja's documented PoE 1 economy endpoints
+(`/poe1/api/economy/leagues` and
+`/poe1/api/economy/stash/current/item/overview`). Old economy caches created
+with the retired `/api/data/itemoverview` endpoint are invalidated automatically.
+The economy cache lasts 24 hours; source Lua item caches are independent.
+An HTTP/API error aborts economy loading with the failed league, category, and
+status instead of repeatedly treating every failed request as an empty dataset.
 
 On the first run Ruleforge downloads the specific Lua files it uses from
 `PathOfBuildingCommunity/PathOfBuilding` on GitHub, pinned to one commit.
@@ -289,3 +300,21 @@ MACRO["handle_csv"->$category=>"Orbs"]
 ```
 This command would process all rows in the CSV file where the `Category` column is "Orbs,"
 generating a rule for each one based on its configured `Basetype`, `MinStackSize`, `Style`, and `Tier`.
+
+### Low-memory unique loading
+
+This build deliberately **does not execute** PoB `Generated.lua` or download the
+large modifier files needed by its generator. It still loads regular uniques
+from `Uniques/*.lua` and any items in `Uniques/Special/New.lua`. Unique items
+which exist *only* in PoB's generated dataset are not available for Ruleforge
+rules or unique-specific tiering. No errors are suppressed: regular source-file
+and parsing errors still fail normally.
+
+The first run writes a new `data-cache/basetypes-standard-only.json` item cache.
+The legacy `basetypes.json` file is intentionally not read or deleted, so a
+large cache from earlier generated-unique builds cannot be reloaded. PoB's
+existing `.ruleforge-cache/pob` source files can be reused unchanged; there is
+no need to delete the PoB cache or force an upstream refresh.
+
+The generator implementation remains in the source tree for future development,
+but the application never invokes it in low-memory mode.
