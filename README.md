@@ -3,7 +3,7 @@
 _Disclaimer: This is written by Gemini 2.5 Pro on 23 June 2025 with the entire codebase in mind (to save time). **However, I have fact-checked the explanation to ensure accuracy.**_
 
 Ruleforge is a sophisticated, highly configurable compiler designed to generate item filters for the game Path of Exile.
-It transforms a modular, easy-to-read syntax (.rf files) into a complete, optimized item filter.
+It transforms a modular, easy-to-read syntax (.rf files) into a Path of Exile item filter.
 By integrating directly with Path of Building data and real-time economic information from poe.ninja,
 Ruleforge allows for the creation of powerful,
 data-driven, and context-aware filters that go far beyond what is possible with simple text-based filter editors.
@@ -36,41 +36,57 @@ Ruleforge is built around a few key ideas:
 
 ## Installation and Setup
 
-### 1. Configuration (config.json)
-Before running, you must configure Ruleforge by editing the config.json file.
+### Quick start (Linux and Windows)
 
-```json
-{
-  "FilterOutputDirs": [
-    "X:\\Ruleforge\\output",
-    "C:\\Users\\YourUser\\Documents\\My Games\\Path of Exile"
-  ],
-  "RuleforgeInputDir": "X:\\Ruleforge\\test_input",
-  "StyleJSONFile": "X:\\Ruleforge\\styles.json",
-  "PathOfBuildingDataPath": "D:\\[...]\\Path of Building Community\\Data",
-  "LeagueWeights": {
-    "Hardcore Mercenaries" : 0.5,
-    "Mercenaries":  0.3,
-    "Hardcore":  0.15,
-    "Standard": 0.05
-  },
-  "EconomyNormalizationStrategy": "Global",
-  "EconomyWeights": {
-    "Value": 0.65,
-    "Rarity": 0.35
-  },
-  "ChaseVSGeneralPotentialFactor": 0.85
-}
+Requires Go 1.23 or newer, internet access for the first run (Go dependencies,
+official Path of Building data, and poe.ninja economy data), and write access to
+this project directory. No local Path of Building installation or Git executable
+is required. From the extracted ZIP directory on Linux:
+
+```sh
+./run.sh
 ```
 
-- **FilterOutputDirs**: An array of directories where the final .filter files will be saved. It's recommended to point one entry directly to your Path of Exile filter directory. 
-- **RuleforgeInputDir**: The directory containing your .rf script files that you want to compile. 
-- StyleJSONFile: The absolute path to your styles.json file. 
-- **PathOfBuildingDataPath**: (Crucial) The absolute path to the Data directory within your Path of Building (Community Fork) installation. Ruleforge uses this to access up-to-date item base information. 
-- **LeagueWeights**: Defines which poe.ninja leagues to pull economy data from and their relative importance in scoring calculations. The weights must sum to 1.0. 
-- **EconomyNormalizationStrategy**: How to normalize economic data across leagues. Can be Global (all leagues normalized together) or Per-League. 
-- **EconomyWeights**: The weighting between an item's chaos value (Value) and its availability (Rarity) when scoring. Must sum to 1.0. 
-- **ChaseVSGeneralPotentialFactor**: A value between 0 and 1 that determines how to score unique items. A higher value gives more weight to the most valuable unique on a given base type (the "chase" item), while a lower value considers the average value of all uniques on that base.
+Or build and run directly from that directory on Linux or Windows:
+
+```sh
+go build -o ruleforge-app ./ruleforge/components/ruleforge/entry
+./ruleforge-app -config config.json
+```
+
+On Windows, the built executable is `ruleforge-app.exe`. Launch it with
+`ruleforge-app.exe -config config.json` (PowerShell: `./ruleforge-app.exe -config config.json`).
+The included `examples/basic.rf` is compiled to `output/RuleforgeExample.filter`.
+`run.sh` builds from the project root and forwards any command-line flags.
+
+### 1. Configuration (config.json)
+
+The included `config.json` uses relative paths and is ready to run from the
+extracted ZIP directory. All configured filesystem paths (including each entry
+in `FilterOutputDirs` and the optional `PathOfBuildingDataPath`) are resolved
+**relative to the location of the config JSON file**, not the current working
+directory. Absolute paths also work. Use your platform's path syntax.
+
+- `FilterOutputDirs`: Where the compiled `.filter` files are written.
+- `RuleforgeInputDir`: Directory containing `.rf` input scripts.
+- `StyleJSONFile`, `StyleColorCSSFile`, `BaseTypeCSVFile`: Bundled style and base-type inputs.
+- `PathOfBuildingDataPath`: Optional managed cache directory for the official
+  Path of Building Lua sources. Defaults to `.ruleforge-cache/pob` beside the
+  config file. **Do not point it at an existing PoB installation or personal
+  data directory**: Ruleforge only manages a directory it created itself.
+- `LeagueWeights`, `EconomyWeights`, `EconomyNormalizationStrategy`, and
+  `ChaseVSGeneralPotentialFactor`: Settings for economy-based compilation.
+  If your chosen league is no longer available on poe.ninja, update its name.
+
+On the first run Ruleforge downloads the specific Lua files it uses from
+`PathOfBuildingCommunity/PathOfBuilding` on GitHub, pinned to one commit.
+After seven days it checks for an update, downloading a new full snapshot only
+when upstream changed. Existing snapshots remain available offline if an
+ordinary refresh check/download fails. `-refresh-pob` forces an update check
+and reports an error if that check or a needed download fails; it does not
+redownload an unchanged revision. `-update-cache-only` downloads/updates data
+without compiling filters. To reset a managed snapshot, delete its cache folder
+while Ruleforge is not running.
 
 ### 2. Styling (styles.json)
 The styles.json file is a hierarchical JSON object where you define all visual styles.
@@ -111,8 +127,10 @@ the style `Special/Currencies/Orbs/T1` will inherit all properties from
 combining them into a single definitive style.
 
 ### 3. Running Ruleforge
-You can either run the prebuilt `.exe` (Windows) that is contained on this GitHub, once the project is released. 
-Or, you can build it from source if your target machine is not Windows.
+
+See the Quick start above. Pass `-config /path/to/config.json` to load another
+configuration from any working directory. Optional flags: `-verbose`,
+`-refresh-pob`, `-update-cache-only`.
 
 ## Ruleforge Syntax (.rf files)
 
@@ -183,7 +201,7 @@ They group a set of rules under a common theme and can apply conditions to all r
 
 ```rf
 SECTION {
-  SECTION_METADATA {
+  METADATA {
     NAME        => "Flasks"
     DESCRIPTION => "Rules for all utility and life/mana flasks"
   }
@@ -198,7 +216,7 @@ SECTION {
 }
 ```
 
-- `SECTION_METADATA`: Contains the `NAME` and `DESCRIPTION` of the section, which are used to generate a Table of Contents in the final filter file. 
+- `METADATA`: Contains the `NAME` and `DESCRIPTION` of the section, which are used to generate a Table of Contents in the final filter file. 
 - `SECTION_CONDITIONS`: A block where you can define conditions that apply to every rule inside this section. This is great for reducing repetition. 
 - `RULES`: The block that contains the actual filter rules and macros for this section.
 
@@ -230,12 +248,12 @@ Macros are powerful commands that generate large numbers of rules automatically.
 
 `MACRO["<macro_name>"-><parameters>]`
 
-`item_progression-equipment` & `item_progression-flasks`
+`item_progression-equipment-leveling`, `item_progression-equipment-mapping` & `item_progression-flasks`
 These macros generate a complete set of Show/Hide rules for equipment or flasks to guide the leveling process.
 They automatically use drop-level data from Path of Building.
 
 ```rf
-MACRO["item_progression-equipment"
+MACRO["item_progression-equipment-leveling"
   -> $show_normal => $leveling_style
   -> $show_magic  => $leveling_style
   -> $show_rare   => $leveling_style_rare

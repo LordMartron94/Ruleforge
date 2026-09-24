@@ -1,17 +1,14 @@
 {
   "FilterOutputDirs": [
-    "/home/user/Repos/Ruleforge/output"
+    "output"
   ],
-  "RuleforgeInputDir": "/home/user/Repos/Ruleforge/main_input",
-  "StyleJSONFile": "/home/user/Repos/Ruleforge/configuration/styles/new_theme.json",
-  "StyleColorCSSFile": "/home/user/Repos/Ruleforge/configuration/styles/new_theme.css",
-  "BaseTypeCSVFile": "/home/user/Repos/Ruleforge/configuration/basetypes/basetype_automation_config_new_theme.csv",
-  "PathOfBuildingDataPath": "/home/user/Repos/Ruleforge/tools/pob/src/Data",
+  "RuleforgeInputDir": "examples",
+  "StyleJSONFile": "configuration/styles/new_theme.json",
+  "StyleColorCSSFile": "configuration/styles/new_theme.css",
+  "BaseTypeCSVFile": "configuration/basetypes/basetype_automation_config_new_theme.csv",
+  "PathOfBuildingDataPath": ".ruleforge-cache/pob",
   "LeagueWeights": {
-    "Hardcore Keepers": 0.5,
-    "Keepers": 0.3,
-    "Hardcore": 0.15,
-    "Standard": 0.05
+    "Standard": 1.0
   },
   "EconomyNormalizationStrategy": "Global",
   "EconomyWeights": {

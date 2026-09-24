@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 
@@ -137,9 +138,15 @@ func (c *ConfigurationModel) Validate() error {
 		return fmt.Errorf("invalid normalization strategy '%s', expected one of: %s", c.EconomyNormalizationStrategy, validString)
 	}
 
+	if c.EconomyWeights == nil {
+		return fmt.Errorf("EconomyWeights must be configured")
+	}
+	if len(c.LeagueWeights) == 0 {
+		return fmt.Errorf("LeagueWeights must contain at least one league")
+	}
 	totalEconomyWeights := c.EconomyWeights.Rarity + c.EconomyWeights.Value
 
-	if totalEconomyWeights != 1.0 {
+	if math.Abs(totalEconomyWeights-1.0) > 1e-9 {
 		return fmt.Errorf("invalid sum EconomyWeights, expected 1, got %f", totalEconomyWeights)
 	}
 
@@ -149,7 +156,7 @@ func (c *ConfigurationModel) Validate() error {
 		totalLeagueWeights += weight
 	}
 
-	if totalLeagueWeights != 1.0 {
+	if math.Abs(totalLeagueWeights-1.0) > 1e-9 {
 		return fmt.Errorf("invalid sum LeagueWeights, expected 1, got %f", totalLeagueWeights)
 	}
 

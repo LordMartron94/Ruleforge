@@ -15,6 +15,10 @@ while IFS= read -r modfile; do
     (cd "$moddir" && go mod tidy)
 done < <(find . -type f -name "go.mod")
 
+unset GOFLAGS
+
+go work use -r .
+
 echo "🔄 Syncing go.work with modules..."
 go work sync
 

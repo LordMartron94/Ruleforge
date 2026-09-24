@@ -19,8 +19,8 @@ type PathOfBuildingExporter struct {
 	cacheRepo      *CacheRepository
 }
 
-func NewPathOfBuildingExporter() *PathOfBuildingExporter {
-	cacheRepository := NewCacheRepository("./cache/basetypes.json", "./cache/economy_cache.json")
+func NewPathOfBuildingExporter(cacheDir string) *PathOfBuildingExporter {
+	cacheRepository := NewCacheRepository(filepath.Join(cacheDir, "basetypes.json"), filepath.Join(cacheDir, "economy_cache.json"))
 	baseTypeCache, economyCache, err := cacheRepository.LoadCache()
 
 	if err != nil {
@@ -35,6 +35,10 @@ func NewPathOfBuildingExporter() *PathOfBuildingExporter {
 		economyCache:   economyCache,
 	}
 }
+
+// InvalidateItemCache ensures a new PoB snapshot cannot reuse parsed data
+// from the previous source revision.
+func (e *PathOfBuildingExporter) InvalidateItemCache() { e.baseTypeCache = nil }
 
 func (e *PathOfBuildingExporter) LoadItemBases(luaFilePaths []string) ([]model.ItemBase, error) {
 	if e.baseTypeCache != nil {

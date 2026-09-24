@@ -1,0 +1,16 @@
+METADATA {
+  NAME       => "RuleforgeExample"
+  VERSION    => "1.0"
+  STRICTNESS => ALL
+  BUILD      => MARAUDER
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Gold"
+    DESCRIPTION => "Highlight gold drops"
+  }
+  RULES {
+    WHERE @item_type == "Gold" => "Templates/Properties/Gold" => $Show
+  }
+}

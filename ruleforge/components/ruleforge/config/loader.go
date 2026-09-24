@@ -29,6 +29,22 @@ func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationMode
 		return nil, err
 	}
 
+	base, err := configurationBaseDir(file)
+	if err != nil {
+		return nil, err
+	}
+	resolve := func(value string) string { return resolveConfigurationPath(base, value) }
+	cfg.RuleforgeInputDir = resolve(cfg.RuleforgeInputDir)
+	cfg.StyleJSONFile = resolve(cfg.StyleJSONFile)
+	cfg.StyleColorCSSFile = resolve(cfg.StyleColorCSSFile)
+	cfg.BaseTypeCSVFile = resolve(cfg.BaseTypeCSVFile)
+	if cfg.PathOfBuildingDataPath == "" {
+		cfg.PathOfBuildingDataPath = ".ruleforge-cache/pob"
+	}
+	cfg.PathOfBuildingDataPath = resolve(cfg.PathOfBuildingDataPath)
+	for i, directory := range cfg.FilterOutputDirs {
+		cfg.FilterOutputDirs[i] = resolve(directory)
+	}
 	fmt.Println(cfg.String())
 
 	return &cfg, nil

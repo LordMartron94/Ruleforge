@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -28,6 +28,7 @@ type App struct {
 	verbose         bool
 	updateCacheOnly bool
 	forceSaveCache  bool
+	refreshPoB      bool
 
 	// Core Components
 	log      *log.Logger
@@ -48,11 +49,11 @@ func main() {
 		log: log.New(os.Stdout, "", log.LstdFlags),
 	}
 
-	// Define command-line flags. The exporter handles caching automatically.
-	// To force a refresh, the user can delete the './cache' directory.
+	// Define command-line flags. The exporter handles local caches automatically.
 	flag.StringVar(&app.configPath, "config", "config.json", "Path to the configuration file.")
 	flag.BoolVar(&app.verbose, "verbose", false, "Enable verbose output for debugging.")
 	flag.BoolVar(&app.updateCacheOnly, "update-cache-only", false, "Fetch/update data and save to cache without running compilation.")
+	flag.BoolVar(&app.refreshPoB, "refresh-pob", false, "Check the official Path of Building revision now and download it if changed (error if offline).")
 	flag.Parse()
 
 	if err := app.Run(); err != nil {
@@ -82,7 +83,14 @@ func (a *App) Run() error {
 
 	// Initialize the exporter, which will attempt to load from cache.
 	a.log.Println("Initializing data exporter (will use cache if available and valid)...")
-	a.exporter = data_generation.NewPathOfBuildingExporter()
+	a.exporter = data_generation.NewPathOfBuildingExporter(filepath.Join(filepath.Dir(a.config.PathOfBuildingDataPath), "data-cache"))
+	changed, err := defaultPoBSource(a.log).ensure(context.Background(), a.config.PathOfBuildingDataPath, a.refreshPoB)
+	if err != nil {
+		return err
+	}
+	if changed {
+		a.exporter.InvalidateItemCache()
+	}
 
 	// Fetch data. The exporter will return cached data or re-parse files as needed.
 	if err := a.fetchData(); err != nil {
@@ -466,7 +474,7 @@ func (a *App) ResolveImports(node *shared.ParseTree[symbols.LexingTokenType]) (*
 		importFileNameNode := node.FindSymbolNode(symbols.ParseSymbolValue.String())
 		importFileName := importFileNameNode.Token.ValueToString()
 
-		importFilePath := path.Join(a.config.RuleforgeInputDir, importFileName)
+		importFilePath := filepath.Join(a.config.RuleforgeInputDir, importFileName)
 
 		file, err := a.openScript(importFilePath)
 		if err != nil {
