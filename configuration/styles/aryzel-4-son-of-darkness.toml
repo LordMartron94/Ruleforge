@@ -26,6 +26,7 @@ t9 = "#BDB5A6"
 t10 = "#A2988B"
 
 # Campaign fields: what kind of item it is.
+bg-crafting = "#570710"
 bg-div-cards = "#4C1F00"
 bg-equipment = "#2B0D0E"
 bg-flasks = "#003F18"

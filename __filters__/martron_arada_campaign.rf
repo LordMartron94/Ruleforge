@@ -7,7 +7,7 @@
 
 METADATA {
   NAME       => "MartronAradaCampaign"
-  VERSION    => "0.1.0"
+  VERSION    => "0.2.0"
   STRICTNESS => ALL
   BUILD      => "MartronArada"
 }
@@ -56,6 +56,23 @@ SECTION {
       -> $tier_3 => "Final/Uniques/T3"
       -> $tier_4 => "Final/Uniques/T4"
     ]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Rare Amulets"
+    DESCRIPTION => "Always show rare amulets"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! Amulets have one of the widest modifier pools, so any rare one can be
+    !! worth reading. No area limit, and early in the file so no later hide
+    !! rule can reach them.
+    WHERE @item_class == "Amulets" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
   }
 }
 
@@ -201,16 +218,58 @@ SECTION {
     WHERE @socket_group == "RGB" -> @height == 3 -> @width == 1 => "Final/Special/RGB" => $Show
     WHERE @socket_group == "RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB" => $Show
     WHERE @sockets >= "6" => "Final/Special/Sockets/6-socket" => $Show
+    WHERE @socket_group >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-link" => $Show
+    WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-socket" => $Show
+    WHERE @area_level <= 24 -> @socket_group >= "3" -> @class_use == "true" => "Final/Special/Sockets/3-link" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases"
+    DESCRIPTION => "Normal and magic bases worth crafting on for any class"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! The "Crafting Bases" CSV category lists bases for every class, since
+    !! they also gear future characters. A base qualifies through its
+    !! implicit (resistance, life and attribute jewellery, +2% maximum
+    !! resistance rings, +1 gem crowns, block gloves, suppression and
+    !! movement speed shields), by being the strongest base of its weapon
+    !! or defence type, or as a vendor recipe input (Rustic Sash, elemental
+    !! rings). Bases above drop level 67 cannot drop in the campaign; they
+    !! are listed for a later mapping section.
+    !!
+    !! Placed after the shown links so a 6-link or RGB item keeps its more
+    !! important look, and before every hide rule so an off-class base is
+    !! still shown.
+    MACRO["handle_csv" -> $category => "Crafting Bases"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Off-Class Links"
+    DESCRIPTION => "Hide off-class linked and socketed gear"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
     !! Off-class items with the same link/socket counts keep the identical
     !! style, just hidden instead of shown: PoE still renders MinimapIcon and
     !! PlayEffect on Hide blocks, so the minimap ping survives even though the
     !! on-ground text/border doesn't - better than losing the signal entirely
     !! by falling through to a generic hide rule further down.
-    WHERE @socket_group >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-link" => $Show
     WHERE @socket_group >= "4" -> @class_use == "false" => "Final/Special/Sockets/4-link" => $Hide
-    WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-socket" => $Show
     WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "false" => "Final/Special/Sockets/4-socket" => $Hide
-    WHERE @area_level <= 24 -> @socket_group >= "3" -> @class_use == "true" => "Final/Special/Sockets/3-link" => $Show
     WHERE @area_level <= 24 -> @socket_group >= "3" -> @class_use == "false" => "Final/Special/Sockets/3-link" => $Hide
   }
 }
@@ -227,7 +286,6 @@ SECTION {
 
   RULES {
     WHERE @item_class == "Rings" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
-    WHERE @item_class == "Amulets" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
     WHERE @item_class == "Rings" -> @rarity == "Magic" => "Final/Jewelry/Magic" => $Show
     WHERE @item_class == "Amulets" -> @rarity == "Magic" => "Final/Jewelry/Magic" => $Show
     WHERE @item_class == "Rings" -> @rarity == "Normal" => "Final/Jewelry/Normal" => $Show

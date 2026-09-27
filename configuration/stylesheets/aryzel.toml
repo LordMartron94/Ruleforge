@@ -1760,17 +1760,30 @@ Minimap = { Shape = "UpsideDownHouse", Color = "Pink", Size = 0 }
 DropSound = "error.mp3"
 DropVolume = 300
 
+# Good crafting bases (CSV category "Crafting Bases"): a forge-ember field, the
+# rarity border kept (normal for essences, magic for alterations), and the only
+# moon on the minimap.
+[Templates.Groups.Crafting]
+BackgroundColor = "bg-crafting"
+Minimap = { Shape = "Moon", Color = "Orange", Size = 2 }
+
+[Final.Crafting.Normal]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Mid/T6", "Templates/Groups/Crafting"]
+
+[Final.Crafting.Magic]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Mid/T5", "Templates/Groups/Crafting"]
+
 # Checks the Ruleforge Studio runs for every style that uses this stylesheet.
 
 # Fields you see all campaign long: must be clearly different (CIEDE2000).
 [Studio.Distinct.CampaignFields]
 Min = 10
-Vars = ["bg-div-cards", "bg-equipment", "bg-flasks", "bg-gold", "bg-lab", "bg-old-equipment", "bg-old-flasks", "bg-orbs", "bg-skill-gems", "bg-special", "bg-supplies", "bg-unassociated-equipment"]
+Vars = ["bg-crafting", "bg-div-cards", "bg-equipment", "bg-flasks", "bg-gold", "bg-lab", "bg-old-equipment", "bg-old-flasks", "bg-orbs", "bg-skill-gems", "bg-special", "bg-supplies", "bg-unassociated-equipment"]
 
 # Every field, including league ones, must stay apart.
 [Studio.Distinct.AllFields]
 Min = 6
-Vars = ["bg-astral", "bg-breach", "bg-delve", "bg-div-cards", "bg-eldritch", "bg-equipment", "bg-flasks", "bg-gold", "bg-harvest", "bg-heist", "bg-incursion", "bg-kalguur", "bg-lab", "bg-legion", "bg-maps", "bg-old-equipment", "bg-old-flasks", "bg-orbs", "bg-scarabs", "bg-sea", "bg-skill-gems", "bg-special", "bg-supplies", "bg-unassociated-equipment"]
+Vars = ["bg-crafting", "bg-astral", "bg-breach", "bg-delve", "bg-div-cards", "bg-eldritch", "bg-equipment", "bg-flasks", "bg-gold", "bg-harvest", "bg-heist", "bg-incursion", "bg-kalguur", "bg-lab", "bg-legion", "bg-maps", "bg-old-equipment", "bg-old-flasks", "bg-orbs", "bg-scarabs", "bg-sea", "bg-skill-gems", "bg-special", "bg-supplies", "bg-unassociated-equipment"]
 
 # Borders that can appear on the same equipment field.
 [Studio.Distinct.EquipmentMarks]

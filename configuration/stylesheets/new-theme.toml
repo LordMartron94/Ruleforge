@@ -1662,3 +1662,16 @@ Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Eldritch"]
 
 [Final.Leagues.AllflameEmbers.T4]
 Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Eldritch"]
+
+# Good crafting bases (CSV category "Crafting Bases"): a forge-ember field, the
+# rarity border kept (normal for essences, magic for alterations), and the only
+# moon on the minimap.
+[Templates.Groups.Crafting]
+BackgroundColor = "bg-crafting"
+Minimap = { Shape = "Moon", Color = "Orange", Size = 2 }
+
+[Final.Crafting.Normal]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Mid/T6", "Templates/Groups/Crafting"]
+
+[Final.Crafting.Magic]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Mid/T5", "Templates/Groups/Crafting"]
