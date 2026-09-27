@@ -55,6 +55,7 @@ bg-scarabs = "#3A2600"
 bg-sea = "#001F1F"
 
 # Rarity, link, socket, quality and property borders.
+bd-crafting = "#FEF9E1"
 bd-3-link = "#85B699"
 bd-4-link = "#37F16D"
 bd-4-socket = "#00B6EA"

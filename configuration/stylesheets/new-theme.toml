@@ -1663,15 +1663,21 @@ Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Eldritch"]
 [Final.Leagues.AllflameEmbers.T4]
 Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Eldritch"]
 
-# Good crafting bases (CSV category "Crafting Bases"): a forge-ember field, the
-# rarity border kept (normal for essences, magic for alterations), and the only
-# moon on the minimap.
+# Good crafting bases (CSV category "Crafting Bases"), recognisable the moment they drop:
+# a temporary green beam (the only green beam and minimap icon in the theme), a white-hot
+# border on a forge-ember field, and a green moon on the minimap. Rarity is read from the
+# text: t8-low for normal bases (essences), t5-mid for magic ones (alterations).
 [Templates.Groups.Crafting]
+FontSize = 33
 BackgroundColor = "bg-crafting"
-Minimap = { Shape = "Moon", Color = "Orange", Size = 2 }
+BorderColor = "bd-crafting"
+Beam = { Color = "Green", Temp = true }
+Minimap = { Shape = "Moon", Color = "Green", Size = 1 }
 
 [Final.Crafting.Normal]
-Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Mid/T6", "Templates/Groups/Crafting"]
+Combination = ["Templates/Groups/Crafting"]
+TextColor = "t8-low"
 
 [Final.Crafting.Magic]
-Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Mid/T5", "Templates/Groups/Crafting"]
+Combination = ["Templates/Groups/Crafting"]
+TextColor = "t5-mid"

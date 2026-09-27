@@ -1760,18 +1760,25 @@ Minimap = { Shape = "UpsideDownHouse", Color = "Pink", Size = 0 }
 DropSound = "error.mp3"
 DropVolume = 300
 
-# Good crafting bases (CSV category "Crafting Bases"): a forge-ember field, the
-# rarity border kept (normal for essences, magic for alterations), and the only
-# moon on the minimap.
+# Good crafting bases (CSV category "Crafting Bases"), recognisable the moment they drop:
+# a temporary green beam (the only green beam and minimap icon in the theme), a white-hot
+# border on a forge-ember field (red-hot in phase II, whose other borders are pale), and a
+# green moon on the minimap. Rarity is read from the text: t8 for normal bases (essences),
+# t5 for magic ones (alterations).
 [Templates.Groups.Crafting]
+FontSize = 33
 BackgroundColor = "bg-crafting"
-Minimap = { Shape = "Moon", Color = "Orange", Size = 2 }
+BorderColor = "bd-crafting"
+Beam = { Color = "Green", Temp = true }
+Minimap = { Shape = "Moon", Color = "Green", Size = 1 }
 
 [Final.Crafting.Normal]
-Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Mid/T6", "Templates/Groups/Crafting"]
+Combination = ["Templates/Groups/Crafting"]
+TextColor = "t8"
 
 [Final.Crafting.Magic]
-Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Mid/T5", "Templates/Groups/Crafting"]
+Combination = ["Templates/Groups/Crafting"]
+TextColor = "t5"
 
 # Checks the Ruleforge Studio runs for every style that uses this stylesheet.
 
@@ -1799,3 +1806,8 @@ Vars = ["t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10"]
 [Studio.Distinct.Radiance]
 Min = 18
 Vars = ["rad-t0-bg", "rad-t1-bg"]
+
+# The crafting edge must not read as a rarity or property border.
+[Studio.Distinct.CraftingMark]
+Min = 15
+Vars = ["bd-crafting", "bd-normal", "bd-magic", "bd-rare", "bd-unique", "bd-fractured"]
