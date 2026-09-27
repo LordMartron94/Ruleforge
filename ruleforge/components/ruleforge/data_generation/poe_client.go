@@ -29,6 +29,34 @@ type ApiResponse struct {
 	Lines []ResponseLine `json:"lines"`
 }
 
+// ExchangeItem names one entry in an exchange overview's "items" array. Bulk
+// exchange lines (see ExchangeLine) only carry a slug id; this is the only
+// place poe.ninja gives the real display name for that id.
+type ExchangeItem struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// ExchangeLine is one bulk-exchange pricing entry (e.g. a divination card).
+// Exchange-traded items aren't individually listed like stash items, so
+// pricing is expressed as a value/volume pair in whatever currency
+// ExchangeCore.Primary names, instead of chaosValue/listingCount.
+type ExchangeLine struct {
+	ID                 string  `json:"id"`
+	PrimaryValue       float64 `json:"primaryValue"`
+	VolumePrimaryValue float64 `json:"volumePrimaryValue"`
+}
+
+type ExchangeCore struct {
+	Primary string `json:"primary"`
+}
+
+type ExchangeResponse struct {
+	Core  ExchangeCore   `json:"core"`
+	Items []ExchangeItem `json:"items"`
+	Lines []ExchangeLine `json:"lines"`
+}
+
 type economyLeague struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -131,14 +159,65 @@ func (c *PoeNinjaClient) FetchData(endpoint, itemType, league, itemClass string)
 	return c.transformResponse(result, itemClass), nil
 }
 
+// FetchExchangeData retrieves one category from PoE 1's bulk-exchange
+// overview. Unlike FetchData (individually stash-listed items), this covers
+// items only traded through the bulk exchange - such as divination cards -
+// which poe.ninja prices as a value/volume pair rather than per-listing.
+// The league argument must be an ID returned by ResolveLeagues.
+func (c *PoeNinjaClient) FetchExchangeData(itemType, league, itemClass string) ([]EconomyCacheItem, error) {
+	parameters := url.Values{"league": {league}, "type": {itemType}}
+	var result ExchangeResponse
+	if err := c.getJSON("exchange/item/overview", parameters, &result); err != nil {
+		return nil, err
+	}
+	if result.Lines == nil {
+		return nil, fmt.Errorf("poe.ninja returned no lines array for league %q, type %q", league, itemType)
+	}
+	if result.Core.Primary != "" && result.Core.Primary != "chaos" {
+		return nil, fmt.Errorf("poe.ninja exchange overview for league %q, type %q is denominated in %q, not chaos", league, itemType, result.Core.Primary)
+	}
+	return c.transformExchangeResponse(result, itemClass), nil
+}
+
+func (c *PoeNinjaClient) transformExchangeResponse(response ExchangeResponse, itemClass string) []EconomyCacheItem {
+	names := make(map[string]string, len(response.Items))
+	for _, item := range response.Items {
+		names[item.ID] = item.Name
+	}
+
+	items := make([]EconomyCacheItem, 0, len(response.Lines))
+	for _, line := range response.Lines {
+		name, ok := names[line.ID]
+		if !ok || name == "" {
+			continue
+		}
+		// No listing count exists for bulk-exchange items; approximate supply
+		// as how many units the total listed value represents.
+		var quantity int
+		if line.PrimaryValue > 0 {
+			quantity = int(line.VolumePrimaryValue / line.PrimaryValue)
+		}
+		items = append(items, EconomyCacheItem{
+			Class: itemClass, Name: name, BaseType: name,
+			ChaosValue: line.PrimaryValue, Count: quantity, ListingCount: quantity,
+		})
+	}
+	return items
+}
+
 func (c *PoeNinjaClient) transformResponse(response ApiResponse, itemClass string) []EconomyCacheItem {
 	items := make([]EconomyCacheItem, 0, len(response.Lines))
 	for _, line := range response.Lines {
-		if line.BaseType == "" {
+		baseType := line.BaseType
+		// Ordinary gem prices supply their base name in name, without baseType.
+		if baseType == "" && itemClass == "Gems" {
+			baseType = line.Name
+		}
+		if baseType == "" {
 			continue
 		}
 		items = append(items, EconomyCacheItem{
-			Class: itemClass, Name: line.Name, BaseType: line.BaseType,
+			Class: itemClass, Name: line.Name, BaseType: baseType,
 			ChaosValue: line.ChaosValue, DivineValue: line.DivineValue,
 			ExaltedValue: line.ExaltedValue, Count: line.Count,
 			ListingCount: line.ListingCount,

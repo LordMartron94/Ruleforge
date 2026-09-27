@@ -11,6 +11,8 @@ import (
 	"log"
 	"slices"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 // RuleGenerator is the engine for compiling rules. It contains all complex game logic.
@@ -21,11 +23,12 @@ type RuleGenerator struct {
 	armorBases            []model.ItemBase
 	weaponBases           []model.ItemBase
 	flaskBases            []model.ItemBase
-	economyCache          map[string][]data_generation.EconomyCacheItem
+	economyCache          map[string][]data_generation.EconomySnapshot
 	economyWeights        config.EconomyWeights
 	leagueWeights         []config.LeagueWeights
 	normalizationStrategy string
 	chasePotentialWeight  float64
+	valueHalfLifeDays     float64
 	baseTypeData          []config.BaseTypeAutomationEntry
 	build                 *Build
 }
@@ -38,11 +41,12 @@ func NewRuleGenerator(
 	armors []model.ItemBase,
 	weapons []model.ItemBase,
 	flasks []model.ItemBase,
-	economyCache map[string][]data_generation.EconomyCacheItem,
+	economyCache map[string][]data_generation.EconomySnapshot,
 	economyWeights config.EconomyWeights,
 	leagueWeights []config.LeagueWeights,
 	normalizationStrategy string,
 	chasePotentialWeight float64,
+	valueHalfLifeDays float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
 	build *Build,
 ) *RuleGenerator {
@@ -91,6 +95,7 @@ func NewRuleGenerator(
 		leagueWeights:         leagueWeights,
 		normalizationStrategy: normalizationStrategy,
 		chasePotentialWeight:  chasePotentialWeight,
+		valueHalfLifeDays:     valueHalfLifeDays,
 		baseTypeData:          baseTypeData,
 		build:                 build,
 	}
@@ -175,6 +180,8 @@ func (rg *RuleGenerator) handleMacroExpression(
 		return rg.handleUniqueTiering(variables, parameters)
 	case "skill_gem_tiering":
 		return rg.handleGemTiering(variables, parameters)
+	case "divination_card_tiering":
+		return rg.handleDivinationCardTiering(variables, parameters)
 	case "handle_csv":
 		return rg.handleCSVMacro(variables, parameters, sectionConditions)
 	case "veiled":
@@ -233,7 +240,7 @@ func (rg *RuleGenerator) extractStyle(parameters []*shared.ParseTree[symbols.Lex
 			continue
 		}
 
-		return nil, fmt.Errorf("unknown variable: " + parameterKey)
+		return nil, fmt.Errorf("unknown variable: %s", parameterKey)
 	}
 
 	if styleString == "" {
@@ -242,7 +249,7 @@ func (rg *RuleGenerator) extractStyle(parameters []*shared.ParseTree[symbols.Lex
 
 	style, err := rg.styleManager.GetStyle(styleString)
 	if err != nil {
-		return nil, fmt.Errorf("Error extracting style: " + err.Error())
+		return nil, fmt.Errorf("error extracting style: %w", err)
 	}
 
 	return style, nil
@@ -660,6 +667,21 @@ func (rg *RuleGenerator) handleGemTiering(variables *map[string][]string, parame
 	return rg.generateTieredRules(variables, parameters, gemConfig)
 }
 
+// handleDivinationCardTiering generates tiered rules for divination cards
+// based on economy data, the same way handleUniqueTiering does for uniques.
+func (rg *RuleGenerator) handleDivinationCardTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) ([][]string, error) {
+	divinationConfig := TieringConfig{
+		InitialCondition: model2.Condition{
+			Identifier: "@item_class",
+			Operator:   "==",
+			Value:      []string{"Divination Card"},
+		},
+		ItemClassToFilter: "Divination Cards",
+		TieredIdentifier:  "@item_type",
+	}
+	return rg.generateTieredRules(variables, parameters, divinationConfig)
+}
+
 func (rg *RuleGenerator) generateTieredRules(
 	variables *map[string][]string,
 	parameters []*shared.ParseTree[symbols.LexingTokenType],
@@ -667,48 +689,72 @@ func (rg *RuleGenerator) generateTieredRules(
 ) ([][]string, error) {
 	generatedRules := make([][]string, 0)
 
-	// 1. Get tier styles from parameters (Common Logic)
-	tierStyles := make([]*config.Style, len(parameters))
-	for i, parameter := range parameters {
-		_, value := rg.getKeyAndValueFromParameter(parameter)
+	// 1. Split parameters into ordered tier styles and optional quality
+	// brackets (Common Logic). A "$quality_N" parameter (e.g. $quality_20)
+	// doesn't occupy a tier slot - every tier gets combined with every
+	// quality bracket (see emitTierRules), so quality is never shadowed by
+	// economy tiering the way it used to be for skill_gem_tiering, and
+	// tiering macros that don't pass any quality_ parameter (uniques,
+	// divination cards) behave exactly as before.
+	var tierStyles []*config.Style
+	var qualityBrackets []qualityBracket
+	var vaalStyle *config.Style
+	for _, parameter := range parameters {
+		key, value := rg.getKeyAndValueFromParameter(parameter)
 		style, err := rg.styleManager.GetStyle(value)
 		if err != nil {
 			panic(err)
 		}
-		tierStyles[i] = style
+		if threshold, ok := parseQualityKey(key); ok {
+			qualityBrackets = append(qualityBrackets, qualityBracket{threshold: threshold, style: style})
+			continue
+		}
+		if key == "$vaal" {
+			vaalStyle = style
+			continue
+		}
+		tierStyles = append(tierStyles, style)
 	}
+	// Highest threshold first, so e.g. a 25%-quality item matches ">= 20"
+	// before it ever gets the chance to fall through to ">= 10".
+	sort.Slice(qualityBrackets, func(i, j int) bool {
+		return qualityBrackets[i].threshold > qualityBrackets[j].threshold
+	})
 
-	// 2. Handle the case with only one tier (Common Logic)
+	// 2. Handle the case with only one tier (Common Logic). There's no
+	// enumerated item_type list to split by Vaal-ness here (the single style
+	// covers the whole class unconditionally), so $vaal is a no-op in this
+	// degenerate case.
 	if len(tierStyles) == 1 {
-		style := tierStyles[0]
-
-		rule := &model2.ParsedRule{
-			Style:          style,
-			Action:         model2.ShowRule,
-			Conditions:     []model2.Condition{tieringConfiguration.InitialCondition},
-			Variables:      variables,
-			ValidBaseTypes: rg.validBaseTypes,
+		rules, err := rg.emitTierRules(tierStyles[0], []model2.Condition{tieringConfiguration.InitialCondition}, qualityBrackets, nil, variables)
+		if err != nil {
+			return generatedRules, err
 		}
-
-		generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
-		return generatedRules, nil
+		return rules, nil
 	}
 
-	// 3. Filter items from the economy cache based on the provided class (Customizable Logic)
-	itemsToCheck := make(map[string][]data_generation.EconomyCacheItem)
-	for league, items := range rg.economyCache {
-		validItems := make([]data_generation.EconomyCacheItem, 0)
-		for _, item := range items {
-			if item.Class != tieringConfiguration.ItemClassToFilter {
-				continue
+	// 3. Filter items from the economy cache based on the provided class (Customizable Logic),
+	// preserving each snapshot's timing so GenerateTiers can still compute trends.
+	itemsToCheck := make(map[string][]data_generation.EconomySnapshot)
+	for league, snapshots := range rg.economyCache {
+		filteredSnapshots := make([]data_generation.EconomySnapshot, 0, len(snapshots))
+		totalValid := 0
+		for _, snapshot := range snapshots {
+			validItems := make([]data_generation.EconomyCacheItem, 0)
+			for _, item := range snapshot.Items {
+				if item.Class != tieringConfiguration.ItemClassToFilter {
+					continue
+				}
+				if !slices.Contains(rg.validBaseTypes, item.BaseType) {
+					continue
+				}
+				validItems = append(validItems, item)
 			}
-			if !slices.Contains(rg.validBaseTypes, item.BaseType) {
-				continue
-			}
-			validItems = append(validItems, item)
+			totalValid += len(validItems)
+			filteredSnapshots = append(filteredSnapshots, data_generation.EconomySnapshot{FetchedAt: snapshot.FetchedAt, Items: validItems})
 		}
-		log.Printf("Valid %s for League %s: %d\n", tieringConfiguration.ItemClassToFilter, league, len(validItems))
-		itemsToCheck[league] = validItems
+		log.Printf("Valid %s for League %s: %d (across %d snapshot(s))\n", tieringConfiguration.ItemClassToFilter, league, totalValid, len(filteredSnapshots))
+		itemsToCheck[league] = filteredSnapshots
 	}
 
 	var normStrategy data_generation.NormalizationStrategy
@@ -726,11 +772,13 @@ func (rg *RuleGenerator) generateTieredRules(
 	tiered, err := data_generation.GenerateTiers(itemsToCheck, len(tierStyles), data_generation.TieringParameters{
 		ValueWeight:              rg.economyWeights.Value,
 		RarityWeight:             rg.economyWeights.Rarity,
+		TrendWeight:              rg.economyWeights.Trend,
 		LeagueWeights:            rg.leagueWeights,
 		NormStrategy:             normStrategy,
 		ChaosOutlierPercentile:   0.95,
 		MinListingsForPercentile: 20,
 		ChasePotentialWeight:     rg.chasePotentialWeight,
+		ValueHalfLifeDays:        rg.valueHalfLifeDays,
 	})
 	if err != nil {
 		return generatedRules, err
@@ -752,24 +800,184 @@ func (rg *RuleGenerator) generateTieredRules(
 		}
 
 		style := tierStyles[tier-1]
-		tieredItemsCondition := model2.Condition{
-			Identifier: tieringConfiguration.TieredIdentifier,
-			Operator:   "==",
-			Value:      tieredItems,
-		}
 
-		rule := &model2.ParsedRule{
-			Style:          style,
-			Action:         model2.ShowRule,
-			Conditions:     []model2.Condition{tieringConfiguration.InitialCondition, tieredItemsCondition},
-			Variables:      variables,
-			ValidBaseTypes: rg.validBaseTypes,
-		}
+		// Split this tier's items into Vaal and non-Vaal subsets so each can
+		// get its own item_type condition - a plain style/quality-bracket
+		// merge can't distinguish them (both subsets fall under the same
+		// tier and the same InitialCondition), so the split has to happen at
+		// the condition level, not the style level. Order between the two
+		// doesn't matter for correctness (the item_type lists are disjoint),
+		// but Vaal is emitted first for readability.
+		vaalItems, otherItems := splitVaalItems(tieredItems)
 
-		generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
+		if vaalStyle != nil && len(vaalItems) > 0 {
+			condition := model2.Condition{Identifier: tieringConfiguration.TieredIdentifier, Operator: "==", Value: vaalItems}
+			rules, err := rg.emitTierRules(style, []model2.Condition{tieringConfiguration.InitialCondition, condition}, qualityBrackets, vaalStyle, variables)
+			if err != nil {
+				return generatedRules, err
+			}
+			generatedRules = append(generatedRules, rules...)
+		}
+		if vaalStyle == nil {
+			otherItems = tieredItems
+		}
+		if len(otherItems) > 0 {
+			condition := model2.Condition{Identifier: tieringConfiguration.TieredIdentifier, Operator: "==", Value: otherItems}
+			rules, err := rg.emitTierRules(style, []model2.Condition{tieringConfiguration.InitialCondition, condition}, qualityBrackets, nil, variables)
+			if err != nil {
+				return generatedRules, err
+			}
+			generatedRules = append(generatedRules, rules...)
+		}
 	}
 
 	return generatedRules, nil
+}
+
+// splitVaalItems partitions base type names into Vaal and non-Vaal subsets.
+// Real Vaal skill/support gems are always named "Vaal <base gem name>", and
+// this only ever runs against an already class-filtered (Class == "Gems")
+// tiered item list, so a plain prefix check can't misfire on an unrelated
+// "Vaal ..." item from another category (e.g. Vaal Orb, a currency, is never
+// part of a gem tier's item_type list).
+func splitVaalItems(items []string) (vaal, other []string) {
+	for _, item := range items {
+		if strings.HasPrefix(item, "Vaal ") {
+			vaal = append(vaal, item)
+		} else {
+			other = append(other, item)
+		}
+	}
+	return vaal, other
+}
+
+// qualityBracket pairs a minimum @quality threshold with the style a tiering
+// macro should blend in for items that clear it.
+type qualityBracket struct {
+	threshold int
+	style     *config.Style
+}
+
+// parseQualityKey reports whether key names a quality-bracket macro parameter
+// (e.g. "$quality_20") and, if so, its minimum quality threshold.
+func parseQualityKey(key string) (int, bool) {
+	const prefix = "$quality_"
+	if !strings.HasPrefix(key, prefix) {
+		return 0, false
+	}
+	threshold, err := strconv.Atoi(strings.TrimPrefix(key, prefix))
+	if err != nil {
+		return 0, false
+	}
+	return threshold, true
+}
+
+// qualityOverrides decides which side wins when a tier style and a quality
+// style both set the same property. The quality bracket gets the "extra
+// signal" properties (border colour, alert sound, beam) added on top; the
+// tier keeps the "primary identity" properties (text colour, background,
+// font size, minimap) it would have had on its own. This way neither axis
+// gets silently discarded: glancing at an item, its tier still says how
+// economically valuable it is, and a distinct border/sound/beam says it also
+// cleared a quality bracket.
+func qualityOverrides(qualityStyle *config.Style) config.OverrideMap {
+	return config.OverrideMap{
+		"BorderColor": qualityStyle.Name,
+		"DropSound":   qualityStyle.Name,
+		"DropVolume":  qualityStyle.Name,
+		"Beam.Color":  qualityStyle.Name,
+		"Beam.Temp":   qualityStyle.Name,
+	}
+}
+
+// emitTierRules produces one Show rule per quality bracket (highest
+// threshold first, so e.g. a 25%-quality item matches ">= 20" before it can
+// fall through to ">= 10"), each styled with tierStyle merged with that
+// bracket's style (see qualityOverrides), followed by one final rule using
+// the plain tierStyle with no quality requirement for anything that doesn't
+// clear a bracket. With no quality brackets configured this emits exactly
+// the single rule generateTieredRules always used to, so unique_tiering and
+// divination_card_tiering (which never pass quality_ parameters) are
+// unaffected.
+// emitTierRules produces one Show rule per quality bracket plus one final
+// plain rule, as described above. If vaalStyle is non-nil, it's merged in
+// last - after quality - onto every rule this call produces, with
+// vaalOverrides making it win any conflicting property. Applying it last
+// means it takes priority over both the tier's own style and quality's
+// contribution: a style merge only ever resolves a conflict in the "other"
+// side's favour when the override map for *that* merge call says so, so
+// whichever style is merged in last has the final say over its claimed
+// properties. Callers are expected to have already restricted baseConditions
+// to a Vaal-only or Vaal-free item_type subset (see splitVaalItems) - this
+// function itself does not filter by name.
+func (rg *RuleGenerator) emitTierRules(
+	tierStyle *config.Style,
+	baseConditions []model2.Condition,
+	qualityBrackets []qualityBracket,
+	vaalStyle *config.Style,
+	variables *map[string][]string,
+) ([][]string, error) {
+	var generatedRules [][]string
+
+	finalize := func(style *config.Style) (*config.Style, error) {
+		if vaalStyle == nil {
+			return style, nil
+		}
+		combined, err := style.MergeStyles(vaalStyle, vaalOverrides(vaalStyle))
+		if err != nil {
+			return nil, fmt.Errorf("combining style with Vaal indicator: %w", err)
+		}
+		return combined, nil
+	}
+
+	for _, bracket := range qualityBrackets {
+		combinedStyle, err := tierStyle.MergeStyles(bracket.style, qualityOverrides(bracket.style))
+		if err != nil {
+			return nil, fmt.Errorf("combining tier style with quality bracket %d: %w", bracket.threshold, err)
+		}
+		combinedStyle, err = finalize(combinedStyle)
+		if err != nil {
+			return nil, err
+		}
+		conditions := append(append([]model2.Condition{}, baseConditions...), model2.Condition{
+			Identifier: "@quality",
+			Operator:   ">=",
+			Value:      []string{strconv.Itoa(bracket.threshold)},
+		})
+		rule := &model2.ParsedRule{
+			Style:          combinedStyle,
+			Action:         model2.ShowRule,
+			Conditions:     conditions,
+			Variables:      variables,
+			ValidBaseTypes: rg.validBaseTypes,
+		}
+		generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
+	}
+
+	plainStyle, err := finalize(tierStyle)
+	if err != nil {
+		return nil, err
+	}
+	rule := &model2.ParsedRule{
+		Style:          plainStyle,
+		Action:         model2.ShowRule,
+		Conditions:     baseConditions,
+		Variables:      variables,
+		ValidBaseTypes: rg.validBaseTypes,
+	}
+	generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
+
+	return generatedRules, nil
+}
+
+// vaalOverrides makes the Vaal indicator style win BorderColor whenever it's
+// merged onto a style that already has one (from the tier or from a quality
+// bracket) - see emitTierRules for why merge order, not this map, is what
+// gives Vaal its priority over quality.
+func vaalOverrides(vaalStyle *config.Style) config.OverrideMap {
+	return config.OverrideMap{
+		"BorderColor": vaalStyle.Name,
+	}
 }
 
 type AutomationGroup struct {
@@ -859,7 +1067,7 @@ func (rg *RuleGenerator) handleCSVMacro(variables *map[string][]string, paramete
 		case "category":
 			category = value
 		default:
-			return allGeneratedRules, fmt.Errorf("unsupported parameter: " + key)
+			return allGeneratedRules, fmt.Errorf("unsupported parameter: %s", key)
 		}
 	}
 
@@ -1090,11 +1298,15 @@ func (rg *RuleGenerator) handleClassUseMacro(
 	return [][]string{weaponryRule, armorRule}
 }
 
-// getDropLevel helper remains the same.
+// getDropLevel prefers verified drop data. Required level is only an estimate
+// for bases absent from the wiki; PoB omits req.level when it is 1. Keep this
+// helper free of logging because sorting and progression call it repeatedly.
 func getDropLevel(item *model.ItemBase) int {
-	if item.DropLevel != nil {
+	if item.DropLevel != nil && *item.DropLevel > 0 {
 		return *item.DropLevel
 	}
-	log.Printf("WARNING: Item '%s' has a nil DropLevel; defaulting to level 0.", item.Name)
-	return 0
+	if requiredLevel := item.Req["level"]; requiredLevel > 0 {
+		return requiredLevel
+	}
+	return 1
 }

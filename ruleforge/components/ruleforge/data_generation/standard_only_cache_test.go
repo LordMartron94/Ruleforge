@@ -13,7 +13,10 @@ func TestStandardOnlyExporterIgnoresLegacyCache(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(cacheDir, "basetypes.json"), []byte("invalid old cache"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	exporter := NewPathOfBuildingExporter(cacheDir)
+	exporter, err := NewPathOfBuildingExporter(cacheDir, filepath.Join(cacheDir, "economy.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, exists := exporter.CachedUniques(); exists {
 		t.Fatal("reused legacy generated-unique cache")
 	}
@@ -24,7 +27,11 @@ func TestStandardOnlyExporterIgnoresLegacyCache(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(cacheDir, "basetypes-standard-only.json")); err != nil {
 		t.Fatal(err)
 	}
-	cached, exists := NewPathOfBuildingExporter(cacheDir).CachedUniques()
+	reloaded, err := NewPathOfBuildingExporter(cacheDir, filepath.Join(cacheDir, "economy.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cached, exists := reloaded.CachedUniques()
 	if !exists || len(cached) != 1 || cached[0].Name != expected[0].Name {
 		t.Fatalf("new standard-only cache was not reused: %#v", cached)
 	}

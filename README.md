@@ -89,6 +89,14 @@ The economy cache lasts 24 hours; source Lua item caches are independent.
 An HTTP/API error aborts economy loading with the failed league, category, and
 status instead of repeatedly treating every failed request as an empty dataset.
 
+Item drop levels come from PoE Wiki in paced batches, with bounded retries for
+throttling and temporary server failures. Failed requests abort item loading
+instead of saving an incomplete cache; older caches affected by the previous
+lookup failures are rebuilt automatically. PoB's required level is different
+from drop level, so it is only a progression estimate for bases the wiki does
+not list (level 1 when the requirement is omitted). Such bases are reported
+together during enrichment, rather than repeatedly during sorting.
+
 On the first run Ruleforge downloads the specific Lua files it uses from
 `PathOfBuildingCommunity/PathOfBuilding` on GitHub, pinned to one commit.
 After seven days it checks for an update, downloading a new full snapshot only

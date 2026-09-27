@@ -2798,14 +2798,14 @@
         "Combination": [
           "Templates/Groups/Equipment",
           "Templates/Properties/Sockets/RGB",
-          "Templates/Tiers/Mid/T5"
+          "Templates/Tiers/High/T3"
         ]
       },
       "RGB-4-socket": {
         "Combination": [
           "Templates/Groups/Equipment",
           "Templates/Properties/Sockets/RGB",
-          "Templates/Tiers/Mid/T5"
+          "Templates/Tiers/High/T3"
         ]
       },
       "Sockets": {
@@ -2876,6 +2876,11 @@
             ]
           }
         }
+      },
+      "Vaal": {
+        "BorderColor": {
+          "var": "bd-vaal"
+        }
       }
     },
     "Leagues": {
@@ -2930,6 +2935,12 @@
             "Templates/Leagues/Blueprint"
           ]
         }
+      },
+      "Chart": {
+        "Combination": [
+          "Templates/Tiers/High/T2",
+          "Templates/Groups/Maps"
+        ]
       },
       "Gold_High": {
         "Combination": [

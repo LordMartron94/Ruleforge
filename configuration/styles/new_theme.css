@@ -49,7 +49,7 @@
     --bd-unique: #AF4E00; /* Burnt orange, distinct */
 
     /* Special Features */
-    --bd-rgb: #D81B60; /* Vivid purple for RGB linked sockets */
+    --bd-rgb: #FF3CAC; /* Bright magenta for valuable 3.29 trichromatic links */
     --bd-max-rolled: #FF00FF; /* Magenta, vibrant for max rolled items */
     --bd-3-link: #4CAF50; /* Forest green */
     --bd-4-link: #2E7D32; /* Darker green */
@@ -60,6 +60,7 @@
     --bd-max-quality: #FF8A65; /* Coral */
     --bd-mid-quality: #FFAB91; /* Light coral */
     --bd-low-quality: #BCAAA4; /* Neutral beige */
+    --bd-vaal: #B71C1C; /* Deep blood red, distinct from corrupted/unique oranges */
     --bd-scarabs: #8D6E41; /* Bright bronze */
     --bd-harvest: #66BB6A; /* Vivid green for Lifeforce */
     --bd-eldritch-ember: #FF5722; /* Deep orange for Eldritch Embers */

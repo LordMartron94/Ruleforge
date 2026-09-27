@@ -51,7 +51,15 @@ func run() error {
 		return fmt.Errorf("configuration.Validate: %v", err)
 	}
 
-	exporter := data_generation.NewPathOfBuildingExporter(filepath.Join(filepath.Dir(configuration.PathOfBuildingDataPath), "data-cache"))
+	exporter, err := data_generation.NewPathOfBuildingExporter(
+		filepath.Join(filepath.Dir(configuration.PathOfBuildingDataPath), "data-cache"),
+		configuration.EconomyHistoryDBPath,
+	)
+	if err != nil {
+		return fmt.Errorf("NewPathOfBuildingExporter: %w", err)
+	}
+	defer exporter.Close()
+
 	itemBases, err := extractItemBases(configuration, exporter)
 	if err != nil {
 		return fmt.Errorf("extractItemBases: %v", err)
@@ -68,10 +76,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("extractUniqueBases: %v", err)
 	}
-	economyData, err := exporter.GetEconomyData(configuration.GetLeaguesToRetrieve(), false)
-
+	leagues := configuration.GetLeaguesToRetrieve()
+	if err := exporter.RefreshEconomyData(leagues, configuration.GetEconomyHistoryRefreshInterval(), false); err != nil {
+		return fmt.Errorf("RefreshEconomyData: %w", err)
+	}
+	economyData, err := exporter.EconomyHistory(leagues)
 	if err != nil {
-		return fmt.Errorf("GetEconomyData: %v", err)
+		return fmt.Errorf("EconomyHistory: %w", err)
 	}
 
 	log.Println("Number of itemBases:", len(itemBases))
@@ -84,15 +95,11 @@ func run() error {
 		return fmt.Errorf("exporter.SaveItemCache: %v", err)
 	}
 
-	err = exporter.SaveEconomyCache(economyData, false)
-	if err != nil {
-		return fmt.Errorf("exporter.SaveEconomyCache: %v", err)
-	}
-
 	baseTypes := []string{"Gold"} // Manually include Gold because it's not really an item, but still a valid basetype.
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(itemBases)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(essences)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(gems)...)
+	baseTypes = append(baseTypes, divinationCardBaseTypes(economyData)...)
 
 	log.Println("Number of BaseTypes: ", len(baseTypes))
 
@@ -190,7 +197,7 @@ func processRuleforgeScript(
 	configuration *config.ConfigurationModel,
 	validBases []string,
 	itemBases []model.ItemBase,
-	economyCache map[string][]data_generation.EconomyCacheItem,
+	economyCache map[string][]data_generation.EconomySnapshot,
 	cssVariables map[string]string) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
@@ -240,7 +247,7 @@ func processRuleforgeScript(
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, *baseTypeData, cssVariables, configuration.CustomEquipmentPresets)
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, configuration.EconomyValueHalfLifeDays, *baseTypeData, cssVariables, configuration.CustomEquipmentPresets)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)
@@ -289,6 +296,28 @@ func printLexemes(lexemes []*shared.Token[symbols.LexingTokenType]) {
 	for i, lex := range lexemes {
 		fmt.Printf("Lexeme (%d): %q\n", i, lex.String())
 	}
+}
+
+// divinationCardBaseTypes collects every divination card name seen across all
+// recorded economy history, deduplicated. Divination cards aren't tracked by
+// Path of Building, so their names come from whatever poe.ninja has actually
+// priced instead of a bundled list.
+func divinationCardBaseTypes(economyData map[string][]data_generation.EconomySnapshot) []string {
+	seen := make(map[string]bool)
+	for _, snapshots := range economyData {
+		for _, snapshot := range snapshots {
+			for _, item := range snapshot.Items {
+				if item.Class == "Divination Cards" {
+					seen[item.BaseType] = true
+				}
+			}
+		}
+	}
+	baseTypes := make([]string, 0, len(seen))
+	for baseType := range seen {
+		baseTypes = append(baseTypes, baseType)
+	}
+	return baseTypes
 }
 
 // listFilesWithExtension returns all files (not directories) in dir

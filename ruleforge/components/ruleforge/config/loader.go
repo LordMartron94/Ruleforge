@@ -42,6 +42,16 @@ func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationMode
 		cfg.PathOfBuildingDataPath = ".ruleforge-cache/pob"
 	}
 	cfg.PathOfBuildingDataPath = resolve(cfg.PathOfBuildingDataPath)
+	if cfg.EconomyHistoryDBPath == "" {
+		cfg.EconomyHistoryDBPath = ".ruleforge-cache/economy_history.db"
+	}
+	cfg.EconomyHistoryDBPath = resolve(cfg.EconomyHistoryDBPath)
+	if cfg.EconomyHistoryRefreshHours <= 0 {
+		cfg.EconomyHistoryRefreshHours = 24
+	}
+	if cfg.EconomyValueHalfLifeDays <= 0 {
+		cfg.EconomyValueHalfLifeDays = 14
+	}
 	for i, directory := range cfg.FilterOutputDirs {
 		cfg.FilterOutputDirs[i] = resolve(directory)
 	}

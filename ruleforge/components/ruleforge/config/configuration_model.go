@@ -5,6 +5,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/extensions"
 )
@@ -12,6 +13,11 @@ import (
 type EconomyWeights struct {
 	Rarity float64 `json:"Rarity"`
 	Value  float64 `json:"Value"`
+	// Trend weighs whether a base type's value is rising or falling across its
+	// recorded economy history. It requires at least two snapshots recorded at
+	// distinct times to have any effect; until then it contributes nothing to
+	// a base type's score.
+	Trend float64 `json:"Trend"`
 }
 
 type LeagueWeights struct {
@@ -43,6 +49,13 @@ type ConfigurationModel struct {
 	// PathOfBuildingDataPath is where all Path of Building data is stored.
 	PathOfBuildingDataPath string `json:"PathOfBuildingDataPath"`
 
+	// EconomyHistoryDBPath is where the SQLite economy price history is stored.
+	EconomyHistoryDBPath string `json:"EconomyHistoryDBPath"`
+
+	// EconomyHistoryRefreshHours is how many hours must pass since a league's
+	// last recorded snapshot before Ruleforge fetches a new one from poe.ninja.
+	EconomyHistoryRefreshHours float64 `json:"EconomyHistoryRefreshHours"`
+
 	// LeagueWeights defines the leagues to be used for economy-based data, along with their relative weighting.
 	LeagueWeights map[string]float64 `json:"LeagueWeights"`
 
@@ -54,6 +67,14 @@ type ConfigurationModel struct {
 
 	// ChaseVSGeneralPotentialFactor specifies how much to value an item's chase potential vs. its general value.
 	ChaseVSGeneralPotentialFactor float64 `json:"ChaseVSGeneralPotentialFactor"`
+
+	// EconomyValueHalfLifeDays exponentially decays how much each recorded
+	// economy snapshot contributes to a base type's value/rarity estimate: a
+	// snapshot this many days old counts half as much as today's. This keeps
+	// a long-lived permanent league's ancient prices from dominating what
+	// should be a "current value" estimate, without discarding old data
+	// outright (a thin history still uses everything it has).
+	EconomyValueHalfLifeDays float64 `json:"EconomyValueHalfLifeDays"`
 
 	// CustomEquipmentPresets lets you specify named presets with weapons/armour lists.
 	CustomEquipmentPresets map[string]EquipmentPreset `json:"CustomEquipmentPresets"`
@@ -80,6 +101,8 @@ func (c *ConfigurationModel) String() string {
 	sb.WriteString(fmt.Sprintf("🎨 Style Color CSS:     %s\n", c.StyleColorCSSFile))
 	sb.WriteString(fmt.Sprintf("📊 BaseType CSV File:   %s\n", c.BaseTypeCSVFile))
 	sb.WriteString(fmt.Sprintf("📘 PoB Data Path:       %s\n", c.PathOfBuildingDataPath))
+	sb.WriteString(fmt.Sprintf("📈 Economy History DB:  %s (refresh every %.1fh, kept forever)\n",
+		c.EconomyHistoryDBPath, c.EconomyHistoryRefreshHours))
 
 	sb.WriteString("\n💰 League Weights:\n")
 	if len(c.LeagueWeights) > 0 {
@@ -98,6 +121,7 @@ func (c *ConfigurationModel) String() string {
 
 	sb.WriteString(fmt.Sprintf("\n📈 Normalization Strategy: %s\n", c.EconomyNormalizationStrategy))
 	sb.WriteString(fmt.Sprintf("⚖️  Chase vs General Factor: %.2f\n", c.ChaseVSGeneralPotentialFactor))
+	sb.WriteString(fmt.Sprintf("📉 Economy Value Half-Life: %.1f days\n", c.EconomyValueHalfLifeDays))
 
 	sb.WriteString("\n🧩 Custom Equipment Presets:\n")
 	if len(c.CustomEquipmentPresets) > 0 {
@@ -144,10 +168,10 @@ func (c *ConfigurationModel) Validate() error {
 	if len(c.LeagueWeights) == 0 {
 		return fmt.Errorf("LeagueWeights must contain at least one league")
 	}
-	totalEconomyWeights := c.EconomyWeights.Rarity + c.EconomyWeights.Value
+	totalEconomyWeights := c.EconomyWeights.Rarity + c.EconomyWeights.Value + c.EconomyWeights.Trend
 
 	if math.Abs(totalEconomyWeights-1.0) > 1e-9 {
-		return fmt.Errorf("invalid sum EconomyWeights, expected 1, got %f", totalEconomyWeights)
+		return fmt.Errorf("invalid sum EconomyWeights (Rarity+Value+Trend), expected 1, got %f", totalEconomyWeights)
 	}
 
 	totalLeagueWeights := 0.0
@@ -162,6 +186,13 @@ func (c *ConfigurationModel) Validate() error {
 
 	if c.ChaseVSGeneralPotentialFactor < 0.0 || c.ChaseVSGeneralPotentialFactor > 1.0 {
 		return fmt.Errorf("invalid potential factor %f, must be between 0 and 1", c.ChaseVSGeneralPotentialFactor)
+	}
+	if c.EconomyValueHalfLifeDays <= 0 {
+		return fmt.Errorf("EconomyValueHalfLifeDays must be greater than 0, got %f", c.EconomyValueHalfLifeDays)
+	}
+
+	if c.EconomyHistoryRefreshHours <= 0 {
+		return fmt.Errorf("EconomyHistoryRefreshHours must be greater than 0, got %f", c.EconomyHistoryRefreshHours)
 	}
 
 	for name, preset := range c.CustomEquipmentPresets {
@@ -187,3 +218,10 @@ func (c *ConfigurationModel) GetEquipmentPreset(name string) (EquipmentPreset, b
 	preset, ok := c.CustomEquipmentPresets[name]
 	return preset, ok
 }
+
+// GetEconomyHistoryRefreshInterval is how long a league's recorded snapshot
+// may age before it's considered stale and refetched.
+func (c *ConfigurationModel) GetEconomyHistoryRefreshInterval() time.Duration {
+	return time.Duration(c.EconomyHistoryRefreshHours * float64(time.Hour))
+}
+

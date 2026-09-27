@@ -4,3 +4,9 @@
 *.exe
 
 vendor/
+
+# Generated filters and stray go-build binaries
+/__output__/
+/ruleforge/components/ruleforge/entry/entry
+/ruleforge/tests/tests
+/src_analyzer/src_analyzer

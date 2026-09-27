@@ -22,11 +22,12 @@ type Compiler struct {
 	armorBases            []model.ItemBase
 	weaponBases           []model.ItemBase
 	flaskBases            []model.ItemBase
-	economyCache          map[string][]data_generation.EconomyCacheItem
+	economyCache          map[string][]data_generation.EconomySnapshot
 	economyWeights        config.EconomyWeights
 	leagueWeights         []config.LeagueWeights
 	normalizationStrategy string
 	chasePotentialWeight  float64
+	valueHalfLifeDays     float64
 	baseTypeData          []config.BaseTypeAutomationEntry
 	cssVariables          map[string]string
 	customPresets         map[string]config.EquipmentPreset
@@ -38,11 +39,12 @@ func NewCompiler(
 	configuration CompilerConfiguration,
 	validBaseTypes []string,
 	itemBases []model.ItemBase,
-	economyCache map[string][]data_generation.EconomyCacheItem,
+	economyCache map[string][]data_generation.EconomySnapshot,
 	economyWeights config.EconomyWeights,
 	leagueWeights []config.LeagueWeights,
 	normalizationStrategy string,
 	chasePotentialWeight float64,
+	valueHalfLifeDays float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
 	cssVariables map[string]string,
 	customPresets map[string]config.EquipmentPreset,
@@ -68,6 +70,7 @@ func NewCompiler(
 		leagueWeights:         leagueWeights,
 		normalizationStrategy: normalizationStrategy,
 		chasePotentialWeight:  chasePotentialWeight,
+		valueHalfLifeDays:     valueHalfLifeDays,
 		baseTypeData:          baseTypeData,
 		cssVariables:          cssVariables,
 		customPresets:         customPresets,
@@ -124,6 +127,7 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 		c.leagueWeights,
 		c.normalizationStrategy,
 		c.chasePotentialWeight,
+		c.valueHalfLifeDays,
 		c.baseTypeData,
 		buildInstance,
 	)

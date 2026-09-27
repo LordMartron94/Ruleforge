@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"sort"
+	"time"
 )
 
 type NormalizationStrategy string
@@ -19,15 +20,54 @@ const (
 	Global NormalizationStrategy = "Global"
 )
 
+const (
+	// trendMinSamples is the fewest distinct snapshots required before a
+	// trend signal is computed at all. Below this, a slope (and especially a
+	// "confidence" derived from it) isn't statistically meaningful - it's
+	// just noise dressed up as an opinion.
+	trendMinSamples = 4
+	// trendMaxSamples bounds how many of the most recent snapshots feed the
+	// trend calculation. Theil-Sen is O(n^2) in pairwise comparisons, and a
+	// "trend" should reflect fairly recent dynamics rather than being
+	// dominated by a multi-year-old permanent league's entire history; 180
+	// daily snapshots is roughly six months.
+	trendMaxSamples = 180
+	// trendConfidenceScale converts a Kendall's-tau z-score (see
+	// computeTrendZScores) into a bounded (-1,1) confidence multiplier via
+	// tanh(z/trendConfidenceScale). Larger values demand a stronger or
+	// longer-running trend before it's trusted.
+	trendConfidenceScale = 3.0
+)
+
 // TieringParameters holds the configurable weights for the scoring algorithm.
 type TieringParameters struct {
 	ValueWeight              float64
 	RarityWeight             float64
+	TrendWeight              float64
 	LeagueWeights            []config.LeagueWeights
 	NormStrategy             NormalizationStrategy
 	ChaosOutlierPercentile   float64
 	MinListingsForPercentile int
 	ChasePotentialWeight     float64
+	// ValueHalfLifeDays exponentially decays how much each recorded snapshot
+	// contributes to a base type's value/rarity estimate: a snapshot this
+	// many days old counts half as much as today's, twice that age a
+	// quarter, and so on (see recencyWeight). It never reaches exactly zero,
+	// so a thin history is never discarded - but a long-lived permanent
+	// league's oldest prices stop dominating what should be a "current
+	// value" estimate. <= 0 disables decay (every snapshot counts equally).
+	ValueHalfLifeDays float64
+	// Now overrides the reference time used for recency weighting. Tests set
+	// this for determinism; production callers leave it zero to use
+	// time.Now().
+	Now time.Time
+}
+
+func (p TieringParameters) now() time.Time {
+	if p.Now.IsZero() {
+		return time.Now()
+	}
+	return p.Now
 }
 
 // TieringDataPoint is a one-dimensional data point for K-Means clustering.
@@ -53,9 +93,9 @@ func (p TieringDataPoint) Distance(other clusters.Coordinates) float64 {
 
 // aggregatedItem holds the aggregated data for a single base type within one league.
 type aggregatedItem struct {
-	baseType          string
-	percentileChaos   float64
-	totalListingCount int
+	baseType        string
+	percentileChaos float64
+	avgListingCount float64
 }
 
 type itemDataForGlobalNorm struct {
@@ -80,10 +120,17 @@ type finalScoredItem struct {
 
 // --- Main Pipeline Function ---
 
-// GenerateTiers takes unique economy data from multiple leagues and generates a tier list.
+// GenerateTiers takes economy history from multiple leagues and generates a tier list.
 // It assumes the input leagueData contains ONLY unique items.
+//
+// leagueData holds every snapshot ever recorded for each league, not just the
+// latest fetch - nothing is pruned. Recency-weighted aggregation (see
+// aggregateAndBlendUniques) turns that into a value/rarity estimate that gets
+// steadier as history accumulates while still tracking current reality, and
+// a Theil-Sen trend fit (see computeTrendZScores) turns it into an optional,
+// confidence-scaled signal for whether a base type is rising or falling.
 func GenerateTiers(
-	leagueData map[string][]EconomyCacheItem,
+	leagueData map[string][]EconomySnapshot,
 	numTiers int,
 	params TieringParameters,
 ) (map[int][]string, error) {
@@ -108,8 +155,13 @@ func GenerateTiers(
 		return nil, fmt.Errorf("no valid league data could be processed")
 	}
 
+	// --- Trend Step ---
+	// Neutral (zero) until enough history exists to fit a meaningful trend,
+	// so a short history behaves exactly as before TrendWeight was introduced.
+	trendByLeague := computeTrendZScores(leagueData, params)
+
 	// --- Scoring Step ---
-	unifiedScores := calculateUnifiedScores(allNormalizedData, params)
+	unifiedScores := calculateUnifiedScores(allNormalizedData, trendByLeague, params)
 
 	// --- Priority Assignment Step ---
 	basetypeToTierMap, err := assignTiers(unifiedScores, numTiers)
@@ -155,7 +207,7 @@ func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem) (ma
 		var baseTypes []string
 		for bt, data := range aggMap {
 			values = append(values, math.Log(data.percentileChaos+1))
-			listings = append(listings, math.Log(float64(data.totalListingCount+1)))
+			listings = append(listings, math.Log(data.avgListingCount+1))
 			baseTypes = append(baseTypes, bt)
 		}
 
@@ -189,7 +241,7 @@ func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem) (map
 	for league, aggMap := range aggregatedData {
 		for bt, data := range aggMap {
 			logChaos := math.Log(data.percentileChaos + 1)
-			logListings := math.Log(float64(data.totalListingCount + 1))
+			logListings := math.Log(data.avgListingCount + 1)
 			allValueLogs = append(allValueLogs, logChaos)
 			allListingLogs = append(allListingLogs, logListings)
 			itemMetadata = append(itemMetadata, itemDataForGlobalNorm{
@@ -234,11 +286,13 @@ func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem) (map
 
 func calculateUnifiedScores(
 	allNormData map[string]map[string]normalizedItem,
+	trendByLeague map[string]map[string]float64,
 	params TieringParameters,
 ) []finalScoredItem {
 	type unifiedScoreTracker struct {
 		weightedChaosSum  float64
 		weightedRaritySum float64
+		weightedTrendSum  float64
 		totalWeight       float64
 	}
 	unified := make(map[string]unifiedScoreTracker)
@@ -250,6 +304,10 @@ func calculateUnifiedScores(
 			tracker := unified[bt]
 			tracker.weightedChaosSum += normItem.chaosZScore * weight
 			tracker.weightedRaritySum += normItem.rarityZScore * weight
+			// A base type with no trend signal yet (not enough history, or
+			// too inconsistent to trust) contributes 0 - neutral, not a
+			// penalty.
+			tracker.weightedTrendSum += trendByLeague[league][bt] * weight
 			tracker.totalWeight += weight
 			unified[bt] = tracker
 		}
@@ -263,9 +321,10 @@ func calculateUnifiedScores(
 		// Calculate the weighted average Z-score
 		avgChaosZ := tracker.weightedChaosSum / tracker.totalWeight
 		avgRarityZ := tracker.weightedRaritySum / tracker.totalWeight
+		avgTrendZ := tracker.weightedTrendSum / tracker.totalWeight
 
 		// Apply final weights to get the score
-		score := (params.ValueWeight * avgChaosZ) + (params.RarityWeight * avgRarityZ)
+		score := (params.ValueWeight * avgChaosZ) + (params.RarityWeight * avgRarityZ) + (params.TrendWeight * avgTrendZ)
 		finalScores = append(finalScores, finalScoredItem{baseType: bt, score: score})
 	}
 	return finalScores
@@ -318,90 +377,251 @@ func assignTiers(scoredItems []finalScoredItem, numTiers int) (map[string]int, e
 	return finalTiers, nil
 }
 
+// --- Trend Analysis ---
+
+// seriesPoint is one snapshot's robust log-value observation for a base type.
+type seriesPoint struct {
+	at  time.Time
+	log float64
+}
+
+// computeTrendZScores measures, per league, whether each base type's value is
+// rising or falling, using a Theil-Sen slope (the median of every pairwise
+// slope between log-value observations) fitted across up to the most recent
+// trendMaxSamples snapshots. Theil-Sen uses every available point instead of
+// an arbitrary two-way split, and because it's a median rather than a mean of
+// slopes, a single noisy or manipulated day can't skew the estimate the way
+// it would a least-squares regression - up to (n-2)/2 outlier points can be
+// wrong before the median slope itself moves.
+//
+// The raw slope alone doesn't say how much to trust it: three snapshots that
+// happen to rise in a row look identical to a three-point sample of pure
+// noise. Kendall's tau (the fraction of pairs that agree on direction, since
+// time only moves forward within a series) measures how consistent the trend
+// actually is, and its sampling variance under "no real trend" is well known:
+//
+//	Var(tau) ~= 2*(2n+5) / (9*n*(n-1))
+//
+// Converting tau to a z-score against that null and squashing |z| through
+// tanh gives a confidence magnitude in [0,1) - direction comes entirely from
+// the slope's own sign, never from confidence - that starts near zero for a
+// handful of noisy points and only approaches 1 once a longer, consistent
+// trend has accumulated. The slope is scaled by this confidence before it's
+// ever compared across base types, so an unreliable trend can't outrank a
+// reliable one just because its raw slope happens to be steeper.
+func computeTrendZScores(leagueData map[string][]EconomySnapshot, params TieringParameters) map[string]map[string]float64 {
+	trendByLeague := make(map[string]map[string]float64, len(leagueData))
+
+	for league, snapshots := range leagueData {
+		sorted := make([]EconomySnapshot, len(snapshots))
+		copy(sorted, snapshots)
+		sort.Slice(sorted, func(i, j int) bool { return sorted[i].FetchedAt.Before(sorted[j].FetchedAt) })
+		if len(sorted) > trendMaxSamples {
+			sorted = sorted[len(sorted)-trendMaxSamples:]
+		}
+
+		// Build a per-snapshot robust-value series per base type. Within a
+		// single snapshot every listing is equally "fresh", so this uses the
+		// unweighted robust value - decay is about weighing snapshots against
+		// each other, not listings within one.
+		seriesByBaseType := make(map[string][]seriesPoint)
+		for _, snapshot := range sorted {
+			valuesByBaseType := make(map[string][]float64)
+			for _, item := range snapshot.Items {
+				if item.BaseType == "" {
+					continue
+				}
+				valuesByBaseType[item.BaseType] = append(valuesByBaseType[item.BaseType], item.ChaosValue)
+			}
+			for bt, values := range valuesByBaseType {
+				robust := calculateRobustValue(unweighted(values), params)
+				seriesByBaseType[bt] = append(seriesByBaseType[bt], seriesPoint{
+					at:  snapshot.FetchedAt,
+					log: math.Log(robust + 1),
+				})
+			}
+		}
+
+		type signal struct {
+			baseType string
+			value    float64
+		}
+		var signals []signal
+		for bt, series := range seriesByBaseType {
+			if len(series) < trendMinSamples {
+				continue
+			}
+			slope, tau, pairs := theilSenSlopeAndKendallTau(series)
+			if pairs == 0 {
+				continue
+			}
+			n := float64(len(series))
+			variance := 2 * (2*n + 5) / (9 * n * (n - 1))
+			z := tau / math.Sqrt(variance)
+			// confidence is a trust magnitude in [0,1), never negative: z (and
+			// tau) already carry the trend's direction via slope's sign, so
+			// confidence must not reintroduce a sign of its own - that would
+			// flip a highly-consistent downward trend into a positive signal.
+			confidence := math.Tanh(math.Abs(z) / trendConfidenceScale)
+			signals = append(signals, signal{baseType: bt, value: slope * confidence})
+		}
+
+		if len(signals) < 2 {
+			continue // not enough comparable base types to z-score meaningfully
+		}
+		raw := make([]float64, len(signals))
+		for i, s := range signals {
+			raw[i] = s.value
+		}
+		zScores, err := calculateZScores(raw)
+		if err != nil {
+			continue
+		}
+		leagueTrend := make(map[string]float64, len(signals))
+		for i, s := range signals {
+			leagueTrend[s.baseType] = zScores[i]
+		}
+		trendByLeague[league] = leagueTrend
+	}
+
+	return trendByLeague
+}
+
+// theilSenSlopeAndKendallTau computes the Theil-Sen slope (median pairwise
+// slope, in log-value units per day) and a Kendall's-tau concordance measure
+// from the same O(n^2) pairs. Ties on value are excluded from tau's
+// denominator (this is tau-a restricted to non-tied pairs, not the
+// tie-corrected tau-b - a reasonable simplification here since chaos values
+// are continuous and exact ties are rare). Since time is strictly increasing
+// within the series, concordance reduces to "did the later point have a
+// higher value."
+func theilSenSlopeAndKendallTau(series []seriesPoint) (slope, tau float64, pairs int) {
+	var slopes []float64
+	concordant, discordant := 0, 0
+	for i := 0; i < len(series); i++ {
+		for j := i + 1; j < len(series); j++ {
+			days := series[j].at.Sub(series[i].at).Hours() / 24
+			if days <= 0 {
+				continue
+			}
+			diff := series[j].log - series[i].log
+			slopes = append(slopes, diff/days)
+			switch {
+			case diff > 0:
+				concordant++
+			case diff < 0:
+				discordant++
+			}
+		}
+	}
+	pairs = concordant + discordant
+	if len(slopes) == 0 {
+		return 0, 0, 0
+	}
+	sort.Float64s(slopes)
+	slope = medianOf(slopes)
+	if pairs > 0 {
+		tau = float64(concordant-discordant) / float64(pairs)
+	}
+	return slope, tau, pairs
+}
+
+func medianOf(sorted []float64) float64 {
+	n := len(sorted)
+	if n == 0 {
+		return 0
+	}
+	if n%2 == 1 {
+		return sorted[n/2]
+	}
+	return (sorted[n/2-1] + sorted[n/2]) / 2
+}
+
 // --- Aggregation Core Logic ---
 
-// aggregateAndBlendUniques is the new, powerful aggregation function.
-// It calculates both the "general" and "chase" potential for each unique base type
-// and blends them based on the ChasePotentialWeight.
+// aggregateAndBlendUniques computes both the "general" and "chase" potential
+// for each base type and blends them based on ChasePotentialWeight ("general"
+// is a robust value across every item sharing that base; "chase" is the
+// robust value of just the single best-value named item on it - e.g. the one
+// valuable unique sharing a base with several worthless ones).
+//
+// Every recorded snapshot contributes, weighted by recency (see
+// recencyWeight), instead of being pooled flat. Flat pooling has two
+// failure modes as history grows: a long-lived permanent league's
+// month-old prices count exactly as much as today's, blurring "current
+// value"; and summing listing counts across snapshots (rather than
+// averaging) makes "rarity" grow with how long Ruleforge has been tracking
+// an item instead of reflecting actual current supply. Recency-weighted
+// aggregation fixes both while still smoothing day-to-day noise, and still
+// gets steadier as more history accumulates.
 func aggregateAndBlendUniques(
-	leagueData map[string][]EconomyCacheItem,
+	leagueData map[string][]EconomySnapshot,
 	params TieringParameters,
 ) map[string]map[string]aggregatedItem {
+	now := params.now()
+	halfLife := time.Duration(params.ValueHalfLifeDays * float64(24*time.Hour))
 
 	finalAggregatedData := make(map[string]map[string]aggregatedItem)
 
-	for league, items := range leagueData {
-		// Group all items by their BaseType to process one base at a time.
-		itemsByBaseType := make(map[string][]EconomyCacheItem)
-		for _, item := range items {
-			if item.BaseType != "" && item.Name != "" {
-				itemsByBaseType[item.BaseType] = append(itemsByBaseType[item.BaseType], item)
+	for league, snapshots := range leagueData {
+		type nameAgg struct {
+			chaosValues   []weightedValue
+			listingValues []weightedValue
+		}
+		type baseTypeAgg struct {
+			chaosValues   []weightedValue
+			listingValues []weightedValue
+			byName        map[string]*nameAgg
+		}
+
+		baseTypes := make(map[string]*baseTypeAgg)
+		for _, snapshot := range snapshots {
+			w := recencyWeight(now.Sub(snapshot.FetchedAt), halfLife)
+			for _, item := range snapshot.Items {
+				if item.BaseType == "" || item.Name == "" {
+					continue
+				}
+				bt := baseTypes[item.BaseType]
+				if bt == nil {
+					bt = &baseTypeAgg{byName: make(map[string]*nameAgg)}
+					baseTypes[item.BaseType] = bt
+				}
+				bt.chaosValues = append(bt.chaosValues, weightedValue{value: item.ChaosValue, weight: w})
+				bt.listingValues = append(bt.listingValues, weightedValue{value: float64(item.ListingCount), weight: w})
+
+				na := bt.byName[item.Name]
+				if na == nil {
+					na = &nameAgg{}
+					bt.byName[item.Name] = na
+				}
+				na.chaosValues = append(na.chaosValues, weightedValue{value: item.ChaosValue, weight: w})
+				na.listingValues = append(na.listingValues, weightedValue{value: float64(item.ListingCount), weight: w})
 			}
 		}
 
 		leagueAggMap := make(map[string]aggregatedItem)
-		for baseType, baseTypeItems := range itemsByBaseType {
+		for baseType, bt := range baseTypes {
+			generalChaosValue := calculateRobustValue(bt.chaosValues, params)
+			generalListingAvg := weightedMean(bt.listingValues)
 
-			// --- Step 1: Calculate "General Potential" ---
-			// This is the original logic: a single robust value for the entire base type.
-			var allChaosValues []float64
-			var allListingCount int
-			for _, item := range baseTypeItems {
-				allChaosValues = append(allChaosValues, item.ChaosValue)
-				allListingCount += item.ListingCount
-			}
-			generalChaosValue := calculateRobustValue(allChaosValues, params)
-
-			// --- Step 2: Calculate "Chase Potential" ---
-			// This is the logic to find the single best unique on this base.
-
-			// 2a: Sub-group items by their specific unique Name.
-			itemsByName := make(map[string][]EconomyCacheItem)
-			for _, item := range baseTypeItems {
-				itemsByName[item.Name] = append(itemsByName[item.Name], item)
-			}
-
-			// 2b: Find robust stats for each individual named unique.
-			type namedUniqueStats struct {
-				chaosValue   float64
-				listingCount int
-			}
-			var allNamedStats []namedUniqueStats
-			for _, nameItems := range itemsByName {
-				var chaosValues []float64
-				var listingCount int
-				for _, item := range nameItems {
-					chaosValues = append(chaosValues, item.ChaosValue)
-					listingCount += item.ListingCount
-				}
-				allNamedStats = append(allNamedStats, namedUniqueStats{
-					chaosValue:   calculateRobustValue(chaosValues, params),
-					listingCount: listingCount,
-				})
-			}
-
-			// 2c: Identify the chase item (the one with the highest robust value).
-			var chaseStats namedUniqueStats
-			if len(allNamedStats) > 0 {
-				chaseStats = allNamedStats[0]
-				for _, stats := range allNamedStats {
-					if stats.chaosValue > chaseStats.chaosValue {
-						chaseStats = stats
-					}
+			var chaseChaos, chaseListing float64
+			first := true
+			for _, na := range bt.byName {
+				chaosVal := calculateRobustValue(na.chaosValues, params)
+				if first || chaosVal > chaseChaos {
+					chaseChaos = chaosVal
+					chaseListing = weightedMean(na.listingValues)
+					first = false
 				}
 			}
 
-			// --- Step 3: Blend the two potentials using the weight ---
 			chaseWeight := params.ChasePotentialWeight
 			generalWeight := 1.0 - chaseWeight
 
-			finalChaosValue := (chaseStats.chaosValue * chaseWeight) + (generalChaosValue * generalWeight)
-			finalListingCount := (float64(chaseStats.listingCount) * chaseWeight) + (float64(allListingCount) * generalWeight)
-
 			leagueAggMap[baseType] = aggregatedItem{
-				baseType:          baseType,
-				percentileChaos:   finalChaosValue,
-				totalListingCount: int(finalListingCount),
+				baseType:        baseType,
+				percentileChaos: chaseChaos*chaseWeight + generalChaosValue*generalWeight,
+				avgListingCount: chaseListing*chaseWeight + generalListingAvg*generalWeight,
 			}
 		}
 		finalAggregatedData[league] = leagueAggMap
@@ -411,20 +631,98 @@ func aggregateAndBlendUniques(
 
 // --- Statistical and Utility Helpers ---
 
-// calculateRobustValue extracts a single representative value from a slice of chaos values.
-func calculateRobustValue(chaosValues []float64, params TieringParameters) float64 {
-	if len(chaosValues) == 0 {
+// weightedValue is one observation with a recency weight (see recencyWeight).
+type weightedValue struct {
+	value  float64
+	weight float64
+}
+
+// unweighted wraps plain values with an equal weight of 1, for callers (like
+// the per-snapshot trend series) that want calculateRobustValue's percentile
+// logic without any recency decay.
+func unweighted(values []float64) []weightedValue {
+	out := make([]weightedValue, len(values))
+	for i, v := range values {
+		out[i] = weightedValue{value: v, weight: 1}
+	}
+	return out
+}
+
+// recencyWeight exponentially decays an observation's influence with age: at
+// exactly one halfLife old it counts half as much, at two half-lives a
+// quarter, and so on. It never reaches zero, so a thin history never loses
+// its only data point - but a long-lived permanent league's ancient prices
+// stop dominating a base type's current value. halfLife <= 0 disables decay
+// (every observation counts equally).
+func recencyWeight(age, halfLife time.Duration) float64 {
+	if halfLife <= 0 {
+		return 1
+	}
+	return math.Pow(0.5, age.Hours()/halfLife.Hours())
+}
+
+// weightedPercentile returns the value at the given percentile (0..1) of a
+// weighted sample: values are sorted, and the result is the smallest value at
+// which the cumulative weight first reaches percentile*totalWeight.
+func weightedPercentile(values []weightedValue, percentile float64) float64 {
+	if len(values) == 0 {
 		return 0
 	}
-	sort.Float64s(chaosValues)
+	sorted := make([]weightedValue, len(values))
+	copy(sorted, values)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].value < sorted[j].value })
 
-	if len(chaosValues) >= params.MinListingsForPercentile {
-		percentileIndex := int(float64(len(chaosValues)-1) * params.ChaosOutlierPercentile)
-		return chaosValues[percentileIndex]
+	totalWeight := 0.0
+	for _, v := range sorted {
+		totalWeight += v.weight
+	}
+	if totalWeight <= 0 {
+		return sorted[len(sorted)-1].value
 	}
 
-	medianIndex := (len(chaosValues) - 1) / 2
-	return chaosValues[medianIndex]
+	target := percentile * totalWeight
+	cumulative := 0.0
+	for _, v := range sorted {
+		cumulative += v.weight
+		if cumulative >= target {
+			return v.value
+		}
+	}
+	return sorted[len(sorted)-1].value
+}
+
+func weightedMedian(values []weightedValue) float64 {
+	return weightedPercentile(values, 0.5)
+}
+
+func weightedMean(values []weightedValue) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	var sumWeighted, sumWeight float64
+	for _, v := range values {
+		sumWeighted += v.value * v.weight
+		sumWeight += v.weight
+	}
+	if sumWeight == 0 {
+		return 0
+	}
+	return sumWeighted / sumWeight
+}
+
+// calculateRobustValue extracts a single representative value from a
+// recency-weighted sample of chaos values. With enough distinct observations
+// it uses the configured outlier percentile (prices are heavy-tailed, so an
+// upper percentile - not the mean - best represents "what this is really
+// worth"); with too few, it falls back to the weighted median.
+func calculateRobustValue(values []weightedValue, params TieringParameters) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	if len(values) >= params.MinListingsForPercentile {
+		return weightedPercentile(values, params.ChaosOutlierPercentile)
+	}
+	return weightedMedian(values)
 }
 
 func getWeightFromLeague(league string, leagueWeights []config.LeagueWeights) float64 {
@@ -474,7 +772,7 @@ func calculateZScores(data []float64) ([]float64, error) {
 	return scores, nil
 }
 
-func validateParams(leagueData map[string][]EconomyCacheItem, numTiers int, params TieringParameters) error {
+func validateParams(leagueData map[string][]EconomySnapshot, numTiers int, params TieringParameters) error {
 	total := 0.0
 	for _, leagueWeight := range params.LeagueWeights {
 		total += leagueWeight.Weight

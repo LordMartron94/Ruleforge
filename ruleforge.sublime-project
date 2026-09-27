@@ -13,6 +13,19 @@
 			},
 			"variants": [
 				{
+					"name": "Run PoB",
+					"working_dir": "${project_path}/tools/pob",
+					"cmd": [
+						"${project_path}/tools/pob/runtime/Path{space}of{space}Building.exe"
+					],
+					"linux": {
+						"cmd": [
+							"wine",
+							"${project_path}/tools/pob/runtime/Path{space}of{space}Building.exe"
+						]
+					}
+				},
+				{
 					"name": "Run (Default)",
 					"shell_cmd": "./run.sh --config=config.json",
 					"working_dir": "${project_path}",

@@ -1,4 +1,4 @@
-go 1.23
+go 1.25.0
 
 use (
 	./ruleforge/components/ruleforge/common/compiler
@@ -11,4 +11,5 @@ use (
 	./ruleforge/components/ruleforge/rules
 	./ruleforge/components/ruleforge/validation
 	./ruleforge/tests
+	./src_analyzer
 )

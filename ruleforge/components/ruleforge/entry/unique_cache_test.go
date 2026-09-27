@@ -12,14 +12,18 @@ import (
 
 func TestExtractUniqueBasesDoesNotRegenerateValidCache(t *testing.T) {
 	cacheDir := t.TempDir()
-	cache := data_generation.NewCacheRepository(filepath.Join(cacheDir, "basetypes-standard-only.json"), filepath.Join(cacheDir, "economy_cache.json"))
+	cache := data_generation.NewCacheRepository(filepath.Join(cacheDir, "basetypes-standard-only.json"))
 	want := []model.Unique{{Name: "Cached standard unique", BaseType: "Test Base"}}
 	if err := cache.SaveItemCache(nil, nil, nil, want); err != nil {
 		t.Fatal(err)
 	}
+	exporter, err := data_generation.NewPathOfBuildingExporter(cacheDir, filepath.Join(cacheDir, "economy.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	app := &App{
 		log:      log.New(os.Stdout, "", 0),
-		exporter: data_generation.NewPathOfBuildingExporter(cacheDir),
+		exporter: exporter,
 	}
 	// This directory intentionally does not exist: if the extractor attempts
 	// to read source modules, the test must fail rather than silently pass.
@@ -54,9 +58,14 @@ Implicits: 0
 			t.Fatal(err)
 		}
 	}
+	tempDir := t.TempDir()
+	exporter, err := data_generation.NewPathOfBuildingExporter(tempDir, filepath.Join(tempDir, "economy.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	app := &App{
 		log:      log.New(os.Stdout, "", 0),
-		exporter: data_generation.NewPathOfBuildingExporter(t.TempDir()),
+		exporter: exporter,
 	}
 	uniques, err := app.extractUniqueBases(root)
 	if err != nil {

@@ -27,7 +27,6 @@ type App struct {
 	configPath      string
 	verbose         bool
 	updateCacheOnly bool
-	forceSaveCache  bool
 	refreshPoB      bool
 
 	// Core Components
@@ -41,7 +40,7 @@ type App struct {
 	essences    []model.Essence
 	gems        []model.Gem
 	uniques     []model.Unique
-	economyData map[string][]data_generation.EconomyCacheItem
+	economyData map[string][]data_generation.EconomySnapshot
 }
 
 func main() {
@@ -83,7 +82,19 @@ func (a *App) Run() error {
 
 	// Initialize the exporter, which will attempt to load from cache.
 	a.log.Println("Initializing data exporter (will use cache if available and valid)...")
-	a.exporter = data_generation.NewPathOfBuildingExporter(filepath.Join(filepath.Dir(a.config.PathOfBuildingDataPath), "data-cache"))
+	a.exporter, err = data_generation.NewPathOfBuildingExporter(
+		filepath.Join(filepath.Dir(a.config.PathOfBuildingDataPath), "data-cache"),
+		a.config.EconomyHistoryDBPath,
+	)
+	if err != nil {
+		return fmt.Errorf("initializing data exporter: %w", err)
+	}
+	defer func() {
+		if closeErr := a.exporter.Close(); closeErr != nil {
+			a.log.Printf("WARN: closing data exporter: %v", closeErr)
+		}
+	}()
+
 	changed, err := defaultPoBSource(a.log).ensure(context.Background(), a.config.PathOfBuildingDataPath, a.refreshPoB)
 	if err != nil {
 		return err
@@ -169,51 +180,30 @@ func (a *App) fetchData() error {
 	return nil
 }
 
+// fetchEconomyData refreshes any stale league snapshots (recording them into
+// the economy history database, which is never pruned) and then loads each
+// league's full recorded history for tiering. regenerate forces a refetch
+// even for leagues with a recent snapshot.
 func (a *App) fetchEconomyData(regenerate bool) error {
-	var err error
-
-	if !regenerate {
-		a.economyData, err = a.exporter.GetEconomyData(a.config.GetLeaguesToRetrieve(), false)
-		if err != nil {
-			return fmt.Errorf("GetEconomyData: %w", err)
-		}
-
-		var invalid bool
-		for _, v := range a.economyData {
-			if v == nil {
-				invalid = true
-				break
-			}
-		}
-		if invalid {
-			return a.fetchEconomyData(true)
-		}
-
-		return nil
-	} else {
-		a.economyData, err = a.exporter.GetEconomyData(a.config.GetLeaguesToRetrieve(), true)
-		if err != nil {
-			return fmt.Errorf("GetEconomyData: %w", err)
-		}
-		for key, v := range a.economyData {
-			if v == nil {
-				return fmt.Errorf("economy data for league %s is invalid", key)
-			}
-		}
-
-		a.forceSaveCache = true
-		return nil
+	leagues := a.config.GetLeaguesToRetrieve()
+	if err := a.exporter.RefreshEconomyData(leagues, a.config.GetEconomyHistoryRefreshInterval(), regenerate); err != nil {
+		return fmt.Errorf("RefreshEconomyData: %w", err)
 	}
+
+	history, err := a.exporter.EconomyHistory(leagues)
+	if err != nil {
+		return fmt.Errorf("EconomyHistory: %w", err)
+	}
+	a.economyData = history
+	return nil
 }
 
-// saveCaches persists the fetched data. The exporter's Save* methods
-// will internally decide whether to overwrite the cache based on expiry dates.
+// saveCaches persists the fetched item cache. Economy snapshots are already
+// recorded as soon as they're fetched and are kept forever, so there's no
+// separate economy "save" step.
 func (a *App) saveCaches() error {
 	if err := a.exporter.SaveItemCache(a.itemBases, a.essences, a.gems, a.uniques); err != nil {
 		return fmt.Errorf("exporter.SaveItemCache: %w", err)
-	}
-	if err := a.exporter.SaveEconomyCache(a.economyData, a.forceSaveCache); err != nil {
-		return fmt.Errorf("exporter.SaveEconomyCache: %w", err)
 	}
 	return nil
 }
@@ -224,8 +214,31 @@ func (a *App) prepareBaseTypes() {
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.itemBases)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.essences)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.gems)...)
+	// Divination cards aren't tracked by Path of Building, so their names come
+	// from whatever poe.ninja has actually priced instead of a bundled list.
+	baseTypes = append(baseTypes, divinationCardBaseTypes(a.economyData)...)
 	a.baseTypes = baseTypes
 	a.log.Printf("Total number of base types prepared for compiler: %d", len(a.baseTypes))
+}
+
+// divinationCardBaseTypes collects every divination card name seen across all
+// recorded economy history, deduplicated.
+func divinationCardBaseTypes(economyData map[string][]data_generation.EconomySnapshot) []string {
+	seen := make(map[string]bool)
+	for _, snapshots := range economyData {
+		for _, snapshot := range snapshots {
+			for _, item := range snapshot.Items {
+				if item.Class == "Divination Cards" {
+					seen[item.BaseType] = true
+				}
+			}
+		}
+	}
+	baseTypes := make([]string, 0, len(seen))
+	for baseType := range seen {
+		baseTypes = append(baseTypes, baseType)
+	}
+	return baseTypes
 }
 
 // compileRules finds and processes all Ruleforge scripts.
@@ -363,6 +376,7 @@ func (a *App) compileTree(
 		a.config.GetLeagueWeights(),
 		a.config.EconomyNormalizationStrategy,
 		a.config.ChaseVSGeneralPotentialFactor,
+		a.config.EconomyValueHalfLifeDays,
 		baseTypeData,
 		cssVariables,
 		a.config.CustomEquipmentPresets,

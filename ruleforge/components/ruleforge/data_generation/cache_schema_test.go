@@ -12,13 +12,12 @@ import (
 func TestOldItemCacheIsNotReused(t *testing.T) {
 	root := t.TempDir()
 	items := filepath.Join(root, "basetypes.json")
-	economy := filepath.Join(root, "economy_cache.json")
 	old := []byte(`{"expiry_date":"2099-01-01T00:00:00Z","uniques":[{"Name":"old duplicate"}]}`)
 	if err := os.WriteFile(items, old, 0644); err != nil {
 		t.Fatal(err)
 	}
-	repo := NewCacheRepository(items, economy)
-	loaded, _, err := repo.LoadCache()
+	repo := NewCacheRepository(items)
+	loaded, err := repo.LoadCache()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +28,7 @@ func TestOldItemCacheIsNotReused(t *testing.T) {
 	if err := repo.SaveItemCache(nil, nil, nil, want); err != nil {
 		t.Fatal(err)
 	}
-	loaded, _, err = repo.LoadCache()
+	loaded, err = repo.LoadCache()
 	if err != nil {
 		t.Fatal(err)
 	}

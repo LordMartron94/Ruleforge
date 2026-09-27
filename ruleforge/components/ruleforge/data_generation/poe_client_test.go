@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -34,7 +33,27 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 			if !strings.Contains(r.Header.Get("User-Agent"), "Ruleforge") {
 				t.Error("missing user agent")
 			}
-			fmt.Fprint(w, `{"lines":[{"name":"Test unique","baseType":"Test base","chaosValue":25.5,"divineValue":0.2,"listingCount":12}]}`)
+			if r.URL.Query().Get("type") == "SkillGem" {
+				fmt.Fprint(w, `{"lines":[
+					{"name":"Holy Strike","chaosValue":38.98,"listingCount":59},
+					{"name":"Hallow Support","chaosValue":67.78,"listingCount":33},
+					{"name":"Spectral Throw","chaosValue":5,"listingCount":35},
+					{"name":"Vaal Spectral Throw (Spectral Throw of Trarthus)","baseType":"Vaal Spectral Throw","chaosValue":25,"listingCount":16},
+					{"chaosValue":1}
+				]}`)
+				return
+			}
+			fmt.Fprint(w, `{"lines":[{"name":"Test unique","baseType":"Test base","chaosValue":25.5,"divineValue":0.2,"listingCount":12},{"name":"Unique without base","chaosValue":1}]}`)
+		case "/exchange/item/overview":
+			itemRequests++
+			if r.URL.Query().Get("type") != "DivinationCard" {
+				t.Errorf("expected DivinationCard category; got %q", r.URL.Query().Get("type"))
+			}
+			fmt.Fprint(w, `{
+				"core": {"primary": "chaos"},
+				"items": [{"id":"the-doctor","name":"The Doctor"},{"id":"no-price","name":"Unpriced Card"}],
+				"lines": [{"id":"the-doctor","primaryValue":500,"volumePrimaryValue":1500},{"id":"missing-name","primaryValue":1,"volumePrimaryValue":1}]
+			}`)
 		default:
 			t.Errorf("unexpected API path %s", r.URL.Path)
 			http.NotFound(w, r)
@@ -44,25 +63,48 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 	client := NewPoeNinjaClient()
 	client.baseURL = server.URL
 	client.requestDelay = 0
-	exporter := &PathOfBuildingExporter{economyScraper: client}
-	fetched, err := exporter.GetEconomyData([]string{"Allflame"}, true)
+	store, err := NewEconomyHistoryStore(filepath.Join(t.TempDir(), "economy.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if requests != 7 || itemRequests != 6 {
+	defer store.Close()
+	exporter := &PathOfBuildingExporter{economyScraper: client, historyStore: store}
+	if err := exporter.RefreshEconomyData([]string{"Allflame"}, time.Hour, true); err != nil {
+		t.Fatal(err)
+	}
+	if requests != 8 || itemRequests != 7 {
 		t.Fatalf("unexpected request counts total=%d item=%d", requests, itemRequests)
 	}
-	if len(fetched["Allflame"]) != 6 {
-		t.Fatalf("expected six priced items under configured league name, got %#v", fetched)
+	window, err := exporter.EconomyHistory([]string{"Allflame"})
+	if err != nil {
+		t.Fatal(err)
 	}
-	first := fetched["Allflame"][0]
+	if len(window["Allflame"]) != 1 {
+		t.Fatalf("expected exactly one recorded snapshot, got %#v", window)
+	}
+	fetched := window["Allflame"][0].Items
+	if len(fetched) != 10 {
+		t.Fatalf("expected five uniques, four gems, and one priced div card, got %#v", fetched)
+	}
+	first := fetched[0]
 	if first.BaseType != "Test base" || first.ChaosValue != 25.5 || first.DivineValue != 0.2 || first.ListingCount != 12 {
 		t.Fatalf("incorrect economy fields: %#v", first)
 	}
-	exporter.economyCache = &EconomyCacheModel{EconomyCacheItems: fetched}
-	again, err := exporter.GetEconomyData([]string{"Allflame"}, false)
-	if err != nil || requests != 7 || len(again["Allflame"]) != 6 {
-		t.Fatalf("valid cache was not reused: %d requests, err=%v", requests, err)
+	for i, base := range []string{"Holy Strike", "Hallow Support", "Spectral Throw", "Vaal Spectral Throw"} {
+		gem := fetched[5+i]
+		if gem.Class != "Gems" || gem.BaseType != base || gem.Name == "" || gem.ChaosValue <= 0 || gem.ListingCount <= 0 {
+			t.Fatalf("incorrect gem economy record for %q: %#v", base, gem)
+		}
+	}
+	divCard := fetched[9]
+	if divCard.Class != "Divination Cards" || divCard.BaseType != "The Doctor" || divCard.ChaosValue != 500 || divCard.ListingCount != 3 {
+		t.Fatalf("incorrect divination card economy record (name resolved via the exchange items lookup, unpriced/unnamed lines dropped): %#v", divCard)
+	}
+	if err := exporter.RefreshEconomyData([]string{"Allflame"}, time.Hour, false); err != nil {
+		t.Fatal(err)
+	}
+	if requests != 8 {
+		t.Fatalf("recent-enough snapshot triggered network access: %d requests", requests)
 	}
 }
 
@@ -79,7 +121,7 @@ func TestPoeNinjaUnknownLeagueFailsBeforeItemRequests(t *testing.T) {
 	client := NewPoeNinjaClient()
 	client.baseURL = server.URL
 	client.requestDelay = 0
-	_, err := (&PathOfBuildingExporter{economyScraper: client}).GetEconomyData([]string{"Expired league"}, true)
+	err := (&PathOfBuildingExporter{economyScraper: client}).RefreshEconomyData([]string{"Expired league"}, time.Hour, true)
 	if err == nil || !strings.Contains(err.Error(), `"Expired league"`) || !strings.Contains(err.Error(), "Standard") || requests != 1 {
 		t.Fatalf("expected clear unavailable-league error and no wasted requests; error=%v requests=%d", err, requests)
 	}
@@ -99,7 +141,7 @@ func TestPoeNinjaHTTP404StopsImmediately(t *testing.T) {
 	client := NewPoeNinjaClient()
 	client.baseURL = server.URL
 	client.requestDelay = 0
-	_, err := (&PathOfBuildingExporter{economyScraper: client}).GetEconomyData([]string{"Standard"}, true)
+	err := (&PathOfBuildingExporter{economyScraper: client}).RefreshEconomyData([]string{"Standard"}, time.Hour, true)
 	if err == nil || !strings.Contains(err.Error(), "HTTP 404") || !strings.Contains(err.Error(), "UniqueWeapon") || requests != 2 {
 		t.Fatalf("expected first 404 to stop fetch; error=%v requests=%d", err, requests)
 	}
@@ -119,25 +161,60 @@ func TestPoeNinjaRejectsInvalidResponse(t *testing.T) {
 	}
 }
 
-func TestOldEconomyCacheIsInvalidated(t *testing.T) {
-	dir := t.TempDir()
-	itemPath := filepath.Join(dir, "item.json")
-	economyPath := filepath.Join(dir, "economy.json")
-	old := []byte(`{"expiry_date":"2099-01-01T00:00:00Z","items":{"Standard":[{"name":"stale"}]}}`)
-	if err := os.WriteFile(economyPath, old, 0600); err != nil {
+func TestEconomyHistoryPersistsAcrossSnapshots(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "economy.db")
+	store, err := NewEconomyHistoryStore(dbPath)
+	if err != nil {
 		t.Fatal(err)
 	}
-	repo := NewCacheRepository(itemPath, economyPath)
-	_, cached, err := repo.LoadCache()
-	if err != nil || cached != nil {
-		t.Fatalf("old economy schema reused: %#v %v", cached, err)
+	defer store.Close()
+
+	if _, ok, err := store.LatestSnapshotAt("Standard"); err != nil || ok {
+		t.Fatalf("expected no snapshot yet: ok=%v err=%v", ok, err)
 	}
-	fresh := map[string][]EconomyCacheItem{"Standard": {{BaseType: "Test", ChaosValue: 3}}}
-	if err := repo.SaveEconomyCache(fresh); err != nil {
+
+	older := time.Now().Add(-48 * time.Hour)
+	newer := time.Now()
+	if err := store.RecordSnapshot("Standard", older, []EconomyCacheItem{{BaseType: "Test", ChaosValue: 3}}); err != nil {
 		t.Fatal(err)
 	}
-	_, cached, err = repo.LoadCache()
-	if err != nil || cached == nil || cached.Version != economyCacheSchemaVersion || time.Now().After(cached.ExpiryDate) || cached.EconomyCacheItems["Standard"][0].ChaosValue != 3 {
-		t.Fatalf("new economy schema failed round-trip: %#v %v", cached, err)
+	if err := store.RecordSnapshot("Standard", newer, []EconomyCacheItem{{BaseType: "Test", ChaosValue: 5}}); err != nil {
+		t.Fatal(err)
+	}
+
+	latest, ok, err := store.LatestSnapshotAt("Standard")
+	if err != nil || !ok {
+		t.Fatalf("expected a latest snapshot: ok=%v err=%v", ok, err)
+	}
+	if diff := latest.Sub(newer); diff > time.Second || diff < -time.Second {
+		t.Fatalf("unexpected latest snapshot time: got %v, want ~%v", latest, newer)
+	}
+
+	// A window that only reaches back 1 hour should miss the 48h-old snapshot.
+	recentOnly, err := store.Window("Standard", time.Now().Add(-time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recentOnly) != 1 || recentOnly[0].Items[0].ChaosValue != 5 {
+		t.Fatalf("expected only the recent snapshot in a 1h window: %#v", recentOnly)
+	}
+
+	// A wide window should return both, oldest first.
+	full, err := store.Window("Standard", time.Now().Add(-72*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(full) != 2 || full[0].Items[0].ChaosValue != 3 || full[1].Items[0].ChaosValue != 5 {
+		t.Fatalf("expected both snapshots ordered oldest first: %#v", full)
+	}
+
+	// The zero time means "everything ever recorded" - nothing is pruned, so
+	// this is how EconomyHistory loads a league's full history.
+	everything, err := store.Window("Standard", time.Time{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(everything) != 2 {
+		t.Fatalf("expected the zero time to return every snapshot: %#v", everything)
 	}
 }

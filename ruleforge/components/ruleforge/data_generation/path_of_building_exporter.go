@@ -14,26 +14,43 @@ import (
 type PathOfBuildingExporter struct {
 	luaExecutor    *LuaExecutor
 	economyScraper *PoeNinjaClient
+	dropLevels     *dropLevelClient
 	baseTypeCache  *ItemCacheModel
-	economyCache   *EconomyCacheModel
+	historyStore   *EconomyHistoryStore
 	cacheRepo      *CacheRepository
 }
 
-func NewPathOfBuildingExporter(cacheDir string) *PathOfBuildingExporter {
-	cacheRepository := NewCacheRepository(filepath.Join(cacheDir, "basetypes-standard-only.json"), filepath.Join(cacheDir, "economy_cache.json"))
-	baseTypeCache, economyCache, err := cacheRepository.LoadCache()
-
+// NewPathOfBuildingExporter opens the item cache at cacheDir and the economy
+// history database at economyHistoryDBPath, creating either if missing.
+func NewPathOfBuildingExporter(cacheDir string, economyHistoryDBPath string) (*PathOfBuildingExporter, error) {
+	cacheRepository := NewCacheRepository(filepath.Join(cacheDir, "basetypes-standard-only.json"))
+	baseTypeCache, err := cacheRepository.LoadCache()
 	if err != nil {
 		log.Printf("WARN: Could not load baseTypeCache: %v. Will regenerate data.", err)
+	}
+
+	historyStore, err := NewEconomyHistoryStore(economyHistoryDBPath)
+	if err != nil {
+		return nil, fmt.Errorf("opening economy history database: %w", err)
 	}
 
 	return &PathOfBuildingExporter{
 		luaExecutor:    NewLuaExecutor(),
 		economyScraper: NewPoeNinjaClient(),
+		dropLevels:     newDropLevelClient(),
 		baseTypeCache:  baseTypeCache,
 		cacheRepo:      cacheRepository,
-		economyCache:   economyCache,
+		historyStore:   historyStore,
+	}, nil
+}
+
+// Close releases resources held by the exporter, such as the economy history
+// database handle.
+func (e *PathOfBuildingExporter) Close() error {
+	if e.historyStore == nil {
+		return nil
 	}
+	return e.historyStore.Close()
 }
 
 // CachedUniques returns the previously parsed standard/upcoming unique-item set.
@@ -62,12 +79,14 @@ func (e *PathOfBuildingExporter) LoadItemBases(luaFilePaths []string) ([]model.I
 		}
 
 		bases := mapItemBasesFromLua(dataTable)
-		enrichItemBasesWithDropLevels(bases)
 
 		allBases = append(allBases, bases...)
-		log.Printf("Successfully converted and enriched %d item base models from %s\n", len(bases), filepath.Base(luaFile))
+		log.Printf("Successfully converted %d item base models from %s\n", len(bases), filepath.Base(luaFile))
 	}
 
+	if err := enrichItemBasesWithDropLevels(allBases, e.dropLevels); err != nil {
+		return nil, err
+	}
 	return allBases, nil
 }
 
@@ -204,63 +223,124 @@ func (e *PathOfBuildingExporter) LoadGeneratedUniques(luaFilePath string) ([]mod
 	return result, nil
 }
 
-func (e *PathOfBuildingExporter) GetEconomyData(leaguesToRetrieve []string, forceRegenerate bool) (map[string][]EconomyCacheItem, error) {
-	if !forceRegenerate && e.economyCache != nil && completeEconomyData(e.economyCache.EconomyCacheItems, leaguesToRetrieve) {
-		return e.economyCache.EconomyCacheItems, nil
+// economyEndpoint selects which poe.ninja API shape a category is fetched
+// through: "stash" for individually stash-listed items (chaosValue/listingCount
+// per line), "exchange" for items only traded through the bulk exchange
+// (a value/volume pair, with display names in a separate lookup - see
+// PoeNinjaClient.FetchExchangeData).
+type economyEndpoint string
+
+const (
+	stashEndpoint    economyEndpoint = "stash"
+	exchangeEndpoint economyEndpoint = "exchange"
+)
+
+var economyCategories = []struct {
+	kind     string
+	class    string
+	endpoint economyEndpoint
+}{
+	{"UniqueWeapon", "Uniques", stashEndpoint},
+	{"UniqueArmour", "Uniques", stashEndpoint},
+	{"UniqueAccessory", "Uniques", stashEndpoint},
+	{"UniqueFlask", "Uniques", stashEndpoint},
+	{"UniqueJewel", "Uniques", stashEndpoint},
+	{"SkillGem", "Gems", stashEndpoint},
+	{"DivinationCard", "Divination Cards", exchangeEndpoint},
+}
+
+// RefreshEconomyData fetches a fresh poe.ninja snapshot and records it in the
+// economy history database for any configured league whose latest recorded
+// snapshot is older than maxAge (or unconditionally, if forceRegenerate is set).
+// Leagues with a recent-enough snapshot are left untouched.
+func (e *PathOfBuildingExporter) RefreshEconomyData(leaguesToRetrieve []string, maxAge time.Duration, forceRegenerate bool) error {
+	now := time.Now()
+
+	// Decide which leagues actually need a fetch before resolving anything, so
+	// a fully up-to-date history needs no network access at all.
+	staleLeagues := leaguesToRetrieve
+	if !forceRegenerate {
+		staleLeagues = nil
+		for _, configured := range leaguesToRetrieve {
+			latest, ok, err := e.historyStore.LatestSnapshotAt(configured)
+			if err != nil {
+				return fmt.Errorf("checking latest economy snapshot for league %q: %w", configured, err)
+			}
+			if ok && now.Sub(latest) < maxAge {
+				log.Printf("Economy snapshot for %q is %s old (refresh interval %s); skipping refetch.", configured, now.Sub(latest).Round(time.Minute), maxAge)
+				continue
+			}
+			staleLeagues = append(staleLeagues, configured)
+		}
+	}
+	if len(staleLeagues) == 0 {
+		return nil
 	}
 
-	leagues, err := e.economyScraper.ResolveLeagues(leaguesToRetrieve)
+	leagues, err := e.economyScraper.ResolveLeagues(staleLeagues)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	categories := []struct{ kind, class string }{
-		{"UniqueWeapon", "Uniques"},
-		{"UniqueArmour", "Uniques"},
-		{"UniqueAccessory", "Uniques"},
-		{"UniqueFlask", "Uniques"},
-		{"UniqueJewel", "Uniques"},
-		{"SkillGem", "Gems"},
-	}
-	all := make(map[string][]EconomyCacheItem, len(leaguesToRetrieve))
-	total := 0
 	requestCount := 0
-	for _, configured := range leaguesToRetrieve {
+	for _, configured := range staleLeagues {
 		leagueID := leagues[configured]
 		var items []EconomyCacheItem
-		for _, category := range categories {
+		for _, category := range economyCategories {
 			// Avoid bursts; no delay before the first request.
 			if requestCount > 0 && e.economyScraper.requestDelay > 0 {
 				time.Sleep(e.economyScraper.requestDelay)
 			}
 			requestCount++
-			fetched, fetchErr := e.economyScraper.FetchData("itemoverview", category.kind, leagueID, category.class)
+			var fetched []EconomyCacheItem
+			var fetchErr error
+			switch category.endpoint {
+			case stashEndpoint:
+				fetched, fetchErr = e.economyScraper.FetchData("itemoverview", category.kind, leagueID, category.class)
+			case exchangeEndpoint:
+				fetched, fetchErr = e.economyScraper.FetchExchangeData(category.kind, leagueID, category.class)
+			default:
+				fetchErr = fmt.Errorf("unknown economy endpoint %q", category.endpoint)
+			}
 			if fetchErr != nil {
-				return nil, fmt.Errorf("fetch poe.ninja league %q (id %q), category %q: %w", configured, leagueID, category.kind, fetchErr)
+				return fmt.Errorf("fetch poe.ninja league %q (id %q), category %q: %w", configured, leagueID, category.kind, fetchErr)
 			}
 			log.Printf("Fetched %d %s records for %s", len(fetched), category.kind, configured)
 			items = append(items, fetched...)
 		}
 		if len(items) == 0 {
-			return nil, fmt.Errorf("no item prices returned for league %q (id %q); refusing to cache an empty economy", configured, leagueID)
+			return fmt.Errorf("no item prices returned for league %q (id %q); refusing to record an empty snapshot", configured, leagueID)
 		}
-		all[configured] = items
-		total += len(items)
+
+		if err := e.historyStore.RecordSnapshot(configured, now, items); err != nil {
+			return fmt.Errorf("recording economy snapshot for league %q: %w", configured, err)
+		}
+		log.Printf("Recorded economy snapshot for %q: %d items", configured, len(items))
 	}
-	log.Printf("Fetched %d economy items across %d configured leagues", total, len(all))
-	return all, nil
+	return nil
 }
 
-func completeEconomyData(data map[string][]EconomyCacheItem, configured []string) bool {
-	if len(configured) == 0 {
-		return false
-	}
-	for _, league := range configured {
-		if len(data[league]) == 0 {
-			return false
+// EconomyHistory returns every economy snapshot ever recorded for each
+// configured league, oldest first. Nothing is ever pruned, so tiering (and
+// its trend signal) naturally gets more accurate and covers more time as
+// history accumulates. It errors if a league has no history yet; call
+// RefreshEconomyData first.
+func (e *PathOfBuildingExporter) EconomyHistory(leaguesToRetrieve []string) (map[string][]EconomySnapshot, error) {
+	result := make(map[string][]EconomySnapshot, len(leaguesToRetrieve))
+	total := 0
+	for _, league := range leaguesToRetrieve {
+		snapshots, err := e.historyStore.Window(league, time.Time{})
+		if err != nil {
+			return nil, fmt.Errorf("loading economy history for league %q: %w", league, err)
 		}
+		if len(snapshots) == 0 {
+			return nil, fmt.Errorf("no economy snapshots recorded yet for league %q; refresh economy data first", league)
+		}
+		result[league] = snapshots
+		total += len(snapshots)
 	}
-	return true
+	log.Printf("Loaded %d economy snapshot(s) across %d league(s)", total, len(result))
+	return result, nil
 }
 
 // SaveItemCache saves the item, essence, gem, and unique data.
@@ -273,26 +353,6 @@ func (e *PathOfBuildingExporter) SaveItemCache(items []model.ItemBase, essences 
 
 	log.Println("Item cache is expired or missing. Saving new item cache...")
 	return e.cacheRepo.SaveItemCache(items, essences, gems, uniques)
-}
-
-// SaveEconomyCache saves the economy data.
-// It checks the economy cache's expiry date and only saves if the cache is missing or expired.
-func economyLeagues(economy map[string][]EconomyCacheItem) []string {
-	names := make([]string, 0, len(economy))
-	for name := range economy {
-		names = append(names, name)
-	}
-	return names
-}
-
-func (e *PathOfBuildingExporter) SaveEconomyCache(economy map[string][]EconomyCacheItem, forceSave bool) error {
-	if !forceSave && e.economyCache != nil && completeEconomyData(e.economyCache.EconomyCacheItems, economyLeagues(economy)) && time.Now().Before(e.economyCache.ExpiryDate) {
-		log.Println("Economy cache is still valid. Skipping save.")
-		return nil
-	}
-
-	log.Println("Economy cache is expired or missing. Saving new economy cache...")
-	return e.cacheRepo.SaveEconomyCache(economy)
 }
 
 // GetBaseTypes is a generic utility function that can live here or in models.go
