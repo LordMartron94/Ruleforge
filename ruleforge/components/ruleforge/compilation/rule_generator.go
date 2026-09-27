@@ -1048,7 +1048,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 	type groupKey struct {
 		StyleID      string
 		MinStackSize int
-		Rarity       *string
+		Rarity       string
 		Hide         bool
 	}
 
@@ -1066,10 +1066,16 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 			return nil, err
 		}
 
+		// Rarity is compared by value: every CSV row has its own pointer, so
+		// keying on the pointer kept rows with a rarity from ever sharing a block.
+		rarity := ""
+		if entry.Rarity != nil {
+			rarity = *entry.Rarity
+		}
 		key := groupKey{
 			StyleID:      style.Id,
 			MinStackSize: mssValue,
-			Rarity:       entry.Rarity,
+			Rarity:       rarity,
 			Hide:         entry.Hide,
 		}
 

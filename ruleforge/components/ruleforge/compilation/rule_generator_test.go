@@ -277,3 +277,23 @@ func TestEmitTierRulesNilVaalStyleLeavesQualityUnaffected(t *testing.T) {
 		t.Fatalf("expected quality's own border colour with no Vaal style given, got:\n%s", strings.Join(rules[0], "\n"))
 	}
 }
+
+func TestGroupByPropertiesMergesRowsWithTheSameRarity(t *testing.T) {
+	normal, magic, normalAgain := "Normal", "Magic", "Normal"
+	manager := &StyleManager{styles: map[string]config.Style{"Final/Crafting/Normal": {Id: "n"}, "Final/Crafting/Magic": {Id: "m"}}}
+	entries := []config.BaseTypeAutomationEntry{
+		{BaseType: "Coral Ring", Style: "Final/Crafting/Normal", Priority: 5, Rarity: &normal},
+		{BaseType: "Coral Ring", Style: "Final/Crafting/Magic", Priority: 5, Rarity: &magic},
+		{BaseType: "Two-Stone Ring", Style: "Final/Crafting/Normal", Priority: 5, Rarity: &normalAgain},
+	}
+	groups, err := groupByProperties(entries, manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(groups) != 2 {
+		t.Fatalf("expected 2 groups (normal, magic), got %d", len(groups))
+	}
+	if got := groups[0].BaseTypes; len(got) != 2 || got[0] != "Coral Ring" || got[1] != "Two-Stone Ring" {
+		t.Errorf("normal group keeps CSV order and merges both rings, got %v", got)
+	}
+}
