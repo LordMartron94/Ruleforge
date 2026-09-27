@@ -1430,3 +1430,235 @@ Beam = { Color = "Pink", Temp = false }
 Minimap = { Shape = "UpsideDownHouse", Color = "Pink", Size = 0 }
 DropSound = "error.mp3"
 DropVolume = 300
+
+# League families. The base type CSV gives recent leagues their own styles so a
+# stylesheet can colour them by league; this theme keeps them identical to the
+# currency (Orbs) and Eldritch tiers they used before.
+
+[Final.Leagues.Allflame.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Leagues.Allflame.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Leagues.Allflame.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Leagues.Allflame.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Leagues.Allflame.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Leagues.Allflame.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Allflame.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Allflame.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Ducats.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Leagues.Ducats.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Leagues.Ducats.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Leagues.Ducats.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Leagues.Ducats.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Leagues.Ducats.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Ducats.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Ducats.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Legion.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Leagues.Legion.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Leagues.Legion.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Leagues.Legion.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Leagues.Legion.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Leagues.Legion.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Legion.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Legion.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Mercenaries.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Leagues.Mercenaries.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Leagues.Mercenaries.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Leagues.Mercenaries.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Leagues.Mercenaries.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Leagues.Mercenaries.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Mercenaries.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Mercenaries.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Mirage.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Leagues.Mirage.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Leagues.Mirage.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Leagues.Mirage.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Leagues.Mirage.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Leagues.Mirage.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Mirage.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Mirage.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Astrolabes.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Leagues.Astrolabes.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Leagues.Astrolabes.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Leagues.Astrolabes.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Leagues.Astrolabes.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Leagues.Astrolabes.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Astrolabes.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Astrolabes.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Runegrafts.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Leagues.Runegrafts.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Leagues.Runegrafts.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Leagues.Runegrafts.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Leagues.Runegrafts.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Leagues.Runegrafts.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Runegrafts.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Runegrafts.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Keepers.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Leagues.Keepers.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Leagues.Keepers.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Leagues.Keepers.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Leagues.Keepers.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Leagues.Keepers.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Keepers.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Keepers.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Ember.T1]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.Ember.T2]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.Ember.T3]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.Ember.T4]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.Ichor.T1]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.Ichor.T2]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.Ichor.T3]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.Ichor.T4]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.AllflameEmbers.T1]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.AllflameEmbers.T2]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.AllflameEmbers.T3]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Eldritch"]
+
+[Final.Leagues.AllflameEmbers.T4]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Eldritch"]
