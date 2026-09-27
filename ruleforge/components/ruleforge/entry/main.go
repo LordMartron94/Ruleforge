@@ -16,6 +16,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/entry/studio"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/validation"
@@ -32,6 +33,7 @@ type App struct {
 	// Core Components
 	log      *log.Logger
 	config   *config.ConfigurationModel
+	styles   []config.StyleDefinition
 	exporter *data_generation.PathOfBuildingExporter
 
 	// Loaded Data
@@ -41,6 +43,9 @@ type App struct {
 	gems        []model.Gem
 	uniques     []model.Unique
 	economyData map[string][]data_generation.EconomySnapshot
+
+	// Compiled filters, kept for the studio.
+	studioFilters []studio.Filter
 }
 
 func main() {
@@ -49,7 +54,7 @@ func main() {
 	}
 
 	// Define command-line flags. The exporter handles local caches automatically.
-	flag.StringVar(&app.configPath, "config", "config.json", "Path to the configuration file.")
+	flag.StringVar(&app.configPath, "config", "config.toml", "Path to the configuration file.")
 	flag.BoolVar(&app.verbose, "verbose", false, "Enable verbose output for debugging.")
 	flag.BoolVar(&app.updateCacheOnly, "update-cache-only", false, "Fetch/update data and save to cache without running compilation.")
 	flag.BoolVar(&app.refreshPoB, "refresh-pob", false, "Check the official Path of Building revision now and download it if changed (error if offline).")
@@ -68,20 +73,14 @@ func (a *App) Run() error {
 		return err
 	}
 
-	cssParser, err := config.NewCSSParserFromFile(a.config.StyleColorCSSFile)
-
-	if err != nil {
-		return fmt.Errorf("NewCSSParserFromFile: %v", err)
-	}
-
-	props, err := cssParser.Parse()
-
-	if err != nil {
-		return fmt.Errorf("parse: %v", err)
+	// Load the styles before fetching data, so a broken style file fails fast.
+	if err := a.loadStyles(); err != nil {
+		return err
 	}
 
 	// Initialize the exporter, which will attempt to load from cache.
 	a.log.Println("Initializing data exporter (will use cache if available and valid)...")
+	var err error
 	a.exporter, err = data_generation.NewPathOfBuildingExporter(
 		filepath.Join(filepath.Dir(a.config.PathOfBuildingDataPath), "data-cache"),
 		a.config.EconomyHistoryDBPath,
@@ -123,15 +122,39 @@ func (a *App) Run() error {
 	a.prepareBaseTypes()
 
 	// Compile Ruleforge scripts.
-	if err := a.compileRules(props); err != nil {
+	if err := a.compileRules(); err != nil {
 		return fmt.Errorf("error during rule compilation: %w", err)
+	}
+
+	if err := a.writeStudio(); err != nil {
+		return fmt.Errorf("writing the studio: %w", err)
 	}
 
 	a.log.Println("Compilation finished successfully.")
 	return nil
 }
 
-// loadConfig loads and validates the JSON configuration file.
+// loadStyles reads the style definitions and keeps the enabled ones.
+func (a *App) loadStyles() error {
+	definitions, err := config.LoadStyleDefinitions(a.config.StylesDir)
+	if err != nil {
+		return err
+	}
+	for _, style := range definitions {
+		if !style.IsEnabled() {
+			a.log.Printf("Style %q is disabled; skipping it.", style.Name)
+			continue
+		}
+		a.styles = append(a.styles, style)
+	}
+	if len(a.styles) == 0 {
+		return fmt.Errorf("every style in %s is disabled", a.config.StylesDir)
+	}
+	a.log.Printf("Loaded %d style(s) from %s.", len(a.styles), a.config.StylesDir)
+	return nil
+}
+
+// loadConfig loads and validates the TOML configuration file.
 func (a *App) loadConfig() error {
 	loader := config.NewConfigurationLoader()
 	configuration, err := loader.LoadConfiguration(a.configPath)
@@ -242,7 +265,7 @@ func divinationCardBaseTypes(economyData map[string][]data_generation.EconomySna
 }
 
 // compileRules finds and processes all Ruleforge scripts.
-func (a *App) compileRules(cssVariables map[string]string) error {
+func (a *App) compileRules() error {
 	ruleforgeScripts, err := listFilesWithExtension(a.config.RuleforgeInputDir, ".rf")
 	if err != nil {
 		return fmt.Errorf("could not list Ruleforge scripts in %s: %w", a.config.RuleforgeInputDir, err)
@@ -255,14 +278,15 @@ func (a *App) compileRules(cssVariables map[string]string) error {
 	a.log.Printf("Found %d Ruleforge scripts to process...", len(ruleforgeScripts))
 
 	for _, scriptPath := range ruleforgeScripts {
-		if err := a.processRuleforgeScript(scriptPath, cssVariables); err != nil {
+		if err := a.processRuleforgeScript(scriptPath); err != nil {
 			return fmt.Errorf("failed to process script %s: %w", scriptPath, err)
 		}
 	}
 	return nil
 }
 
-func (a *App) processRuleforgeScript(path string, cssVariables map[string]string) error {
+// processRuleforgeScript parses one script and compiles it once per style.
+func (a *App) processRuleforgeScript(path string) error {
 	a.log.Printf("Processing: %s", path)
 
 	file, err := a.openScript(path)
@@ -285,17 +309,30 @@ func (a *App) processRuleforgeScript(path string, cssVariables map[string]string
 		return err
 	}
 
-	baseTypeData, err := a.loadBaseTypeData()
-	if err != nil {
-		return err
-	}
+	for _, style := range a.styles {
+		a.log.Printf("Compiling %s with style %q...", filepath.Base(path), style.Name)
+		baseTypeData, err := a.loadBaseTypeData(style.BaseTypes)
+		if err != nil {
+			return fmt.Errorf("style %q: %w", style.Name, err)
+		}
 
-	lines, name, err := a.compileTree(tree, *baseTypeData, cssVariables)
-	if err != nil {
-		return err
-	}
+		compiler, lines, name, err := a.compileTree(tree, *baseTypeData, style)
+		if err != nil {
+			return fmt.Errorf("style %q: %w", style.Name, err)
+		}
 
-	return a.writeOutputs(lines, name)
+		fileName := style.FilterFileName(name)
+		if err := a.writeOutputs(lines, fileName); err != nil {
+			return err
+		}
+		a.studioFilters = append(a.studioFilters, studio.Filter{
+			Script:   name,
+			StyleID:  style.ID,
+			FileName: fileName,
+			Blocks:   compiler.StudioBlocks(lines),
+		})
+	}
+	return nil
 }
 
 func (a *App) openScript(path string) (*os.File, error) {
@@ -350,8 +387,8 @@ func (a *App) validateTree(tree *shared.ParseTree[symbols.LexingTokenType]) erro
 	return nil
 }
 
-func (a *App) loadBaseTypeData() (*[]config.BaseTypeAutomationEntry, error) {
-	loader := config.NewBaseTypeAutomationLoader(a.config.BaseTypeCSVFile)
+func (a *App) loadBaseTypeData(path string) (*[]config.BaseTypeAutomationEntry, error) {
+	loader := config.NewBaseTypeAutomationLoader(path)
 	data, err := loader.Load()
 	if err != nil {
 		return nil, fmt.Errorf("loading base type automation data: %w", err)
@@ -362,12 +399,13 @@ func (a *App) loadBaseTypeData() (*[]config.BaseTypeAutomationEntry, error) {
 func (a *App) compileTree(
 	tree *shared.ParseTree[symbols.LexingTokenType],
 	baseTypeData []config.BaseTypeAutomationEntry,
-	cssVariables map[string]string,
-) ([]string, string, error) {
+	style config.StyleDefinition,
+) (*compilation.Compiler, []string, string, error) {
 	compiler, err := compilation.NewCompiler(
 		tree,
 		compilation.CompilerConfiguration{
-			StyleJsonPath: a.config.StyleJSONFile,
+			StylesheetPath: style.Stylesheet,
+			Palette:        style.Palette,
 		},
 		a.baseTypes,
 		a.itemBases,
@@ -378,24 +416,23 @@ func (a *App) compileTree(
 		a.config.ChaseVSGeneralPotentialFactor,
 		a.config.EconomyValueHalfLifeDays,
 		baseTypeData,
-		cssVariables,
 		a.config.CustomEquipmentPresets,
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("compiler initialization failed: %w", err)
+		return nil, nil, "", fmt.Errorf("compiler initialization failed: %w", err)
 	}
 	lines, err, name := compiler.CompileIntoFilter()
 
 	if err != nil {
-		return nil, "", fmt.Errorf("compile failed: %w", err)
+		return nil, nil, "", fmt.Errorf("compile failed: %w", err)
 	}
 
-	return lines, name, nil
+	return compiler, lines, name, nil
 }
 
-func (a *App) writeOutputs(lines []string, name string) error {
+func (a *App) writeOutputs(lines []string, fileName string) error {
 	for _, dir := range a.config.FilterOutputDirs {
-		path := filepath.Join(dir, name+".filter")
+		path := filepath.Join(dir, fileName)
 		if err := writeLines(lines, path); err != nil {
 			return fmt.Errorf("writing output file %s failed: %w", path, err)
 		}

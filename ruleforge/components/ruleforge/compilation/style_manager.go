@@ -18,8 +18,8 @@ type StyleManager struct {
 func NewStyleManager(
 	path string,
 	rootNode *shared.ParseTree[symbols.LexingTokenType],
-	cssVariables map[string]string) (*StyleManager, error) {
-	styles, err := config.LoadStyles(path, cssVariables)
+	palette map[string]string) (*StyleManager, error) {
+	styles, err := config.LoadStyles(path, palette)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load styles: %w", err)
 	}
@@ -115,7 +115,7 @@ func (sm *StyleManager) findVariableDeclarationNode(varName string) (*shared.Par
 	return nil, fmt.Errorf("variable declaration for %q not found in script", varName)
 }
 
-// lookupStyle retrieves a style directly from the loaded JSON and sets its name.
+// lookupStyle retrieves a style directly from the loaded stylesheet and sets its name.
 func (sm *StyleManager) lookupStyle(key string) (*config.Style, error) {
 	style, ok := sm.styles[key]
 	if !ok {

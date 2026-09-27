@@ -1,0 +1,1432 @@
+# New theme stylesheet (converted from new_theme.json).
+#
+# Styles are TOML tables named by their path, e.g. [Final.Orbs.T1] is "Final/Orbs/T1".
+# A colour is a palette name from the style file ("t2"), or a literal "#RRGGBB" / "#RRGGBBAA".
+# Combination merges other styles in order; later entries win, and the style's own properties win over all of them.
+
+[Special.Essences.Base]
+Comment = "The single, foundational style for ALL essences. Defines the shared background color and default minimap icon."
+BackgroundColor = "#0F0F19"
+Minimap = { Shape = "Diamond", Color = "Purple" }
+DropSound = "magic.mp3"
+DropVolume = 300
+
+[Special.Essences.Types.Greed]
+TextColor = "#9988E7"
+BorderColor = "#9988E7"
+
+[Special.Essences.Types.Contempt]
+TextColor = "#87A3F3"
+BorderColor = "#87A3F3"
+
+[Special.Essences.Types.Hatred]
+TextColor = "#96E4F8"
+BorderColor = "#96E4F8"
+
+[Special.Essences.Types.Woe]
+TextColor = "#87FDFD"
+BorderColor = "#87FDFD"
+
+[Special.Essences.Types.Fear]
+TextColor = "#6BC698"
+BorderColor = "#6BC698"
+
+[Special.Essences.Types.Anger]
+TextColor = "#86E891"
+BorderColor = "#86E891"
+
+[Special.Essences.Types.Torment]
+TextColor = "#4ECE66"
+BorderColor = "#4ECE66"
+
+[Special.Essences.Types.Sorrow]
+TextColor = "#AED04E"
+BorderColor = "#AED04E"
+
+[Special.Essences.Types.Rage]
+TextColor = "#DDE553"
+BorderColor = "#DDE553"
+
+[Special.Essences.Types.Suffering]
+TextColor = "#F3BA5B"
+BorderColor = "#F3BA5B"
+
+[Special.Essences.Types.Wrath]
+TextColor = "#E69050"
+BorderColor = "#E69050"
+
+[Special.Essences.Types.Doubt]
+TextColor = "#F17457"
+BorderColor = "#F17457"
+
+[Special.Essences.Types.Loathing]
+TextColor = "#FE645A"
+BorderColor = "#FE645A"
+
+[Special.Essences.Types.Zeal]
+TextColor = "#E2554C"
+BorderColor = "#E2554C"
+
+[Special.Essences.Types.Anguish]
+TextColor = "#F55A56"
+BorderColor = "#F55A56"
+
+[Special.Essences.Types.Spite]
+TextColor = "#DE3E58"
+BorderColor = "#DE3E58"
+
+[Special.Essences.Types.Scorn]
+TextColor = "#BE4CF0"
+BorderColor = "#BE4CF0"
+
+[Special.Essences.Types.Envy]
+TextColor = "#844CEF"
+BorderColor = "#844CEF"
+
+[Special.Essences.Types.Misery]
+TextColor = "#7857F5"
+BorderColor = "#7857F5"
+
+[Special.Essences.Types.Dread]
+TextColor = "#4C63FB"
+BorderColor = "#4C63FB"
+
+[Special.Essences.Types.Corruption]
+TextColor = "#B20B10"
+BorderColor = "#B20B10"
+
+[Special.Essences.Types.Insanity]
+TextColor = "#F20866"
+BorderColor = "#F20866"
+
+[Special.Essences.Types.Horror]
+TextColor = "#EB0F0C"
+BorderColor = "#EB0F0C"
+
+[Special.Essences.Types.Delirium]
+TextColor = "#8108AE"
+BorderColor = "#8108AE"
+
+[Special.Essences.Types.Hysteria]
+TextColor = "#C59B27"
+BorderColor = "#C59B27"
+
+[Special.Essences.Tiers.Low]
+Comment = "For Tiers 1-2 (Whispering/Muttering). Has no border."
+FontSize = 28
+BorderColor = "#00000000"
+Minimap = { Size = 2 }
+
+[Special.Essences.Tiers.Mid]
+Comment = "For Tiers 3-4 (Weeping/Wailing)"
+FontSize = 34
+Beam = { Color = "Grey", Temp = true }
+Minimap = { Size = 2 }
+
+[Special.Essences.Tiers.High]
+Comment = "For Tiers 5-7 (Screaming to Deafening). Has a visible border."
+FontSize = 42
+Beam = { Color = "Grey", Temp = false }
+Minimap = { Size = 1 }
+
+[Special.Essences.Tiers.Special]
+Comment = "For the four corrupted essences."
+FontSize = 45
+Beam = { Color = "Yellow", Temp = false }
+Minimap = { Size = 0, Shape = "Star" }
+
+[Special.Essences.Final.WhisperingGreed]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Greed", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.MutteringGreed]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Greed", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.WeepingGreed]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Greed", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingGreed]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Greed", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingGreed]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Greed", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingGreed]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Greed", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningGreed]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Greed", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WhisperingContempt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Contempt", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.MutteringContempt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Contempt", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.WeepingContempt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Contempt", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingContempt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Contempt", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingContempt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Contempt", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingContempt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Contempt", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningContempt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Contempt", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WhisperingHatred]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hatred", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.MutteringHatred]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hatred", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.WeepingHatred]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hatred", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingHatred]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hatred", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingHatred]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hatred", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingHatred]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hatred", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningHatred]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hatred", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WhisperingWoe]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Woe", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.MutteringWoe]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Woe", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.WeepingWoe]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Woe", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingWoe]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Woe", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingWoe]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Woe", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingWoe]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Woe", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningWoe]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Woe", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.MutteringFear]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Fear", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.WeepingFear]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Fear", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingFear]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Fear", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingFear]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Fear", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingFear]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Fear", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningFear]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Fear", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.MutteringAnger]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anger", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.WeepingAnger]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anger", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingAnger]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anger", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingAnger]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anger", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingAnger]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anger", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningAnger]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anger", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.MutteringTorment]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Torment", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.WeepingTorment]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Torment", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingTorment]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Torment", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingTorment]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Torment", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingTorment]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Torment", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningTorment]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Torment", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.MutteringSorrow]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Sorrow", "Special/Essences/Tiers/Low"]
+
+[Special.Essences.Final.WeepingSorrow]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Sorrow", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingSorrow]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Sorrow", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingSorrow]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Sorrow", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingSorrow]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Sorrow", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningSorrow]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Sorrow", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WeepingRage]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Rage", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingRage]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Rage", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingRage]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Rage", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingRage]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Rage", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningRage]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Rage", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WeepingSuffering]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Suffering", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingSuffering]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Suffering", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingSuffering]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Suffering", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingSuffering]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Suffering", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningSuffering]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Suffering", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WeepingWrath]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Wrath", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingWrath]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Wrath", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingWrath]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Wrath", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingWrath]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Wrath", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningWrath]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Wrath", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WeepingDoubt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Doubt", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.WailingDoubt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Doubt", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingDoubt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Doubt", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingDoubt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Doubt", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningDoubt]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Doubt", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WailingLoathing]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Loathing", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingLoathing]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Loathing", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingLoathing]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Loathing", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningLoathing]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Loathing", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WailingZeal]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Zeal", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingZeal]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Zeal", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingZeal]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Zeal", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningZeal]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Zeal", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WailingAnguish]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anguish", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingAnguish]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anguish", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingAnguish]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anguish", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningAnguish]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Anguish", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.WailingSpite]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Spite", "Special/Essences/Tiers/Mid"]
+
+[Special.Essences.Final.ScreamingSpite]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Spite", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingSpite]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Spite", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningSpite]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Spite", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ScreamingScorn]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Scorn", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingScorn]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Scorn", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningScorn]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Scorn", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ScreamingEnvy]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Envy", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingEnvy]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Envy", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningEnvy]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Envy", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ScreamingMisery]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Misery", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingMisery]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Misery", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningMisery]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Misery", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ScreamingDread]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Dread", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.ShriekingDread]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Dread", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.DeafeningDread]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Dread", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.RemnantOfCorruption]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Corruption", "Special/Essences/Tiers/High"]
+
+[Special.Essences.Final.EssenceOfInsanity]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Insanity", "Special/Essences/Tiers/Special"]
+
+[Special.Essences.Final.EssenceOfHorror]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Horror", "Special/Essences/Tiers/Special"]
+
+[Special.Essences.Final.EssenceOfDelirium]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Delirium", "Special/Essences/Tiers/Special"]
+
+[Special.Essences.Final.EssenceOfHysteria]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hysteria", "Special/Essences/Tiers/Special"]
+
+[Special.Oils.Base]
+Comment = "The single, foundational style for ALL oils. Defines the shared minimap icon."
+Minimap = { Shape = "Circle", Color = "Brown" }
+DropSound = "oil.mp3"
+DropVolume = 300
+
+[Special.Oils.Types.Clear]
+TextColor = "#646464"
+BorderColor = "#646464"
+BaseType = "Clear Oil"
+
+[Special.Oils.Types.Sepia]
+TextColor = "#573312"
+BorderColor = "#573312"
+BaseType = "Sepia Oil"
+
+[Special.Oils.Types.Amber]
+TextColor = "#CB7421"
+BorderColor = "#CB7421"
+BaseType = "Amber Oil"
+
+[Special.Oils.Types.Verdant]
+TextColor = "#1FCB39"
+BorderColor = "#1FCB39"
+BaseType = "Verdant Oil"
+
+[Special.Oils.Types.Teal]
+TextColor = "#22CBB6"
+BorderColor = "#22CBB6"
+BaseType = "Teal Oil"
+
+[Special.Oils.Types.Azure]
+TextColor = "#1E52C5"
+BorderColor = "#1E52C5"
+BaseType = "Azure Oil"
+
+[Special.Oils.Types.Indigo]
+TextColor = "#520083"
+BorderColor = "#520083"
+BaseType = "Indigo Oil"
+
+[Special.Oils.Types.Violet]
+TextColor = "#783D9C"
+BorderColor = "#783D9C"
+BaseType = "Violet Oil"
+
+[Special.Oils.Types.Crimson]
+TextColor = "#9C1416"
+BorderColor = "#9C1416"
+BaseType = "Crimson Oil"
+
+[Special.Oils.Types.Black]
+TextColor = "#000000"
+BorderColor = "#000000"
+BaseType = "Black Oil"
+
+[Special.Oils.Types.Opalescent]
+TextColor = "#7FD8E8"
+BorderColor = "#7A4379"
+BaseType = "Opalescent Oil"
+
+[Special.Oils.Types.Silver]
+TextColor = "#ABA6A4"
+BorderColor = "#ABA6A4"
+BaseType = "Silver Oil"
+
+[Special.Oils.Types.Golden]
+TextColor = "#D3BC2A"
+BorderColor = "#D3BC2A"
+BaseType = "Golden Oil"
+
+[Special.Oils.Types.Tainted]
+TextColor = "#9C1416"
+BorderColor = "#9C1416"
+BaseType = "Tainted Oil"
+
+[Special.Oils.Tiers.Common]
+Comment = "Lowest tier of oils."
+FontSize = 32
+Minimap = { Size = 2 }
+
+[Special.Oils.Tiers.Uncommon]
+Comment = "Mid-tier oils."
+FontSize = 36
+Minimap = { Size = 2 }
+
+[Special.Oils.Tiers.Rare]
+Comment = "High-tier oils."
+FontSize = 42
+Minimap = { Size = 1 }
+
+[Special.Oils.Tiers.Legendary]
+Comment = "Highest tier of oils."
+FontSize = 42
+Minimap = { Size = 0 }
+
+[Special.Oils.Final.ClearOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Clear", "Special/Oils/Tiers/Common"]
+
+[Special.Oils.Final.SepiaOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Sepia", "Special/Oils/Tiers/Common"]
+
+[Special.Oils.Final.AmberOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Amber", "Special/Oils/Tiers/Uncommon"]
+
+[Special.Oils.Final.VerdantOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Verdant", "Special/Oils/Tiers/Uncommon"]
+
+[Special.Oils.Final.TealOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Teal", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.AzureOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Azure", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.IndigoOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Indigo", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.VioletOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Violet", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.CrimsonOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Crimson", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.BlackOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Black", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.OpalescentOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Opalescent", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.TaintedOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Tainted", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.SilverOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Silver", "Special/Oils/Tiers/Legendary"]
+
+[Special.Oils.Final.GoldenOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Golden", "Special/Oils/Tiers/Legendary"]
+
+[Special.MapFragments.Base]
+Comment = "The single, foundational style for ALL map fragments. Defines the shared background color."
+BackgroundColor = "#0F0F19"
+DropSound = "level-up.mp3"
+DropVolume = 300
+
+[Special.MapFragments.Types.Vaal]
+TextColor = "#6B312E"
+BorderColor = "#6B312E"
+
+[Special.MapFragments.Types.Mortal]
+TextColor = "#2A433A"
+BorderColor = "#2A433A"
+
+[Special.MapFragments.Types.PaleCouncil]
+TextColor = "#AC98A7"
+BorderColor = "#AC98A7"
+
+[Special.MapFragments.Types.Shaper]
+TextColor = "#80917F"
+BorderColor = "#80917F"
+
+[Special.MapFragments.Types.ElderGuardian]
+TextColor = "#2C5838"
+BorderColor = "#2C5838"
+
+[Special.MapFragments.Types.Chimera]
+TextColor = "#7A1447"
+BorderColor = "#7A1447"
+
+[Special.MapFragments.Types.Phoenix]
+TextColor = "#E44B1C"
+BorderColor = "#E44B1C"
+
+[Special.MapFragments.Types.Minotaur]
+TextColor = "#674B56"
+BorderColor = "#674B56"
+
+[Special.MapFragments.Types.Elder]
+TextColor = "#504E54"
+BorderColor = "#504E54"
+
+[Special.MapFragments.Types.UberElder]
+TextColor = "#A61814"
+BorderColor = "#A61814"
+
+[Special.MapFragments.Types.Reliquary]
+TextColor = "#C49C4B"
+BorderColor = "#C49C4B"
+
+[Special.MapFragments.Types.Misc]
+TextColor = "#82AABD"
+BorderColor = "#82AABD"
+
+[Special.MapFragments.Types.Ultimatum]
+TextColor = "#703211"
+BorderColor = "#703211"
+
+[Special.MapFragments.Types.Blessings]
+TextColor = "#325CEB"
+BorderColor = "#325CEB"
+
+[Special.MapFragments.Types.AlHezmin]
+TextColor = "#1B6415"
+BorderColor = "#1B6415"
+
+[Special.MapFragments.Types.Baran]
+TextColor = "#7D0F0C"
+BorderColor = "#7D0F0C"
+
+[Special.MapFragments.Types.Drox]
+TextColor = "#CD821F"
+BorderColor = "#CD821F"
+
+[Special.MapFragments.Types.Veritania]
+TextColor = "#8E98AF"
+BorderColor = "#8E98AF"
+
+[Special.MapFragments.Tiers.Standard]
+FontSize = 42
+Minimap = { Size = 1, Color = "Purple", Shape = "Star" }
+
+[Special.MapFragments.Tiers.Small]
+FontSize = 32
+
+[Special.MapFragments.Final.DivineVessel]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Misc", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.OfferingToTheGoddess]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Misc", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.RitualVessel]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Misc", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.Simulacrum]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Misc", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.AnAudienceWithTheKing]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Misc", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.InscribedUltimatum]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Ultimatum", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.TheMavensWrit]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Blessings", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.SacredBlossom]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Blessings", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.TributeToTheGoddess]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Blessings", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.GiftToTheGoddess]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Blessings", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.DedicationToTheGoddess]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Blessings", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.AlHezminsCrest]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/AlHezmin", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.BaransCrest]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Baran", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.DroxsCrest]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Drox", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.VeritaniasCrest]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Veritania", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.SacrificeAtMidnight]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Vaal", "Special/MapFragments/Tiers/Small"]
+
+[Special.MapFragments.Final.SacrificeAtNoon]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Vaal", "Special/MapFragments/Tiers/Small"]
+
+[Special.MapFragments.Final.SacrificeAtDusk]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Vaal", "Special/MapFragments/Tiers/Small"]
+
+[Special.MapFragments.Final.SacrificeAtDawn]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Vaal", "Special/MapFragments/Tiers/Small"]
+
+[Special.MapFragments.Final.MortalGrief]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Mortal", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.MortalRage]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Mortal", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.MortalHope]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Mortal", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.MortalIgnorance]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Mortal", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.EbersKey]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/PaleCouncil", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.YrielsKey]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/PaleCouncil", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.InyasKey]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/PaleCouncil", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.VolkuursKey]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/PaleCouncil", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfPurification]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Shaper", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfConstriction]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Shaper", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfEnslavement]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Shaper", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfEradication]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Shaper", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfTheHydra]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/ElderGuardian", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfTheChimera]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Chimera", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfThePhoenix]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Phoenix", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfTheMinotaur]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Minotaur", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfTerror]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Elder", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfEmptiness]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Elder", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfKnowledge]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/UberElder", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.FragmentOfShape]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/UberElder", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.ReliquaryKey]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Reliquary", "Special/MapFragments/Tiers/Standard"]
+
+[Templates.Rarities.Normal]
+BorderColor = "bd-normal"
+
+[Templates.Rarities.Magic]
+BorderColor = "bd-magic"
+Minimap = { Shape = "Square" }
+
+[Templates.Rarities.Rare]
+BorderColor = "bd-rare"
+Minimap = { Shape = "Square" }
+
+[Templates.Rarities.Unique]
+BorderColor = "bd-unique"
+Minimap = { Shape = "Star" }
+
+[Templates.Tiers.Divine.T0]
+FontSize = 45
+TextColor = "t0-divine"
+Beam = { Color = "White", Temp = false }
+Minimap = { Color = "White", Size = 0 }
+DropSound = "hell.mp3"
+DropVolume = 300
+
+[Templates.Tiers.Divine.T1]
+FontSize = 45
+TextColor = "t1-divine"
+Beam = { Color = "Yellow", Temp = false }
+Minimap = { Color = "Yellow", Size = 0 }
+DropSound = "angels.mp3"
+DropVolume = 300
+
+[Templates.Tiers.High.T2]
+FontSize = 40
+TextColor = "t2-high"
+Beam = { Color = "Red", Temp = false }
+Minimap = { Color = "Red", Size = 1 }
+DropSound = "amazing.mp3"
+DropVolume = 200
+
+[Templates.Tiers.High.T3]
+FontSize = 38
+TextColor = "t3-high"
+Beam = { Color = "Orange", Temp = true }
+Minimap = { Color = "Orange", Size = 1 }
+DropSound = "amazing.mp3"
+DropVolume = 175
+
+[Templates.Tiers.High.T4]
+FontSize = 36
+TextColor = "t4-high"
+Beam = { Color = "Purple", Temp = true }
+Minimap = { Color = "Purple", Size = 2 }
+DropSound = "congrats.mp3"
+DropVolume = 150
+
+[Templates.Tiers.Mid.T5]
+FontSize = 33
+TextColor = "t5-mid"
+Minimap = { Color = "Cyan", Size = 2 }
+DropSound = "click.mp3"
+DropVolume = 120
+
+[Templates.Tiers.Mid.T6]
+FontSize = 30
+TextColor = "t6-mid"
+
+[Templates.Tiers.Mid.T7]
+FontSize = 28
+TextColor = "t7-mid"
+
+[Templates.Tiers.Low.T8]
+FontSize = 26
+TextColor = "t8-low"
+
+[Templates.Tiers.Low.T9]
+FontSize = 24
+TextColor = "t9-low"
+
+[Templates.Tiers.Low.T10]
+FontSize = 22
+TextColor = "t10-low"
+
+[Templates.Groups.Equipment]
+BackgroundColor = "bg-equipment"
+Minimap = { Shape = "Triangle" }
+
+[Templates.Groups.OldEquipment]
+BackgroundColor = "bg-old-equipment"
+
+[Templates.Groups.UnassociatedEquipment]
+BackgroundColor = "bg-unassociated-equipment"
+
+[Templates.Groups.Flasks]
+BackgroundColor = "bg-flasks"
+Minimap = { Shape = "Raindrop" }
+
+[Templates.Groups.OldFlasks]
+BackgroundColor = "bg-old-flasks"
+
+[Templates.Groups.Orbs]
+BackgroundColor = "bg-orbs"
+Minimap = { Shape = "Circle" }
+
+[Templates.Groups.Supplies]
+BackgroundColor = "bg-supplies"
+Minimap = { Shape = "Kite" }
+
+[Templates.Groups.SkillGems]
+BackgroundColor = "bg-skill-gems"
+Minimap = { Shape = "Cross" }
+
+[Templates.Groups.Lab]
+BackgroundColor = "bg-trinkets"
+Minimap = { Shape = "Cross" }
+
+[Templates.Groups.Maps]
+BackgroundColor = "bg-maps"
+Minimap = { Shape = "Diamond" }
+
+[Templates.Groups.Scarabs]
+BackgroundColor = "bg-scarabs"
+BorderColor = "bd-scarabs"
+Minimap = { Shape = "Triangle" }
+DropSound = "scarab.mp3"
+DropVolume = 150
+
+[Templates.Groups.Divination]
+BackgroundColor = "bg-div-cards"
+Minimap = { Shape = "Pentagon" }
+DropSound = "card.mp3"
+DropVolume = 300
+
+[Templates.Properties.Quality.Max]
+BorderColor = "bd-max-quality"
+
+[Templates.Properties.Quality.Mid]
+BorderColor = "bd-mid-quality"
+
+[Templates.Properties.Quality.Low]
+BorderColor = "bd-low-quality"
+
+[Templates.Properties.Sockets.RGB]
+BorderColor = "bd-rgb"
+
+[Templates.Properties.Sockets.3-link]
+BorderColor = "bd-3-link"
+
+[Templates.Properties.Sockets.4-link]
+BorderColor = "bd-4-link"
+
+[Templates.Properties.Sockets.6-link]
+BorderColor = "bd-6-link"
+
+[Templates.Properties.Sockets.4-socket]
+BorderColor = "bd-4-socket"
+
+[Templates.Properties.Sockets.6-socket]
+BorderColor = "bd-6-socket"
+
+[Templates.Properties.Corrupted]
+BorderColor = "bd-corrupted"
+
+[Templates.Properties.Fractured]
+BorderColor = "bd-fractured"
+
+[Templates.Properties.Veiled]
+BorderColor = "bd-veiled"
+
+[Templates.Properties.MaxRolled]
+BorderColor = "bd-max-rolled"
+
+[Templates.Properties.Gold]
+BackgroundColor = "t0-divine"
+BorderColor = "t0-divine"
+Minimap = { Shape = "Hexagon" }
+
+[Templates.Leagues.RogueMarker]
+BackgroundColor = "bg-heist"
+BorderColor = "t0-divine"
+Minimap = { Shape = "Hexagon" }
+DropSound = "heist.mp3"
+
+[Templates.Leagues.Contract.Normal]
+BackgroundColor = "bg-heist"
+BorderColor = "bd-heist-contract-normal"
+Minimap = { Shape = "Square" }
+DropSound = "heist.mp3"
+
+[Templates.Leagues.Contract.Special]
+BackgroundColor = "bg-heist"
+BorderColor = "bd-heist-contract-special"
+Minimap = { Shape = "Square" }
+DropSound = "heist.mp3"
+
+[Templates.Leagues.Blueprint]
+BackgroundColor = "bg-heist"
+BorderColor = "bd-heist-blueprint"
+Minimap = { Shape = "Square" }
+DropSound = "heist.mp3"
+
+[Templates.Leagues.PassageStone]
+BackgroundColor = "bg-incursion"
+BorderColor = "bd-incursion"
+Minimap = { Shape = "Triangle" }
+DropSound = "incursion.mp3"
+
+[Templates.Leagues.Expedition]
+BackgroundColor = "bg-expedition"
+BorderColor = "bd-expedition"
+Minimap = { Shape = "Hexagon" }
+DropSound = "expedition.mp3"
+DropVolume = 300
+
+[Templates.Leagues.Breach]
+BackgroundColor = "bg-breach"
+BorderColor = "bd-breach"
+Minimap = { Shape = "Diamond" }
+DropSound = "breach.mp3"
+DropVolume = 300
+
+[Templates.Leagues.Harvest]
+BackgroundColor = "bg-harvest"
+BorderColor = "bd-harvest"
+Minimap = { Shape = "Pentagon" }
+DropSound = "harvest.mp3"
+DropVolume = 300
+
+[Templates.Leagues.Eldritch]
+BackgroundColor = "bg-orbs"
+BorderColor = "bd-eldritch-ember"
+Minimap = { Shape = "Circle" }
+DropSound = "eldritch.mp3"
+DropVolume = 300
+
+[Templates.Leagues.Catalyst]
+BackgroundColor = "bg-orbs"
+BorderColor = "bd-catalyst"
+Minimap = { Shape = "Circle" }
+
+[Templates.Leagues.Delve]
+BackgroundColor = "bg-delve"
+BorderColor = "bd-delve"
+Minimap = { Shape = "Circle" }
+
+[Final.Uniques.T0]
+Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T0"]
+
+[Final.Uniques.T1]
+Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T1"]
+
+[Final.Uniques.T2]
+Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/High/T2"]
+
+[Final.Uniques.T3]
+Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/High/T3"]
+
+[Final.Uniques.T4]
+Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/High/T4"]
+
+[Final.Equipment.Normal]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Low/T9", "Templates/Groups/Equipment"]
+
+[Final.Equipment.Magic]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Low/T8", "Templates/Groups/Equipment"]
+
+[Final.Equipment.Rare]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Mid/T7", "Templates/Groups/Equipment"]
+
+[Final.Equipment.Corrupted]
+Combination = ["Templates/Properties/Corrupted", "Templates/Tiers/Mid/T6", "Templates/Groups/Equipment"]
+
+[Final.Equipment.Fractured]
+Combination = ["Templates/Properties/Fractured", "Templates/Tiers/Mid/T5", "Templates/Groups/Equipment"]
+
+[Final.Equipment.Veiled]
+Combination = ["Templates/Properties/Veiled", "Templates/Tiers/Mid/T5", "Templates/Groups/Equipment"]
+
+[Final.Equipment.MaxRolled]
+Combination = ["Templates/Properties/MaxRolled", "Templates/Tiers/Mid/T5", "Templates/Groups/Equipment"]
+
+[Final.OldEquipment.Normal]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Low/T10", "Templates/Groups/OldEquipment"]
+
+[Final.OldEquipment.Magic]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Low/T9", "Templates/Groups/OldEquipment"]
+
+[Final.OldEquipment.Rare]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Low/T8", "Templates/Groups/OldEquipment"]
+
+[Final.UnassociatedEquipment.Normal]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Low/T10", "Templates/Groups/UnassociatedEquipment"]
+
+[Final.UnassociatedEquipment.Magic]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Low/T9", "Templates/Groups/UnassociatedEquipment"]
+
+[Final.UnassociatedEquipment.Rare]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Low/T8", "Templates/Groups/UnassociatedEquipment"]
+
+[Final.Flasks]
+Combination = ["Templates/Groups/Flasks", "Templates/Tiers/Mid/T6"]
+
+[Final.OldFlasks]
+Combination = ["Templates/Groups/OldFlasks", "Templates/Tiers/Mid/T7"]
+
+[Final.Orbs.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0"]
+
+[Final.Orbs.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1"]
+
+[Final.Orbs.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+
+[Final.Orbs.T4]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
+
+[Final.Orbs.T5]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T4"]
+
+[Final.Orbs.T6]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T5"]
+
+[Final.Orbs.T7]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
+
+[Final.Orbs.T8]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
+
+[Final.Supplies.T1]
+Combination = ["Templates/Groups/Supplies", "Templates/Tiers/High/T3"]
+
+[Final.Supplies.T2]
+Combination = ["Templates/Groups/Supplies", "Templates/Tiers/High/T4"]
+
+[Final.Supplies.T3]
+Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Mid/T5"]
+
+[Final.Supplies.T4]
+Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Mid/T6"]
+
+[Final.Supplies.T5]
+Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Mid/T7"]
+
+[Final.Supplies.T6]
+Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Low/T8"]
+
+[Final.Supplies.T7]
+Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Low/T9"]
+
+[Final.Special.RGB]
+Combination = ["Templates/Groups/Equipment", "Templates/Properties/Sockets/RGB", "Templates/Tiers/High/T3"]
+
+[Final.Special.RGB-4-socket]
+Combination = ["Templates/Groups/Equipment", "Templates/Properties/Sockets/RGB", "Templates/Tiers/High/T3"]
+
+[Final.Special.Sockets.3-link]
+Combination = ["Templates/Properties/Sockets/3-link", "Templates/Groups/Equipment", "Templates/Tiers/Mid/T5"]
+
+[Final.Special.Sockets.4-link]
+Combination = ["Templates/Properties/Sockets/4-link", "Templates/Groups/Equipment", "Templates/Tiers/High/T4"]
+
+[Final.Special.Sockets.6-link]
+Combination = ["Templates/Properties/Sockets/6-link", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T1"]
+
+[Final.Special.Sockets.4-socket]
+Combination = ["Templates/Properties/Sockets/4-socket", "Templates/Groups/Equipment", "Templates/Tiers/Mid/T5"]
+
+[Final.Special.Sockets.6-socket]
+Combination = ["Templates/Properties/Sockets/6-socket", "Templates/Groups/Equipment", "Templates/Tiers/High/T3"]
+
+[Final.Special.Quality.MaxQualityFlask]
+Combination = ["Templates/Groups/Flasks", "Templates/Tiers/Mid/T5", "Templates/Properties/Quality/Max"]
+
+[Final.Special.Quality.Gems.Max]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/High/T3", "Templates/Properties/Quality/Max"]
+
+[Final.Special.Quality.Gems.Mid]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/High/T4", "Templates/Properties/Quality/Mid"]
+
+[Final.Special.Quality.Gems.Low]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Mid/T5", "Templates/Properties/Quality/Low"]
+
+[Final.Special.Vaal]
+BorderColor = "bd-vaal"
+
+[Final.Leagues.RogueMarker]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/RogueMarker"]
+
+[Final.Leagues.Contracts.Contract_Normal]
+Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Contract/Normal"]
+
+[Final.Leagues.Contracts.Contract_Magic]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Contract/Normal"]
+
+[Final.Leagues.Contracts.Contract_Rare]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Contract/Special"]
+
+[Final.Leagues.Heist]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Contract/Normal"]
+
+[Final.Leagues.Blueprints.Blueprint_Normal]
+Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Blueprint"]
+
+[Final.Leagues.Blueprints.Blueprint_Magic]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Blueprint"]
+
+[Final.Leagues.Blueprints.Blueprint_Rare]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Blueprint"]
+
+[Final.Leagues.Chart]
+Combination = ["Templates/Tiers/High/T2", "Templates/Groups/Maps"]
+
+[Final.Leagues.Gold_High]
+Combination = ["Templates/Properties/Gold", "Templates/Tiers/Mid/T5"]
+
+[Final.Leagues.Gold_Mid]
+Combination = ["Templates/Properties/Gold", "Templates/Tiers/Mid/T6"]
+
+[Final.Leagues.Gold_Low]
+Combination = ["Templates/Properties/Gold", "Templates/Tiers/Mid/T7"]
+
+[Final.Leagues.Incursion.PassageStone]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/PassageStone"]
+
+[Final.Leagues.Expedition.VendorReset]
+Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Expedition"]
+
+[Final.Leagues.Expedition.LogBookNormal]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Expedition", "Templates/Rarities/Normal"]
+
+[Final.Leagues.Expedition.LogBookMagic]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Expedition", "Templates/Rarities/Magic"]
+
+[Final.Leagues.Expedition.LogBookRare]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Expedition", "Templates/Rarities/Rare"]
+
+[Final.Leagues.Breach.T1]
+Combination = ["Templates/Tiers/Divine/T0", "Templates/Leagues/Breach"]
+
+[Final.Leagues.Breach.T2]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Breach"]
+
+[Final.Leagues.Breach.T3]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Breach"]
+
+[Final.Leagues.Breach.T4]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Breach"]
+
+[Final.Leagues.Breach.T5]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Breach"]
+
+[Final.Leagues.Harvest]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Harvest"]
+
+[Final.Leagues.Delve.T4]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Delve"]
+
+[Final.Leagues.Delve.T3]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Delve"]
+
+[Final.Leagues.Delve.T2]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Delve"]
+
+[Final.Leagues.Delve.T1]
+Combination = ["Templates/Tiers/Divine/T0", "Templates/Leagues/Delve"]
+
+[Final.Jewels]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/Mid/T5"]
+
+[Final.Jewelry.Normal]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Low/T8", "Templates/Groups/Equipment"]
+
+[Final.Jewelry.Magic]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Mid/T7", "Templates/Groups/Equipment"]
+
+[Final.Jewelry.Rare]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Mid/T6", "Templates/Groups/Equipment"]
+
+[Final.Gems.T1]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Divine/T1"]
+
+[Final.Gems.T2]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/High/T2"]
+
+[Final.Gems.T3]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/High/T3"]
+
+[Final.Gems.T4]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/High/T4"]
+
+[Final.Gems.T5]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Mid/T5"]
+
+[Final.Gems.T6]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Mid/T6"]
+
+[Final.Gems.T7]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Mid/T7"]
+
+[Final.Divination.T0]
+Combination = ["Templates/Tiers/Divine/T0", "Templates/Groups/Divination"]
+
+[Final.Divination.T1]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Groups/Divination"]
+
+[Final.Divination.T2]
+Combination = ["Templates/Tiers/High/T2", "Templates/Groups/Divination"]
+
+[Final.Divination.T3]
+Combination = ["Templates/Tiers/High/T3", "Templates/Groups/Divination"]
+
+[Final.Divination.T4]
+Combination = ["Templates/Tiers/High/T4", "Templates/Groups/Divination"]
+
+[Final.Divination.T5]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Groups/Divination"]
+
+[Final.Divination.T6]
+Combination = ["Templates/Tiers/Mid/T6", "Templates/Groups/Divination"]
+
+[Final.Divination.Fallback]
+Combination = ["Templates/Tiers/High/T4", "Templates/Groups/Divination"]
+
+[Final.Lab]
+Combination = ["Templates/Groups/Lab", "Templates/Tiers/High/T4"]
+
+[Final.Maps.LowTierNormalT1T2]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Mid/T5", "Templates/Groups/Maps"]
+
+[Final.Maps.LowTierMagicT1T2]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Mid/T5", "Templates/Groups/Maps"]
+
+[Final.Maps.LowTierRareT1T2]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Mid/T5", "Templates/Groups/Maps"]
+
+[Final.Maps.LowTierNormalT3T4]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/High/T4", "Templates/Groups/Maps"]
+
+[Final.Maps.LowTierMagicT3T4]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/High/T4", "Templates/Groups/Maps"]
+
+[Final.Maps.LowTierRareT3T4]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T4", "Templates/Groups/Maps"]
+
+[Final.Maps.LowTierNormalT5]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/High/T3", "Templates/Groups/Maps"]
+
+[Final.Maps.LowTierMagicT5]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/High/T3", "Templates/Groups/Maps"]
+
+[Final.Maps.LowTierRareT5]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T3", "Templates/Groups/Maps"]
+
+[Final.Maps.MidTierNormalT6T7]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/High/T3", "Templates/Groups/Maps"]
+
+[Final.Maps.MidTierMagicT6T7]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/High/T3", "Templates/Groups/Maps"]
+
+[Final.Maps.MidTierRareT6T7]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T3", "Templates/Groups/Maps"]
+
+[Final.Maps.MidTierNormalT8T10]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/High/T2", "Templates/Groups/Maps"]
+
+[Final.Maps.MidTierMagicT8T10]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/High/T2", "Templates/Groups/Maps"]
+
+[Final.Maps.MidTierRareT8T10]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T2", "Templates/Groups/Maps"]
+
+[Final.Maps.TopTierNormalT11T16]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps"]
+
+[Final.Maps.TopTierMagicT11T16]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps"]
+
+[Final.Maps.TopTierRareT11T16]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps"]
+
+[Final.Maps.SpecialNormalT17]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps"]
+
+[Final.Maps.SpecialMagicT17]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps"]
+
+[Final.Maps.SpecialRareT17]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps"]
+
+[Final.Maps.UniqueMaps]
+Combination = ["Templates/Rarities/Unique", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps"]
+
+[Final.Scarabs.T1]
+Combination = ["Templates/Tiers/High/T2", "Templates/Groups/Scarabs"]
+
+[Final.Scarabs.T2]
+Combination = ["Templates/Tiers/High/T3", "Templates/Groups/Scarabs"]
+
+[Final.Scarabs.T3]
+Combination = ["Templates/Tiers/High/T4", "Templates/Groups/Scarabs"]
+
+[Final.Scarabs.T4]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Groups/Scarabs"]
+
+[Final.Eldritch.T4]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Eldritch"]
+
+[Final.Eldritch.T3]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Eldritch"]
+
+[Final.Eldritch.T2]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Eldritch"]
+
+[Final.Eldritch.T1]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Eldritch"]
+
+[Final.Catalysts.T4]
+Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Catalyst"]
+
+[Final.Catalysts.T3]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Catalyst"]
+
+[Final.Catalysts.T2]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Catalyst"]
+
+[Final.Catalysts.T1]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Catalyst"]
+
+[Fallback]
+FontSize = 45
+TextColor = "#000000"
+BackgroundColor = "#FF007F"
+BorderColor = "#000000"
+Beam = { Color = "Pink", Temp = false }
+Minimap = { Shape = "UpsideDownHouse", Color = "Pink", Size = 0 }
+DropSound = "error.mp3"
+DropVolume = 300

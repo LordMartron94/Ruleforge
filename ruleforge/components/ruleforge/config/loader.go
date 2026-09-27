@@ -1,9 +1,11 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
+	"sort"
+	"strings"
+
+	"github.com/BurntSushi/toml"
 )
 
 // ConfigurationLoader is responsible for loading ConfigurationModel from disk.
@@ -15,17 +17,16 @@ func NewConfigurationLoader() *ConfigurationLoader {
 	return &ConfigurationLoader{}
 }
 
-// LoadConfiguration reads the named JSON file and unmarshals it into a ConfigurationModel.
+// LoadConfiguration reads the named TOML file and decodes it into a ConfigurationModel.
+// Keys the model does not know are rejected, so a typo (or a setting from the old
+// JSON configuration) fails loudly instead of being silently ignored.
 func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationModel, error) {
-	// Read the entire file’s contents
-	data, err := os.ReadFile(file)
+	var cfg ConfigurationModel
+	metadata, err := toml.DecodeFile(file, &cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	// Unmarshal into the model
-	var cfg ConfigurationModel
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	if err := rejectUndecodedKeys(metadata, file); err != nil {
 		return nil, err
 	}
 
@@ -35,9 +36,8 @@ func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationMode
 	}
 	resolve := func(value string) string { return resolveConfigurationPath(base, value) }
 	cfg.RuleforgeInputDir = resolve(cfg.RuleforgeInputDir)
-	cfg.StyleJSONFile = resolve(cfg.StyleJSONFile)
-	cfg.StyleColorCSSFile = resolve(cfg.StyleColorCSSFile)
-	cfg.BaseTypeCSVFile = resolve(cfg.BaseTypeCSVFile)
+	cfg.StylesDir = resolve(cfg.StylesDir)
+	cfg.StudioFile = resolve(cfg.StudioFile)
 	if cfg.PathOfBuildingDataPath == "" {
 		cfg.PathOfBuildingDataPath = ".ruleforge-cache/pob"
 	}
@@ -58,4 +58,17 @@ func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationMode
 	fmt.Println(cfg.String())
 
 	return &cfg, nil
+}
+
+func rejectUndecodedKeys(metadata toml.MetaData, file string) error {
+	undecoded := metadata.Undecoded()
+	if len(undecoded) == 0 {
+		return nil
+	}
+	keys := make([]string, len(undecoded))
+	for i, key := range undecoded {
+		keys[i] = key.String()
+	}
+	sort.Strings(keys)
+	return fmt.Errorf("%s: unknown setting(s): %s", file, strings.Join(keys, ", "))
 }

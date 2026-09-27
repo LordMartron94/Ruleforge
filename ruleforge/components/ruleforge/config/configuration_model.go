@@ -11,62 +11,61 @@ import (
 )
 
 type EconomyWeights struct {
-	Rarity float64 `json:"Rarity"`
-	Value  float64 `json:"Value"`
+	Rarity float64 `toml:"Rarity"`
+	Value  float64 `toml:"Value"`
 	// Trend weighs whether a base type's value is rising or falling across its
 	// recorded economy history. It requires at least two snapshots recorded at
 	// distinct times to have any effect; until then it contributes nothing to
 	// a base type's score.
-	Trend float64 `json:"Trend"`
+	Trend float64 `toml:"Trend"`
 }
 
 type LeagueWeights struct {
-	League string  `json:"League"`
-	Weight float64 `json:"Weight"`
+	League string  `toml:"League"`
+	Weight float64 `toml:"Weight"`
 }
 
 type EquipmentPreset struct {
-	DesiredWeaponClasses []string `json:"DesiredWeaponClasses"`
-	DesiredArmourTypes   []string `json:"DesiredArmourTypes"`
+	DesiredWeaponClasses []string `toml:"DesiredWeaponClasses"`
+	DesiredArmourTypes   []string `toml:"DesiredArmourTypes"`
 }
 
 type ConfigurationModel struct {
 	// FilterOutputDirs defines the directories where the filters should be outputted to.
-	FilterOutputDirs []string `json:"FilterOutputDirs"`
+	FilterOutputDirs []string `toml:"FilterOutputDirs"`
 
 	// RuleforgeInputDir specifies the directory which filter(s) should be processed.
-	RuleforgeInputDir string `json:"RuleforgeInputDir"`
+	RuleforgeInputDir string `toml:"RuleforgeInputDir"`
 
-	// StyleJSONFile indicates the JSON file where all styles are housed.
-	StyleJSONFile string `json:"StyleJSONFile"`
+	// StylesDir holds one TOML file per style. Every enabled style produces its
+	// own filter for every script, named "<script name> (<style suffix>)".
+	StylesDir string `toml:"StylesDir"`
 
-	// StyleColorCSSFile indicates the CSS file where all colors are housed.
-	StyleColorCSSFile string `json:"StyleColorCSSFile"`
-
-	// BaseTypeCSVFile indicates the CSV file where all base type automation data is housed.
-	BaseTypeCSVFile string `json:"BaseTypeCSVFile"`
+	// StudioFile is where the Ruleforge Studio page (palette checks and loot
+	// simulator) is written after compiling. Leave it empty to skip the studio.
+	StudioFile string `toml:"StudioFile"`
 
 	// PathOfBuildingDataPath is where all Path of Building data is stored.
-	PathOfBuildingDataPath string `json:"PathOfBuildingDataPath"`
+	PathOfBuildingDataPath string `toml:"PathOfBuildingDataPath"`
 
 	// EconomyHistoryDBPath is where the SQLite economy price history is stored.
-	EconomyHistoryDBPath string `json:"EconomyHistoryDBPath"`
+	EconomyHistoryDBPath string `toml:"EconomyHistoryDBPath"`
 
 	// EconomyHistoryRefreshHours is how many hours must pass since a league's
 	// last recorded snapshot before Ruleforge fetches a new one from poe.ninja.
-	EconomyHistoryRefreshHours float64 `json:"EconomyHistoryRefreshHours"`
+	EconomyHistoryRefreshHours float64 `toml:"EconomyHistoryRefreshHours"`
 
 	// LeagueWeights defines the leagues to be used for economy-based data, along with their relative weighting.
-	LeagueWeights map[string]float64 `json:"LeagueWeights"`
+	LeagueWeights map[string]float64 `toml:"LeagueWeights"`
 
 	// EconomyWeights provide the weights to use for rarity and value.
-	EconomyWeights *EconomyWeights `json:"EconomyWeights"`
+	EconomyWeights *EconomyWeights `toml:"EconomyWeights"`
 
 	// EconomyNormalizationStrategy determines the strategy to use when normalizing data.
-	EconomyNormalizationStrategy string `json:"EconomyNormalizationStrategy"`
+	EconomyNormalizationStrategy string `toml:"EconomyNormalizationStrategy"`
 
 	// ChaseVSGeneralPotentialFactor specifies how much to value an item's chase potential vs. its general value.
-	ChaseVSGeneralPotentialFactor float64 `json:"ChaseVSGeneralPotentialFactor"`
+	ChaseVSGeneralPotentialFactor float64 `toml:"ChaseVSGeneralPotentialFactor"`
 
 	// EconomyValueHalfLifeDays exponentially decays how much each recorded
 	// economy snapshot contributes to a base type's value/rarity estimate: a
@@ -74,10 +73,10 @@ type ConfigurationModel struct {
 	// a long-lived permanent league's ancient prices from dominating what
 	// should be a "current value" estimate, without discarding old data
 	// outright (a thin history still uses everything it has).
-	EconomyValueHalfLifeDays float64 `json:"EconomyValueHalfLifeDays"`
+	EconomyValueHalfLifeDays float64 `toml:"EconomyValueHalfLifeDays"`
 
 	// CustomEquipmentPresets lets you specify named presets with weapons/armour lists.
-	CustomEquipmentPresets map[string]EquipmentPreset `json:"CustomEquipmentPresets"`
+	CustomEquipmentPresets map[string]EquipmentPreset `toml:"CustomEquipmentPresets"`
 }
 
 func (c *ConfigurationModel) String() string {
@@ -97,9 +96,8 @@ func (c *ConfigurationModel) String() string {
 	}
 
 	sb.WriteString(fmt.Sprintf("\n📥 Ruleforge Input Dir: %s\n", c.RuleforgeInputDir))
-	sb.WriteString(fmt.Sprintf("🎨 Style JSON File:     %s\n", c.StyleJSONFile))
-	sb.WriteString(fmt.Sprintf("🎨 Style Color CSS:     %s\n", c.StyleColorCSSFile))
-	sb.WriteString(fmt.Sprintf("📊 BaseType CSV File:   %s\n", c.BaseTypeCSVFile))
+	sb.WriteString(fmt.Sprintf("🎨 Styles Dir:          %s\n", c.StylesDir))
+	sb.WriteString(fmt.Sprintf("🧪 Studio File:         %s\n", c.StudioFile))
 	sb.WriteString(fmt.Sprintf("📘 PoB Data Path:       %s\n", c.PathOfBuildingDataPath))
 	sb.WriteString(fmt.Sprintf("📈 Economy History DB:  %s (refresh every %.1fh, kept forever)\n",
 		c.EconomyHistoryDBPath, c.EconomyHistoryRefreshHours))
@@ -191,6 +189,10 @@ func (c *ConfigurationModel) Validate() error {
 		return fmt.Errorf("EconomyValueHalfLifeDays must be greater than 0, got %f", c.EconomyValueHalfLifeDays)
 	}
 
+	if c.StylesDir == "" {
+		return fmt.Errorf("StylesDir must point at a directory of style files")
+	}
+
 	if c.EconomyHistoryRefreshHours <= 0 {
 		return fmt.Errorf("EconomyHistoryRefreshHours must be greater than 0, got %f", c.EconomyHistoryRefreshHours)
 	}
@@ -224,4 +226,3 @@ func (c *ConfigurationModel) GetEquipmentPreset(name string) (EquipmentPreset, b
 func (c *ConfigurationModel) GetEconomyHistoryRefreshInterval() time.Duration {
 	return time.Duration(c.EconomyHistoryRefreshHours * float64(time.Hour))
 }
-

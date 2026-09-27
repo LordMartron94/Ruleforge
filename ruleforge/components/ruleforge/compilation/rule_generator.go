@@ -112,6 +112,8 @@ func (rg *RuleGenerator) GenerateRulesForSection(
 		var generatedRules [][]string
 		var err error
 
+		rg.ruleFactory.SetSource(rg.describeRuleNode(childNode))
+
 		switch childNode.Symbol {
 		case symbols.ParseSymbolRuleExpression.String():
 			generatedRules, err = rg.handleRuleExpression(childNode, &variables, section.Conditions)
@@ -127,6 +129,41 @@ func (rg *RuleGenerator) GenerateRulesForSection(
 		allGeneratedRules = append(allGeneratedRules, generatedRules...)
 	}
 	return allGeneratedRules, nil
+}
+
+// describeRuleNode renders a script rule or macro call as short, readable text.
+func (rg *RuleGenerator) describeRuleNode(node *shared.ParseTree[symbols.LexingTokenType]) string {
+	if node.Symbol == symbols.ParseSymbolMacroExpression.String() && len(node.Children) > 1 && node.Children[1].Token != nil {
+		description := "MACRO " + strings.Trim(node.Children[1].Token.ValueToString(), `"`)
+		var arguments []string
+		for _, parameter := range node.FindAllSymbolNodes(symbols.ParseSymbolParameter.String()) {
+			if len(parameter.Children) < 4 {
+				continue
+			}
+			key, value := rg.getKeyAndValueFromParameter(parameter)
+			arguments = append(arguments, strings.TrimPrefix(key, "$")+" = "+value)
+		}
+		if len(arguments) > 0 {
+			description += " (" + strings.Join(arguments, ", ") + ")"
+		}
+		return description
+	}
+
+	var tokens []string
+	var collect func(n *shared.ParseTree[symbols.LexingTokenType])
+	collect = func(n *shared.ParseTree[symbols.LexingTokenType]) {
+		if len(n.Children) == 0 {
+			if n.Token != nil {
+				tokens = append(tokens, n.Token.ValueToString())
+			}
+			return
+		}
+		for _, child := range n.Children {
+			collect(child)
+		}
+	}
+	collect(node)
+	return strings.Join(tokens, " ")
 }
 
 func (rg *RuleGenerator) handleRuleExpression(

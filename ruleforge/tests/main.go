@@ -27,20 +27,8 @@ func main() {
 
 //goland:noinspection t
 func run() error {
-	cssParser, err := config.NewCSSParserFromFile("colors.css")
-
-	if err != nil {
-		return fmt.Errorf("NewCSSParserFromFile: %v", err)
-	}
-
-	props, err := cssParser.Parse()
-
-	if err != nil {
-		return fmt.Errorf("parse: %v", err)
-	}
-
 	configurationLoader := config.NewConfigurationLoader()
-	configuration, err := configurationLoader.LoadConfiguration("config.json")
+	configuration, err := configurationLoader.LoadConfiguration("config.toml")
 
 	if err != nil {
 		return fmt.Errorf("configurationLoader.LoadCache: %v", err)
@@ -49,6 +37,11 @@ func run() error {
 	err = configuration.Validate()
 	if err != nil {
 		return fmt.Errorf("configuration.Validate: %v", err)
+	}
+
+	styles, err := config.LoadStyleDefinitions(configuration.StylesDir)
+	if err != nil {
+		return fmt.Errorf("config.LoadStyleDefinitions: %v", err)
 	}
 
 	exporter, err := data_generation.NewPathOfBuildingExporter(
@@ -110,9 +103,14 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData, props)
-		if err != nil {
-			return fmt.Errorf("processRuleforgeScript: %v", err)
+		for _, style := range styles {
+			if !style.IsEnabled() {
+				continue
+			}
+			err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData, style)
+			if err != nil {
+				return fmt.Errorf("processRuleforgeScript: %v", err)
+			}
 		}
 	}
 
@@ -198,7 +196,7 @@ func processRuleforgeScript(
 	validBases []string,
 	itemBases []model.ItemBase,
 	economyCache map[string][]data_generation.EconomySnapshot,
-	cssVariables map[string]string) error {
+	style config.StyleDefinition) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -237,7 +235,7 @@ func processRuleforgeScript(
 		return fmt.Errorf("validating parse tree: %w", err)
 	}
 
-	baseTypeDataLoader := config.NewBaseTypeAutomationLoader("./basetype_automation_config.csv")
+	baseTypeDataLoader := config.NewBaseTypeAutomationLoader(style.BaseTypes)
 	baseTypeData, err := baseTypeDataLoader.Load()
 
 	if err != nil {
@@ -246,8 +244,9 @@ func processRuleforgeScript(
 
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
-		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, configuration.EconomyValueHalfLifeDays, *baseTypeData, cssVariables, configuration.CustomEquipmentPresets)
+		StylesheetPath: style.Stylesheet,
+		Palette:        style.Palette,
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, configuration.EconomyValueHalfLifeDays, *baseTypeData, configuration.CustomEquipmentPresets)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)
@@ -261,7 +260,7 @@ func processRuleforgeScript(
 
 	// 7) Writing
 	for _, outputDir := range configuration.FilterOutputDirs {
-		outputFileName := filepath.Join(outputDir, outputName+".filter")
+		outputFileName := filepath.Join(outputDir, style.FilterFileName(outputName))
 		err = WriteLines(outputStrings, outputFileName)
 
 		if err != nil {

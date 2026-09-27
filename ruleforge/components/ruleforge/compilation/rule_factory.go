@@ -6,7 +6,36 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
 )
 
-type RuleFactory struct{}
+// BlockRecord remembers where a compiled filter block came from, so the studio
+// can show which section and script rule produced it and recolour it live.
+type BlockRecord struct {
+	Lines   []string
+	Section string
+	Source  string
+	Style   config.Style
+}
+
+type RuleFactory struct {
+	section string
+	source  string
+	records []BlockRecord
+}
+
+// SetSection marks the section that the following rules belong to.
+func (r *RuleFactory) SetSection(section string) {
+	r.section = section
+	r.source = ""
+}
+
+// SetSource marks the script rule or macro that the following rules come from.
+func (r *RuleFactory) SetSource(source string) {
+	r.source = source
+}
+
+// Records returns every block constructed so far, in construction order.
+func (r *RuleFactory) Records() []BlockRecord {
+	return r.records
+}
 
 func (r *RuleFactory) ConstructRule(ruleType model.RuleType, style config.Style, conditions []string) []string {
 	output := []string{string(ruleType)}
@@ -17,6 +46,13 @@ func (r *RuleFactory) ConstructRule(ruleType model.RuleType, style config.Style,
 
 	output = append(output, r.transformStyleIntoText(style)...)
 	output = append(output, "")
+
+	r.records = append(r.records, BlockRecord{
+		Lines:   append([]string(nil), output...),
+		Section: r.section,
+		Source:  r.source,
+		Style:   *style.Clone(),
+	})
 
 	return output
 }

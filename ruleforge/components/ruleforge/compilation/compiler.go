@@ -29,7 +29,6 @@ type Compiler struct {
 	chasePotentialWeight  float64
 	valueHalfLifeDays     float64
 	baseTypeData          []config.BaseTypeAutomationEntry
-	cssVariables          map[string]string
 	customPresets         map[string]config.EquipmentPreset
 }
 
@@ -46,10 +45,9 @@ func NewCompiler(
 	chasePotentialWeight float64,
 	valueHalfLifeDays float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
-	cssVariables map[string]string,
 	customPresets map[string]config.EquipmentPreset,
 ) (*Compiler, error) {
-	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree, cssVariables)
+	styleMgr, err := NewStyleManager(configuration.StylesheetPath, parseTree, configuration.Palette)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +70,6 @@ func NewCompiler(
 		chasePotentialWeight:  chasePotentialWeight,
 		valueHalfLifeDays:     valueHalfLifeDays,
 		baseTypeData:          baseTypeData,
-		cssVariables:          cssVariables,
 		customPresets:         customPresets,
 	}, nil
 }
@@ -138,6 +135,7 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 
 		body = append(body, c.constructSectionHeading(section.Name, section.Description))
 		lineCounter++
+		c.ruleFactory.SetSection(section.Name)
 
 		compiledRules, err := ruleGenerator.GenerateRulesForSection(section, variables)
 		if err != nil {
@@ -171,7 +169,12 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	toc = append(toc, c.constructComment(fmt.Sprintf("\tLine %d: %s (%s)", fallbackLineNumber, fallbackName, fallbackDesc)))
 
 	// 8. Add fallback rules
-	fallbackStyle, _ := c.styleManager.GetStyle("Fallback")
+	fallbackStyle, err := c.styleManager.GetStyle("Fallback")
+	if err != nil {
+		return nil, fmt.Errorf("the stylesheet needs a Fallback style: %w", err), metadata.Name
+	}
+	c.ruleFactory.SetSection(fallbackName)
+	c.ruleFactory.SetSource("Everything the script did not match")
 	fallbackRule := c.ruleFactory.ConstructRule(model2.ShowRule, *fallbackStyle, []string{})
 	fallbackHeading := c.constructSectionHeading(fallbackName, fallbackDesc)
 
@@ -217,6 +220,12 @@ func (c *Compiler) constructComment(content string) string {
 
 func (c *Compiler) constructDivider() []string {
 	return []string{"", c.constructComment("============================================================================"), ""}
+}
+
+// StudioBlocks describes every block of a compiled filter for the Ruleforge Studio.
+// lines must be the output of CompileIntoFilter on this compiler.
+func (c *Compiler) StudioBlocks(lines []string) []StudioBlock {
+	return BuildStudioBlocks(lines, c.ruleFactory.Records())
 }
 
 // prepareItemData filters and categorizes a raw list of item bases.

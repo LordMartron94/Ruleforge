@@ -12,9 +12,10 @@ data-driven, and context-aware filters that go far beyond what is possible with 
 - [Table of Contents](#table-of-contents)
 - [Core Concepts](#core-concepts)
 - [Installation & Setup](#installation-and-setup)
-  - [Configuration](#1-configuration-configjson)
-  - [Styling](#2-styling-stylesjson)
+  - [Configuration](#1-configuration-configtoml)
+  - [Styles](#2-styles)
   - [Running](#3-running-ruleforge)
+  - [Ruleforge Studio](#4-ruleforge-studio)
 - [Ruleforge Syntax](#ruleforge-syntax-rf-files)
   - [File Structure](#file-structure)
   - [Comments](#comments)
@@ -29,10 +30,10 @@ data-driven, and context-aware filters that go far beyond what is possible with 
 Ruleforge is built around a few key ideas:
 
 - **Modular Syntax**: Instead of a single, monolithic file, you define your filter logic in modular .rf script files using a clear and expressive syntax. 
-- **Centralized Styling**: All visual aspects of the filter (colors, sizes, sounds, effects) are defined in a separate styles.json file. This separates logic from presentation, making styles reusable and easy to manage. 
+- **Centralized Styling**: All visual aspects of the filter (colors, sizes, sounds, effects) are defined in TOML stylesheets, with colours filled in from a per-style palette. This separates logic from presentation, and one script compiles into one filter per style. 
 - **Data-Driven Macros**: Ruleforge includes powerful macros that can automatically generate complex sets of rules based on game data. For example, it can create a full equipment progression for leveling, or automatically tier unique items and skill gems based on their market value. 
 - **Economic Awareness**: By pulling data from poe.ninja, Ruleforge can make decisions based on an item's real economic value, ensuring your filter highlights what's truly valuable in the current league. 
-- **Configuration over Hardcoding**: Key paths, league settings, and economic calculations are all controlled through a central config.json file, making the tool adaptable to your setup and preferences.
+- **Configuration over Hardcoding**: Key paths, league settings, and economic calculations are all controlled through a central config.toml file, making the tool adaptable to your setup and preferences.
 
 ## Installation and Setup
 
@@ -51,25 +52,29 @@ Or build and run directly from that directory on Linux or Windows:
 
 ```sh
 go build -o ruleforge-app ./ruleforge/components/ruleforge/entry
-./ruleforge-app -config config.json
+./ruleforge-app -config config.toml
 ```
 
 On Windows, the built executable is `ruleforge-app.exe`. Launch it with
-`ruleforge-app.exe -config config.json` (PowerShell: `./ruleforge-app.exe -config config.json`).
-The included `examples/basic.rf` is compiled to `output/RuleforgeExample.filter`.
+`ruleforge-app.exe -config config.toml` (PowerShell: `./ruleforge-app.exe -config config.toml`).
+Every script in `RuleforgeInputDir` is compiled once per enabled style, into
+`<script NAME> (<style Suffix>).filter` in each output directory.
 `run.sh` builds from the project root and forwards any command-line flags.
 
-### 1. Configuration (config.json)
+### 1. Configuration (config.toml)
 
-The included `config.json` uses relative paths and is ready to run from the
-extracted ZIP directory. All configured filesystem paths (including each entry
-in `FilterOutputDirs` and the optional `PathOfBuildingDataPath`) are resolved
-**relative to the location of the config JSON file**, not the current working
-directory. Absolute paths also work. Use your platform's path syntax.
+The included `config.toml` uses relative paths. All configured filesystem paths
+(including each entry in `FilterOutputDirs` and the optional
+`PathOfBuildingDataPath`) are resolved **relative to the location of the config
+file**, not the current working directory. Absolute paths also work. Unknown
+settings are rejected with an error that names them, so a typo never silently
+falls back to a default.
 
 - `FilterOutputDirs`: Where the compiled `.filter` files are written.
 - `RuleforgeInputDir`: Directory containing `.rf` input scripts.
-- `StyleJSONFile`, `StyleColorCSSFile`, `BaseTypeCSVFile`: Bundled style and base-type inputs.
+- `StylesDir`: Directory of style files; see [Styles](#2-styles).
+- `StudioFile`: Where the [Ruleforge Studio](#4-ruleforge-studio) page is
+  written after compiling. Leave it out to skip the studio.
 - `PathOfBuildingDataPath`: Optional managed cache directory for the official
   Path of Building Lua sources. Defaults to `.ruleforge-cache/pob` beside the
   config file. **Do not point it at an existing PoB installation or personal
@@ -107,49 +112,85 @@ redownload an unchanged revision. `-update-cache-only` downloads/updates data
 without compiling filters. To reset a managed snapshot, delete its cache folder
 while Ruleforge is not running.
 
-### 2. Styling (styles.json)
-The styles.json file is a hierarchical JSON object where you define all visual styles.
-Styles can be nested and can inherit from each other using a Combination property.
-This allows you to create base styles and layer more specific properties on top.
+### 2. Styles
 
-**Example styles.json entry:**
+Every `*.toml` file in `StylesDir` is one style, and every enabled style
+produces its own filter for every script. A style file names a stylesheet, the
+base type automation CSV that goes with it, and the palette that colours it:
 
-```json
-{
-  "Tiers": {
-    "Celestial": {
-      "Comment": "The absolute best drops.",
-      "TextColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
-      "BorderColor": {"red": 255, "green": 215, "blue": 0, "alpha": 255},
-      "FontSize": 45,
-      "Beam": { "Color": "Pink", "Temp": false }
-    }
-  },
-  "Special": {
-    "Currencies": {
-      "Orbs": {
-        "Main": {
-          "BackgroundColor": { "red": 50, "green": 40, "blue": 70, "alpha": 255 }
-        },
-        "T1": {
-          "Combination": [ "Special/Currencies/Orbs/Main", "Tiers/Celestial" ]
-        }
-      }
-    }
-  }
-}
+```toml
+Name = "Aryzel I: The Stranded Prince"   # shown in logs and the studio
+Suffix = "Aryzel I - The Stranded Prince" # the filter becomes "<script> (<Suffix>).filter"
+Stylesheet = "../stylesheets/aryzel.toml"
+BaseTypes = "../basetypes/basetype_automation_config_new_theme.csv"
+# Enabled = false                         # keeps the style without compiling it
+
+[Palette]
+t2 = "#FFF39B"
+bg-equipment = "#10234F"
+bg-special = "#0A0A11E6"                 # "#RRGGBBAA" for transparency
 ```
 
-In this example,
-the style `Special/Currencies/Orbs/T1` will inherit all properties from
-`Special/Currencies/Orbs/Main` and `Tiers/Celestial`,
-combining them into a single definitive style.
+Paths in a style file are relative to the style file. Several styles can share
+one stylesheet and differ only in their palette; that is how the four Aryzel
+phases work.
+
+A **stylesheet** is a TOML file where each table is a style, named by its path:
+`[Final.Orbs.T1]` is the style `Final/Orbs/T1`. A colour is either a palette
+name (`TextColor = "t2"`) or a literal (`"#FFD700"`, `"#FFD700CC"`). Styles
+can build on each other with `Combination`: later entries win conflicts, and
+the style's own properties win over all of them.
+
+```toml
+[Templates.Tiers.High.T2]
+FontSize = 40
+TextColor = "t2"
+Beam = { Color = "Orange", Temp = false }
+Minimap = { Color = "Orange", Size = 1 }
+
+[Templates.Groups.Orbs]
+BackgroundColor = "bg-orbs"
+Minimap = { Shape = "Circle" }
+
+[Final.Orbs.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+```
+
+A stylesheet can also list palette colours that must stay perceptually apart,
+which the studio checks for every style that uses the stylesheet:
+
+```toml
+[Studio.Distinct.CampaignFields]
+Min = 10                                   # minimum CIEDE2000 distance
+Vars = ["bg-equipment", "bg-orbs", "bg-flasks"]
+```
 
 ### 3. Running Ruleforge
 
-See the Quick start above. Pass `-config /path/to/config.json` to load another
+See the Quick start above. Pass `-config /path/to/config.toml` to load another
 configuration from any working directory. Optional flags: `-verbose`,
 `-refresh-pob`, `-update-cache-only`.
+
+### 4. Ruleforge Studio
+
+After compiling, Ruleforge writes a single HTML page to `StudioFile`. Open it
+in a browser; it needs no server.
+
+- **Loot simulator.** Rolls random drops for an area level (equipment with
+  sockets and links, flasks, gems, currency, divination cards, uniques, league
+  items and gold), then runs them through the compiled filter the way the game
+  does. Pick an item to see every rule it matches: the top one is active, the
+  rest are shadowed. Each rule shows its line in the filter, its section, the
+  script rule or macro that produced it, its style and its conditions.
+  "Showcase" mode draws every tier equally, so rare styles are easy to see.
+- **Palette.** Checks every final style's text and border contrast (APCA,
+  with targets by font size) and the stylesheet's `[Studio.Distinct]` groups
+  (CIEDE2000), and shows every style as a label. Edit any palette colour to
+  recolour both views live, then copy the changes as TOML lines for the style
+  file's `[Palette]` table.
+
+Item sizes are approximated per item class, and conditions the studio does not
+understand are flagged instead of guessed.
 
 ## Ruleforge Syntax (.rf files)
 
@@ -248,7 +289,7 @@ The standard rule format is a chain of a condition, a style, and an action.
   - Identifiers: `@area_level`, `@stack_size`, `@item_type`, `@item_class`, `@rarity`, `@sockets`, `@socket_group`, `@height`, `@width`. 
   - Operators: `==`, `!=`, `>=`, `<=`, `>`, `<`. 
   - Value: A quoted string `"value"`, a number, or a variable reference `$var`. 
-- Style: A reference to a style defined in `styles.json`, either by its full path (`Essences/Tiers/High`) or via a variable (`$my_style`). 
+- Style: A reference to a style defined in the stylesheet, either by its full path (`Essences/Tiers/High`) or via a variable (`$my_style`). 
 - Action: What to do with the item. Can be `$Show` or `$Hide`.
 
 **Example:**

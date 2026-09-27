@@ -1,0 +1,44 @@
+# Ruleforge configuration.
+# Relative paths resolve against the folder this file is in.
+
+# Where compiled filters are written. Each style adds its own suffix to the file name.
+FilterOutputDirs = [
+  "__output__",
+  "/home/user/Desktop/steam/.steam/steam/steamapps/compatdata/238960/pfx/drive_c/users/steamuser/Documents/My Games/Path of Exile/",
+]
+
+# Folder with the .rf scripts to compile.
+RuleforgeInputDir = "__filters__"
+
+# Every *.toml style file in this folder is compiled into its own filter per script.
+StylesDir = "configuration/styles"
+
+# The Ruleforge Studio: palette checks and a loot simulator for every compiled filter.
+# Remove this line to skip it.
+StudioFile = "__output__/ruleforge-studio.html"
+
+PathOfBuildingDataPath = ".ruleforge-cache/pob"
+EconomyHistoryDBPath = ".ruleforge-cache/economy_history.db"
+EconomyHistoryRefreshHours = 1
+
+# "Global" or "Per-League".
+EconomyNormalizationStrategy = "Global"
+ChaseVSGeneralPotentialFactor = 0.85
+EconomyValueHalfLifeDays = 14
+
+# Leagues whose prices feed the economy tiers. Weights must add up to 1.
+[LeagueWeights]
+"Hardcore Allflame" = 0.5
+"Allflame" = 0.3
+"Hardcore" = 0.15
+"Standard" = 0.05
+
+# Must add up to 1.
+[EconomyWeights]
+Value = 0.65
+Rarity = 0.35
+Trend = 0.0
+
+[CustomEquipmentPresets.MartronArada]
+DesiredWeaponClasses = ["One Hand Swords"]
+DesiredArmourTypes = ["Armour", "Armour/Evasion", "Armour/Evasion/Energy Shield"]

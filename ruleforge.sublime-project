@@ -27,7 +27,7 @@
 				},
 				{
 					"name": "Run (Default)",
-					"shell_cmd": "./run.sh --config=config.json",
+					"shell_cmd": "./run.sh --config=config.toml",
 					"working_dir": "${project_path}",
 					"target": "terminus_exec",
 					"cancel": "terminus_cancel_build",
@@ -48,7 +48,7 @@
 				},
 				{
 					"name": "Run (Dev Config + Verbose)",
-					"shell_cmd": "./run.sh --config=config.json --verbose",
+					"shell_cmd": "./run.sh --config=config.toml --verbose",
 					"working_dir": "${project_path}",
 					"target": "terminus_exec",
 					"cancel": "terminus_cancel_build",

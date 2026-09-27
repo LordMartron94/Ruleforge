@@ -24,7 +24,7 @@ func TestResolveConfigurationPath(t *testing.T) {
 }
 
 func TestConfigurationBaseDir(t *testing.T) {
-	path := filepath.Join("folder", "config.json")
+	path := filepath.Join("folder", "config.toml")
 	base, err := configurationBaseDir(path)
 	if err != nil {
 		t.Fatal(err)
