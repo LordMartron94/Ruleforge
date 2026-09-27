@@ -33,6 +33,30 @@
 					"cancel": "terminus_cancel_build",
 				},
 				{
+					"name": "Run + Open Studio",
+					"shell_cmd": "./run.sh --config=config.toml && xdg-open __output__/ruleforge-studio.html",
+					"windows": {
+						"shell_cmd": "go build -o build\\ruleforge.exe .\\ruleforge\\components\\ruleforge\\entry && build\\ruleforge.exe -config config.toml && start \"\" __output__\\ruleforge-studio.html",
+					},
+					"osx": {
+						"shell_cmd": "./run.sh --config=config.toml && open __output__/ruleforge-studio.html",
+					},
+					"working_dir": "${project_path}",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+				},
+				{
+					"name": "Open Studio (last compile)",
+					"shell_cmd": "xdg-open __output__/ruleforge-studio.html",
+					"windows": {
+						"shell_cmd": "start \"\" __output__\\ruleforge-studio.html",
+					},
+					"osx": {
+						"shell_cmd": "open __output__/ruleforge-studio.html",
+					},
+					"working_dir": "${project_path}",
+				},
+				{
 					"name": "Run (Verbose)",
 					"shell_cmd": "./run.sh --verbose",
 					"working_dir": "${project_path}",
