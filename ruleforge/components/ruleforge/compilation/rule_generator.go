@@ -464,7 +464,15 @@ func (rg *RuleGenerator) produceProgression(
 	disableRare bool,
 	minAreaLevel, maxAreaLevel int,
 ) {
-	for _, categoryItems := range itemsByCategory {
+	// Walk the categories in a fixed order so every compile emits the same filter.
+	categories := make([]string, 0, len(itemsByCategory))
+	for category := range itemsByCategory {
+		categories = append(categories, category)
+	}
+	sort.Strings(categories)
+
+	for _, category := range categories {
+		categoryItems := itemsByCategory[category]
 		if len(categoryItems) == 0 {
 			continue
 		}
@@ -1008,6 +1016,7 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 	}
 
 	groupsMap := make(map[groupKey]*AutomationGroup)
+	var groupOrder []groupKey
 
 	for _, entry := range entries {
 		mssValue := -1
@@ -1039,15 +1048,18 @@ func groupByProperties(entries []config.BaseTypeAutomationEntry, styleManager *S
 				Hide:         entry.Hide,
 			}
 			groupsMap[key] = newGroup
+			groupOrder = append(groupOrder, key)
 		}
 	}
 
+	// Groups keep the CSV's order when their priorities tie, so every compile
+	// emits the same blocks in the same order.
 	groupedResult := make([]AutomationGroup, 0, len(groupsMap))
-	for _, group := range groupsMap {
-		groupedResult = append(groupedResult, *group)
+	for _, key := range groupOrder {
+		groupedResult = append(groupedResult, *groupsMap[key])
 	}
 
-	sort.Slice(groupedResult, func(i, j int) bool {
+	sort.SliceStable(groupedResult, func(i, j int) bool {
 		return groupedResult[i].Tier > groupedResult[j].Tier
 	})
 

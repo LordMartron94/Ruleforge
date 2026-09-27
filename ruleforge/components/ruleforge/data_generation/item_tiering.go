@@ -3,8 +3,6 @@ package data_generation
 import (
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
-	"github.com/muesli/clusters"
-	"github.com/muesli/kmeans"
 	"log"
 	"math"
 	"sort"
@@ -57,9 +55,9 @@ type TieringParameters struct {
 	// league's oldest prices stop dominating what should be a "current
 	// value" estimate. <= 0 disables decay (every snapshot counts equally).
 	ValueHalfLifeDays float64
-	// Now overrides the reference time used for recency weighting. Tests set
-	// this for determinism; production callers leave it zero to use
-	// time.Now().
+	// Now is the reference time for recency weighting. Left zero, GenerateTiers
+	// uses the newest snapshot's time, so the same economy data always yields
+	// the same tiers no matter when the filter is compiled.
 	Now time.Time
 }
 
@@ -68,25 +66,6 @@ func (p TieringParameters) now() time.Time {
 		return time.Now()
 	}
 	return p.Now
-}
-
-// TieringDataPoint is a one-dimensional data point for K-Means clustering.
-// It satisfies the clusters.Observation interface.
-type TieringDataPoint struct {
-	Score float64
-}
-
-// Coordinates returns the point's position in n-dimensional space.
-func (p TieringDataPoint) Coordinates() clusters.Coordinates {
-	return clusters.Coordinates{p.Score}
-}
-
-// Distance returns the Euclidean distance between this point and another set of coordinates.
-func (p TieringDataPoint) Distance(other clusters.Coordinates) float64 {
-	if len(other) == 0 {
-		return math.Inf(1)
-	}
-	return math.Abs(p.Coordinates()[0] - other[0])
 }
 
 // --- Intermediate Data Structs ---
@@ -137,6 +116,10 @@ func GenerateTiers(
 	// --- Input Validation ---
 	if err := validateParams(leagueData, numTiers, params); err != nil {
 		return nil, err
+	}
+
+	if params.Now.IsZero() {
+		params.Now = newestSnapshotTime(leagueData)
 	}
 
 	// --- Aggregation Step ---
@@ -196,7 +179,8 @@ func normalizeData(aggregatedData map[string]map[string]aggregatedItem, strategy
 
 func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem) (map[string]map[string]normalizedItem, error) {
 	allNormData := make(map[string]map[string]normalizedItem)
-	for league, aggMap := range aggregatedData {
+	for _, league := range sortedKeys(aggregatedData) {
+		aggMap := aggregatedData[league]
 		if len(aggMap) < 2 {
 			log.Printf("WARN: Not enough data points in league %s to normalize, skipping.", league)
 			continue
@@ -205,7 +189,8 @@ func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem) (ma
 		var values []float64
 		var listings []float64
 		var baseTypes []string
-		for bt, data := range aggMap {
+		for _, bt := range sortedKeys(aggMap) {
+			data := aggMap[bt]
 			values = append(values, math.Log(data.percentileChaos+1))
 			listings = append(listings, math.Log(data.avgListingCount+1))
 			baseTypes = append(baseTypes, bt)
@@ -237,9 +222,11 @@ func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem) (map
 	var allValueLogs, allListingLogs []float64
 	var itemMetadata []itemDataForGlobalNorm
 
-	// Pool all data first
-	for league, aggMap := range aggregatedData {
-		for bt, data := range aggMap {
+	// Pool all data first, in a fixed order so floating-point sums repeat exactly.
+	for _, league := range sortedKeys(aggregatedData) {
+		aggMap := aggregatedData[league]
+		for _, bt := range sortedKeys(aggMap) {
+			data := aggMap[bt]
 			logChaos := math.Log(data.percentileChaos + 1)
 			logListings := math.Log(data.avgListingCount + 1)
 			allValueLogs = append(allValueLogs, logChaos)
@@ -297,10 +284,12 @@ func calculateUnifiedScores(
 	}
 	unified := make(map[string]unifiedScoreTracker)
 
-	// Apply weighted sum
-	for league, leagueData := range allNormData {
+	// Apply weighted sum, in a fixed order so floating-point sums repeat exactly.
+	for _, league := range sortedKeys(allNormData) {
+		leagueData := allNormData[league]
 		weight := getWeightFromLeague(league, params.LeagueWeights)
-		for bt, normItem := range leagueData {
+		for _, bt := range sortedKeys(leagueData) {
+			normItem := leagueData[bt]
 			tracker := unified[bt]
 			tracker.weightedChaosSum += normItem.chaosZScore * weight
 			tracker.weightedRaritySum += normItem.rarityZScore * weight
@@ -330,6 +319,10 @@ func calculateUnifiedScores(
 	return finalScores
 }
 
+// assignTiers groups base types into numTiers tiers by score, tier 1 being the
+// highest. It runs k-means on the one-dimensional scores, starting from evenly
+// spaced quantiles instead of random centres, so the same economy data always
+// produces the same tiers.
 func assignTiers(scoredItems []finalScoredItem, numTiers int) (map[string]int, error) {
 	if len(scoredItems) < numTiers {
 		log.Printf("WARN: Number of items (%d) is less than number of tiers (%d). Reducing tiers.", len(scoredItems), numTiers)
@@ -339,42 +332,99 @@ func assignTiers(scoredItems []finalScoredItem, numTiers int) (map[string]int, e
 		return make(map[string]int), nil
 	}
 
-	var observations clusters.Observations
-	for _, item := range scoredItems {
-		observations = append(observations, TieringDataPoint{Score: item.score})
+	items := append([]finalScoredItem(nil), scoredItems...)
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].score != items[j].score {
+			return items[i].score > items[j].score
+		}
+		return items[i].baseType < items[j].baseType
+	})
+
+	centers := make([]float64, numTiers)
+	for tier := range centers {
+		// The middle of each equal-sized slice of the ranked scores.
+		index := (2*tier + 1) * len(items) / (2 * numTiers)
+		centers[tier] = items[index].score
 	}
 
-	km := kmeans.New()
-	determinedCluster, err := km.Partition(observations, numTiers)
-	if err != nil {
-		return nil, fmt.Errorf("failed to partition with kmeans: %w", err)
-	}
+	assignment := make([]int, len(items))
+	for iteration := 0; iteration < 200; iteration++ {
+		changed := false
+		for i, item := range items {
+			if nearest := nearestCenter(centers, item.score); iteration == 0 || nearest != assignment[i] {
+				assignment[i] = nearest
+				changed = true
+			}
+		}
+		if !changed {
+			break
+		}
 
-	clusterCenters := make([]float64, len(determinedCluster))
-	for i, cluster := range determinedCluster {
-		clusterCenters[i] = cluster.Center[0]
-	}
-
-	tierMap := make(map[int]int)
-	sortedCenters := append([]float64{}, clusterCenters...)
-	sort.Sort(sort.Reverse(sort.Float64Slice(sortedCenters)))
-
-	for tier, centerValue := range sortedCenters {
-		for i, rawCenter := range clusterCenters {
-			if centerValue == rawCenter {
-				tierMap[i] = tier + 1
-				break
+		sums := make([]float64, numTiers)
+		counts := make([]int, numTiers)
+		for i, item := range items {
+			sums[assignment[i]] += item.score
+			counts[assignment[i]]++
+		}
+		for tier := range centers {
+			// An empty tier keeps its centre rather than disappearing.
+			if counts[tier] > 0 {
+				centers[tier] = sums[tier] / float64(counts[tier])
 			}
 		}
 	}
 
-	finalTiers := make(map[string]int)
-	for _, item := range scoredItems {
-		clusterIndex := determinedCluster.Nearest(TieringDataPoint{Score: item.score})
-		finalTiers[item.baseType] = tierMap[clusterIndex]
+	// Tier 1 is the cluster with the highest centre.
+	order := make([]int, numTiers)
+	for i := range order {
+		order[i] = i
+	}
+	sort.SliceStable(order, func(a, b int) bool { return centers[order[a]] > centers[order[b]] })
+	tierOfCluster := make([]int, numTiers)
+	for rank, cluster := range order {
+		tierOfCluster[cluster] = rank + 1
 	}
 
+	finalTiers := make(map[string]int, len(items))
+	for i, item := range items {
+		finalTiers[item.baseType] = tierOfCluster[assignment[i]]
+	}
 	return finalTiers, nil
+}
+
+// newestSnapshotTime is the latest FetchedAt across every league, or zero when there is none.
+func newestSnapshotTime(leagueData map[string][]EconomySnapshot) time.Time {
+	var newest time.Time
+	for _, snapshots := range leagueData {
+		for _, snapshot := range snapshots {
+			if snapshot.FetchedAt.After(newest) {
+				newest = snapshot.FetchedAt
+			}
+		}
+	}
+	return newest
+}
+
+// sortedKeys returns a map's keys in ascending order.
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// nearestCenter returns the index of the centre closest to score, preferring
+// the higher tier on an exact tie.
+func nearestCenter(centers []float64, score float64) int {
+	best, bestDistance := 0, math.Inf(1)
+	for i, center := range centers {
+		if distance := math.Abs(score - center); distance < bestDistance {
+			best, bestDistance = i, distance
+		}
+	}
+	return best
 }
 
 // --- Trend Analysis ---
@@ -604,9 +654,12 @@ func aggregateAndBlendUniques(
 			generalChaosValue := calculateRobustValue(bt.chaosValues, params)
 			generalListingAvg := weightedMean(bt.listingValues)
 
+			// The most valuable unique on the base is its chase item. Names are
+			// visited in order so a tie always picks the same one.
 			var chaseChaos, chaseListing float64
 			first := true
-			for _, na := range bt.byName {
+			for _, name := range sortedKeys(bt.byName) {
+				na := bt.byName[name]
 				chaosVal := calculateRobustValue(na.chaosValues, params)
 				if first || chaosVal > chaseChaos {
 					chaseChaos = chaosVal

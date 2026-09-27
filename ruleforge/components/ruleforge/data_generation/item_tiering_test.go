@@ -306,3 +306,34 @@ func TestValueHalfLifeAffectsGeneratedTiers(t *testing.T) {
 		t.Fatalf("expected recency weighting to rank the currently-pricier Base B above the stale-crashed Base A, got %#v", tiers)
 	}
 }
+
+func TestAssignTiersIsDeterministicAndOrdersByScore(t *testing.T) {
+	items := []finalScoredItem{
+		{baseType: "Mirror", score: 9.0}, {baseType: "Divine", score: 8.5},
+		{baseType: "Chaos", score: 2.1}, {baseType: "Alchemy", score: 1.9}, {baseType: "Regal", score: 2.0},
+		{baseType: "Scroll", score: -1.0}, {baseType: "Shard", score: -1.2}, {baseType: "Wisdom", score: -0.9},
+	}
+	first, err := assignTiers(items, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]int{"Mirror": 1, "Divine": 1, "Chaos": 2, "Alchemy": 2, "Regal": 2, "Scroll": 3, "Shard": 3, "Wisdom": 3}
+	for baseType, tier := range want {
+		if first[baseType] != tier {
+			t.Errorf("%s: got tier %d, want %d", baseType, first[baseType], tier)
+		}
+	}
+	// Input order must not matter.
+	reversed := make([]finalScoredItem, len(items))
+	for i := range items {
+		reversed[i] = items[len(items)-1-i]
+	}
+	for run := 0; run < 5; run++ {
+		again, _ := assignTiers(reversed, 3)
+		for baseType, tier := range first {
+			if again[baseType] != tier {
+				t.Fatalf("run %d: %s moved from tier %d to %d", run, baseType, tier, again[baseType])
+			}
+		}
+	}
+}
