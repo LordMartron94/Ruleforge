@@ -682,7 +682,7 @@ func (rg *RuleGenerator) handleDivinationCardTiering(variables *map[string][]str
 		InitialCondition: model2.Condition{
 			Identifier: "@item_class",
 			Operator:   "==",
-			Value:      []string{"Divination Card"},
+			Value:      []string{"Divination Cards"},
 		},
 		ItemClassToFilter: "Divination Cards",
 		TieredIdentifier:  "@item_type",
