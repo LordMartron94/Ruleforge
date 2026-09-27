@@ -32,6 +32,7 @@
   html, body { background: var(--page); }
   body { margin: 0; color: var(--text); font: 15px/1.5 var(--body); padding: 24px 16px 64px; }
   .wrap { max-width: 1320px; margin-inline: auto; display: grid; gap: 22px; }
+  .stack { display: grid; gap: 18px; min-width: 0; }
   h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.1; margin: 0; text-wrap: balance; }
   h1 { font-size: clamp(2rem, 4vw, 2.8rem); }
   h2 { font-size: 1.6rem; }
@@ -160,7 +161,7 @@
     <button class="tab" role="tab" id="view-palette" type="button">Palette</button>
   </nav>
 
-  <section id="loot" class="wrap" style="gap:14px">
+  <section id="loot" class="stack" style="gap:14px">
     <div class="loot-controls">
       <label for="area">Area level <input type="range" id="area" min="1" max="84"> <input type="number" id="area-num" min="1" max="84" style="width:64px"></label>
       <label for="count">Drops <select id="count"><option>12</option><option selected>30</option><option>60</option><option>120</option></select></label>
@@ -176,7 +177,7 @@
     </div>
   </section>
 
-  <section id="palette" class="wrap" style="gap:18px" hidden>
+  <section id="palette" class="stack" hidden>
     <div class="palette-grid">
       <div class="checks" id="checks"></div>
       <div class="checks" id="distinct"></div>
@@ -191,16 +192,22 @@
           <span class="status" id="status" role="status"></span>
         </div>
         <textarea class="fallback" id="fallback" hidden readonly aria-label="Copy this text"></textarea>
-        <div id="ed-groups" class="ed-body" style="padding:0"></div>
+        <div id="ed-groups" class="stack"></div>
       </div>
     </details>
-    <div id="gallery" class="wrap" style="gap:18px"></div>
+    <div id="gallery" class="stack"></div>
   </section>
 </div>
 
 <script id="studio-data" type="application/json">/*STUDIO_DATA*/null</script>
 <script>
 const DATA = JSON.parse(document.getElementById('studio-data').textContent);
+// Blocks point at a shared list of condition sets; attach them once.
+if (DATA) DATA.filters.forEach(f => f.blocks.forEach(b => {
+  b.conditions = DATA.conditions[b.cond] || [];
+  b.source = DATA.sources[b.src] || '';
+  b.look = DATA.looks[b.lk] || {};
+}));
 
 /* ---------- colour science ---------- */
 function hex2rgba(h) {

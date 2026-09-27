@@ -73,9 +73,90 @@ func NewStyle(definition config.StyleDefinition, sheet *config.Stylesheet) Style
 	return style
 }
 
+// page is Data as the page receives it. Blocks repeat the same conditions,
+// sources and looks many times over, so each distinct value is stored once and
+// blocks refer to it by index.
+type page struct {
+	GeneratedAt string                          `json:"generatedAt"`
+	Styles      []Style                         `json:"styles"`
+	Items       ItemPool                        `json:"items"`
+	Conditions  [][]compilation.StudioCondition `json:"conditions"`
+	Sources     []string                        `json:"sources"`
+	Looks       []compilation.StudioLook        `json:"looks"`
+	Filters     []pageFilter                    `json:"filters"`
+}
+
+type pageFilter struct {
+	Script   string      `json:"script"`
+	StyleID  string      `json:"style"`
+	FileName string      `json:"file"`
+	Blocks   []pageBlock `json:"blocks"`
+}
+
+type pageBlock struct {
+	Line      int    `json:"line"`
+	Action    string `json:"action"`
+	Section   string `json:"section"`
+	Style     string `json:"style,omitempty"`
+	Condition int    `json:"cond"`
+	Source    int    `json:"src"`
+	Look      int    `json:"lk"`
+}
+
+// interner hands out a stable index for each distinct value.
+type interner struct{ index map[string]int }
+
+func (in *interner) id(value any, add func()) (int, error) {
+	key, err := json.Marshal(value)
+	if err != nil {
+		return 0, err
+	}
+	if id, seen := in.index[string(key)]; seen {
+		return id, nil
+	}
+	id := len(in.index)
+	in.index[string(key)] = id
+	add()
+	return id, nil
+}
+
+func compact(data Data) (page, error) {
+	out := page{GeneratedAt: data.GeneratedAt, Styles: data.Styles, Items: data.Items}
+	conditions := interner{map[string]int{}}
+	sources := interner{map[string]int{}}
+	looks := interner{map[string]int{}}
+	for _, filter := range data.Filters {
+		compacted := pageFilter{Script: filter.Script, StyleID: filter.StyleID, FileName: filter.FileName}
+		for _, block := range filter.Blocks {
+			condition, err := conditions.id(block.Conditions, func() { out.Conditions = append(out.Conditions, block.Conditions) })
+			if err != nil {
+				return out, err
+			}
+			source, err := sources.id(block.Source, func() { out.Sources = append(out.Sources, block.Source) })
+			if err != nil {
+				return out, err
+			}
+			look, err := looks.id(block.Look, func() { out.Looks = append(out.Looks, block.Look) })
+			if err != nil {
+				return out, err
+			}
+			compacted.Blocks = append(compacted.Blocks, pageBlock{
+				Line: block.Line, Action: block.Action, Section: block.Section, Style: block.Style,
+				Condition: condition, Source: source, Look: look,
+			})
+		}
+		out.Filters = append(out.Filters, compacted)
+	}
+	return out, nil
+}
+
 // Write renders the studio page to path.
 func Write(path string, data Data) error {
-	payload, err := json.Marshal(data)
+	compacted, err := compact(data)
+	if err != nil {
+		return fmt.Errorf("encoding studio data: %w", err)
+	}
+	payload, err := json.Marshal(compacted)
 	if err != nil {
 		return fmt.Errorf("encoding studio data: %w", err)
 	}
