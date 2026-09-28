@@ -82,9 +82,15 @@ missing. Quality does not promote a cheap gem into another priority rank.
 
 Links and sockets use the same restraint: 3/4-link and RGB marks keep a small
 border, while 5/6-link and 5/6-socket marks retain a stronger border. Their
-font, icon and alert stay below the hidden-state tiers. Max-rolled armour bases
-now have a dedicated rule pass before links and sockets, so the hidden base
-attribute wins when both properties are present. Fractured and corrupted rules
+font, icon and alert stay below the hidden-state tiers. Max-roll never makes an
+item visible; it only changes how a shown item looks. The script declares
+`max_roll_precedence` before the crafting section, and from there every Show
+rule that could match armour is preceded by a copy restricted to max-rolled
+armour (`BaseDefencePercentile == 100` on body armours, boots, gloves, helmets
+and shields). The copy keeps the rule's background and icon shape, takes the
+max-roll border, and takes the higher of the two priority tiers: a max-rolled
+3-link gets the full max-roll look, a max-rolled crafting base keeps its forge
+field and green beam. Hide rules get no copy. Fractured and corrupted rules
 also win before the link/socket section.
 
 ## Campaign scope

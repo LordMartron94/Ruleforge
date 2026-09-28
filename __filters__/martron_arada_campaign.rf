@@ -7,7 +7,7 @@
 
 METADATA {
   NAME       => "MartronAradaCampaign"
-  VERSION    => "0.4.0"
+  VERSION    => "0.5.0"
   STRICTNESS => ALL
   BUILD      => "MartronArada"
 }
@@ -225,6 +225,27 @@ SECTION {
 
 SECTION {
   METADATA {
+    NAME        => "Max-Roll Precedence"
+    DESCRIPTION => "Shown max-rolled armour takes the max-roll look"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! A max-rolled base is not visible in the ground label, so it outranks
+    !! the properties that are (links, sockets) and crafting eligibility.
+    !! This shows nothing by itself: every later Show rule that could match
+    !! armour gets a max-roll copy placed just before it, so an item is only
+    !! restyled when a rule already shows it. Hide rules get no copy. The copy
+    !! keeps the rule's purpose (background, icon shape), takes the max-roll
+    !! border, and takes the higher of the two priority tiers.
+    MACRO["max_roll_precedence" -> $style => $equipment_max_rolled]
+  }
+}
+
+SECTION {
+  METADATA {
     NAME        => "Crafting Bases"
     DESCRIPTION => "Normal and magic bases worth crafting on for any class"
   }
@@ -245,26 +266,9 @@ SECTION {
     !! are listed for a later mapping section.
     !!
     !! Placed before the secondary link/socket section so the forge field
-    !! remains the winning look for a qualifying base.
+    !! remains the winning look for a qualifying base; a max-rolled base
+    !! keeps the forge field but takes the max-roll border.
     MACRO["handle_csv" -> $category => "Crafting Bases"]
-  }
-}
-
-SECTION {
-  METADATA {
-    NAME        => "Max-Rolled Armour"
-    DESCRIPTION => "Prioritize armour bases with perfect implicit rolls"
-  }
-
-  SECTION_CONDITIONS {
-    WHERE @area_level < 68
-  }
-
-  RULES {
-    !! Max-roll attributes are not visible in the ground label. Give them a
-    !! dedicated pass before links and sockets so the hidden value wins the
-    !! styling decision when both properties are present.
-    MACRO["item_max_roll-equipment" -> $style => $equipment_max_rolled]
   }
 }
 

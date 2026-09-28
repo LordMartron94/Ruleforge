@@ -147,8 +147,12 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 			lineCounter += len(rule)
 		}
 
-		body = body[:len(body)-1]
-		lineCounter--
+		// Drop the last rule's trailing blank line; a section that only
+		// configures later rules has none, and keeps its heading.
+		if len(compiledRules) > 0 {
+			body = body[:len(body)-1]
+			lineCounter--
+		}
 
 		divider := c.constructDivider()
 		body = append(body, divider...)
@@ -173,6 +177,8 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	if err != nil {
 		return nil, fmt.Errorf("the stylesheet needs a Fallback style: %w", err), metadata.Name
 	}
+	// The fallback means "unclassified"; no property may restyle it.
+	c.ruleFactory.SetMaxRollPrecedence(nil)
 	c.ruleFactory.SetSection(fallbackName)
 	c.ruleFactory.SetSource("Everything the script did not match")
 	fallbackRule := c.ruleFactory.ConstructRule(model2.ShowRule, *fallbackStyle, []string{})

@@ -16,9 +16,16 @@ type BlockRecord struct {
 }
 
 type RuleFactory struct {
-	section string
-	source  string
-	records []BlockRecord
+	section  string
+	source   string
+	records  []BlockRecord
+	maxRolls *MaxRollPrecedence
+}
+
+// SetMaxRollPrecedence makes every later Show rule that could match armour
+// yield to max-rolled armour (see MaxRollPrecedence). Pass nil to stop.
+func (r *RuleFactory) SetMaxRollPrecedence(overlay *MaxRollPrecedence) {
+	r.maxRolls = overlay
 }
 
 // SetSection marks the section that the following rules belong to.
@@ -38,6 +45,22 @@ func (r *RuleFactory) Records() []BlockRecord {
 }
 
 func (r *RuleFactory) ConstructRule(ruleType model.RuleType, style config.Style, conditions []string) []string {
+	if r.maxRolls == nil || ruleType != model.ShowRule {
+		return r.constructBlock(ruleType, style, conditions, r.source)
+	}
+	variant, applies := r.maxRolls.variantConditions(conditions)
+	if !applies {
+		return r.constructBlock(ruleType, style, conditions, r.source)
+	}
+	source := "Max-roll precedence"
+	if r.source != "" {
+		source += " over: " + r.source
+	}
+	output := r.constructBlock(ruleType, r.maxRolls.variantStyle(style), variant, source)
+	return append(output, r.constructBlock(ruleType, style, conditions, r.source)...)
+}
+
+func (r *RuleFactory) constructBlock(ruleType model.RuleType, style config.Style, conditions []string, source string) []string {
 	output := []string{string(ruleType)}
 
 	for _, condition := range conditions {
@@ -50,7 +73,7 @@ func (r *RuleFactory) ConstructRule(ruleType model.RuleType, style config.Style,
 	r.records = append(r.records, BlockRecord{
 		Lines:   append([]string(nil), output...),
 		Section: r.section,
-		Source:  r.source,
+		Source:  source,
 		Style:   *style.Clone(),
 	})
 

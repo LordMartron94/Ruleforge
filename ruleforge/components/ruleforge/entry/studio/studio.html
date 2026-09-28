@@ -379,19 +379,40 @@ function equipmentItem(r, area, classes, showcase, rarityOverride) {
   if (!base) return null;
   const roll = r();
   const rarity = rarityOverride || (roll < 0.5 ? 'Normal' : roll < 0.86 ? 'Magic' : 'Rare');
-  const item = fromBase(r, base, area, rarity);
+  const item = fromBase(r, base, area, rarity, showcase);
   if (rarity === 'Rare' && area >= 12 && r() < (showcase ? 0.15 : 0.03)) item.mods.push('Veiled');
   if (area >= 68 && r() < (showcase ? 0.1 : 0.01)) item.fractured = true;
   if (r() < (showcase ? 0.08 : 0.02)) item.corrupted = true;
   return item;
 }
-function fromBase(r, base, area, rarity) {
+// Classes whose base defences roll within a range; other equipment reports 100.
+const ROLLED_DEFENCE_CLASSES = new Set(['Body Armours', 'Boots', 'Gloves', 'Helmets', 'Shields']);
+const DEFENCES = [['armour', 'armourMin'], ['evasion', 'evasionMin'], ['es', 'esMin'], ['ward', 'wardMin']];
+// The game's BaseDefencePercentile: the average percentile of the item's base defence rolls.
+function defencePercentile(base, values) {
+  if (!base) return 0;
+  if (!ROLLED_DEFENCE_CLASSES.has(base.class)) return 100;
+  const parts = DEFENCES.filter(([max]) => base[max] > 0).map(([max, min]) => {
+    const lo = base[min] || base[max], hi = base[max];
+    return hi === lo ? 100 : Math.max(0, Math.min(100, (values[max] - lo) / (hi - lo) * 100));
+  });
+  return parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : 100;
+}
+function rollDefences(r, base, showcase) {
+  // One roll for every defence type, with extra max rolls in showcase mode so they are easy to find.
+  const roll = showcase && r() < 0.25 ? 1 : r();
+  const values = {};
+  DEFENCES.forEach(([max, min]) => { values[max] = base[max] ? Math.round((base[min] || base[max]) + roll * (base[max] - (base[min] || base[max]))) : 0; });
+  return values;
+}
+function fromBase(r, base, area, rarity, showcase = false) {
   const { sockets, links } = rollSockets(r, base, area);
+  const defences = rollDefences(r, base, showcase);
   return {
     label: base.name, base: base.name, cls: base.class, rarity, ilvl: area, drop: base.drop, w: base.w, h: base.h,
     quality: r() < 0.06 ? 1 + Math.floor(r() * 20) : 0, stack: 1, sockets, links, mods: [],
     corrupted: false, fractured: false, identified: rarity === 'Normal',
-    armour: base.armour || 0, evasion: base.evasion || 0, es: base.es || 0, ward: base.ward || 0,
+    ...defences, defencePercentile: defencePercentile(base, defences),
   };
 }
 function stackItem(r, s, showcase) {
@@ -462,7 +483,7 @@ function weaponClasses() {
 
 /* ---------- filter evaluation ---------- */
 const RARITY = { Normal: 0, Magic: 1, Rare: 2, Unique: 3 };
-const NUMERIC = { AreaLevel: 'area', ItemLevel: 'ilvl', DropLevel: 'drop', StackSize: 'stack', Height: 'h', Width: 'w', Quality: 'quality',
+const NUMERIC = { BaseDefencePercentile: 'defencePercentile', AreaLevel: 'area', ItemLevel: 'ilvl', DropLevel: 'drop', StackSize: 'stack', Height: 'h', Width: 'w', Quality: 'quality',
   BaseArmour: 'armour', BaseEvasion: 'evasion', BaseEnergyShield: 'es', BaseWard: 'ward', GemLevel: 'gemLevel', MapTier: 'mapTier' };
 const BOOLEAN = { Corrupted: 'corrupted', FracturedItem: 'fractured', Identified: 'identified', Mirrored: 'mirrored', SynthesisedItem: 'synthesised', Replica: 'replica' };
 function compare(a, op, b) {
@@ -596,11 +617,41 @@ function parseGameItem(text) {
     corrupted: lines.some(l => /^Corrupted$/i.test(l)), fractured: lines.some(l => /^Fractured Item$/i.test(l)),
     identified: !lines.some(l => /^Unidentified$/i.test(l)), mirrored: lines.some(l => /^Mirrored$/i.test(l)),
     synthesised: lines.some(l => /^Synthesised Item$/i.test(l)), replica: lines.some(l => /^Replica$/i.test(l)),
-    armour: numericHeader(lines, 'Armour'), evasion: numericHeader(lines, 'Evasion Rating'), es: numericHeader(lines, 'Energy Shield'), ward: numericHeader(lines, 'Ward'),
+    ...baseDefences(lines, modLines, quality),
     area: state.area, value: known && known.card ? known.card.value : undefined,
   };
+  item.defencePercentile = equipment ? defencePercentile(equipment, item) : 0;
   if (!item.base) item.parseNote = 'The base type was not found in the Studio item pool; class and visible text rules can still be checked.';
   return item;
+}
+// The copied item shows defences after local mods and quality. BaseArmour and
+// BaseDefencePercentile compare the base roll, so undo the local modifiers:
+// shown = (base + flat) * (1 + (increased% + quality%) / 100).
+const DEFENCE_HEADERS = { armour: 'Armour', evasion: 'Evasion Rating', es: 'Energy Shield', ward: 'Ward' };
+function baseDefences(lines, modLines, quality) {
+  const flat = { armour: 0, evasion: 0, es: 0, ward: 0 }, increased = { armour: 0, evasion: 0, es: 0, ward: 0 };
+  for (const raw of modLines) {
+    // Advanced copies add the roll range, e.g. "+14(10-27) to Armour".
+    const line = raw.replace(/\(\s*-?[\d.]+\s*-\s*-?[\d.]+\s*\)/g, '').replace(/\s+/g, ' ').trim();
+    let m;
+    if ((m = line.match(/^\+(\d+) to Armour$/i))) flat.armour += +m[1];
+    else if ((m = line.match(/^\+(\d+) to Evasion Rating$/i))) flat.evasion += +m[1];
+    else if ((m = line.match(/^\+(\d+) to maximum Energy Shield$/i))) flat.es += +m[1];
+    else if ((m = line.match(/^\+(\d+) to Ward$/i))) flat.ward += +m[1];
+    else if ((m = line.match(/^(\d+)% increased (Armour|Evasion Rating|Energy Shield|Ward|Armour and Evasion|Armour and Energy Shield|Evasion and Energy Shield|Armour, Evasion and Energy Shield)$/i))) {
+      const what = m[2].toLowerCase();
+      if (what.includes('armour')) increased.armour += +m[1];
+      if (what.includes('evasion')) increased.evasion += +m[1];
+      if (what.includes('energy shield')) increased.es += +m[1];
+      if (what === 'ward') increased.ward += +m[1];
+    }
+  }
+  const out = {};
+  for (const [key, header] of Object.entries(DEFENCE_HEADERS)) {
+    const shown = numericHeader(lines, header);
+    out[key] = shown ? Math.max(0, Math.round(shown / (1 + (increased[key] + quality) / 100) - flat[key])) : 0;
+  }
+  return out;
 }
 
 /* ---------- rendering: shared ---------- */
@@ -724,6 +775,7 @@ function renderInspectorTarget(d, boxId, emptyText) {
   add('Quality', d.quality ? d.quality + '%' : ''); add('Sockets', d.links.length ? d.links.map(g => g.join('-')).join('  ') : '');
   add('Size', `${d.w}×${d.h}`); add('Corrupted', d.corrupted); add('Fractured', d.fractured); add('Identified', d.identified ? '' : 'no');
   add('Mods', d.mods.join(', ')); add('Base armour / evasion / ES', d.armour || d.evasion || d.es ? `${d.armour} / ${d.evasion} / ${d.es}` : '');
+  add('Base defence percentile', d.armour || d.evasion || d.es || d.ward ? `${d.defencePercentile}${d.defencePercentile === 100 ? ' (max-rolled)' : ''}` : '');
   add('Price', d.value !== undefined ? d.value.toFixed(1) + ' chaos' : ''); add('Parse note', d.parseNote);
   head.append(facts);
   box.append(head);

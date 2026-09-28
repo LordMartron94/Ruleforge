@@ -26,10 +26,15 @@ type EquipmentBase struct {
 	Width        int    `json:"w"`
 	Height       int    `json:"h"`
 	MaxSockets   int    `json:"sockets,omitempty"`
-	Armour       int    `json:"armour,omitempty"`
-	Evasion      int    `json:"evasion,omitempty"`
-	EnergyShield int    `json:"es,omitempty"`
-	Ward         int    `json:"ward,omitempty"`
+	// Base defences roll between the Min and the plain (maximum) value.
+	Armour          int `json:"armour,omitempty"`
+	ArmourMin       int `json:"armourMin,omitempty"`
+	Evasion         int `json:"evasion,omitempty"`
+	EvasionMin      int `json:"evasionMin,omitempty"`
+	EnergyShield    int `json:"es,omitempty"`
+	EnergyShieldMin int `json:"esMin,omitempty"`
+	Ward            int `json:"ward,omitempty"`
+	WardMin         int `json:"wardMin,omitempty"`
 	Str          int    `json:"str,omitempty"`
 	Dex          int    `json:"dex,omitempty"`
 	Int          int    `json:"int,omitempty"`
@@ -139,10 +144,10 @@ func NewItemPool(
 			Int:        base.Req["int"],
 		}
 		if base.Armour != nil {
-			equipment.Armour = base.Armour.ArmourBaseMax
-			equipment.Evasion = base.Armour.EvasionBaseMax
-			equipment.EnergyShield = base.Armour.EnergyShieldBaseMax
-			equipment.Ward = base.Armour.WardBaseMax
+			equipment.Armour, equipment.ArmourMin = base.Armour.ArmourBaseMax, base.Armour.ArmourBaseMin
+			equipment.Evasion, equipment.EvasionMin = base.Armour.EvasionBaseMax, base.Armour.EvasionBaseMin
+			equipment.EnergyShield, equipment.EnergyShieldMin = base.Armour.EnergyShieldBaseMax, base.Armour.EnergyShieldBaseMin
+			equipment.Ward, equipment.WardMin = base.Armour.WardBaseMax, base.Armour.WardBaseMin
 		}
 		pool.Equipment = append(pool.Equipment, equipment)
 		known[equipment.Name] = true

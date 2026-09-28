@@ -207,8 +207,8 @@ func (rg *RuleGenerator) handleMacroExpression(
 	parameters := macroExpressionNode.FindAllSymbolNodes(symbols.ParseSymbolParameter.String())
 
 	switch macroType {
-	case "item_max_roll-equipment":
-		return rg.handleMaxRolledEquipment(variables, parameters, 0, 67)
+	case "max_roll_precedence":
+		return rg.handleMaxRollPrecedence(parameters)
 	case "item_progression-equipment-leveling":
 		return rg.handleEquipmentProgression(variables, parameters, 0, 67)
 	case "item_progression-equipment-mapping":
@@ -230,47 +230,22 @@ func (rg *RuleGenerator) handleMacroExpression(
 	}
 }
 
-// handleMaxRolledEquipment emits the max-base-stat rules as a dedicated pass.
-// It must run before lower-priority link/socket rules: those properties are
-// visible in the game's label, while a maxed implicit base is not.
-func (rg *RuleGenerator) handleMaxRolledEquipment(
-	variables *map[string][]string,
-	parameters []*shared.ParseTree[symbols.LexingTokenType],
-	minAreaLevel int,
-	maxAreaLevel int,
-) ([][]string, error) {
+// handleMaxRollPrecedence makes max-rolled armour win the styling of every
+// later Show rule that could match it, without showing anything new. It
+// generates no rules itself.
+func (rg *RuleGenerator) handleMaxRollPrecedence(parameters []*shared.ParseTree[symbols.LexingTokenType]) ([][]string, error) {
 	style, err := rg.extractStyle(parameters)
 	if err != nil {
 		return nil, err
 	}
-
-	itemsByCategory := make(map[string][]*model.ItemBase)
-	for i := range rg.armorBases {
-		armor := &rg.armorBases[i]
-		if rg.build.IsArmorAssociated(*armor) {
-			itemsByCategory[armor.Type] = append(itemsByCategory[armor.Type], armor)
+	var bases []string
+	for _, armour := range rg.armorBases {
+		if class, ok := pobTypeToArmorClass[armour.Type]; ok && slices.Contains(maxRollClasses, string(class)) {
+			bases = append(bases, armour.GetBaseType())
 		}
 	}
-
-	categories := make([]string, 0, len(itemsByCategory))
-	for category := range itemsByCategory {
-		categories = append(categories, category)
-	}
-	sort.Strings(categories)
-
-	var generated [][]string
-	for _, category := range categories {
-		buckets, _ := groupProgressionBuckets(itemsByCategory[category], minAreaLevel, maxAreaLevel)
-		for _, bucket := range buckets {
-			for _, item := range bucket.items {
-				if item.Armour == nil {
-					continue
-				}
-				rg.constructMaxRolledGearRule(variables, model2.ShowRule, *item, &generated, style, fmt.Sprintf("%d", bucket.showEndLevel))
-			}
-		}
-	}
-	return generated, nil
+	rg.ruleFactory.SetMaxRollPrecedence(NewMaxRollPrecedence(*style, bases))
+	return nil, nil
 }
 
 //goland:noinspection t
@@ -1198,15 +1173,16 @@ var conditionOrder = map[string]int{
 	"@identified": 4,
 
 	// Numeric
-	"@base_armour":        5,
-	"@base_evasion":       6,
-	"@base_energy_shield": 7,
-	"@base_ward":          8,
-	"@stack_size":         9,
-	"@height":             10,
-	"@width":              11,
-	"@area_level":         12,
-	"@map_tier":           13,
+	"@base_armour":             5,
+	"@base_evasion":            6,
+	"@base_energy_shield":      7,
+	"@base_ward":               8,
+	"@base_defence_percentile": 8,
+	"@stack_size":              9,
+	"@height":                  10,
+	"@width":                   11,
+	"@area_level":              12,
+	"@map_tier":                13,
 
 	// Hash Set
 	"@sockets":      14,

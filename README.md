@@ -371,6 +371,21 @@ MACRO["handle_csv"->$category=>"Orbs"]
 This command would process all rows in the CSV file where the `Category` column is "Orbs,"
 generating a rule for each one based on its configured `Basetype`, `MinStackSize`, `Style`, and `Tier`.
 
+`max_roll_precedence`
+Gives max-rolled armour precedence over every later Show rule without showing
+anything new. It generates no rules itself; from where it appears, each Show
+rule that could match armour gets a copy placed just before it, restricted to
+armour whose base defences all rolled their maximum (`BaseDefencePercentile == 100`).
+The copy keeps the rule's background and icon shape, takes the given style's
+border, and takes the given style's text, size, icon and sound when they rank
+higher. Hide rules get no copy. Put it before the first rule it should override.
+
+```rf
+MACRO["max_roll_precedence" -> $style => "Final/Equipment/MaxRolled"]
+```
+
+Scripts can also test the roll directly with `@base_defence_percentile`.
+
 ### Low-memory unique loading
 
 This build deliberately **does not execute** PoB `Generated.lua` or download the
