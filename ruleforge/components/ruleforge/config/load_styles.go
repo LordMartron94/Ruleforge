@@ -47,8 +47,9 @@ const studioKey = "Studio"
 
 // Stylesheet is a loaded stylesheet: every resolved style plus the studio settings it declares.
 type Stylesheet struct {
-	Styles map[string]Style
-	Studio StudioSettings
+	Styles  map[string]Style
+	Studio  StudioSettings
+	Sources map[string]StyleSource
 }
 
 // StudioSettings configures the checks the Ruleforge Studio runs on a palette.
@@ -117,7 +118,7 @@ func LoadStylesheet(path string, palette map[string]string) (*Stylesheet, error)
 		finalStyles[name] = *stylePtr
 	}
 
-	return &Stylesheet{Styles: finalStyles, Studio: settings.Studio}, nil
+	return &Stylesheet{Styles: finalStyles, Studio: settings.Studio, Sources: computeSources(allStyles)}, nil
 }
 
 //goland:noinspection t
@@ -366,4 +367,74 @@ func parseHexRGBA(hex string) (r, g, b, a uint64, err error) {
 	}
 	a, err = strconv.ParseUint(hex[6:8], 16, 8)
 	return
+}
+
+// StyleSource records how a style was composed: the styles it combines, in
+// order, the channels it sets itself, and which style supplied each channel of
+// the resolved result. Channel names match the studio's look fields.
+type StyleSource struct {
+	Combination []string          `json:"combination,omitempty"`
+	Own         []string          `json:"own,omitempty"`
+	Channels    map[string]string `json:"channels"`
+}
+
+// ownChannels lists the channels a style sets itself, before any combination.
+func ownChannels(style *Style) []string {
+	var channels []string
+	add := func(set bool, name string) {
+		if set {
+			channels = append(channels, name)
+		}
+	}
+	add(style.TextColor != nil, "text")
+	add(style.BackgroundColor != nil, "background")
+	add(style.BorderColor != nil, "border")
+	add(style.FontSize != nil, "fontSize")
+	if style.Beam != nil {
+		add(style.Beam.Color != nil, "beam")
+		add(style.Beam.Temp != nil, "beamTemp")
+	}
+	if style.Minimap != nil {
+		add(style.Minimap.Size != nil, "minimapSize")
+		add(style.Minimap.Color != nil, "minimapColor")
+		add(style.Minimap.Shape != nil, "minimapShape")
+	}
+	add(style.DropSound != nil, "sound")
+	add(style.DropVolume != nil, "volume")
+	return channels
+}
+
+// computeSources mirrors resolveCombination's precedence: later combined styles
+// win, and a style's own channels win over everything it combines.
+func computeSources(all map[string]*Style) map[string]StyleSource {
+	sources := make(map[string]StyleSource, len(all))
+	var visit func(name string) StyleSource
+	visit = func(name string) StyleSource {
+		if source, done := sources[name]; done {
+			return source
+		}
+		style := all[name]
+		source := StyleSource{Channels: make(map[string]string)}
+		if style == nil {
+			return source
+		}
+		if style.Combination != nil {
+			source.Combination = append([]string(nil), *style.Combination...)
+			for _, dependency := range source.Combination {
+				for channel, owner := range visit(dependency).Channels {
+					source.Channels[channel] = owner
+				}
+			}
+		}
+		source.Own = ownChannels(style)
+		for _, channel := range source.Own {
+			source.Channels[channel] = name
+		}
+		sources[name] = source
+		return source
+	}
+	for name := range all {
+		visit(name)
+	}
+	return sources
 }

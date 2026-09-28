@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -39,6 +40,16 @@ type StyleDefinition struct {
 
 	// Palette maps colour names used in the stylesheet to "#RRGGBB" or "#RRGGBBAA".
 	Palette map[string]string `toml:"Palette"`
+
+	// PaletteGroups orders the palette as the file does: each comment line in
+	// [Palette] starts a group titled by that comment.
+	PaletteGroups []PaletteGroup `toml:"-"`
+}
+
+// PaletteGroup is a titled run of palette colours from a style file.
+type PaletteGroup struct {
+	Title string   `json:"title"`
+	Vars  []string `json:"vars"`
 }
 
 // IsEnabled reports whether the style should be compiled.
@@ -118,6 +129,12 @@ func loadStyleDefinition(path string) (StyleDefinition, error) {
 	style.Stylesheet = resolveConfigurationPath(base, style.Stylesheet)
 	style.BaseTypes = resolveConfigurationPath(base, style.BaseTypes)
 
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return style, fmt.Errorf("reading style %s: %w", path, err)
+	}
+	style.PaletteGroups = paletteGroups(string(contents), style.Palette)
+
 	for name, value := range style.Palette {
 		if _, _, _, _, err := parseHexRGBA(value); err != nil {
 			return style, fmt.Errorf("style %s: palette colour %q = %q: %w", path, name, value, err)
@@ -134,4 +151,61 @@ func sanitizeFileNamePart(value string) string {
 		}
 		return r
 	}, strings.TrimSpace(value))
+}
+
+var paletteKeyLine = regexp.MustCompile(`^\s*"?([A-Za-z0-9_-]+)"?\s*=`)
+
+// paletteGroups reads the [Palette] table's layout: a comment line starts a new
+// group titled by it, and every key joins the latest group. Keys the layout does
+// not reach (for example a palette written as an inline table) end up in "Other".
+func paletteGroups(contents string, palette map[string]string) []PaletteGroup {
+	var groups []PaletteGroup
+	seen := make(map[string]bool)
+	inPalette, startNew := false, true
+	for _, raw := range strings.Split(contents, "\n") {
+		line := strings.TrimSpace(raw)
+		if strings.HasPrefix(line, "[") {
+			inPalette = line == "[Palette]"
+			startNew = true
+			continue
+		}
+		if !inPalette || line == "" {
+			startNew = true
+			continue
+		}
+		if strings.HasPrefix(line, "#") {
+			if startNew {
+				groups = append(groups, PaletteGroup{Title: strings.TrimSpace(strings.TrimPrefix(line, "#"))})
+				startNew = false
+			}
+			continue
+		}
+		match := paletteKeyLine.FindStringSubmatch(line)
+		if match == nil {
+			continue
+		}
+		if len(groups) == 0 {
+			groups = append(groups, PaletteGroup{Title: "Palette"})
+		}
+		groups[len(groups)-1].Vars = append(groups[len(groups)-1].Vars, match[1])
+		seen[match[1]] = true
+		startNew = false
+	}
+	var rest []string
+	for name := range palette {
+		if !seen[name] {
+			rest = append(rest, name)
+		}
+	}
+	if len(rest) > 0 {
+		sort.Strings(rest)
+		groups = append(groups, PaletteGroup{Title: "Other", Vars: rest})
+	}
+	var kept []PaletteGroup
+	for _, group := range groups {
+		if len(group.Vars) > 0 {
+			kept = append(kept, group)
+		}
+	}
+	return kept
 }

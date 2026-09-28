@@ -37,6 +37,12 @@ type Style struct {
 	Palette  map[string]string               `json:"palette"`
 	Distinct map[string]config.DistinctGroup `json:"distinct"`
 	Looks    []NamedLook                     `json:"looks"`
+
+	// PaletteGroups orders the palette as its style file does.
+	PaletteGroups []config.PaletteGroup `json:"paletteGroups"`
+	// Sources says, for every style in the stylesheet (templates included),
+	// what it combines and which style supplied each channel.
+	Sources map[string]config.StyleSource `json:"sources"`
 }
 
 // NamedLook is a resolved style from the stylesheet, shown in the studio's gallery.
@@ -57,12 +63,14 @@ type Filter struct {
 // styles a script can use directly are included: final styles and the fallback.
 func NewStyle(definition config.StyleDefinition, sheet *config.Stylesheet) Style {
 	style := Style{
-		ID:       definition.ID,
-		Name:     definition.Name,
-		Suffix:   definition.Suffix,
-		File:     definition.Path,
-		Palette:  definition.Palette,
-		Distinct: sheet.Studio.Distinct,
+		ID:            definition.ID,
+		Name:          definition.Name,
+		Suffix:        definition.Suffix,
+		File:          definition.Path,
+		Palette:       definition.Palette,
+		Distinct:      sheet.Studio.Distinct,
+		PaletteGroups: definition.PaletteGroups,
+		Sources:       sheet.Sources,
 	}
 	for name, resolved := range sheet.Styles {
 		if name == "Fallback" || strings.HasPrefix(name, "Final/") || strings.Contains(name, "/Final/") {

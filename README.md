@@ -188,12 +188,25 @@ in a browser; it needs no server.
   evaluates it against the selected compiled filter using the current area
   slider, and keeps a separate inspector showing active and shadowed rules
   plus the applied text, background, border, font, beam, minimap and sound
-  styling.
-- **Palette.** Checks every final style's text and border contrast (APCA,
-  with targets by font size) and the stylesheet's `[Studio.Distinct]` groups
-  (CIEDE2000), and shows every style as a label. Edit any palette colour to
-  recolour both views live, then copy the changes as TOML lines for the style
-  file's `[Palette]` table.
+  styling. Base defences are recovered from the copied values by undoing local
+  defence mods and quality, so `BaseArmour` and `BaseDefencePercentile`
+  (max-roll) evaluate as they do in the game.
+- **Palette.** A searchable style browser. Final styles are grouped by what
+  the item is (uniques, equipment, crafting bases, links and sockets, gems,
+  currency, maps and atlas, league mechanics, ...) in collapsible sections,
+  with a category sidebar that counts styles and issues. Search matches style
+  paths, palette colour names, sounds and icon shapes; "Only styles with
+  issues" narrows the list to failing contrast checks. The checks cover every
+  final style's text and border contrast (APCA, with targets by font size) and
+  the stylesheet's `[Studio.Distinct]` groups (CIEDE2000).
+- **Palette colours.** Grouped as the style file's `[Palette]` comments group
+  them. Each colour shows how many styles use it; the count jumps the browser to
+  those styles. Edit a colour to recolour both views live, then copy the
+  changes as TOML lines for the style file.
+- **Source.** Every style in the browser and every rule in the inspectors has
+  a Source view: the tree of styles it combines, what each of them sets, and
+  which style supplied each channel of the result. Max-roll precedence copies
+  show both the rule they restyle and the max-roll style.
 
 Item sizes are approximated per item class, and conditions the studio does not
 understand are flagged instead of guessed.
@@ -201,7 +214,9 @@ understand are flagged instead of guessed.
 The enabled themes share a documented [visual channel policy](configuration/CHANNELS.md):
 text and size show pickup priority, backgrounds show purpose, and borders show
 the selected special property. Crafting bases keep their forge field and edge;
-normal and magic bases use the same priority text. Gem quality and Vaal status
+normal and magic bases use the same priority text. Max-rolled armour takes
+precedence over the styling of any rule that shows it, without making anything
+visible that the filter would hide. Gem quality and Vaal status
 cannot replace the tier's beam, sound, text or minimap signals. Links and
 sockets are deliberately secondary because their layout is already visible on
 the item label; only 5/6-link and 5/6-socket cases keep a stronger border, and

@@ -60,7 +60,7 @@ func TestPastedItemRecoversItsBaseDefenceRoll(t *testing.T) {
 		section(t, "/* ---------- pasted Path of Exile items ---------- */", "/* ---------- rendering: shared ---------- */"),
 		`const text = require('fs').readFileSync(0, 'utf8');`,
 		`const item = parseGameItem(text);`,
-		`console.log(JSON.stringify({ base: item.base, cls: item.cls, rarity: item.rarity, armour: item.armour, evasion: item.evasion, pct: item.defencePercentile, links: item.links, ilvl: item.ilvl }));`,
+		`console.log(JSON.stringify({ mods: item.mods, base: item.base, cls: item.cls, rarity: item.rarity, armour: item.armour, evasion: item.evasion, pct: item.defencePercentile, links: item.links, ilvl: item.ilvl }));`,
 	}, "\n")
 	cmd := exec.Command(node, "-e", script)
 	cmd.Stdin = strings.NewReader(pastedLightBrigandine)
@@ -69,6 +69,7 @@ func TestPastedItemRecoversItsBaseDefenceRoll(t *testing.T) {
 		t.Fatalf("node: %v\n%s", err, out)
 	}
 	var got struct {
+		Mods              []string
 		Base, Cls, Rarity string
 		Armour, Evasion   int
 		Pct               int
@@ -83,6 +84,11 @@ func TestPastedItemRecoversItsBaseDefenceRoll(t *testing.T) {
 	}
 	if got.Armour != 63 || got.Evasion != 63 || got.Pct != 100 {
 		t.Errorf("base defences 63/63 at percentile 100 expected, got %d/%d at %d", got.Armour, got.Evasion, got.Pct)
+	}
+	for _, mod := range got.Mods {
+		if strings.HasPrefix(mod, "Level:") || strings.HasPrefix(mod, "Str:") || strings.HasPrefix(mod, "Dex:") {
+			t.Errorf("requirement line read as a mod: %q", mod)
+		}
 	}
 	if len(got.Links) != 1 || len(got.Links[0]) != 3 {
 		t.Errorf("sockets W-W-W should be one 3-link group, got %v", got.Links)

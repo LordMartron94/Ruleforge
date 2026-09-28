@@ -145,8 +145,70 @@
   textarea.fallback { width: 100%; min-height: 120px; background: var(--page); color: var(--text); border: 1px solid var(--rule); font: 0.75rem var(--mono); }
   .empty { color: var(--muted); font-size: 0.9rem; }
 
+  /* Style browser */
+  .pv-toolbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .pv-toolbar input[type="search"] { flex: 1 1 320px; min-width: 0; background: var(--panel); border: 1px solid var(--rule); padding: 8px 10px; font-size: .92rem; }
+  .pv-toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: .9rem; }
+  .pv-count { font: .8rem var(--mono); color: var(--muted); }
+  .pv-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 18px; align-items: start; }
+  .pv-nav { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; display: grid; gap: 2px; background: var(--panel); border: 1px solid var(--rule); padding: 8px; }
+  .pv-nav button { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; padding: 6px 8px; cursor: pointer; font-size: .88rem; color: var(--text); }
+  .pv-nav button:hover { background: var(--panel-2); }
+  .pv-nav button .n { font: .74rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .pv-nav button .n b { color: var(--bad); font-weight: 500; }
+  .pv-nav .pv-nav-title { font: 500 .7rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 4px 8px 6px; }
+  .pv-main { display: grid; gap: 14px; min-width: 0; }
+  details.pv-panel, details.pv-cat, details.ed-set { background: var(--panel); border: 1px solid var(--rule); }
+  details.pv-panel > summary, details.pv-cat > summary, details.ed-set > summary {
+    cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 11px 14px;
+  }
+  details.pv-panel > summary::-webkit-details-marker, details.pv-cat > summary::-webkit-details-marker, details.ed-set > summary::-webkit-details-marker { display: none; }
+  details.pv-panel > summary > span:first-child, details.pv-cat > summary > span:first-child { font: 700 1.15rem var(--display); }
+  details.pv-panel > summary > span:first-child::before, details.pv-cat > summary > span:first-child::before, details.ed-set > summary > span:first-child::before {
+    content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); transition: transform .12s ease;
+  }
+  details[open] > summary > span:first-child::before { transform: rotate(90deg); }
+  .pv-sum { font: .78rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .pv-sum b { color: var(--bad); font-weight: 500; }
+  details.pv-panel > :not(summary) { padding: 0 14px 14px; }
+  details.pv-cat > .pv-cat-body { padding: 0 14px 12px; display: grid; gap: 10px; }
+  details.ed-set { background: var(--page); }
+  details.ed-set > summary { padding: 8px 10px; font: 500 .8rem var(--mono); color: var(--text); }
+  details.ed-set > .ed-grid { padding: 0 10px 10px; }
+  .ed-row { grid-template-columns: 34px minmax(0, 1fr) auto auto; }
+  .ed-row .used { background: transparent; border: 1px solid var(--rule); padding: 1px 6px; cursor: pointer; font: .7rem var(--mono); color: var(--muted); }
+  .ed-row .used:hover { color: var(--text); border-color: var(--muted); }
+  .pv-sub { font: 500 .7rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding-top: 4px; }
+  .pv-row { display: grid; grid-template-columns: minmax(150px, 230px) minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--rule); }
+  .pv-preview { display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 6px; background: #15161a; overflow: hidden; }
+  .pv-name { font-size: .92rem; overflow-wrap: anywhere; }
+  .pv-name small { display: block; font: .72rem var(--mono); color: var(--faint); }
+  .pv-chips { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; font: .72rem var(--mono); color: var(--muted); }
+  .pv-chips span { display: inline-flex; gap: 4px; align-items: center; }
+  .pv-side { display: grid; gap: 6px; justify-items: end; }
+  .pv-lc { font: .74rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .pv-lc.bad { color: var(--bad); }
+  .src-btn { background: transparent; border: 1px solid var(--rule); padding: 3px 9px; cursor: pointer; font: .74rem var(--mono); color: var(--muted); }
+  .src-btn[aria-expanded="true"], .src-btn:hover { color: var(--text); border-color: var(--muted); }
+  .pv-source { grid-column: 1 / -1; }
+  .source-view { display: grid; gap: 10px; padding: 10px 12px; background: var(--page); border: 1px solid var(--rule); font-size: .82rem; }
+  .source-view .note { color: var(--muted); }
+  .source-tree, .source-tree ul { list-style: none; margin: 0; padding: 0; }
+  .source-tree ul { padding-left: 16px; border-left: 1px solid var(--rule); margin-left: 5px; }
+  .source-tree li { padding: 2px 0; font: .76rem/1.45 var(--mono); }
+  .source-tree .own { color: var(--muted); }
+  .source-channels { width: 100%; border-collapse: collapse; font: .75rem var(--mono); }
+  .source-channels th, .source-channels td { text-align: left; padding: 3px 8px 3px 0; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  .source-channels th { color: var(--muted); font-weight: 400; }
+  .source-channels td.from { color: var(--accent); overflow-wrap: anywhere; }
+  mark { background: rgba(255, 202, 73, .28); color: inherit; padding: 0 1px; }
+
+
   @media (max-width: 980px) {
-    .loot-grid, .palette-grid, .import-grid { grid-template-columns: minmax(0, 1fr); }
+    .loot-grid, .palette-grid, .import-grid, .pv-layout { grid-template-columns: minmax(0, 1fr); }
+    .pv-nav { position: static; max-height: none; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .pv-row { grid-template-columns: minmax(0, 1fr); }
+    .pv-side { justify-items: start; grid-auto-flow: column; }
     .inspector { position: static; max-height: none; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -201,24 +263,39 @@
   </section>
 
   <section id="palette" class="stack" hidden>
-    <div class="palette-grid">
-      <div class="checks" id="checks"></div>
-      <div class="checks" id="distinct"></div>
+    <div class="pv-toolbar">
+      <input type="search" id="pv-search" placeholder="Search styles and colours: name, palette colour, hex, sound…" aria-label="Search styles and colours">
+      <label class="pv-toggle"><input type="checkbox" id="pv-issues"> Only styles with issues</label>
+      <button class="btn" id="pv-expand" type="button">Expand all</button>
+      <button class="btn" id="pv-collapse" type="button">Collapse all</button>
+      <span class="pv-count" id="pv-count" role="status"></span>
     </div>
-    <details class="editor" id="editor">
-      <summary>Adjust this style's palette</summary>
-      <div class="ed-body">
-        <p class="muted">Change a colour and every label on both views updates. Copy the changes and paste them into the style file's [Palette] table (or back to Claude). Edits are kept in this browser only.</p>
-        <div class="ed-actions">
-          <button class="btn primary" id="copy-changes" type="button">Copy changes as TOML</button>
-          <button class="btn" id="reset" type="button">Reset this style</button>
-          <span class="status" id="status" role="status"></span>
-        </div>
-        <textarea class="fallback" id="fallback" hidden readonly aria-label="Copy this text"></textarea>
-        <div id="ed-groups" class="stack"></div>
+    <div class="pv-layout">
+      <nav class="pv-nav" id="pv-nav" aria-label="Style categories"></nav>
+      <div class="pv-main">
+        <details class="pv-panel" id="pv-checks" data-key="panel:checks" open>
+          <summary><span>Checks</span><span class="pv-sum" id="pv-checks-sum"></span></summary>
+          <div class="palette-grid">
+            <div class="checks" id="checks"></div>
+            <div class="checks" id="distinct"></div>
+          </div>
+        </details>
+        <details class="pv-panel" id="pv-colours" data-key="panel:colours">
+          <summary><span>Palette colours</span><span class="pv-sum" id="pv-colours-sum"></span></summary>
+          <div class="ed-body">
+            <p class="muted">Changing a colour recolours every style that uses it, on both views. "Used by" lists those styles. Copy your changes into the style file's [Palette] table (or back to Claude); edits are kept in this browser only.</p>
+            <div class="ed-actions">
+              <button class="btn primary" id="copy-changes" type="button">Copy changes as TOML</button>
+              <button class="btn" id="reset" type="button">Reset this style</button>
+              <span class="status" id="status" role="status"></span>
+            </div>
+            <textarea class="fallback" id="fallback" hidden readonly aria-label="Copy this text"></textarea>
+            <div id="ed-groups" class="stack"></div>
+          </div>
+        </details>
+        <div id="gallery" class="stack"></div>
       </div>
-    </details>
-    <div id="gallery" class="stack"></div>
+    </div>
   </section>
 </div>
 
@@ -303,11 +380,14 @@ const state = {
   seed: store.get('seed', 1),
   edits: store.get('edits', {}),
   importText: store.get('importText', ''),
+  pvSearch: store.get('pvSearch', ''),
+  pvIssues: store.get('pvIssues', false),
+  pvOpen: store.get('pvOpen', {}),
   imported: null,
   selected: 0,
 };
 if (!DATA.styles.some(s => s.id === state.style)) state.style = DATA.styles[0].id;
-const persist = () => ['view', 'script', 'style', 'ground', 'area', 'count', 'mix', 'showHidden', 'seed', 'edits', 'importText'].forEach(k => store.set(k, state[k]));
+const persist = () => ['view', 'script', 'style', 'ground', 'area', 'count', 'mix', 'showHidden', 'seed', 'edits', 'importText', 'pvSearch', 'pvIssues', 'pvOpen'].forEach(k => store.set(k, state[k]));
 const currentStyle = () => DATA.styles.find(s => s.id === state.style);
 const currentFilter = () => DATA.filters.find(f => f.script === state.script && f.style === state.style);
 const palette = () => ({ ...currentStyle().palette, ...(state.edits[state.style] || {}) });
@@ -551,6 +631,8 @@ function matchingBlocks(item, blocks) {
 /* ---------- pasted Path of Exile items ---------- */
 const IMPORT_METADATA = /^(Rarity|Item Class|Item Level|Drop Level|Map Tier|Stack Size|Quality|Sockets|LevelReq|Requirements|Implicits|Explicits|Prefixes|Suffixes|Armour|Evasion Rating|Energy Shield|Ward):/i;
 const IMPORT_FLAGS = /^(Corrupted|Fractured Item|Mirrored|Synthesised Item|Replica|Unidentified)$/i;
+// Requirement lines sit between dividers like mods do, but are not mods.
+const IMPORT_REQUIREMENTS = /^(Level|Str|Dex|Int|Class):\s/i;
 function importKnown(name) {
   if (!name) return null;
   const equipment = pool.equipment.find(b => b.name === name);
@@ -606,7 +688,7 @@ function parseGameItem(text) {
   const itemLevel = numericHeader(lines, 'Item Level');
   const mapTier = numericHeader(lines, 'Map Tier');
   const firstDivider = divider < 0 ? lines.length : divider;
-  const modLines = lines.slice(firstDivider + 1).filter(l => l !== '--------' && !IMPORT_METADATA.test(l) && !IMPORT_FLAGS.test(l));
+  const modLines = lines.slice(firstDivider + 1).filter(l => l !== '--------' && !IMPORT_METADATA.test(l) && !IMPORT_FLAGS.test(l) && !IMPORT_REQUIREMENTS.test(l));
   const base = known && known.base ? known.base : '';
   const equipment = known && known.equipment;
   const item = {
@@ -806,6 +888,9 @@ function renderInspectorTarget(d, boxId, emptyText) {
       ul.innerHTML = b.conditions.map(c => `<li>${fmtCondition(c)}</li>`).join('');
       card.append(ul);
     }
+    const tools = document.createElement('div'); tools.className = 'alerts';
+    card.append(tools);
+    tools.append(sourceToggle(b.style, b.look, P, card));
     box.append(card);
   });
 }
@@ -828,8 +913,167 @@ function borderLc(look, P) {
   if (b.toUpperCase() === g.toUpperCase() || hex2rgba(b)[3] === 0) return null;
   return Math.abs(apca(flatten(b), flatten(g)));
 }
-function renderPalette(rebuildEditor = true) {
-  const style = currentStyle(), P = palette();
+function checkRow(name, val, lvl) {
+  return `<div class="check"><span class="pill ${lvl}">${lvl === 'ok' ? 'Pass' : lvl === 'warn' ? 'Close' : 'Fail'}</span><span>${escapeHTML(name)}</span><span class="val">${escapeHTML(val)}</span></div>`;
+}
+
+// Categories for the style browser, first match wins. Each final style path is
+// grouped by what the item is, the way FilterBlade's customizer is organised.
+const STYLE_CATEGORIES = [
+  ['Uniques', /^Final\/Uniques\//],
+  ['Equipment', /^Final\/(Equipment|OldEquipment|UnassociatedEquipment)\//],
+  ['Jewellery & jewels', /^Final\/(Jewelry\/|Jewels$)/],
+  ['Crafting bases', /^Final\/Crafting\//],
+  ['Links & sockets', /^Final\/Special\/(Sockets\/|RGB)/],
+  ['Gems', /^Final\/(Gems\/|Special\/(Quality\/Gems|Vaal))/],
+  ['Flasks', /^Final\/(Flasks|OldFlasks|Special\/Quality\/MaxQualityFlask)/],
+  ['Currency & supplies', /^Final\/(Orbs|Supplies|Catalysts)\//],
+  ['Gold', /^Final\/Leagues\/Gold_/],
+  ['Divination cards', /^Final\/Divination\//],
+  ['Maps & atlas', /^(Final\/(Maps|Scarabs)\/|Final\/Leagues\/Chart$|Special\/MapFragments\/)/],
+  ['Essences & oils', /^Special\/(Essences|Oils)\//],
+  ['League mechanics', /^Final\/(Leagues|Eldritch)\//],
+  ['Labyrinth', /^Final\/Lab$/],
+  ['Diagnostics', /^Fallback$/],
+];
+function styleCategory(name) {
+  const hit = STYLE_CATEGORIES.find(([, re]) => re.test(name));
+  const category = hit ? hit[0] : 'Other';
+  const parts = name.split('/');
+  const sub = parts.slice(0, -1).filter(p => p !== 'Final' && p !== 'Special' && p !== 'Leagues').join(' / ');
+  return { category, sub: sub || category, leaf: parts[parts.length - 1] };
+}
+const lookVars = look => ['text', 'background', 'border'].map(k => look[k] && look[k].var).filter(Boolean);
+function styleIssues(name, look, P) {
+  if (name === 'Fallback') return [];
+  const issues = [];
+  const lc = lookLc(look, P), need = textTarget(look.fontSize || 32);
+  if (lc !== null && lc < need) issues.push(`text Lc ${lc.toFixed(0)} < ${need}`);
+  const lb = borderLc(look, P);
+  if (lb !== null && lb < 40) issues.push(`border Lc ${lb.toFixed(0)} < 40`);
+  return issues;
+}
+function usageIndex(style) {
+  const used = new Map();
+  for (const { name, look } of style.looks) for (const v of lookVars(look)) {
+    if (!used.has(v)) used.set(v, []);
+    if (!used.get(v).includes(name)) used.get(v).push(name);
+  }
+  return used;
+}
+const searchQuery = () => state.pvSearch.trim().toLowerCase();
+function styleMatches(name, look, q) {
+  if (!q) return true;
+  const hay = [name, ...lookVars(look), look.sound || '', look.beam || '', look.minimapShape || '', styleCategory(name).category].join(' ').toLowerCase();
+  return q.split(/\s+/).every(term => hay.includes(term));
+}
+function highlight(text, q) {
+  const safe = escapeHTML(text);
+  if (!q) return safe;
+  const terms = q.split(/\s+/).filter(Boolean).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return terms.length ? safe.replace(new RegExp(`(${terms.join('|')})`, 'gi'), '<mark>$1</mark>') : safe;
+}
+function openState(key, fallback) { return key in state.pvOpen ? state.pvOpen[key] : fallback; }
+function trackOpen(details) {
+  details.addEventListener('toggle', () => { state.pvOpen[details.dataset.key] = details.open; persist(); });
+}
+
+// ---- source view: which styles composed a look, and who supplied each channel ----
+const CHANNELS = [
+  ['text', 'Text colour'], ['background', 'Background'], ['border', 'Border'], ['fontSize', 'Font size'],
+  ['beam', 'Beam'], ['beamTemp', 'Beam temporary'], ['minimapSize', 'Icon size'], ['minimapColor', 'Icon colour'],
+  ['minimapShape', 'Icon shape'], ['sound', 'Sound'], ['volume', 'Volume'],
+];
+function channelValue(key, look, P) {
+  const colour = c => { const hex = colorOf(c, P); return hex ? `<span class="style-swatch" style="background:${hex}"></span> ${escapeHTML(hex)}${c.var ? ` <span class="muted">${escapeHTML(c.var)}</span>` : ''}` : '—'; };
+  switch (key) {
+    case 'text': case 'background': case 'border': return look[key] ? colour(look[key]) : '—';
+    case 'beamTemp': return look.beam ? (look.beamTemp ? 'yes' : 'no') : '—';
+    case 'minimapSize': return look.minimapSize !== undefined && look.minimapSize !== null ? String(look.minimapSize) : '—';
+    case 'minimapColor': return look.minimapColor ? escapeHTML(look.minimapColor) : '—';
+    case 'minimapShape': return look.minimapShape ? escapeHTML(look.minimapShape) : '—';
+    default: return look[key] !== undefined && look[key] !== '' && look[key] !== 0 ? escapeHTML(String(look[key])) : '—';
+  }
+}
+function sourceTree(name, sources, depth = 0, seen = new Set()) {
+  const src = sources[name];
+  const li = document.createElement('li');
+  const own = src && src.own && src.own.length ? ` <span class="own">sets ${src.own.join(', ')}</span>` : '';
+  li.innerHTML = `${escapeHTML(name)}${own}`;
+  if (src && src.combination && src.combination.length && depth < 8 && !seen.has(name)) {
+    const ul = document.createElement('ul');
+    const next = new Set(seen); next.add(name);
+    src.combination.forEach(dep => ul.append(sourceTree(dep, sources, depth + 1, next)));
+    li.append(ul);
+  }
+  return li;
+}
+function sourceView(styleName, look, P) {
+  const box = document.createElement('div'); box.className = 'source-view';
+  const sources = currentStyle().sources || {};
+  let name = styleName || '', precedence = null;
+  if (name.includes(' over ')) {
+    // A max-roll precedence copy: the max-roll style over the rule it restyles.
+    const at = name.indexOf(' over ');
+    precedence = name.slice(0, at); name = name.slice(at + 6);
+    const note = document.createElement('p'); note.className = 'note';
+    note.textContent = `Max-roll precedence copy of the rule below. It keeps ${name}'s background and icon shape, takes ${precedence}'s border, and takes whichever tier ranks higher for text, size, icon, beam and sound.`;
+    box.append(note);
+  }
+  const src = sources[name];
+  if (!src) {
+    const note = document.createElement('p'); note.className = 'note';
+    note.textContent = styleName
+      ? `${styleName} was composed by the compiler from the script (for example a gem tier with its quality border), so it has no stylesheet entry. The applied channels are listed below.`
+      : 'This rule has no recorded style.';
+    box.append(note);
+  } else {
+    const tree = document.createElement('ul'); tree.className = 'source-tree';
+    tree.append(sourceTree(name, sources));
+    if (precedence && sources[precedence]) tree.append(sourceTree(precedence, sources));
+    box.append(tree);
+  }
+  const table = document.createElement('table'); table.className = 'source-channels';
+  table.innerHTML = '<thead><tr><th>Channel</th><th>Value</th><th>Supplied by</th></tr></thead>';
+  const body = document.createElement('tbody');
+  for (const [key, label] of CHANNELS) {
+    const value = channelValue(key, look, P);
+    let from = src && src.channels[key] ? src.channels[key] : (value === '—' ? '' : 'the compiler');
+    if (precedence && sources[precedence]) {
+      const owner = sources[precedence].channels[key];
+      if (key === 'border' || (owner && look[key] !== undefined && channelFromPrecedence(key, look, precedence))) from = owner || precedence;
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<th>${label}</th><td>${value}</td><td class="from">${escapeHTML(from)}</td>`;
+    body.append(tr);
+  }
+  table.append(body); box.append(table);
+  return box;
+}
+// For a precedence copy, a tier channel came from the max-roll style when its
+// value equals that style's value and differs from the restyled rule's.
+function channelFromPrecedence(key, look, precedenceName) {
+  const entry = currentStyle().looks.find(l => l.name === precedenceName);
+  if (!entry) return false;
+  const a = entry.look[key], b = look[key];
+  const same = (x, y) => (x && y && typeof x === 'object') ? x.hex === y.hex : x === y;
+  return same(a, b) && ['text', 'fontSize', 'minimapSize', 'minimapColor', 'sound', 'volume', 'beam', 'beamTemp'].includes(key);
+}
+function sourceToggle(styleName, look, P, host) {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'src-btn'; btn.textContent = 'Source'; btn.setAttribute('aria-expanded', 'false');
+  const panel = document.createElement('div'); panel.className = 'pv-source'; panel.hidden = true;
+  btn.addEventListener('click', () => {
+    const open = panel.hidden;
+    if (open && !panel.childElementCount) panel.append(sourceView(styleName, look, P));
+    panel.hidden = !open; btn.setAttribute('aria-expanded', String(open));
+  });
+  host.append(panel);
+  return btn;
+}
+
+// ---- checks ----
+function renderChecks(style, P) {
   let textOK = 0, textN = 0, bdOK = 0, bdN = 0; const fails = [];
   for (const { name, look } of style.looks) {
     if (name === 'Fallback') continue;
@@ -838,17 +1082,15 @@ function renderPalette(rebuildEditor = true) {
     const lb = borderLc(look, P);
     if (lb !== null) { bdN++; if (lb >= 40) bdOK++; else fails.push(`<b>border Lc ${lb.toFixed(0)}</b> ${escapeHTML(name)}`); }
   }
-  const checks = document.getElementById('checks');
-  checks.innerHTML = `<h3>Contrast</h3><p class="muted" style="font-size:.82rem">Text targets by font size: APCA Lc 75 at 44+, 70 at 36+, 60 at 27+, 50 at 23+, 42 below. Borders Lc 40.</p>` +
+  document.getElementById('checks').innerHTML = `<h3>Contrast</h3><p class="muted" style="font-size:.82rem">Text targets by font size: APCA Lc 75 at 44+, 70 at 36+, 60 at 27+, 50 at 23+, 42 below. Borders Lc 40.</p>` +
     checkRow('Text contrast', `${textOK} / ${textN} styles`, textOK === textN ? 'ok' : 'bad') +
     checkRow('Borders readable', `${bdOK} / ${bdN} styles`, bdOK === bdN ? 'ok' : 'bad') +
     (fails.length ? `<ul class="fails">${fails.map(f => `<li>${f}</li>`).join('')}</ul>` : '<p class="muted" style="font-size:.85rem">Every final style meets its target.</p>');
 
-  const distinct = document.getElementById('distinct');
   const groups = Object.entries(style.distinct || {});
   let html = `<h3>Colours kept apart</h3><p class="muted" style="font-size:.82rem">Groups from the stylesheet's [Studio.Distinct] tables. Distance is CIEDE2000.</p>`;
   if (!groups.length) html += '<p class="muted" style="font-size:.85rem">This stylesheet declares no groups.</p>';
-  const dfails = [];
+  const dfails = []; let close = 0;
   for (const [name, g] of groups) {
     let min = Infinity, bad = 0;
     const vars = (g.Vars || []).filter(v => P[v]);
@@ -857,40 +1099,94 @@ function renderPalette(rebuildEditor = true) {
       min = Math.min(min, d);
       if (d < g.Min) { bad++; dfails.push(`<b>${name} ΔE ${d.toFixed(1)}</b> ${vars[i]} / ${vars[j]}`); }
     }
+    if (bad) close++;
     html += checkRow(`${name} (≥ ${g.Min})`, vars.length > 1 ? `closest ΔE ${min.toFixed(1)}` : 'one colour', bad ? 'warn' : 'ok');
   }
   if (dfails.length) html += `<ul class="fails">${dfails.map(f => `<li>${f}</li>`).join('')}</ul>`;
-  distinct.innerHTML = html;
+  document.getElementById('distinct').innerHTML = html;
+  const failing = (textN - textOK) + (bdN - bdOK);
+  document.getElementById('pv-checks-sum').innerHTML = `${failing ? `<b>${failing} contrast issue${failing === 1 ? '' : 's'}</b>` : 'contrast ok'} · ${close ? `${close} group${close === 1 ? '' : 's'} close` : 'colours apart'}`;
+}
 
+// ---- style list ----
+function renderStyleList(style, P) {
+  const q = searchQuery();
   const gallery = document.getElementById('gallery'); gallery.replaceChildren();
-  const byGroup = new Map();
+  const nav = document.getElementById('pv-nav'); nav.replaceChildren();
+  const title = document.createElement('div'); title.className = 'pv-nav-title'; title.textContent = 'Categories'; nav.append(title);
+  const cats = new Map();
+  let shown = 0, total = 0;
   for (const entry of style.looks) {
-    const key = entry.name.includes('/') ? entry.name.slice(0, entry.name.lastIndexOf('/')) : entry.name;
-    if (!byGroup.has(key)) byGroup.set(key, []);
-    byGroup.get(key).push(entry);
+    total++;
+    const issues = styleIssues(entry.name, entry.look, P);
+    if (state.pvIssues && !issues.length) continue;
+    if (!styleMatches(entry.name, entry.look, q)) continue;
+    shown++;
+    const { category, sub } = styleCategory(entry.name);
+    if (!cats.has(category)) cats.set(category, { subs: new Map(), count: 0, issues: 0 });
+    const cat = cats.get(category);
+    cat.count++; if (issues.length) cat.issues++;
+    if (!cat.subs.has(sub)) cat.subs.set(sub, []);
+    cat.subs.get(sub).push({ ...entry, issues });
   }
-  for (const [key, entries] of byGroup) {
-    const g = document.createElement('div'); g.className = 'gallery-group';
-    const h = document.createElement('span'); h.className = 'eyebrow'; h.textContent = key;
-    const grid = document.createElement('div'); grid.className = 'gallery';
-    entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    for (const { name, look } of entries) {
-      const t = document.createElement('div'); t.className = 'tile';
-      const stage = document.createElement('div'); stage.className = 'stage';
-      stage.append(labelEl(name.slice(name.lastIndexOf('/') + 1), look, P, 'Normal', 0.85));
-      const lc = lookLc(look, P);
-      const cap = document.createElement('div'); cap.className = 'cap';
-      const low = lc !== null && lc < textTarget(look.fontSize || 32) && name !== 'Fallback';
-      cap.innerHTML = `<span>${look.fontSize || '–'} pt${look.beam ? ' · ' + look.beam + ' beam' : ''}</span><span class="${low ? 'near' : ''}">${lc === null ? '' : 'Lc ' + lc.toFixed(0)}</span>`;
-      t.append(stage, cap); grid.append(t);
-    }
-    g.append(h, grid); gallery.append(g);
+  const order = [...STYLE_CATEGORIES.map(c => c[0]), 'Other'];
+  for (const category of order.filter(c => cats.has(c))) {
+    const cat = cats.get(category);
+    const details = document.createElement('details'); details.className = 'pv-cat';
+    details.dataset.key = 'cat:' + category; details.id = 'cat-' + category.replace(/\W+/g, '-');
+    details.open = q || state.pvIssues ? true : openState(details.dataset.key, false);
+    trackOpen(details);
+    const summary = document.createElement('summary');
+    summary.innerHTML = `<span>${escapeHTML(category)}</span><span class="pv-sum">${cat.count} style${cat.count === 1 ? '' : 's'}${cat.issues ? ` · <b>${cat.issues} with issues</b>` : ''}</span>`;
+    details.append(summary);
+    const body = document.createElement('div'); body.className = 'pv-cat-body';
+    // Rows are only built when the category is open, so a closed page stays light.
+    const build = () => {
+      if (body.childElementCount) return;
+      for (const [sub, entries] of cat.subs) {
+        if (cat.subs.size > 1 || sub !== category) { const h = document.createElement('div'); h.className = 'pv-sub'; h.textContent = sub; body.append(h); }
+        entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        for (const entry of entries) body.append(styleRow(entry, P, q));
+      }
+    };
+    if (details.open) build();
+    details.addEventListener('toggle', () => { if (details.open) build(); });
+    details.append(body);
+    gallery.append(details);
+
+    const link = document.createElement('button'); link.type = 'button';
+    link.innerHTML = `<span>${escapeHTML(category)}</span><span class="n">${cat.count}${cat.issues ? ` · <b>${cat.issues}!</b>` : ''}</span>`;
+    link.addEventListener('click', () => { details.open = true; build(); details.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    nav.append(link);
   }
-  if (rebuildEditor) renderEditor();
+  if (!shown) gallery.innerHTML = `<p class="empty">No styles match${q ? ` “${escapeHTML(state.pvSearch)}”` : ''}${state.pvIssues ? ' with issues' : ''}.</p>`;
+  document.getElementById('pv-count').textContent = `${shown} of ${total} styles`;
 }
-function checkRow(name, val, lvl) {
-  return `<div class="check"><span class="pill ${lvl}">${lvl === 'ok' ? 'Pass' : lvl === 'warn' ? 'Close' : 'Fail'}</span><span>${escapeHTML(name)}</span><span class="val">${escapeHTML(val)}</span></div>`;
+function styleRow(entry, P, q) {
+  const { name, look, issues } = entry;
+  const row = document.createElement('div'); row.className = 'pv-row';
+  const preview = document.createElement('div'); preview.className = 'pv-preview';
+  preview.append(labelEl(styleCategory(name).leaf, look, P, 'Normal', 0.8));
+  const meta = document.createElement('div');
+  meta.innerHTML = `<div class="pv-name">${highlight(styleCategory(name).leaf, q)}<small>${highlight(name, q)}</small></div>`;
+  const chips = document.createElement('div'); chips.className = 'pv-chips';
+  const chip = (label, colour) => { const s = document.createElement('span'); if (colour) { const d = document.createElement('span'); d.className = 'style-swatch'; d.style.background = colour; s.append(d); } const t = document.createElement('span'); t.innerHTML = label; s.append(t); chips.append(s); };
+  for (const key of ['text', 'background', 'border']) if (look[key]) chip(highlight(look[key].var || colorOf(look[key], P), q), colorOf(look[key], P));
+  chip(`${look.fontSize || '–'} pt`);
+  if (look.beam) chip(`${escapeHTML(look.beam)} beam${look.beamTemp ? ' (temp)' : ''}`, BEAM[look.beam]);
+  if (look.minimapShape) chip(`icon ${look.minimapSize} ${escapeHTML(look.minimapColor)} ${highlight(look.minimapShape, q)}`);
+  if (look.sound) chip(`♪ ${highlight(look.sound, q)}`);
+  meta.append(chips);
+  const side = document.createElement('div'); side.className = 'pv-side';
+  const lc = lookLc(look, P);
+  const badge = document.createElement('span'); badge.className = 'pv-lc' + (issues.length ? ' bad' : '');
+  badge.textContent = issues.length ? issues.join(' · ') : (lc === null ? '' : `Lc ${lc.toFixed(0)}`);
+  side.append(badge, sourceToggle(name, look, P, row));
+  row.prepend(preview, meta, side);
+  return row;
 }
+
+// ---- palette colours ----
 function paletteGroup(name) {
   if (name.startsWith('rad-')) return 'Radiance';
   if (/^t\d+(-|$)/.test(name)) return 'Tier text';
@@ -899,22 +1195,41 @@ function paletteGroup(name) {
   if (name.startsWith('id-')) return 'Identity colours';
   return 'Other';
 }
-function renderEditor() {
-  const style = currentStyle(), O = style.palette, E = state.edits[style.id] || {}, P = palette();
-  const host = document.getElementById('ed-groups'); host.replaceChildren();
+function paletteSets(style) {
+  // The style file's own comment headings, or name prefixes when it has none.
+  if (style.paletteGroups && style.paletteGroups.length > 1) return style.paletteGroups.map(g => [g.title, g.vars]);
   const groups = new Map();
-  Object.keys(O).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(k => {
+  Object.keys(style.palette).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(k => {
     const g = paletteGroup(k); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(k);
   });
-  for (const [title, keys] of groups) {
-    const g = document.createElement('div'); g.className = 'ed-group';
-    g.innerHTML = `<h4>${title}</h4>`;
+  return [...groups];
+}
+function renderEditor() {
+  const style = currentStyle(), O = style.palette, E = state.edits[style.id] || {}, P = palette();
+  const q = searchQuery(), used = usageIndex(style);
+  const host = document.getElementById('ed-groups'); host.replaceChildren();
+  let shown = 0;
+  for (const [title, keys] of paletteSets(style)) {
+    const visible = keys.filter(k => O[k] && (!q || [k, P[k], title].join(' ').toLowerCase().includes(q)));
+    if (!visible.length) continue;
+    shown += visible.length;
+    const set = document.createElement('details'); set.className = 'ed-set';
+    set.dataset.key = 'pal:' + title; set.open = q ? true : openState(set.dataset.key, true);
+    trackOpen(set);
+    const changed = visible.filter(k => k in E).length;
+    set.innerHTML = `<summary><span>${escapeHTML(title)}</span><span class="pv-sum">${visible.length}${changed ? ` · ${changed} changed` : ''}</span></summary>`;
     const grid = document.createElement('div'); grid.className = 'ed-grid';
-    for (const k of keys) {
-      const row = document.createElement('label'); row.className = 'ed-row' + (k in E ? ' changed' : '');
+    for (const k of visible) {
+      const row = document.createElement('div'); row.className = 'ed-row' + (k in E ? ' changed' : '');
       const inp = document.createElement('input'); inp.type = 'color'; inp.value = P[k].slice(0, 7).toLowerCase(); inp.id = `ed-${style.id}-${k}`;
-      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = k;
+      inp.setAttribute('aria-label', k);
+      const nm = document.createElement('label'); nm.className = 'nm'; nm.htmlFor = inp.id; nm.innerHTML = highlight(k, q);
       const hx = document.createElement('span'); hx.textContent = P[k].toUpperCase();
+      const users = used.get(k) || [];
+      const use = document.createElement('button'); use.type = 'button'; use.className = 'used';
+      use.textContent = users.length ? `used by ${users.length}` : 'unused';
+      use.title = users.slice(0, 12).join('\n') + (users.length > 12 ? `\n… and ${users.length - 12} more` : '');
+      use.addEventListener('click', () => { setSearch(k); document.getElementById('gallery').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
       inp.addEventListener('input', () => {
         const alpha = O[k].length === 9 ? O[k].slice(7) : '';
         const v = (inp.value + alpha).toUpperCase();
@@ -923,10 +1238,25 @@ function renderEditor() {
         hx.textContent = v; row.classList.toggle('changed', k in state.edits[style.id]);
         persist(); refreshColours();
       });
-      row.append(inp, nm, hx); grid.append(row);
+      row.append(inp, nm, hx, use); grid.append(row);
     }
-    g.append(grid); host.append(g);
+    set.append(grid); host.append(set);
   }
+  if (!shown) host.innerHTML = `<p class="empty">No palette colours match “${escapeHTML(state.pvSearch)}”.</p>`;
+  const edits = Object.keys(E).length;
+  document.getElementById('pv-colours-sum').textContent = `${Object.keys(O).length} colours${edits ? ` · ${edits} changed` : ''}`;
+}
+function renderPalette(rebuildEditor = true) {
+  const style = currentStyle(), P = palette();
+  renderChecks(style, P);
+  renderStyleList(style, P);
+  if (rebuildEditor) renderEditor();
+}
+function setSearch(value) {
+  state.pvSearch = value;
+  const input = document.getElementById('pv-search');
+  if (input.value !== value) input.value = value;
+  persist(); renderPalette();
 }
 let refreshTimer = 0;
 function refreshColours() {
@@ -971,6 +1301,21 @@ mix.addEventListener('change', () => { state.mix = mix.value; persist(); roll();
 const showHidden = document.getElementById('show-hidden'); showHidden.checked = state.showHidden;
 showHidden.addEventListener('change', () => { state.showHidden = showHidden.checked; persist(); renderLoot(); });
 document.getElementById('roll').addEventListener('click', () => { state.seed++; state.selected = 0; persist(); roll(); renderLoot(); });
+
+const pvSearch = document.getElementById('pv-search');
+pvSearch.value = state.pvSearch;
+let pvTimer = 0;
+pvSearch.addEventListener('input', () => { clearTimeout(pvTimer); pvTimer = setTimeout(() => setSearch(pvSearch.value), 120); });
+const pvIssues = document.getElementById('pv-issues');
+pvIssues.checked = state.pvIssues;
+pvIssues.addEventListener('change', () => { state.pvIssues = pvIssues.checked; persist(); renderPalette(false); });
+function setAllOpen(open) {
+  document.querySelectorAll('#palette details[data-key]').forEach(d => { d.open = open; state.pvOpen[d.dataset.key] = open; });
+  persist();
+}
+document.getElementById('pv-expand').addEventListener('click', () => setAllOpen(true));
+document.getElementById('pv-collapse').addEventListener('click', () => setAllOpen(false));
+document.querySelectorAll('#palette details.pv-panel').forEach(d => { d.open = openState(d.dataset.key, d.open); trackOpen(d); });
 
 function evaluateImported() {
   if (!state.imported) return;

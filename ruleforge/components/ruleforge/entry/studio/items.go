@@ -20,12 +20,12 @@ type ItemPool struct {
 
 // EquipmentBase is a wearable, flask or jewel base type.
 type EquipmentBase struct {
-	Name         string `json:"name"`
-	Class        string `json:"class"`
-	DropLevel    int    `json:"drop"`
-	Width        int    `json:"w"`
-	Height       int    `json:"h"`
-	MaxSockets   int    `json:"sockets,omitempty"`
+	Name       string `json:"name"`
+	Class      string `json:"class"`
+	DropLevel  int    `json:"drop"`
+	Width      int    `json:"w"`
+	Height     int    `json:"h"`
+	MaxSockets int    `json:"sockets,omitempty"`
 	// Base defences roll between the Min and the plain (maximum) value.
 	Armour          int `json:"armour,omitempty"`
 	ArmourMin       int `json:"armourMin,omitempty"`
@@ -35,9 +35,9 @@ type EquipmentBase struct {
 	EnergyShieldMin int `json:"esMin,omitempty"`
 	Ward            int `json:"ward,omitempty"`
 	WardMin         int `json:"wardMin,omitempty"`
-	Str          int    `json:"str,omitempty"`
-	Dex          int    `json:"dex,omitempty"`
-	Int          int    `json:"int,omitempty"`
+	Str             int `json:"str,omitempty"`
+	Dex             int `json:"dex,omitempty"`
+	Int             int `json:"int,omitempty"`
 }
 
 // Gem is a skill or support gem.
