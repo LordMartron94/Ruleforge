@@ -183,6 +183,12 @@ in a browser; it needs no server.
   rest are shadowed. Each rule shows its line in the filter, its section, the
   script rule or macro that produced it, its style and its conditions.
   "Showcase" mode draws every tier equally, so rare styles are easy to see.
+- **Pasted item inspector.** Copy an item in Path of Exile with Ctrl+C and
+  paste its text into the Studio. The page parses the plain text locally,
+  evaluates it against the selected compiled filter using the current area
+  slider, and keeps a separate inspector showing active and shadowed rules
+  plus the applied text, background, border, font, beam, minimap and sound
+  styling.
 - **Palette.** Checks every final style's text and border contrast (APCA,
   with targets by font size) and the stylesheet's `[Studio.Distinct]` groups
   (CIEDE2000), and shows every style as a label. Edit any palette colour to
@@ -191,6 +197,21 @@ in a browser; it needs no server.
 
 Item sizes are approximated per item class, and conditions the studio does not
 understand are flagged instead of guessed.
+
+The enabled themes share a documented [visual channel policy](configuration/CHANNELS.md):
+text and size show pickup priority, backgrounds show purpose, and borders show
+the selected special property. Crafting bases keep their forge field and edge;
+normal and magic bases use the same priority text. Gem quality and Vaal status
+cannot replace the tier's beam, sound, text or minimap signals. Links and
+sockets are deliberately secondary because their layout is already visible on
+the item label; only 5/6-link and 5/6-socket cases keep a stronger border, and
+fractured, corrupted or max-rolled state wins first.
+
+The campaign filter covers maps and supplemental mapping supplies below area
+level 68. The simulator samples configured currency rows, including legacy
+items, without enforcing acquisition restrictions. Scouting Reports are retired
+items, so seeing one in a simulated campaign drop does not imply it still drops
+in the game. See the [research note](results/research/2026-09-28-0215-campaign-mapping-items.md).
 
 ## Ruleforge Syntax (.rf files)
 

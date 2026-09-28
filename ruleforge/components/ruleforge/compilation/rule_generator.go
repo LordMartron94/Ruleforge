@@ -207,6 +207,8 @@ func (rg *RuleGenerator) handleMacroExpression(
 	parameters := macroExpressionNode.FindAllSymbolNodes(symbols.ParseSymbolParameter.String())
 
 	switch macroType {
+	case "item_max_roll-equipment":
+		return rg.handleMaxRolledEquipment(variables, parameters, 0, 67)
 	case "item_progression-equipment-leveling":
 		return rg.handleEquipmentProgression(variables, parameters, 0, 67)
 	case "item_progression-equipment-mapping":
@@ -226,6 +228,49 @@ func (rg *RuleGenerator) handleMacroExpression(
 	default:
 		return nil, fmt.Errorf("unsupported macro type: %s", macroType)
 	}
+}
+
+// handleMaxRolledEquipment emits the max-base-stat rules as a dedicated pass.
+// It must run before lower-priority link/socket rules: those properties are
+// visible in the game's label, while a maxed implicit base is not.
+func (rg *RuleGenerator) handleMaxRolledEquipment(
+	variables *map[string][]string,
+	parameters []*shared.ParseTree[symbols.LexingTokenType],
+	minAreaLevel int,
+	maxAreaLevel int,
+) ([][]string, error) {
+	style, err := rg.extractStyle(parameters)
+	if err != nil {
+		return nil, err
+	}
+
+	itemsByCategory := make(map[string][]*model.ItemBase)
+	for i := range rg.armorBases {
+		armor := &rg.armorBases[i]
+		if rg.build.IsArmorAssociated(*armor) {
+			itemsByCategory[armor.Type] = append(itemsByCategory[armor.Type], armor)
+		}
+	}
+
+	categories := make([]string, 0, len(itemsByCategory))
+	for category := range itemsByCategory {
+		categories = append(categories, category)
+	}
+	sort.Strings(categories)
+
+	var generated [][]string
+	for _, category := range categories {
+		buckets, _ := groupProgressionBuckets(itemsByCategory[category], minAreaLevel, maxAreaLevel)
+		for _, bucket := range buckets {
+			for _, item := range bucket.items {
+				if item.Armour == nil {
+					continue
+				}
+				rg.constructMaxRolledGearRule(variables, model2.ShowRule, *item, &generated, style, fmt.Sprintf("%d", bucket.showEndLevel))
+			}
+		}
+	}
+	return generated, nil
 }
 
 //goland:noinspection t
@@ -917,44 +962,26 @@ func parseQualityKey(key string) (int, bool) {
 	return threshold, true
 }
 
-// qualityOverrides decides which side wins when a tier style and a quality
-// style both set the same property. The quality bracket gets the "extra
-// signal" properties (border colour, alert sound, beam) added on top; the
-// tier keeps the "primary identity" properties (text colour, background,
-// font size, minimap) it would have had on its own. This way neither axis
-// gets silently discarded: glancing at an item, its tier still says how
-// economically valuable it is, and a distinct border/sound/beam says it also
-// cleared a quality bracket.
-func qualityOverrides(qualityStyle *config.Style) config.OverrideMap {
-	return config.OverrideMap{
-		"BorderColor": qualityStyle.Name,
-		"DropSound":   qualityStyle.Name,
-		"DropVolume":  qualityStyle.Name,
-		"Beam.Color":  qualityStyle.Name,
-		"Beam.Temp":   qualityStyle.Name,
+// gemPropertyStyle keeps every priority channel owned by the tier, including
+// the absence of a beam or sound. Property styles contribute only their border:
+// a tier-specific border (such as radiance) wins, then Vaal, then quality.
+func gemPropertyStyle(tierStyle, qualityStyle, vaalStyle *config.Style) *config.Style {
+	style := tierStyle.Clone()
+	if style.BorderColor != nil {
+		return style
 	}
+	if qualityStyle != nil {
+		style.BorderColor = qualityStyle.BorderColor.Clone()
+	}
+	if vaalStyle != nil && vaalStyle.BorderColor != nil {
+		style.BorderColor = vaalStyle.BorderColor.Clone()
+	}
+	return style
 }
 
-// emitTierRules produces one Show rule per quality bracket (highest
-// threshold first, so e.g. a 25%-quality item matches ">= 20" before it can
-// fall through to ">= 10"), each styled with tierStyle merged with that
-// bracket's style (see qualityOverrides), followed by one final rule using
-// the plain tierStyle with no quality requirement for anything that doesn't
-// clear a bracket. With no quality brackets configured this emits exactly
-// the single rule generateTieredRules always used to, so unique_tiering and
-// divination_card_tiering (which never pass quality_ parameters) are
-// unaffected.
-// emitTierRules produces one Show rule per quality bracket plus one final
-// plain rule, as described above. If vaalStyle is non-nil, it's merged in
-// last - after quality - onto every rule this call produces, with
-// vaalOverrides making it win any conflicting property. Applying it last
-// means it takes priority over both the tier's own style and quality's
-// contribution: a style merge only ever resolves a conflict in the "other"
-// side's favour when the override map for *that* merge call says so, so
-// whichever style is merged in last has the final say over its claimed
-// properties. Callers are expected to have already restricted baseConditions
-// to a Vaal-only or Vaal-free item_type subset (see splitVaalItems) - this
-// function itself does not filter by name.
+// emitTierRules emits quality brackets in the supplied descending order, then
+// a rule without a quality requirement. Callers split Vaal and non-Vaal bases
+// before reaching this function; property annotations never retier an item.
 func (rg *RuleGenerator) emitTierRules(
 	tierStyle *config.Style,
 	baseConditions []model2.Condition,
@@ -964,26 +991,8 @@ func (rg *RuleGenerator) emitTierRules(
 ) ([][]string, error) {
 	var generatedRules [][]string
 
-	finalize := func(style *config.Style) (*config.Style, error) {
-		if vaalStyle == nil {
-			return style, nil
-		}
-		combined, err := style.MergeStyles(vaalStyle, vaalOverrides(vaalStyle))
-		if err != nil {
-			return nil, fmt.Errorf("combining style with Vaal indicator: %w", err)
-		}
-		return combined, nil
-	}
-
 	for _, bracket := range qualityBrackets {
-		combinedStyle, err := tierStyle.MergeStyles(bracket.style, qualityOverrides(bracket.style))
-		if err != nil {
-			return nil, fmt.Errorf("combining tier style with quality bracket %d: %w", bracket.threshold, err)
-		}
-		combinedStyle, err = finalize(combinedStyle)
-		if err != nil {
-			return nil, err
-		}
+		combinedStyle := gemPropertyStyle(tierStyle, bracket.style, vaalStyle)
 		conditions := append(append([]model2.Condition{}, baseConditions...), model2.Condition{
 			Identifier: "@quality",
 			Operator:   ">=",
@@ -999,10 +1008,7 @@ func (rg *RuleGenerator) emitTierRules(
 		generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
 	}
 
-	plainStyle, err := finalize(tierStyle)
-	if err != nil {
-		return nil, err
-	}
+	plainStyle := gemPropertyStyle(tierStyle, nil, vaalStyle)
 	rule := &model2.ParsedRule{
 		Style:          plainStyle,
 		Action:         model2.ShowRule,
@@ -1013,16 +1019,6 @@ func (rg *RuleGenerator) emitTierRules(
 	generatedRules = append(generatedRules, rg.compileParsedRule(rule, []model2.Condition{})...)
 
 	return generatedRules, nil
-}
-
-// vaalOverrides makes the Vaal indicator style win BorderColor whenever it's
-// merged onto a style that already has one (from the tier or from a quality
-// bracket) - see emitTierRules for why merge order, not this map, is what
-// gives Vaal its priority over quality.
-func vaalOverrides(vaalStyle *config.Style) config.OverrideMap {
-	return config.OverrideMap{
-		"BorderColor": vaalStyle.Name,
-	}
 }
 
 type AutomationGroup struct {

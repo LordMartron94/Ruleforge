@@ -7,7 +7,7 @@
 
 METADATA {
   NAME       => "MartronAradaCampaign"
-  VERSION    => "0.2.0"
+  VERSION    => "0.4.0"
   STRICTNESS => ALL
   BUILD      => "MartronArada"
 }
@@ -86,19 +86,10 @@ SECTION {
   }
 
   RULES {
-    !! Quality is combined directly into every economy tier: a gem keeps its
-    !! tier's primary look (text colour, background, font size, minimap) and,
-    !! if it also clears a quality bracket, gains that bracket's border
-    !! colour/alert sound/beam on top. poe.ninja prices nearly every
-    !! skill/support gem (the 7 tiers below cover ~600 base types, basically
-    !! the whole pool), so quality and tier are no longer competing for the
-    !! same rule - every gem gets both signals at once, regardless of which
-    !! tier it lands in.
-    !!
-    !! $vaal adds a further border-colour indicator for Vaal gems specifically,
-    !! merged in last so it takes priority over quality's own border colour
-    !! when a gem happens to be both (tier's text colour/font/minimap are
-    !! untouched either way, so the economy tier is always still legible).
+    !! Text, size, beam, minimap and sound always keep the economy tier.
+    !! Quality contributes only a border. A tier-specific border (radiance)
+    !! wins over Vaal, which wins over quality. The item name and quality
+    !! remain readable even when a higher-priority border takes the channel.
     MACRO["skill_gem_tiering"
       -> $tier_1 => "Final/Gems/T1"
       -> $tier_2 => "Final/Gems/T2"
@@ -161,8 +152,11 @@ SECTION {
     MACRO["handle_csv" -> $category => "Map Fragments"]
     MACRO["handle_csv" -> $category => "Scarabs"]
 
+    !! Hidden item state is less visible than sockets in the drop label, so
+    !! these property marks must precede the secondary link/socket section.
     MACRO["veiled" -> $style => "Final/Equipment/Veiled"]
     WHERE @fractured == "True" => "Final/Equipment/Fractured" => $Show
+    WHERE @corrupted == "True" => "Final/Equipment/Corrupted" => $Show
   }
 }
 
@@ -195,32 +189,37 @@ SECTION {
   RULES {
     MACRO["handle_csv" -> $category => "Orbs"]
     MACRO["handle_csv" -> $category => "Supplies"]
+
+    !! Supplemental coverage for mapping supplies encountered before maps,
+    !! including reward/manual drops. Earlier campaign tiers win overlaps.
+    !! Scouting Reports are legacy (removed in 3.28); their presence in the
+    !! Studio is synthetic and does not establish a current drop source.
+    !! Orb of Unmaking has natural drop level 70. These rules style items
+    !! on the ground; they intentionally do not impose acquisition rules.
+    MACRO["handle_csv" -> $category => "Orbs-Mapping"]
+    MACRO["handle_csv" -> $category => "Supplies-Mapping"]
   }
 }
 
 SECTION {
   METADATA {
-    NAME        => "Links and Sockets"
-    DESCRIPTION => "Useful links sockets and trichromatic items"
+    NAME        => "Campaign Map Finds"
+    DESCRIPTION => "Maps found before entering the Atlas"
   }
 
   SECTION_CONDITIONS {
     WHERE @area_level < 68
+    WHERE @item_class == "Maps"
   }
 
   RULES {
-    !! In 3.29 ordinary sockets are white and accept every gem. Coloured
-    !! sockets are bonuses. Trichromatic vendor items are limited to compact
-    !! inventory footprints so their value is worth the space they consume.
-    WHERE @socket_group >= "6" => "Final/Special/Sockets/6-link" => $Show
-    WHERE @socket_group >= "4RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB-4-socket" => $Show
-    WHERE @socket_group == "RGB" -> @height == 1 -> @width == 3 => "Final/Special/RGB" => $Show
-    WHERE @socket_group == "RGB" -> @height == 3 -> @width == 1 => "Final/Special/RGB" => $Show
-    WHERE @socket_group == "RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB" => $Show
-    WHERE @sockets >= "6" => "Final/Special/Sockets/6-socket" => $Show
-    WHERE @socket_group >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-link" => $Show
-    WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-socket" => $Show
-    WHERE @area_level <= 24 -> @socket_group >= "3" -> @class_use == "true" => "Final/Special/Sockets/3-link" => $Show
+    !! First maps drop during the campaign. Keep this permissive regardless
+    !! of map tier so reward/manual drops are also visible. This does not
+    !! add any rules for mapping areas. Economy-tiered uniques still win.
+    WHERE @rarity == "Unique" => "Final/Maps/UniqueMaps" => $Show
+    WHERE @rarity == "Rare" => "Final/Maps/LowTierRareT1T2" => $Show
+    WHERE @rarity == "Magic" => "Final/Maps/LowTierMagicT1T2" => $Show
+    WHERE @rarity == "Normal" => "Final/Maps/LowTierNormalT1T2" => $Show
   }
 }
 
@@ -245,10 +244,56 @@ SECTION {
     !! rings). Bases above drop level 67 cannot drop in the campaign; they
     !! are listed for a later mapping section.
     !!
-    !! Placed after the shown links so a 6-link or RGB item keeps its more
-    !! important look, and before every hide rule so an off-class base is
-    !! still shown.
+    !! Placed before the secondary link/socket section so the forge field
+    !! remains the winning look for a qualifying base.
     MACRO["handle_csv" -> $category => "Crafting Bases"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Max-Rolled Armour"
+    DESCRIPTION => "Prioritize armour bases with perfect implicit rolls"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    !! Max-roll attributes are not visible in the ground label. Give them a
+    !! dedicated pass before links and sockets so the hidden value wins the
+    !! styling decision when both properties are present.
+    MACRO["item_max_roll-equipment" -> $style => $equipment_max_rolled]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Links and Sockets"
+    DESCRIPTION => "Secondary styling for visible links sockets and trichromatic items"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    !! Socket and link layouts are already visible on the item label. Keep
+    !! their styling secondary: 3/4-link and RGB marks are quiet, 5/6-link
+    !! and 5/6-socket marks retain a border, and hidden item state (fractured,
+    !! corrupted, veiled, max-roll and quality where applicable) wins first.
+    WHERE @socket_group >= "6" => "Final/Special/Sockets/6-link" => $Show
+    WHERE @socket_group >= "5" => "Final/Special/Sockets/5-link" => $Show
+    WHERE @socket_group >= "4RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB-4-socket" => $Show
+    WHERE @socket_group == "RGB" -> @height == 1 -> @width == 3 => "Final/Special/RGB" => $Show
+    WHERE @socket_group == "RGB" -> @height == 3 -> @width == 1 => "Final/Special/RGB" => $Show
+    WHERE @socket_group == "RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB" => $Show
+    WHERE @sockets >= "6" => "Final/Special/Sockets/6-socket" => $Show
+    WHERE @sockets >= "5" => "Final/Special/Sockets/5-socket" => $Show
+    WHERE @socket_group >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-link" => $Show
+    WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-socket" => $Show
+    WHERE @area_level <= 24 -> @socket_group >= "3" -> @class_use == "true" => "Final/Special/Sockets/3-link" => $Show
   }
 }
 
@@ -268,7 +313,11 @@ SECTION {
     !! PlayEffect on Hide blocks, so the minimap ping survives even though the
     !! on-ground text/border doesn't - better than losing the signal entirely
     !! by falling through to a generic hide rule further down.
+    WHERE @socket_group >= "6" -> @class_use == "false" => "Final/Special/Sockets/6-link" => $Hide
+    WHERE @socket_group >= "5" -> @class_use == "false" => "Final/Special/Sockets/5-link" => $Hide
     WHERE @socket_group >= "4" -> @class_use == "false" => "Final/Special/Sockets/4-link" => $Hide
+    WHERE @area_level <= 40 -> @sockets >= "6" -> @class_use == "false" => "Final/Special/Sockets/6-socket" => $Hide
+    WHERE @area_level <= 40 -> @sockets >= "5" -> @class_use == "false" => "Final/Special/Sockets/5-socket" => $Hide
     WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "false" => "Final/Special/Sockets/4-socket" => $Hide
     WHERE @area_level <= 24 -> @socket_group >= "3" -> @class_use == "false" => "Final/Special/Sockets/3-link" => $Hide
   }
@@ -409,7 +458,6 @@ SECTION {
       -> $hidden_normal => $old_equipment_normal
       -> $hidden_magic  => $old_equipment_magic
       -> $hidden_rare   => $old_equipment_rare
-      -> $max_roll      => $equipment_max_rolled
     ]
   }
 }

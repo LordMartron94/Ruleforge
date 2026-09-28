@@ -11,7 +11,8 @@
 #   gold (T2-T4), the phase colour (T5-T7), then silver/bone (T8-T10).
 # - Beams follow the sun going down the ladder: white, yellow, orange, red, purple.
 # - Fields (backgrounds) say what kind of item it is; borders say what is special
-#   about it (rarity, links, corruption, league).
+#   about it. Hidden item state (quality, fractured, corrupted, veiled and max-roll)
+#   outranks the socket/link reminder; rarity is the fallback.
 # - League items keep a colour that points at their league in every phase:
 #     Breach violet (wombgifts stay Breach, the hive is Breach; Foulborn currency gets a flesh-pink border)
 #     Delve azurite, Harvest grove green, Incursion temple jade, Heist harbour slate
@@ -25,136 +26,105 @@
 # Colours are palette names; the palettes live in the style files. The studio checks
 # every final style's contrast and the [Studio.Distinct] groups at the end of this file.
 
+# Channel ownership and precedence are documented in configuration/CHANNELS.md.
+# Text and size always encode global pickup priority. Background encodes purpose;
+# border encodes the selected property. T0/T1 radiance wins over property borders.
+# Beam/icon colour encodes rank, except the subordinate green crafting landing cue.
+# Shape encodes purpose, never rarity. T0-T2 sound wins over category sound.
+
 [Special.Essences.Base]
 Comment = "The single, foundational style for ALL essences. Defines the shared background color and default minimap icon."
 BackgroundColor = "bg-special"
-Minimap = { Shape = "Diamond", Color = "Purple" }
 DropSound = "magic.mp3"
 DropVolume = 300
+Minimap = { Shape = "Circle" }
 
 [Special.Essences.Types.Greed]
-TextColor = "#C7BEFF"
 BorderColor = "#9988E7"
 
 [Special.Essences.Types.Contempt]
-TextColor = "#AFC5FF"
 BorderColor = "#87A3F3"
 
 [Special.Essences.Types.Hatred]
-TextColor = "#96E4F8"
 BorderColor = "#96E4F8"
 
 [Special.Essences.Types.Woe]
-TextColor = "#87FDFD"
 BorderColor = "#87FDFD"
 
 [Special.Essences.Types.Fear]
-TextColor = "#7BD6A8"
 BorderColor = "#6BC698"
 
 [Special.Essences.Types.Anger]
-TextColor = "#86E891"
 BorderColor = "#86E891"
 
 [Special.Essences.Types.Torment]
-TextColor = "#5DDB73"
 BorderColor = "#4ECE66"
 
 [Special.Essences.Types.Sorrow]
-TextColor = "#AED04E"
 BorderColor = "#AED04E"
 
 [Special.Essences.Types.Rage]
-TextColor = "#DDE553"
 BorderColor = "#DDE553"
 
 [Special.Essences.Types.Suffering]
-TextColor = "#F3BA5B"
 BorderColor = "#F3BA5B"
 
 [Special.Essences.Types.Wrath]
-TextColor = "#FFB480"
 BorderColor = "#E69050"
 
 [Special.Essences.Types.Doubt]
-TextColor = "#FFB19E"
 BorderColor = "#F17457"
 
 [Special.Essences.Types.Loathing]
-TextColor = "#FFAFA6"
 BorderColor = "#FE645A"
 
 [Special.Essences.Types.Zeal]
-TextColor = "#FFB2A9"
 BorderColor = "#ED5F55"
 
 [Special.Essences.Types.Anguish]
-TextColor = "#FFB1A9"
 BorderColor = "#F55A56"
 
 [Special.Essences.Types.Spite]
-TextColor = "#FFB1B5"
 BorderColor = "#F7576C"
 
 [Special.Essences.Types.Scorn]
-TextColor = "#E5B4FF"
 BorderColor = "#CB5AFE"
 
 [Special.Essences.Types.Envy]
-TextColor = "#CABDFF"
 BorderColor = "#9E78FF"
 
 [Special.Essences.Types.Misery]
-TextColor = "#C3BFFF"
 BorderColor = "#907EFF"
 
 [Special.Essences.Types.Dread]
-TextColor = "#B0C3FF"
 BorderColor = "#6C88FF"
 
 [Special.Essences.Types.Corruption]
-TextColor = "#FFB2A7"
 BorderColor = "#F65B4E"
 
 [Special.Essences.Types.Insanity]
-TextColor = "#FFBBC5"
 BorderColor = "#FF487B"
 
 [Special.Essences.Types.Horror]
-TextColor = "#FFBCB1"
 BorderColor = "#FF4F40"
 
 [Special.Essences.Types.Delirium]
-TextColor = "#E7BFFF"
 BorderColor = "#C763F9"
 
 [Special.Essences.Types.Hysteria]
-TextColor = "#F3C85D"
 BorderColor = "#C59B27"
 
 [Special.Essences.Tiers.Low]
-Comment = "For Tiers 1-2 (Whispering/Muttering). Has no border."
-FontSize = 28
-BorderColor = "#00000000"
-Minimap = { Size = 2 }
+Combination = ["Templates/Tiers/Mid/T7"]
 
 [Special.Essences.Tiers.Mid]
-Comment = "For Tiers 3-4 (Weeping/Wailing)"
-FontSize = 34
-Beam = { Color = "Grey", Temp = true }
-Minimap = { Size = 2 }
+Combination = ["Templates/Tiers/Mid/T5"]
 
 [Special.Essences.Tiers.High]
-Comment = "For Tiers 5-7 (Screaming to Deafening). Has a visible border."
-FontSize = 42
-Beam = { Color = "Grey", Temp = false }
-Minimap = { Size = 1 }
+Combination = ["Templates/Tiers/High/T3"]
 
 [Special.Essences.Tiers.Special]
-Comment = "For the four corrupted essences."
-FontSize = 45
-Beam = { Color = "Yellow", Temp = false }
-Minimap = { Size = 0, Shape = "Star" }
+Combination = ["Templates/Tiers/High/T2"]
 
 [Special.Essences.Final.WhisperingGreed]
 Combination = ["Special/Essences/Base", "Special/Essences/Types/Greed", "Special/Essences/Tiers/Low"]
@@ -460,114 +430,91 @@ Combination = ["Special/Essences/Base", "Special/Essences/Types/Dread", "Special
 Combination = ["Special/Essences/Base", "Special/Essences/Types/Corruption", "Special/Essences/Tiers/High"]
 
 [Special.Essences.Final.EssenceOfInsanity]
-Combination = ["Special/Essences/Base", "Special/Essences/Types/Insanity", "Special/Essences/Tiers/Special"]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Insanity", "Special/Essences/Tiers/Special", "Templates/Alerts/High/T2"]
 
 [Special.Essences.Final.EssenceOfHorror]
-Combination = ["Special/Essences/Base", "Special/Essences/Types/Horror", "Special/Essences/Tiers/Special"]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Horror", "Special/Essences/Tiers/Special", "Templates/Alerts/High/T2"]
 
 [Special.Essences.Final.EssenceOfDelirium]
-Combination = ["Special/Essences/Base", "Special/Essences/Types/Delirium", "Special/Essences/Tiers/Special"]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Delirium", "Special/Essences/Tiers/Special", "Templates/Alerts/High/T2"]
 
 [Special.Essences.Final.EssenceOfHysteria]
-Combination = ["Special/Essences/Base", "Special/Essences/Types/Hysteria", "Special/Essences/Tiers/Special"]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Hysteria", "Special/Essences/Tiers/Special", "Templates/Alerts/High/T2"]
 
 [Special.Oils.Base]
 Comment = "The single, foundational style for ALL oils. Defines the shared minimap icon."
 BackgroundColor = "bg-special"
-Minimap = { Shape = "Circle", Color = "Brown" }
 DropSound = "oil.mp3"
 DropVolume = 300
+Minimap = { Shape = "Circle" }
 
 [Special.Oils.Types.Clear]
-TextColor = "#B2B2B2"
 BorderColor = "#909090"
 BaseType = "Clear Oil"
 
 [Special.Oils.Types.Sepia]
-TextColor = "#D5AA88"
 BorderColor = "#B28867"
 BaseType = "Sepia Oil"
 
 [Special.Oils.Types.Amber]
-TextColor = "#FFB67E"
 BorderColor = "#D27A2A"
 BaseType = "Amber Oil"
 
 [Special.Oils.Types.Verdant]
-TextColor = "#40DF4F"
 BorderColor = "#1FCB39"
 BaseType = "Verdant Oil"
 
 [Special.Oils.Types.Teal]
-TextColor = "#3AD8C3"
 BorderColor = "#22CBB6"
 BaseType = "Teal Oil"
 
 [Special.Oils.Types.Azure]
-TextColor = "#A5C4FF"
 BorderColor = "#548CFF"
 BaseType = "Azure Oil"
 
 [Special.Oils.Types.Indigo]
-TextColor = "#D8B6FF"
 BorderColor = "#B073ED"
 BaseType = "Indigo Oil"
 
 [Special.Oils.Types.Violet]
-TextColor = "#DFB1FF"
 BorderColor = "#B276DA"
 BaseType = "Violet Oil"
 
 [Special.Oils.Types.Crimson]
-TextColor = "#FFB2A8"
 BorderColor = "#EC665B"
 BaseType = "Crimson Oil"
 
 [Special.Oils.Types.Black]
-TextColor = "#000000"
-BackgroundColor = "#DDDAD2"
-BorderColor = "#000000"
 BaseType = "Black Oil"
+BorderColor = "#969DA8"
 
 [Special.Oils.Types.Opalescent]
-TextColor = "#7FD8E8"
 BorderColor = "#B97DB7"
 BaseType = "Opalescent Oil"
 
 [Special.Oils.Types.Silver]
-TextColor = "#C8C2C0"
 BorderColor = "#ABA6A4"
 BaseType = "Silver Oil"
 
 [Special.Oils.Types.Golden]
-TextColor = "#DDC638"
 BorderColor = "#D3BC2A"
 BaseType = "Golden Oil"
 
 [Special.Oils.Types.Tainted]
-TextColor = "#FFB2A8"
 BorderColor = "#EC665B"
 BaseType = "Tainted Oil"
 
 [Special.Oils.Tiers.Common]
-Comment = "Lowest tier of oils."
-FontSize = 32
-Minimap = { Size = 2 }
+Combination = ["Templates/Tiers/Mid/T7"]
 
 [Special.Oils.Tiers.Uncommon]
-Comment = "Mid-tier oils."
-FontSize = 36
-Minimap = { Size = 2 }
+Combination = ["Templates/Tiers/Mid/T6"]
 
 [Special.Oils.Tiers.Rare]
-Comment = "High-tier oils."
-FontSize = 42
-Minimap = { Size = 1 }
+Combination = ["Templates/Tiers/High/T4"]
 
 [Special.Oils.Tiers.Legendary]
-Comment = "Highest tier of oils."
-FontSize = 42
-Minimap = { Size = 0 }
+Combination = ["Templates/Tiers/High/T2"]
 
 [Special.Oils.Final.ClearOil]
 Combination = ["Special/Oils/Base", "Special/Oils/Types/Clear", "Special/Oils/Tiers/Common"]
@@ -606,95 +553,77 @@ Combination = ["Special/Oils/Base", "Special/Oils/Types/Opalescent", "Special/Oi
 Combination = ["Special/Oils/Base", "Special/Oils/Types/Tainted", "Special/Oils/Tiers/Rare"]
 
 [Special.Oils.Final.SilverOil]
-Combination = ["Special/Oils/Base", "Special/Oils/Types/Silver", "Special/Oils/Tiers/Legendary"]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Silver", "Special/Oils/Tiers/Legendary", "Templates/Alerts/High/T2"]
 
 [Special.Oils.Final.GoldenOil]
-Combination = ["Special/Oils/Base", "Special/Oils/Types/Golden", "Special/Oils/Tiers/Legendary"]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Golden", "Special/Oils/Tiers/Legendary", "Templates/Alerts/High/T2"]
 
 [Special.MapFragments.Base]
 Comment = "The single, foundational style for ALL map fragments. Defines the shared background color."
 BackgroundColor = "bg-special"
 DropSound = "level-up.mp3"
 DropVolume = 300
+Minimap = { Shape = "Star" }
 
 [Special.MapFragments.Types.Vaal]
-TextColor = "#E5A09A"
 BorderColor = "#C07E79"
 
 [Special.MapFragments.Types.Mortal]
-TextColor = "#AFCCC0"
 BorderColor = "#7B968C"
 
 [Special.MapFragments.Types.PaleCouncil]
-TextColor = "#D2BDCD"
 BorderColor = "#AC98A7"
 
 [Special.MapFragments.Types.Shaper]
-TextColor = "#B7C9B6"
 BorderColor = "#839482"
 
 [Special.MapFragments.Types.ElderGuardian]
-TextColor = "#9FCFA9"
 BorderColor = "#6E9C78"
 
 [Special.MapFragments.Types.Chimera]
-TextColor = "#FFAAC9"
 BorderColor = "#D76C98"
 
 [Special.MapFragments.Types.Phoenix]
-TextColor = "#FFB29D"
 BorderColor = "#F65C30"
 
 [Special.MapFragments.Types.Minotaur]
-TextColor = "#DDBCC8"
 BorderColor = "#A68793"
 
 [Special.MapFragments.Types.Elder]
-TextColor = "#C4C2C9"
 BorderColor = "#929097"
 
 [Special.MapFragments.Types.UberElder]
-TextColor = "#FFB3A8"
 BorderColor = "#F06455"
 
 [Special.MapFragments.Types.Reliquary]
-TextColor = "#E8BF6E"
 BorderColor = "#C49C4B"
 
 [Special.MapFragments.Types.Misc]
-TextColor = "#A1CADD"
 BorderColor = "#82AABD"
 
 [Special.MapFragments.Types.Ultimatum]
-TextColor = "#FCB290"
 BorderColor = "#C68060"
 
 [Special.MapFragments.Types.Blessings]
-TextColor = "#ADC6FF"
 BorderColor = "#5D89FF"
 
 [Special.MapFragments.Types.AlHezmin]
-TextColor = "#8BD484"
 BorderColor = "#5AA153"
 
 [Special.MapFragments.Types.Baran]
-TextColor = "#FFB0A4"
 BorderColor = "#DF6E61"
 
 [Special.MapFragments.Types.Drox]
-TextColor = "#FFB667"
 BorderColor = "#CD821F"
 
 [Special.MapFragments.Types.Veritania]
-TextColor = "#B9C4DC"
 BorderColor = "#8E98AF"
 
 [Special.MapFragments.Tiers.Standard]
-FontSize = 42
-Minimap = { Size = 1, Color = "Purple", Shape = "Star" }
+Combination = ["Templates/Tiers/High/T3"]
 
 [Special.MapFragments.Tiers.Small]
-FontSize = 32
+Combination = ["Templates/Tiers/Mid/T5"]
 
 [Special.MapFragments.Final.DivineVessel]
 Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Misc", "Special/MapFragments/Tiers/Standard"]
@@ -821,15 +750,12 @@ BorderColor = "bd-normal"
 
 [Templates.Rarities.Magic]
 BorderColor = "bd-magic"
-Minimap = { Shape = "Square" }
 
 [Templates.Rarities.Rare]
 BorderColor = "bd-rare"
-Minimap = { Shape = "Square" }
 
 [Templates.Rarities.Unique]
 BorderColor = "bd-unique"
-Minimap = { Shape = "Star" }
 
 [Templates.Tiers.Divine.T0]
 FontSize = 45
@@ -850,18 +776,18 @@ DropVolume = 300
 [Templates.Tiers.High.T2]
 FontSize = 40
 TextColor = "t2"
-Beam = { Color = "Orange", Temp = false }
-Minimap = { Color = "Orange", Size = 1 }
 DropSound = "amazing.mp3"
 DropVolume = 200
+Beam = { Color = "Orange", Temp = false }
+Minimap = { Color = "Orange", Size = 1 }
 
 [Templates.Tiers.High.T3]
 FontSize = 38
 TextColor = "t3"
-Beam = { Color = "Red", Temp = true }
-Minimap = { Color = "Red", Size = 1 }
 DropSound = "amazing.mp3"
 DropVolume = 175
+Beam = { Color = "Red", Temp = true }
+Minimap = { Color = "Red", Size = 1 }
 
 [Templates.Tiers.High.T4]
 FontSize = 36
@@ -881,22 +807,27 @@ DropVolume = 120
 [Templates.Tiers.Mid.T6]
 FontSize = 30
 TextColor = "t6"
+Minimap = { Color = "Grey", Size = 2 }
 
 [Templates.Tiers.Mid.T7]
 FontSize = 28
 TextColor = "t7"
+Minimap = { Color = "Grey", Size = 2 }
 
 [Templates.Tiers.Low.T8]
 FontSize = 26
 TextColor = "t8"
+Minimap = { Color = "Grey", Size = 2 }
 
 [Templates.Tiers.Low.T9]
 FontSize = 24
 TextColor = "t9"
+Minimap = { Color = "Grey", Size = 2 }
 
 [Templates.Tiers.Low.T10]
 FontSize = 22
 TextColor = "t10"
+Minimap = { Color = "Grey", Size = 2 }
 
 [Templates.Groups.Equipment]
 BackgroundColor = "bg-equipment"
@@ -904,9 +835,11 @@ Minimap = { Shape = "Triangle" }
 
 [Templates.Groups.OldEquipment]
 BackgroundColor = "bg-old-equipment"
+Minimap = { Shape = "Triangle" }
 
 [Templates.Groups.UnassociatedEquipment]
 BackgroundColor = "bg-unassociated-equipment"
+Minimap = { Shape = "Triangle" }
 
 [Templates.Groups.Flasks]
 BackgroundColor = "bg-flasks"
@@ -914,6 +847,7 @@ Minimap = { Shape = "Raindrop" }
 
 [Templates.Groups.OldFlasks]
 BackgroundColor = "bg-old-flasks"
+Minimap = { Shape = "Raindrop" }
 
 [Templates.Groups.Orbs]
 BackgroundColor = "bg-orbs"
@@ -929,7 +863,7 @@ Minimap = { Shape = "Cross" }
 
 [Templates.Groups.Lab]
 BackgroundColor = "bg-lab"
-Minimap = { Shape = "Cross" }
+Minimap = { Shape = "Square" }
 
 [Templates.Groups.Maps]
 BackgroundColor = "bg-maps"
@@ -938,9 +872,9 @@ Minimap = { Shape = "Diamond" }
 [Templates.Groups.Scarabs]
 BackgroundColor = "bg-scarabs"
 BorderColor = "bd-scarabs"
-Minimap = { Shape = "Triangle" }
 DropSound = "scarab.mp3"
 DropVolume = 150
+Minimap = { Shape = "Star" }
 
 [Templates.Groups.Divination]
 BackgroundColor = "bg-div-cards"
@@ -966,11 +900,17 @@ BorderColor = "bd-3-link"
 [Templates.Properties.Sockets.4-link]
 BorderColor = "bd-4-link"
 
+[Templates.Properties.Sockets.5-link]
+BorderColor = "bd-5-link"
+
 [Templates.Properties.Sockets.6-link]
 BorderColor = "bd-6-link"
 
 [Templates.Properties.Sockets.4-socket]
 BorderColor = "bd-4-socket"
+
+[Templates.Properties.Sockets.5-socket]
+BorderColor = "bd-5-socket"
 
 [Templates.Properties.Sockets.6-socket]
 BorderColor = "bd-6-socket"
@@ -995,53 +935,53 @@ Minimap = { Shape = "Hexagon" }
 [Templates.Leagues.RogueMarker]
 BackgroundColor = "bg-heist"
 BorderColor = "bd-heist-marker"
-Minimap = { Shape = "Hexagon" }
 DropSound = "heist.mp3"
+Minimap = { Shape = "Circle" }
 
 [Templates.Leagues.Contract.Normal]
 BackgroundColor = "bg-heist"
 BorderColor = "bd-heist-contract"
-Minimap = { Shape = "Square" }
 DropSound = "heist.mp3"
+Minimap = { Shape = "Diamond" }
 
 [Templates.Leagues.Contract.Special]
 BackgroundColor = "bg-heist"
 BorderColor = "bd-heist-contract-special"
-Minimap = { Shape = "Square" }
 DropSound = "heist.mp3"
+Minimap = { Shape = "Diamond" }
 
 [Templates.Leagues.Blueprint]
 BackgroundColor = "bg-heist"
 BorderColor = "bd-heist-blueprint"
-Minimap = { Shape = "Square" }
 DropSound = "heist.mp3"
+Minimap = { Shape = "Diamond" }
 
 [Templates.Leagues.PassageStone]
 BackgroundColor = "bg-incursion"
 BorderColor = "bd-incursion"
-Minimap = { Shape = "Triangle" }
 DropSound = "incursion.mp3"
+Minimap = { Shape = "Square" }
 
 [Templates.Leagues.Expedition]
 BackgroundColor = "bg-kalguur"
 BorderColor = "bd-expedition"
-Minimap = { Shape = "Hexagon" }
 DropSound = "expedition.mp3"
 DropVolume = 300
+Minimap = { Shape = "Circle" }
 
 [Templates.Leagues.Breach]
 BackgroundColor = "bg-breach"
 BorderColor = "bd-breach"
-Minimap = { Shape = "Diamond" }
 DropSound = "breach.mp3"
 DropVolume = 300
+Minimap = { Shape = "Star" }
 
 [Templates.Leagues.Harvest]
 BackgroundColor = "bg-harvest"
 BorderColor = "bd-harvest"
-Minimap = { Shape = "Pentagon" }
 DropSound = "harvest.mp3"
 DropVolume = 300
+Minimap = { Shape = "Circle" }
 
 [Templates.Leagues.Eldritch]
 BackgroundColor = "bg-eldritch"
@@ -1098,9 +1038,9 @@ Minimap = { Shape = "Circle" }
 [Templates.Leagues.Keepers]
 BackgroundColor = "bg-breach"
 BorderColor = "bd-keepers"
-Minimap = { Shape = "Diamond" }
 DropSound = "breach.mp3"
 DropVolume = 300
+Minimap = { Shape = "Circle" }
 
 [Templates.Leagues.Ember]
 BackgroundColor = "bg-eldritch"
@@ -1139,13 +1079,13 @@ BackgroundColor = "rad-t1-bg"
 BorderColor = "rad-t1-border"
 
 [Final.Uniques.T0]
-Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Uniques.T1]
-Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Uniques.T2]
-Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Uniques.T3]
 Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/High/T3"]
@@ -1199,13 +1139,13 @@ Combination = ["Templates/Groups/Flasks", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Groups/OldFlasks", "Templates/Tiers/Mid/T7"]
 
 [Final.Orbs.T1]
-Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Orbs.T2]
-Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Orbs.T3]
-Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Orbs.T4]
 Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T3"]
@@ -1244,25 +1184,31 @@ Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Low/T8"]
 Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Low/T9"]
 
 [Final.Special.RGB]
-Combination = ["Templates/Groups/Equipment", "Templates/Properties/Sockets/RGB", "Templates/Tiers/High/T3"]
+Combination = ["Templates/Groups/Equipment", "Templates/Properties/Sockets/RGB", "Templates/Tiers/Low/T10"]
 
 [Final.Special.RGB-4-socket]
-Combination = ["Templates/Groups/Equipment", "Templates/Properties/Sockets/RGB", "Templates/Tiers/High/T3"]
+Combination = ["Templates/Groups/Equipment", "Templates/Properties/Sockets/RGB", "Templates/Tiers/Low/T10"]
 
 [Final.Special.Sockets.3-link]
-Combination = ["Templates/Properties/Sockets/3-link", "Templates/Groups/Equipment", "Templates/Tiers/Mid/T5"]
+Combination = ["Templates/Properties/Sockets/3-link", "Templates/Groups/Equipment", "Templates/Tiers/Low/T10"]
 
 [Final.Special.Sockets.4-link]
-Combination = ["Templates/Properties/Sockets/4-link", "Templates/Groups/Equipment", "Templates/Tiers/High/T4"]
+Combination = ["Templates/Properties/Sockets/4-link", "Templates/Groups/Equipment", "Templates/Tiers/Low/T9"]
+
+[Final.Special.Sockets.5-link]
+Combination = ["Templates/Properties/Sockets/5-link", "Templates/Groups/Equipment", "Templates/Tiers/Low/T8"]
 
 [Final.Special.Sockets.6-link]
-Combination = ["Templates/Properties/Sockets/6-link", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Properties/Sockets/6-link", "Templates/Groups/Equipment", "Templates/Tiers/Mid/T7"]
 
 [Final.Special.Sockets.4-socket]
-Combination = ["Templates/Properties/Sockets/4-socket", "Templates/Groups/Equipment", "Templates/Tiers/Mid/T5"]
+Combination = ["Templates/Properties/Sockets/4-socket", "Templates/Groups/Equipment", "Templates/Tiers/Low/T9"]
+
+[Final.Special.Sockets.5-socket]
+Combination = ["Templates/Properties/Sockets/5-socket", "Templates/Groups/Equipment", "Templates/Tiers/Low/T8"]
 
 [Final.Special.Sockets.6-socket]
-Combination = ["Templates/Properties/Sockets/6-socket", "Templates/Groups/Equipment", "Templates/Tiers/High/T3"]
+Combination = ["Templates/Properties/Sockets/6-socket", "Templates/Groups/Equipment", "Templates/Tiers/Mid/T7"]
 
 [Final.Special.Quality.MaxQualityFlask]
 Combination = ["Templates/Groups/Flasks", "Templates/Tiers/Mid/T5", "Templates/Properties/Quality/Max"]
@@ -1304,7 +1250,7 @@ Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Blueprint"]
 Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Blueprint"]
 
 [Final.Leagues.Chart]
-Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Chart"]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Chart", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Gold_High]
 Combination = ["Templates/Properties/Gold", "Templates/Tiers/Mid/T5"]
@@ -1316,28 +1262,31 @@ Combination = ["Templates/Properties/Gold", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Properties/Gold", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Incursion.PassageStone]
-Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/PassageStone"]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/PassageStone", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Expedition.VendorReset]
 Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Expedition"]
 
 [Final.Leagues.Expedition.LogBookNormal]
-Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Expedition", "Templates/Rarities/Normal"]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Mid/T5", "Templates/Leagues/Expedition"]
+Minimap = { Shape = "Diamond" }
 
 [Final.Leagues.Expedition.LogBookMagic]
-Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Expedition", "Templates/Rarities/Magic"]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/High/T4", "Templates/Leagues/Expedition"]
+Minimap = { Shape = "Diamond" }
 
 [Final.Leagues.Expedition.LogBookRare]
-Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Expedition", "Templates/Rarities/Rare"]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T3", "Templates/Leagues/Expedition"]
+Minimap = { Shape = "Diamond" }
 
 [Final.Leagues.Breach.T1]
-Combination = ["Templates/Tiers/Divine/T0", "Templates/Leagues/Breach", "Templates/Radiance/T0"]
+Combination = ["Templates/Tiers/Divine/T0", "Templates/Leagues/Breach", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Breach.T2]
-Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Breach", "Templates/Radiance/T1"]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Breach", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Breach.T3]
-Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Breach"]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Breach", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Breach.T4]
 Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Breach"]
@@ -1352,22 +1301,22 @@ Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Harvest"]
 Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Delve"]
 
 [Final.Leagues.Delve.T3]
-Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Delve"]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Delve", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Delve.T2]
-Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Delve", "Templates/Radiance/T1"]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Delve", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Delve.T1]
-Combination = ["Templates/Tiers/Divine/T0", "Templates/Leagues/Delve", "Templates/Radiance/T0"]
+Combination = ["Templates/Tiers/Divine/T0", "Templates/Leagues/Delve", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Allflame.T1]
-Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Allflame.T2]
-Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Allflame.T3]
-Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Allflame.T4]
 Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/High/T3"]
@@ -1385,13 +1334,13 @@ Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Leagues/Allflame", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Ducats.T1]
-Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Ducats.T2]
-Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Ducats.T3]
-Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Ducats.T4]
 Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/High/T3"]
@@ -1409,13 +1358,13 @@ Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Leagues/Ducats", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Legion.T1]
-Combination = ["Templates/Leagues/Legion", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Leagues/Legion", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Legion.T2]
-Combination = ["Templates/Leagues/Legion", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Legion", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Legion.T3]
-Combination = ["Templates/Leagues/Legion", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Legion", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Legion.T4]
 Combination = ["Templates/Leagues/Legion", "Templates/Tiers/High/T3"]
@@ -1433,13 +1382,13 @@ Combination = ["Templates/Leagues/Legion", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Leagues/Legion", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Mercenaries.T1]
-Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Mercenaries.T2]
-Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Mercenaries.T3]
-Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Mercenaries.T4]
 Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/High/T3"]
@@ -1457,13 +1406,13 @@ Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Leagues/Mercenaries", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Mirage.T1]
-Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Mirage.T2]
-Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Mirage.T3]
-Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Mirage.T4]
 Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/High/T3"]
@@ -1481,13 +1430,13 @@ Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Leagues/Mirage", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Astrolabes.T1]
-Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Astrolabes.T2]
-Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Astrolabes.T3]
-Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Astrolabes.T4]
 Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/High/T3"]
@@ -1505,13 +1454,13 @@ Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Leagues/Astrolabes", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Runegrafts.T1]
-Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Runegrafts.T2]
-Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Runegrafts.T3]
-Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Runegrafts.T4]
 Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/High/T3"]
@@ -1529,13 +1478,13 @@ Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Keepers.T1]
-Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0"]
+Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Leagues.Keepers.T2]
-Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Keepers.T3]
-Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Keepers.T4]
 Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/High/T3"]
@@ -1553,10 +1502,10 @@ Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/Mid/T7"]
 
 [Final.Leagues.Ember.T1]
-Combination = ["Templates/Leagues/Ember", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Ember", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Ember.T2]
-Combination = ["Templates/Leagues/Ember", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Ember", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Ember.T3]
 Combination = ["Templates/Leagues/Ember", "Templates/Tiers/High/T3"]
@@ -1565,10 +1514,10 @@ Combination = ["Templates/Leagues/Ember", "Templates/Tiers/High/T3"]
 Combination = ["Templates/Leagues/Ember", "Templates/Tiers/High/T4"]
 
 [Final.Leagues.Ichor.T1]
-Combination = ["Templates/Leagues/Ichor", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/Ichor", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.Ichor.T2]
-Combination = ["Templates/Leagues/Ichor", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/Ichor", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.Ichor.T3]
 Combination = ["Templates/Leagues/Ichor", "Templates/Tiers/High/T3"]
@@ -1577,10 +1526,10 @@ Combination = ["Templates/Leagues/Ichor", "Templates/Tiers/High/T3"]
 Combination = ["Templates/Leagues/Ichor", "Templates/Tiers/High/T4"]
 
 [Final.Leagues.AllflameEmbers.T1]
-Combination = ["Templates/Leagues/AllflameEmbers", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Leagues/AllflameEmbers", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Leagues.AllflameEmbers.T2]
-Combination = ["Templates/Leagues/AllflameEmbers", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Leagues/AllflameEmbers", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Leagues.AllflameEmbers.T3]
 Combination = ["Templates/Leagues/AllflameEmbers", "Templates/Tiers/High/T3"]
@@ -1601,10 +1550,10 @@ Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Mid/T7", "Templates/
 Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Mid/T6", "Templates/Groups/Equipment"]
 
 [Final.Gems.T1]
-Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1"]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Gems.T2]
-Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/High/T2"]
+Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
 
 [Final.Gems.T3]
 Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/High/T3"]
@@ -1622,13 +1571,13 @@ Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Mid/T6"]
 Combination = ["Templates/Groups/SkillGems", "Templates/Tiers/Mid/T7"]
 
 [Final.Divination.T0]
-Combination = ["Templates/Tiers/Divine/T0", "Templates/Groups/Divination", "Templates/Radiance/T0"]
+Combination = ["Templates/Tiers/Divine/T0", "Templates/Groups/Divination", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Divination.T1]
-Combination = ["Templates/Tiers/Divine/T1", "Templates/Groups/Divination", "Templates/Radiance/T1"]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Groups/Divination", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Divination.T2]
-Combination = ["Templates/Tiers/High/T2", "Templates/Groups/Divination"]
+Combination = ["Templates/Tiers/High/T2", "Templates/Groups/Divination", "Templates/Alerts/High/T2"]
 
 [Final.Divination.T3]
 Combination = ["Templates/Tiers/High/T3", "Templates/Groups/Divination"]
@@ -1685,37 +1634,37 @@ Combination = ["Templates/Rarities/Magic", "Templates/Tiers/High/T3", "Templates
 Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T3", "Templates/Groups/Maps"]
 
 [Final.Maps.MidTierNormalT8T10]
-Combination = ["Templates/Rarities/Normal", "Templates/Tiers/High/T2", "Templates/Groups/Maps"]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/High/T2", "Templates/Groups/Maps", "Templates/Alerts/High/T2"]
 
 [Final.Maps.MidTierMagicT8T10]
-Combination = ["Templates/Rarities/Magic", "Templates/Tiers/High/T2", "Templates/Groups/Maps"]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/High/T2", "Templates/Groups/Maps", "Templates/Alerts/High/T2"]
 
 [Final.Maps.MidTierRareT8T10]
-Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T2", "Templates/Groups/Maps"]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T2", "Templates/Groups/Maps", "Templates/Alerts/High/T2"]
 
 [Final.Maps.TopTierNormalT11T16]
-Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps", "Templates/Radiance/T1"]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Maps.TopTierMagicT11T16]
-Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps", "Templates/Radiance/T1"]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Maps.TopTierRareT11T16]
-Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps", "Templates/Radiance/T1"]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Divine/T1", "Templates/Groups/Maps", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Maps.SpecialNormalT17]
-Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps", "Templates/Radiance/T0"]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Maps.SpecialMagicT17]
-Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps", "Templates/Radiance/T0"]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Maps.SpecialRareT17]
-Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps", "Templates/Radiance/T0"]
+Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Maps.UniqueMaps]
-Combination = ["Templates/Rarities/Unique", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps", "Templates/Radiance/T0"]
+Combination = ["Templates/Rarities/Unique", "Templates/Tiers/Divine/T0", "Templates/Groups/Maps", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
 [Final.Scarabs.T1]
-Combination = ["Templates/Tiers/High/T2", "Templates/Groups/Scarabs"]
+Combination = ["Templates/Tiers/High/T2", "Templates/Groups/Scarabs", "Templates/Alerts/High/T2"]
 
 [Final.Scarabs.T2]
 Combination = ["Templates/Tiers/High/T3", "Templates/Groups/Scarabs"]
@@ -1733,10 +1682,10 @@ Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Eldritch"]
 Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Eldritch"]
 
 [Final.Eldritch.T2]
-Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Eldritch"]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Eldritch", "Templates/Alerts/High/T2"]
 
 [Final.Eldritch.T1]
-Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Eldritch", "Templates/Radiance/T1"]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Eldritch", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
 
 [Final.Catalysts.T4]
 Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Catalyst"]
@@ -1760,54 +1709,56 @@ Minimap = { Shape = "UpsideDownHouse", Color = "Pink", Size = 0 }
 DropSound = "error.mp3"
 DropVolume = 300
 
-# Good crafting bases (CSV category "Crafting Bases"), recognisable the moment they drop:
-# a temporary green beam (the only green beam and minimap icon in the theme), a white-hot
-# border on a forge-ember field (red-hot in phase II, whose other borders are pale), and a
-# green moon on the minimap. Rarity is read from the text: t8 for normal bases (essences),
-# t5 for magic ones (alterations).
 [Templates.Groups.Crafting]
-FontSize = 33
+# Forge field and edge mark crafting eligibility; rarity yields this channel.
 BackgroundColor = "bg-crafting"
 BorderColor = "bd-crafting"
+Minimap = { Shape = "Moon" }
 Beam = { Color = "Green", Temp = true }
-Minimap = { Shape = "Moon", Color = "Green", Size = 1 }
 
 [Final.Crafting.Normal]
-Combination = ["Templates/Groups/Crafting"]
-TextColor = "t8"
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Groups/Crafting"]
 
 [Final.Crafting.Magic]
-Combination = ["Templates/Groups/Crafting"]
-TextColor = "t5"
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Groups/Crafting"]
 
-# Checks the Ruleforge Studio runs for every style that uses this stylesheet.
-
-# Fields you see all campaign long: must be clearly different (CIEDE2000).
 [Studio.Distinct.CampaignFields]
 Min = 10
 Vars = ["bg-crafting", "bg-div-cards", "bg-equipment", "bg-flasks", "bg-gold", "bg-lab", "bg-old-equipment", "bg-old-flasks", "bg-orbs", "bg-skill-gems", "bg-special", "bg-supplies", "bg-unassociated-equipment"]
-
 # Every field, including league ones, must stay apart.
+
 [Studio.Distinct.AllFields]
 Min = 6
 Vars = ["bg-crafting", "bg-astral", "bg-breach", "bg-delve", "bg-div-cards", "bg-eldritch", "bg-equipment", "bg-flasks", "bg-gold", "bg-harvest", "bg-heist", "bg-incursion", "bg-kalguur", "bg-lab", "bg-legion", "bg-maps", "bg-old-equipment", "bg-old-flasks", "bg-orbs", "bg-scarabs", "bg-sea", "bg-skill-gems", "bg-special", "bg-supplies", "bg-unassociated-equipment"]
-
 # Borders that can appear on the same equipment field.
+
 [Studio.Distinct.EquipmentMarks]
 Min = 20
 Vars = ["bd-normal", "bd-magic", "bd-rare", "bd-unique", "bd-3-link", "bd-4-link", "bd-6-link", "bd-4-socket", "bd-6-socket", "bd-rgb", "bd-corrupted", "bd-fractured", "bd-veiled", "bd-max-rolled"]
-
 # Tier text colours from T2 down.
+
 [Studio.Distinct.TierText]
 Min = 8
 Vars = ["t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10"]
-
 # The two inverted top tiers.
+
 [Studio.Distinct.Radiance]
 Min = 18
 Vars = ["rad-t0-bg", "rad-t1-bg"]
-
 # The crafting edge must not read as a rarity or property border.
+
 [Studio.Distinct.CraftingMark]
 Min = 15
 Vars = ["bd-crafting", "bd-normal", "bd-magic", "bd-rare", "bd-unique", "bd-fractured"]
+
+[Templates.Alerts.Divine.T0]
+DropSound = "hell.mp3"
+DropVolume = 300
+
+[Templates.Alerts.Divine.T1]
+DropSound = "angels.mp3"
+DropVolume = 300
+
+[Templates.Alerts.High.T2]
+DropSound = "amazing.mp3"
+DropVolume = 200

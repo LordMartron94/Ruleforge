@@ -11,7 +11,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 )
 
-func u8(v uint8) *uint8   { return &v }
+func u8(v uint8) *uint8     { return &v }
 func strp(v string) *string { return &v }
 
 func TestGetDropLevelPrefersEnrichedDropLevel(t *testing.T) {
@@ -92,20 +92,45 @@ func TestParseQualityKey(t *testing.T) {
 	}
 }
 
-func TestQualityOverridesReferenceTheQualityStyleName(t *testing.T) {
-	qualityStyle := &config.Style{Name: "Quality20"}
-	overrides := qualityOverrides(qualityStyle)
-	for _, prop := range []string{"BorderColor", "DropSound", "DropVolume", "Beam.Color", "Beam.Temp"} {
-		if overrides[prop] != "Quality20" {
-			t.Errorf("expected override for %q to hand the property to %q, got %q", prop, "Quality20", overrides[prop])
-		}
+func TestGemPropertiesPreservePriorityChannelsAndBorderPrecedence(t *testing.T) {
+	quality := &config.Style{
+		Name: "Quality20", BorderColor: &config.Color{Red: u8(200)},
+		TextColor: &config.Color{Red: u8(255)}, FontSize: intp(45),
+		BackgroundColor: &config.Color{Blue: u8(255)},
+		Minimap:         &config.Minimap{Color: strp("Red"), Size: intp(0), Shape: strp("Star")},
+		Beam:            &config.Beam{Color: strp("Red")}, DropSound: strp("quality.mp3"), DropVolume: intp(300),
 	}
-	// Properties that should stay with the tier must not appear at all -
-	// mergeProperty defaults to "base wins" when no override rule exists.
-	for _, prop := range []string{"TextColor", "BackgroundColor", "FontSize", "Minimap.Size", "Minimap.Shape", "Minimap.Color"} {
-		if _, exists := overrides[prop]; exists {
-			t.Errorf("did not expect an override entry for %q, which should default to the tier style", prop)
-		}
+	vaal := quality.Clone()
+	vaal.Name = "Vaal"
+	vaal.BorderColor = &config.Color{Green: u8(200)}
+	for _, tier := range []*config.Style{
+		{Name: "QuietTier", TextColor: &config.Color{Blue: u8(100)}, FontSize: intp(28)},
+		{Name: "ValuableTier", TextColor: &config.Color{Red: u8(100)}, FontSize: intp(40),
+			Beam: &config.Beam{Color: strp("Orange")}, DropSound: strp("tier.mp3"), DropVolume: intp(200)},
+		{Name: "RadiantTier", BorderColor: &config.Color{Blue: u8(50)}, FontSize: intp(45)},
+	} {
+		t.Run(tier.Name, func(t *testing.T) {
+			got := gemPropertyStyle(tier, quality, vaal)
+			wantBorder := vaal.BorderColor
+			if tier.BorderColor != nil {
+				wantBorder = tier.BorderColor
+			}
+			if !got.BorderColor.IsEqual(wantBorder) {
+				t.Fatal("tier > Vaal > quality border precedence lost")
+			}
+			got.BorderColor = tier.BorderColor.Clone()
+			if !got.IsEqual(tier) {
+				t.Fatal("a property annotation changed a priority channel")
+			}
+			if !gemPropertyStyle(tier, quality, nil).BorderColor.IsEqual(func() *config.Color {
+				if tier.BorderColor != nil {
+					return tier.BorderColor
+				}
+				return quality.BorderColor
+			}()) {
+				t.Fatal("quality border missing")
+			}
+		})
 	}
 }
 
@@ -166,8 +191,8 @@ func TestEmitTierRulesCombinesStylesAndOrdersBracketsByThreshold(t *testing.T) {
 	if !strings.Contains(joined[0], "SetBorderColor 200 0 0 255") {
 		t.Fatalf("expected quality's BorderColor to be added on top of the tier style, got:\n%s", joined[0])
 	}
-	if !strings.Contains(joined[0], `CustomAlertSound "q20.mp3" 150`) {
-		t.Fatalf("expected quality's DropSound to be added on top of the tier style, got:\n%s", joined[0])
+	if strings.Contains(joined[0], "CustomAlertSound") {
+		t.Fatalf("quality added a sound to a tier without one:\n%s", joined[0])
 	}
 
 	// The plain fallback rule must be the unmodified tier style: no border.
@@ -252,9 +277,9 @@ func TestEmitTierRulesVaalTakesPriorityOverQualityForBorderColorOnly(t *testing.
 	if strings.Contains(qualityRule, "SetBorderColor 200 0 0 255") {
 		t.Fatalf("quality's border colour leaked through despite Vaal's priority, got:\n%s", qualityRule)
 	}
-	// Quality must still keep every other property it owns.
-	if !strings.Contains(qualityRule, `CustomAlertSound "q20.mp3" 150`) {
-		t.Fatalf("expected quality's DropSound to survive (Vaal only claims BorderColor), got:\n%s", qualityRule)
+	// Quality cannot claim sound even when the tier has none.
+	if strings.Contains(qualityRule, "CustomAlertSound") {
+		t.Fatalf("quality added a sound to the tier:\n%s", qualityRule)
 	}
 	// Vaal must also apply to the plain (no-quality) rule.
 	if !strings.Contains(plainRule, "SetBorderColor 0 255 0 255") {

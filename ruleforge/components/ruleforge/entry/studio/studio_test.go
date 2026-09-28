@@ -44,3 +44,17 @@ func TestWriteSharesConditionsAndKeepsScriptTagClosed(t *testing.T) {
 		t.Errorf("data closed a script tag early")
 	}
 }
+
+func TestTemplateIncludesPastedItemInspectorAndResolvedStyling(t *testing.T) {
+	for _, want := range []string{
+		`id="item-import"`,
+		`id="import-inspector"`,
+		`clipboardData.getData('text/plain')`,
+		`Applied styling`,
+		`styleFacts(active.look, P)`,
+	} {
+		if !strings.Contains(pageTemplate, want) {
+			t.Errorf("studio template is missing %q", want)
+		}
+	}
+}

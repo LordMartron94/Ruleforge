@@ -105,6 +105,17 @@
   .conds b { color: var(--text); font-weight: 500; }
   .alerts { display: flex; flex-wrap: wrap; gap: 6px 12px; font: 0.76rem var(--mono); color: var(--muted); align-items: center; }
   .swatch-dot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; vertical-align: -1px; margin-right: 4px; }
+  .style-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 5px 10px; margin: 0; padding: 8px 10px; border: 1px solid var(--rule); background: var(--panel-2); font: 0.74rem var(--mono); }
+  .style-facts div { display: flex; gap: 6px; align-items: center; min-width: 0; }
+  .style-facts dt { color: var(--muted); }
+  .style-facts dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .style-swatch { width: 12px; height: 12px; border: 1px solid rgba(255,255,255,.45); display: inline-block; flex: 0 0 auto; }
+  .import-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; align-items: start; }
+  .import-panel { background: var(--panel); border: 1px solid var(--rule); padding: 16px; display: grid; gap: 10px; }
+  .import-panel h2 { font-size: 1.35rem; }
+  .import-panel textarea { width: 100%; min-height: 190px; resize: vertical; background: var(--page); color: var(--text); border: 1px solid var(--rule); padding: 10px; font: .76rem/1.4 var(--mono); }
+  .import-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .import-status { min-height: 1.2em; font: .78rem var(--mono); color: var(--muted); }
 
   /* Palette view */
   .palette-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
@@ -135,7 +146,7 @@
   .empty { color: var(--muted); font-size: 0.9rem; }
 
   @media (max-width: 980px) {
-    .loot-grid, .palette-grid { grid-template-columns: minmax(0, 1fr); }
+    .loot-grid, .palette-grid, .import-grid { grid-template-columns: minmax(0, 1fr); }
     .inspector { position: static; max-height: none; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -174,6 +185,18 @@
     <div class="loot-grid">
       <div class="ground" id="ground" aria-label="Dropped items"></div>
       <aside class="inspector" id="inspector" aria-live="polite"></aside>
+    </div>
+    <div class="import-grid">
+      <section class="import-panel" aria-labelledby="import-title">
+        <h2 id="import-title">Inspect a pasted game item</h2>
+        <p class="muted">Copy an item in Path of Exile with Ctrl+C, then paste its text here. Ruleforge reads the text locally; it does not access the browser clipboard.</p>
+        <textarea id="item-import" spellcheck="false" placeholder="Rarity: Rare\nItem Class: Body Armours\n..."></textarea>
+        <div class="import-actions">
+          <button class="btn primary" id="inspect-item" type="button">Apply rules</button>
+          <span class="import-status" id="import-status" role="status"></span>
+        </div>
+      </section>
+      <aside class="inspector" id="import-inspector" aria-live="polite"></aside>
     </div>
   </section>
 
@@ -279,10 +302,12 @@ const state = {
   showHidden: store.get('showHidden', false),
   seed: store.get('seed', 1),
   edits: store.get('edits', {}),
+  importText: store.get('importText', ''),
+  imported: null,
   selected: 0,
 };
 if (!DATA.styles.some(s => s.id === state.style)) state.style = DATA.styles[0].id;
-const persist = () => ['view', 'script', 'style', 'ground', 'area', 'count', 'mix', 'showHidden', 'seed', 'edits'].forEach(k => store.set(k, state[k]));
+const persist = () => ['view', 'script', 'style', 'ground', 'area', 'count', 'mix', 'showHidden', 'seed', 'edits', 'importText'].forEach(k => store.set(k, state[k]));
 const currentStyle = () => DATA.styles.find(s => s.id === state.style);
 const currentFilter = () => DATA.filters.find(f => f.script === state.script && f.style === state.style);
 const palette = () => ({ ...currentStyle().palette, ...(state.edits[state.style] || {}) });
@@ -502,6 +527,82 @@ function matchingBlocks(item, blocks) {
   return { matches, unknown };
 }
 
+/* ---------- pasted Path of Exile items ---------- */
+const IMPORT_METADATA = /^(Rarity|Item Class|Item Level|Drop Level|Map Tier|Stack Size|Quality|Sockets|LevelReq|Requirements|Implicits|Explicits|Prefixes|Suffixes|Armour|Evasion Rating|Energy Shield|Ward):/i;
+const IMPORT_FLAGS = /^(Corrupted|Fractured Item|Mirrored|Synthesised Item|Replica|Unidentified)$/i;
+function importKnown(name) {
+  if (!name) return null;
+  const equipment = pool.equipment.find(b => b.name === name);
+  if (equipment) return { base: equipment.name, cls: equipment.class, equipment };
+  const gem = pool.gems.find(g => g.name === name);
+  if (gem) return { base: gem.name, cls: gem.class, gem };
+  const card = pool.cards.find(c => c.name === name);
+  if (card) return { base: card.name, cls: 'Divination Cards', card };
+  const stack = pool.stackables.find(s => s.base === name);
+  if (stack) return { base: stack.base, cls: STACKABLE_CLASS[stack.category] || 'Stackable Currency', stack };
+  const unique = pool.uniques.find(u => u.name === name);
+  if (unique) {
+    const baseInfo = importKnown(unique.base);
+    return { base: unique.base, cls: baseInfo ? baseInfo.cls : '', unique, equipment: baseInfo && baseInfo.equipment };
+  }
+  return null;
+}
+function socketLayout(raw) {
+  if (!raw) return { sockets: [], links: [] };
+  const groups = raw.trim().split(/\s+/).filter(Boolean).map(group => group.split('-').map(s => s.toUpperCase()).filter(s => /^[RGBWAD]$/.test(s)));
+  const links = groups.filter(group => group.length);
+  return { sockets: links.flat(), links };
+}
+function numericHeader(lines, name) {
+  const line = lines.find(l => l.toLowerCase().startsWith(name.toLowerCase() + ':'));
+  const match = line && line.match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : 0;
+}
+function parseGameItem(text) {
+  const lines = String(text || '').replace(/\r/g, '').split('\n').map(line => line.trim()).filter(Boolean);
+  if (!lines.length) throw new Error('Paste the item text first.');
+  const rarityLine = lines.find(l => /^Rarity:/i.test(l));
+  if (!rarityLine) throw new Error('The paste does not contain a Rarity header.');
+  const rarity = (rarityLine.split(':')[1] || '').trim().split(/\s+/)[0] || 'Normal';
+  const classLine = lines.find(l => /^Item Class:/i.test(l));
+  const cls = classLine ? classLine.replace(/^Item Class:\s*/i, '').trim() : '';
+  const divider = lines.indexOf('--------');
+  const headerLines = lines.slice(0, divider < 0 ? lines.length : divider);
+  const visible = headerLines.filter(l => !/^Rarity:/i.test(l) && !/^Item Class:/i.test(l) && !IMPORT_METADATA.test(l) && !IMPORT_FLAGS.test(l));
+  let known = null;
+  for (const line of [...visible].reverse()) {
+    known = importKnown(line);
+    if (known) break;
+  }
+  const label = visible[0] || (known && known.base) || cls || 'Pasted item';
+  const baseDisplay = visible.length > 1 ? visible[visible.length - 1] : label;
+  if (!known) known = importKnown(baseDisplay) || importKnown(label);
+  const socketsLine = lines.find(l => /^Sockets:/i.test(l));
+  const socketed = socketLayout(socketsLine ? socketsLine.replace(/^Sockets:\s*/i, '') : '');
+  const quality = numericHeader(lines, 'Quality');
+  const stackLine = lines.find(l => /^Stack Size:/i.test(l));
+  const stack = stackLine ? Number((stackLine.match(/\d+/) || ['1'])[0]) : 1;
+  const itemLevel = numericHeader(lines, 'Item Level');
+  const mapTier = numericHeader(lines, 'Map Tier');
+  const firstDivider = divider < 0 ? lines.length : divider;
+  const modLines = lines.slice(firstDivider + 1).filter(l => l !== '--------' && !IMPORT_METADATA.test(l) && !IMPORT_FLAGS.test(l));
+  const base = known && known.base ? known.base : '';
+  const equipment = known && known.equipment;
+  const item = {
+    label, base, baseDisplay, cls: cls || (known && known.cls) || '', category: known && known.stack ? known.stack.category : '', rarity,
+    unique: known && known.unique ? known.unique.name : undefined,
+    ilvl: itemLevel, drop: equipment ? equipment.drop : 0, mapTier, stack, w: equipment ? equipment.w : 1, h: equipment ? equipment.h : 1,
+    quality, sockets: socketed.sockets, links: socketed.links, mods: modLines,
+    corrupted: lines.some(l => /^Corrupted$/i.test(l)), fractured: lines.some(l => /^Fractured Item$/i.test(l)),
+    identified: !lines.some(l => /^Unidentified$/i.test(l)), mirrored: lines.some(l => /^Mirrored$/i.test(l)),
+    synthesised: lines.some(l => /^Synthesised Item$/i.test(l)), replica: lines.some(l => /^Replica$/i.test(l)),
+    armour: numericHeader(lines, 'Armour'), evasion: numericHeader(lines, 'Evasion Rating'), es: numericHeader(lines, 'Energy Shield'), ward: numericHeader(lines, 'Ward'),
+    area: state.area, value: known && known.card ? known.card.value : undefined,
+  };
+  if (!item.base) item.parseNote = 'The base type was not found in the Studio item pool; class and visible text rules can still be checked.';
+  return item;
+}
+
 /* ---------- rendering: shared ---------- */
 function renderStyles() {
   const host = document.getElementById('styles'); host.replaceChildren();
@@ -580,29 +681,50 @@ function renderLoot() {
     (unknown ? `<span><b>${unknown}</b> skipped a rule with a condition the studio can't evaluate (marked ?)</span>` : '') +
     `<span>seed ${state.seed}</span>`;
   renderInspector();
+  renderImportedInspector();
 }
 function fmtCondition(c) {
   const vals = c.v.length > 4 ? c.v.slice(0, 4).map(v => `"${v}"`).join(' ') + ` … and ${c.v.length - 4} more` : c.v.map(v => /^\d+$|^True$|^False$/.test(v) ? v : `"${v}"`).join(' ');
   return `<b>${c.k}</b> ${c.op ? c.op + ' ' : ''}${escapeHTML(vals)}`;
 }
 function escapeHTML(s) { return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])); }
-function renderInspector() {
-  const box = document.getElementById('inspector'); box.replaceChildren();
-  const d = drops[state.selected];
-  if (!d) { box.innerHTML = '<p class="empty">Roll a drop, then pick an item to see which rules it falls into.</p>'; return; }
+function styleFacts(look, P) {
+  const facts = document.createElement('dl'); facts.className = 'style-facts';
+  const add = (name, value, swatch) => {
+    const row = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = name;
+    const dd = document.createElement('dd');
+    if (swatch) { const dot = document.createElement('span'); dot.className = 'style-swatch'; dot.style.background = swatch; dd.append(dot); }
+    const text = document.createElement('span'); text.textContent = value; dd.append(text); row.append(dt, dd); facts.append(row);
+  };
+  const color = (name, value) => { const resolved = colorOf(value, P); add(name, resolved || 'default', resolved); };
+  color('Text', look.text); color('Background', look.background); color('Border', look.border);
+  add('Font', look.fontSize ? `${look.fontSize} pt` : 'default');
+  add('Beam', look.beam ? `${look.beam}${look.beamTemp ? ' (temp)' : ''}` : 'none');
+  add('Minimap', look.minimapShape ? `${look.minimapSize} ${look.minimapColor} ${look.minimapShape}` : 'none');
+  add('Sound', look.sound ? `${look.sound}${look.volume ? ` @${look.volume}` : ''}` : 'none');
+  return facts;
+}
+function renderInspectorTarget(d, boxId, emptyText) {
+  const box = document.getElementById(boxId); box.replaceChildren();
+  if (!d) { box.innerHTML = `<p class="empty">${escapeHTML(emptyText)}</p>`; return; }
   const P = palette();
   const head = document.createElement('div');
   head.style.cssText = 'display:grid;gap:10px;justify-items:start';
   const active = d.matches[0];
   head.append(labelEl(d.label, active ? active.look : {}, P, d.rarity, 1.15));
+  if (active) {
+    const applied = document.createElement('div'); applied.style.cssText = 'display:grid;gap:6px;width:100%';
+    const appliedTitle = document.createElement('div'); appliedTitle.className = 'eyebrow'; appliedTitle.textContent = 'Applied styling';
+    applied.append(appliedTitle, styleFacts(active.look, P)); head.append(applied);
+  }
   const facts = document.createElement('dl'); facts.className = 'facts';
   const add = (k, v) => { if (v === undefined || v === null || v === '' || v === false) return; const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v === true ? 'yes' : v; facts.append(dt, dd); };
-  add('Base type', d.base); add('Unique', d.unique); add('Class', d.cls); add('Rarity', d.rarity); add('Category', d.category);
+  add('Base type', d.base || d.baseDisplay); add('Unique', d.unique); add('Class', d.cls); add('Rarity', d.rarity); add('Category', d.category);
   add('Area level', d.area); add('Item level', d.ilvl); add('Drop level', d.drop); add('Stack size', d.stack > 1 ? d.stack : '');
   add('Quality', d.quality ? d.quality + '%' : ''); add('Sockets', d.links.length ? d.links.map(g => g.join('-')).join('  ') : '');
   add('Size', `${d.w}×${d.h}`); add('Corrupted', d.corrupted); add('Fractured', d.fractured); add('Identified', d.identified ? '' : 'no');
   add('Mods', d.mods.join(', ')); add('Base armour / evasion / ES', d.armour || d.evasion || d.es ? `${d.armour} / ${d.evasion} / ${d.es}` : '');
-  add('Price', d.value !== undefined ? d.value.toFixed(1) + ' chaos' : '');
+  add('Price', d.value !== undefined ? d.value.toFixed(1) + ' chaos' : ''); add('Parse note', d.parseNote);
   head.append(facts);
   box.append(head);
   const title = document.createElement('h3');
@@ -615,7 +737,7 @@ function renderInspector() {
     const h = document.createElement('div'); h.className = 'rule-head';
     h.innerHTML = `<span class="pill ${i === 0 ? 'active' : 'shadow'}">${i === 0 ? 'Active' : 'Shadowed'}</span><span class="pill ${b.action === 'Hide' ? 'hide' : 'show'}">${b.action}</span><span>line ${b.line}</span><span>${escapeHTML(b.section || '')}</span>`;
     card.append(h);
-    if (b.source) { const s = document.createElement('div'); s.className = 'src'; s.textContent = b.source; card.append(s); }
+    if (b.source) { const source = document.createElement('div'); source.className = 'src'; source.textContent = b.source; card.append(source); }
     const preview = document.createElement('div'); preview.style.cssText = 'display:flex;gap:10px;align-items:center;flex-wrap:wrap';
     preview.append(labelEl(d.label, b.look, P, d.rarity, 0.8));
     const alerts = document.createElement('div'); alerts.className = 'alerts';
@@ -626,6 +748,7 @@ function renderInspector() {
     if (b.look.sound) bits.push(`sound ${escapeHTML(b.look.sound)}${b.look.volume ? ' @' + b.look.volume : ''}`);
     alerts.innerHTML = bits.map(x => `<span>${x}</span>`).join('');
     preview.append(alerts); card.append(preview);
+    if (i !== 0) card.append(styleFacts(b.look, P));
     if (b.conditions && b.conditions.length) {
       const ul = document.createElement('ul'); ul.className = 'conds';
       ul.innerHTML = b.conditions.map(c => `<li>${fmtCondition(c)}</li>`).join('');
@@ -633,6 +756,12 @@ function renderInspector() {
     }
     box.append(card);
   });
+}
+function renderInspector() {
+  renderInspectorTarget(drops[state.selected], 'inspector', 'Roll a drop, then pick an item to see which rules it falls into.');
+}
+function renderImportedInspector() {
+  renderInspectorTarget(state.imported, 'import-inspector', 'Paste an in-game item to see which rules apply.');
 }
 
 /* ---------- rendering: palette ---------- */
@@ -773,7 +902,7 @@ document.getElementById('reset').addEventListener('click', () => {
 /* ---------- wiring ---------- */
 function renderAll() {
   renderStyles();
-  if (state.view === 'loot') { evaluate(); renderLoot(); } else renderPalette();
+  if (state.view === 'loot') { evaluate(); evaluateImported(); renderLoot(); } else renderPalette();
 }
 document.getElementById('view-loot').addEventListener('click', () => { state.view = 'loot'; persist(); renderAll(); });
 document.getElementById('view-palette').addEventListener('click', () => { state.view = 'palette'; persist(); renderAll(); });
@@ -790,6 +919,39 @@ mix.addEventListener('change', () => { state.mix = mix.value; persist(); roll();
 const showHidden = document.getElementById('show-hidden'); showHidden.checked = state.showHidden;
 showHidden.addEventListener('change', () => { state.showHidden = showHidden.checked; persist(); renderLoot(); });
 document.getElementById('roll').addEventListener('click', () => { state.seed++; state.selected = 0; persist(); roll(); renderLoot(); });
+
+function evaluateImported() {
+  if (!state.imported) return;
+  state.imported.area = state.area;
+  const f = currentFilter();
+  const res = f ? matchingBlocks(state.imported, f.blocks) : { matches: [], unknown: false };
+  state.imported.matches = res.matches; state.imported.unknown = res.unknown;
+}
+function applyImportedText() {
+  const input = document.getElementById('item-import');
+  const status = document.getElementById('import-status');
+  state.importText = input.value; persist();
+  if (!input.value.trim()) {
+    state.imported = null; status.textContent = 'Paste an item to inspect it.'; renderImportedInspector(); return;
+  }
+  try {
+    state.imported = parseGameItem(input.value);
+    evaluateImported();
+    status.textContent = state.imported.parseNote || `${state.imported.matches.length} matching rules; the first rule is applied.`;
+  } catch (error) {
+    state.imported = null; status.textContent = error.message;
+  }
+  renderImportedInspector();
+}
+const importInput = document.getElementById('item-import');
+importInput.value = state.importText;
+document.getElementById('inspect-item').addEventListener('click', applyImportedText);
+importInput.addEventListener('paste', event => {
+  const text = event.clipboardData && event.clipboardData.getData('text/plain');
+  if (!text) return;
+  setTimeout(() => { importInput.value = text; applyImportedText(); }, 0);
+});
+if (state.importText.trim()) applyImportedText();
 
 if (!DATA || !DATA.styles.length) {
   document.querySelector('.wrap').innerHTML = '<p>No styles were compiled, so there is nothing to show.</p>';
