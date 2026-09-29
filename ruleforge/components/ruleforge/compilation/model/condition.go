@@ -55,7 +55,9 @@ func (c *Condition) ConstructCompiledCondition(variables *map[string][]string, v
 
 	for _, value := range c.Value {
 		if value[0] != '$' {
-			if compiledIdentifier == "BaseType" {
+			// Without an operator the filter matches a part of the name,
+			// which is never a whole base type by itself.
+			if compiledIdentifier == "BaseType" && c.Operator != "" {
 				c.validateBaseType(value, validBaseTypes)
 			}
 

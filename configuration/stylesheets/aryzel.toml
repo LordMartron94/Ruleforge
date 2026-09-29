@@ -1066,6 +1066,12 @@ BackgroundColor = "bg-sea"
 BorderColor = "bd-allflame"
 Minimap = { Shape = "Circle" }
 
+[Templates.Leagues.Ancestors]
+Comment = "Trial of the Ancestors: a pounamu (greenstone) field edged in kokowai, the Karui red ochre."
+BackgroundColor = "bg-ancestral"
+BorderColor = "bd-tattoo"
+Minimap = { Shape = "Circle" }
+
 [Templates.Radiance.T0]
 Comment = "T0: the body of light. Ivory field, ink and outline in the phase colour."
 TextColor = "rad-t0-text"
@@ -1608,6 +1614,30 @@ Combination = ["Templates/Tiers/Mid/T6", "Templates/Groups/Divination"]
 [Final.Divination.Fallback]
 Combination = ["Templates/Tiers/High/T4", "Templates/Groups/Divination"]
 
+# Tattoos, tiered by their poe.ninja price like divination cards.
+[Final.Tattoos.T1]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Ancestors", "Templates/Radiance/T1"]
+
+[Final.Tattoos.T2]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T3]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T4]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T5]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T6]
+Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Ancestors"]
+
+# Without a price a tattoo is a rare reward (Honoured, Loyalty, most Journey
+# tattoos), or the economy history predates it.
+[Final.Tattoos.Unpriced]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Ancestors"]
+
 [Final.Lab]
 Combination = ["Templates/Groups/Lab", "Templates/Tiers/High/T4"]
 
@@ -1743,7 +1773,7 @@ Vars = ["bg-crafting", "bg-div-cards", "bg-equipment", "bg-flasks", "bg-gold", "
 
 [Studio.Distinct.AllFields]
 Min = 6
-Vars = ["bg-crafting", "bg-astral", "bg-breach", "bg-delve", "bg-div-cards", "bg-eldritch", "bg-equipment", "bg-flasks", "bg-gold", "bg-harvest", "bg-heist", "bg-incursion", "bg-kalguur", "bg-lab", "bg-legion", "bg-maps", "bg-old-equipment", "bg-old-flasks", "bg-orbs", "bg-scarabs", "bg-sea", "bg-skill-gems", "bg-special", "bg-supplies", "bg-unassociated-equipment"]
+Vars = ["bg-crafting", "bg-ancestral", "bg-astral", "bg-breach", "bg-delve", "bg-div-cards", "bg-eldritch", "bg-equipment", "bg-flasks", "bg-gold", "bg-harvest", "bg-heist", "bg-incursion", "bg-kalguur", "bg-lab", "bg-legion", "bg-maps", "bg-old-equipment", "bg-old-flasks", "bg-orbs", "bg-scarabs", "bg-sea", "bg-skill-gems", "bg-special", "bg-supplies", "bg-unassociated-equipment"]
 # Borders that can appear on the same equipment field.
 
 [Studio.Distinct.EquipmentMarks]

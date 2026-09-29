@@ -247,6 +247,7 @@ var economyCategories = []struct {
 	{"UniqueJewel", "Uniques", stashEndpoint},
 	{"SkillGem", "Gems", stashEndpoint},
 	{"DivinationCard", "Divination Cards", exchangeEndpoint},
+	{"Tattoo", "Tattoos", exchangeEndpoint},
 }
 
 // RefreshEconomyData fetches a fresh poe.ninja snapshot and records it in the

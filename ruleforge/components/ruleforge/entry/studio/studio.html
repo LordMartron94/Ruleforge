@@ -507,9 +507,9 @@ function stackItem(r, s, showcase) {
   };
 }
 const KIND_WEIGHTS = {
-  campaign: { equipment: 44, jewellery: 7, flask: 8, gem: 4, currency: 18, gold: 12, card: 3, unique: 2, jewel: 1, league: 3 },
-  maps: { equipment: 28, jewellery: 5, flask: 3, gem: 3, currency: 20, gold: 10, card: 6, unique: 3, jewel: 2, league: 20 },
-  showcase: { equipment: 14, jewellery: 6, flask: 6, gem: 8, currency: 16, gold: 5, card: 10, unique: 10, jewel: 3, league: 22 },
+  campaign: { equipment: 44, jewellery: 7, flask: 8, gem: 4, currency: 18, gold: 12, card: 3, unique: 2, jewel: 1, league: 3, tattoo: 1 },
+  maps: { equipment: 28, jewellery: 5, flask: 3, gem: 3, currency: 20, gold: 10, card: 6, unique: 3, jewel: 2, league: 20, tattoo: 2 },
+  showcase: { equipment: 14, jewellery: 6, flask: 6, gem: 8, currency: 16, gold: 5, card: 10, unique: 10, jewel: 3, league: 22, tattoo: 6 },
 };
 function rollItem(r, area, mix) {
   const showcase = mix === 'showcase';
@@ -540,6 +540,10 @@ function rollItem(r, area, mix) {
     case 'card': {
       const card = pick(r, pool.cards, c => showcase ? 1 : 1 / Math.pow(1 + c.value, 0.8));
       return card && { label: card.name, base: card.name, cls: 'Divination Cards', rarity: 'Normal', stack: 1, w: 1, h: 1, quality: 0, sockets: [], links: [], mods: [], corrupted: false, fractured: false, identified: true, value: card.value };
+    }
+    case 'tattoo': {
+      const tattoo = pick(r, pool.tattoos, t => showcase ? 1 : 1 / Math.pow(1 + t.value, 0.8));
+      return tattoo && { label: tattoo.name, base: tattoo.name, cls: 'Stackable Currency', rarity: 'Normal', stack: 1, w: 1, h: 1, quality: 0, sockets: [], links: [], mods: [], corrupted: false, fractured: false, identified: true, value: tattoo.value };
     }
     case 'unique': {
       const options = pool.uniques.filter(u => showcase || (baseByName.get(u.base) || {}).drop <= area);
@@ -640,7 +644,9 @@ function importKnown(name) {
   const gem = pool.gems.find(g => g.name === name);
   if (gem) return { base: gem.name, cls: gem.class, gem };
   const card = pool.cards.find(c => c.name === name);
-  if (card) return { base: card.name, cls: 'Divination Cards', card };
+  if (card) return { base: card.name, cls: 'Divination Cards', priced: card };
+  const tattoo = pool.tattoos.find(t => t.name === name);
+  if (tattoo) return { base: tattoo.name, cls: 'Stackable Currency', priced: tattoo };
   const stack = pool.stackables.find(s => s.base === name);
   if (stack) return { base: stack.base, cls: STACKABLE_CLASS[stack.category] || 'Stackable Currency', stack };
   const unique = pool.uniques.find(u => u.name === name);
@@ -689,7 +695,8 @@ function parseGameItem(text) {
   const mapTier = numericHeader(lines, 'Map Tier');
   const firstDivider = divider < 0 ? lines.length : divider;
   const modLines = lines.slice(firstDivider + 1).filter(l => l !== '--------' && !IMPORT_METADATA.test(l) && !IMPORT_FLAGS.test(l) && !IMPORT_REQUIREMENTS.test(l));
-  const base = known && known.base ? known.base : '';
+  // A currency or card name is its base type, even when the pool doesn't list it.
+  const base = known && known.base ? known.base : /^(Currency|Divination)$/i.test(rarity) ? label : '';
   const equipment = known && known.equipment;
   const item = {
     label, base, baseDisplay, cls: cls || (known && known.cls) || '', category: known && known.stack ? known.stack.category : '', rarity,
@@ -700,7 +707,7 @@ function parseGameItem(text) {
     identified: !lines.some(l => /^Unidentified$/i.test(l)), mirrored: lines.some(l => /^Mirrored$/i.test(l)),
     synthesised: lines.some(l => /^Synthesised Item$/i.test(l)), replica: lines.some(l => /^Replica$/i.test(l)),
     ...baseDefences(lines, modLines, quality),
-    area: state.area, value: known && known.card ? known.card.value : undefined,
+    area: state.area, value: known && known.priced ? known.priced.value : undefined,
   };
   item.defencePercentile = equipment ? defencePercentile(equipment, item) : 0;
   if (!item.base) item.parseNote = 'The base type was not found in the Studio item pool; class and visible text rules can still be checked.';
@@ -930,6 +937,7 @@ const STYLE_CATEGORIES = [
   ['Currency & supplies', /^Final\/(Orbs|Supplies|Catalysts)\//],
   ['Gold', /^Final\/Leagues\/Gold_/],
   ['Divination cards', /^Final\/Divination\//],
+  ['Tattoos', /^Final\/Tattoos\//],
   ['Maps & atlas', /^(Final\/(Maps|Scarabs)\/|Final\/Leagues\/Chart$|Special\/MapFragments\/)/],
   ['Essences & oils', /^Special\/(Essences|Oils)\//],
   ['League mechanics', /^Final\/(Leagues|Eldritch)\//],

@@ -149,6 +149,19 @@ SECTION {
       -> $tier_5 => "Final/Divination/T5"
       -> $tier_6 => "Final/Divination/T6"
     ]
+
+    !! Tattoos swing from fractions of a chaos to divines and follow the build
+    !! meta, so they are tiered by price like divination cards. A tattoo with
+    !! no price is a rare reward (Honoured, Loyalty and most Journey tattoos).
+    MACRO["tattoo_tiering"
+      -> $tier_1   => "Final/Tattoos/T1"
+      -> $tier_2   => "Final/Tattoos/T2"
+      -> $tier_3   => "Final/Tattoos/T3"
+      -> $tier_4   => "Final/Tattoos/T4"
+      -> $tier_5   => "Final/Tattoos/T5"
+      -> $tier_6   => "Final/Tattoos/T6"
+      -> $fallback => "Final/Tattoos/Unpriced"
+    ]
     MACRO["handle_csv" -> $category => "Map Fragments"]
     MACRO["handle_csv" -> $category => "Scarabs"]
 

@@ -55,7 +55,7 @@ func TestPastedItemRecoversItsBaseDefenceRoll(t *testing.T) {
 	script := strings.Join([]string{
 		`const state = { area: 19 };`,
 		`const STACKABLE_CLASS = {};`,
-		`const pool = { equipment: [{ name: 'Light Brigandine', class: 'Body Armours', drop: 8, w: 2, h: 3, armour: 63, armourMin: 48, evasion: 63, evasionMin: 48 }], gems: [], cards: [], stackables: [], uniques: [] };`,
+		`const pool = { equipment: [{ name: 'Light Brigandine', class: 'Body Armours', drop: 8, w: 2, h: 3, armour: 63, armourMin: 48, evasion: 63, evasionMin: 48 }], gems: [], cards: [], tattoos: [], stackables: [], uniques: [] };`,
 		section(t, "// Classes whose base defences roll within a range", "function rollDefences("),
 		section(t, "/* ---------- pasted Path of Exile items ---------- */", "/* ---------- rendering: shared ---------- */"),
 		`const text = require('fs').readFileSync(0, 'utf8');`,
@@ -92,5 +92,39 @@ func TestPastedItemRecoversItsBaseDefenceRoll(t *testing.T) {
 	}
 	if len(got.Links) != 1 || len(got.Links[0]) != 3 {
 		t.Errorf("sockets W-W-W should be one 3-link group, got %v", got.Links)
+	}
+}
+
+func TestPastedTattooKeepsItsNameAsTheBaseType(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	script := strings.Join([]string{
+		`const state = { area: 40 };`,
+		`const STACKABLE_CLASS = {};`,
+		`const pool = { equipment: [], gems: [], cards: [], tattoos: [{ name: 'Tattoo of the Valako Shieldbearer', value: 494 }], stackables: [], uniques: [] };`,
+		section(t, "// Classes whose base defences roll within a range", "function rollDefences("),
+		section(t, "/* ---------- pasted Path of Exile items ---------- */", "/* ---------- rendering: shared ---------- */"),
+		`const paste = name => parseGameItem('Item Class: Stackable Currency\nRarity: Currency\n' + name + '\n--------\nStack Size: 1/10');`,
+		`const items = ['Tattoo of the Valako Shieldbearer', 'Honoured Tattoo of the Flood'].map(paste);`,
+		`console.log(JSON.stringify(items.map(i => ({ base: i.base, cls: i.cls, value: i.value || 0 }))));`,
+	}, "\n")
+	out, err := exec.Command(node, "-e", script).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	var got []struct {
+		Base, Cls string
+		Value     float64
+	}
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("parsing node output %q: %v", out, err)
+	}
+	if len(got) != 2 || got[0].Base != "Tattoo of the Valako Shieldbearer" || got[0].Cls != "Stackable Currency" || got[0].Value != 494 {
+		t.Errorf("priced tattoo: %+v", got)
+	}
+	if len(got) == 2 && (got[1].Base != "Honoured Tattoo of the Flood" || got[1].Cls != "Stackable Currency") {
+		t.Errorf("a tattoo missing from the pool must still match filter rules by name: %+v", got[1])
 	}
 }

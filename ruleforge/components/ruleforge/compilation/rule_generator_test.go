@@ -5,10 +5,15 @@ import (
 	"log"
 	"strings"
 	"testing"
+	"time"
 
+	lexing "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/lexing/shared"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	model2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation/model"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/rules/symbols"
 )
 
 func u8(v uint8) *uint8     { return &v }
@@ -320,5 +325,80 @@ func TestGroupByPropertiesMergesRowsWithTheSameRarity(t *testing.T) {
 	}
 	if got := groups[0].BaseTypes; len(got) != 2 || got[0] != "Coral Ring" || got[1] != "Two-Stone Ring" {
 		t.Errorf("normal group keeps CSV order and merges both rings, got %v", got)
+	}
+}
+
+func tieringParameter(key, style string) *shared.ParseTree[symbols.LexingTokenType] {
+	leaf := func(value string) *shared.ParseTree[symbols.LexingTokenType] {
+		return &shared.ParseTree[symbols.LexingTokenType]{Token: &lexing.Token[symbols.LexingTokenType]{Value: []byte(value)}}
+	}
+	return &shared.ParseTree[symbols.LexingTokenType]{Children: []*shared.ParseTree[symbols.LexingTokenType]{leaf("->"), leaf(key), leaf("=>"), leaf(style)}}
+}
+
+func tattooGenerator(items []data_generation.EconomyCacheItem) *RuleGenerator {
+	var names []string
+	for _, item := range items {
+		names = append(names, item.BaseType)
+	}
+	return &RuleGenerator{
+		ruleFactory: &RuleFactory{},
+		styleManager: &StyleManager{styles: map[string]config.Style{
+			"T1": {Id: "t1", FontSize: intp(45)}, "T2": {Id: "t2", FontSize: intp(40)}, "Unpriced": {Id: "unpriced", FontSize: intp(36)},
+		}},
+		validBaseTypes:        names,
+		economyCache:          map[string][]data_generation.EconomySnapshot{"Allflame": {{FetchedAt: time.Unix(1, 0), Items: items}}},
+		economyWeights:        config.EconomyWeights{Value: 1},
+		leagueWeights:         []config.LeagueWeights{{League: "Allflame", Weight: 1}},
+		normalizationStrategy: "Global",
+	}
+}
+
+var tattooParameters = []*shared.ParseTree[symbols.LexingTokenType]{
+	tieringParameter("$tier_1", "T1"), tieringParameter("$tier_2", "T2"), tieringParameter("$fallback", "Unpriced"),
+}
+
+func TestTattooTieringEndsWithAFallbackForUnpricedTattoos(t *testing.T) {
+	rg := tattooGenerator([]data_generation.EconomyCacheItem{
+		{Class: "Tattoos", Name: "Tattoo of the Arohongui Shaman", BaseType: "Tattoo of the Arohongui Shaman", ChaosValue: 700, Count: 18, ListingCount: 18},
+		{Class: "Tattoos", Name: "Tattoo of the Valako Shieldbearer", BaseType: "Tattoo of the Valako Shieldbearer", ChaosValue: 500, Count: 10, ListingCount: 10},
+		{Class: "Tattoos", Name: "Tattoo of the Tasalio Shaman", BaseType: "Tattoo of the Tasalio Shaman", ChaosValue: 0.3, Count: 38, ListingCount: 38},
+		{Class: "Divination Cards", Name: "The Doctor", BaseType: "The Doctor", ChaosValue: 900, Count: 20, ListingCount: 20},
+	})
+	rules, err := rg.handleTattooTiering(&map[string][]string{}, tattooParameters)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rules) != 3 {
+		t.Fatalf("expected two tier rules and the fallback, got %d rules", len(rules))
+	}
+	for _, rule := range rules[:2] {
+		joined := strings.Join(rule, "\n")
+		if !strings.Contains(joined, `Class == "Stackable Currency"`) || !strings.Contains(joined, `BaseType == "Tattoo of the`) {
+			t.Fatalf("tier rule is not limited to priced tattoos:\n%s", joined)
+		}
+		if strings.Contains(joined, "The Doctor") {
+			t.Fatalf("a divination card was tiered as a tattoo:\n%s", joined)
+		}
+	}
+	fallback := strings.Join(rules[2], "\n")
+	if !strings.Contains(fallback, `Class == "Stackable Currency"`) || !strings.Contains(fallback, `BaseType "Tattoo"`) || !strings.Contains(fallback, "SetFontSize 36") {
+		t.Fatalf("expected the last rule to catch every other tattoo in the fallback style, got:\n%s", fallback)
+	}
+}
+
+func TestTattooTieringWithoutPricesUsesOnlyTheFallback(t *testing.T) {
+	rg := tattooGenerator([]data_generation.EconomyCacheItem{
+		{Class: "Divination Cards", Name: "The Doctor", BaseType: "The Doctor", ChaosValue: 900, Count: 20, ListingCount: 20},
+	})
+	rules, err := rg.handleTattooTiering(&map[string][]string{}, tattooParameters)
+	if err != nil {
+		t.Fatalf("a kind without recorded prices must not fail the compile: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected only the fallback rule, got %d rules", len(rules))
+	}
+	joined := strings.Join(rules[0], "\n")
+	if !strings.Contains(joined, `BaseType "Tattoo"`) || !strings.Contains(joined, "SetFontSize 36") {
+		t.Fatalf("expected the fallback rule for every tattoo, got:\n%s", joined)
 	}
 }

@@ -41,6 +41,7 @@ bg-supplies = "#3C1F1E"
 bg-unassociated-equipment = "#2A2118"
 
 # League fields: hue fixed to the league, lightness and chroma follow the phase.
+bg-ancestral = "#09312B"
 bg-astral = "#1A1655"
 bg-breach = "#211229"
 bg-delve = "#0A3A53"
@@ -100,3 +101,4 @@ bd-mercenary = "#E09865"
 bd-mirage = "#59E4D9"
 bd-runegraft = "#60DBD4"
 bd-scarabs = "#C29E6B"
+bd-tattoo = "#EE9780"

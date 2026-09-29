@@ -375,6 +375,21 @@ MACRO["unique_tiering"
 ]
 ```
 
+`divination_card_tiering` & `tattoo_tiering` work the same way for divination
+cards and Trial of the Ancestors tattoos, priced from poe.ninja's bulk exchange.
+Any tiering macro also takes an optional `$fallback` style, which does not take
+a tier: it goes after the tiers and styles every item of the kind that has no
+price. That includes all of them before the first economy refresh that records
+the kind.
+
+```rf
+MACRO["tattoo_tiering"
+  -> $tier_1   => "Final/Tattoos/T1"
+  -> $tier_2   => "Final/Tattoos/T2"
+  -> $fallback => "Final/Tattoos/Unpriced"
+]
+```
+
 `handle_csv`
 This macro generates rules based on a CSV file,
 allowing for easy management of large, repetitive rule sets like currencies or essences.

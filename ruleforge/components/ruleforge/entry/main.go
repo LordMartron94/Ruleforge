@@ -237,21 +237,26 @@ func (a *App) prepareBaseTypes() {
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.itemBases)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.essences)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.gems)...)
-	// Divination cards aren't tracked by Path of Building, so their names come
-	// from whatever poe.ninja has actually priced instead of a bundled list.
-	baseTypes = append(baseTypes, divinationCardBaseTypes(a.economyData)...)
+	// Divination cards and tattoos aren't tracked by Path of Building, so their
+	// names come from whatever poe.ninja has actually priced instead of a
+	// bundled list.
+	baseTypes = append(baseTypes, pricedOnlyBaseTypes(a.economyData)...)
 	a.baseTypes = baseTypes
 	a.log.Printf("Total number of base types prepared for compiler: %d", len(a.baseTypes))
 }
 
-// divinationCardBaseTypes collects every divination card name seen across all
-// recorded economy history, deduplicated.
-func divinationCardBaseTypes(economyData map[string][]data_generation.EconomySnapshot) []string {
+// pricedOnlyClasses are the economy classes whose base types Path of Building
+// doesn't know.
+var pricedOnlyClasses = map[string]bool{"Divination Cards": true, "Tattoos": true}
+
+// pricedOnlyBaseTypes collects every divination card and tattoo name seen
+// across all recorded economy history, deduplicated.
+func pricedOnlyBaseTypes(economyData map[string][]data_generation.EconomySnapshot) []string {
 	seen := make(map[string]bool)
 	for _, snapshots := range economyData {
 		for _, snapshot := range snapshots {
 			for _, item := range snapshot.Items {
-				if item.Class == "Divination Cards" {
+				if pricedOnlyClasses[item.Class] {
 					seen[item.BaseType] = true
 				}
 			}

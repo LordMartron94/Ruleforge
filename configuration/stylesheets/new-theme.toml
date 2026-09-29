@@ -977,6 +977,12 @@ BackgroundColor = "bg-delve"
 BorderColor = "bd-delve"
 Minimap = { Shape = "Circle" }
 
+[Templates.Leagues.Ancestors]
+Comment = "Trial of the Ancestors: a pounamu (greenstone) field edged in kokowai, the Karui red ochre."
+BackgroundColor = "bg-ancestral"
+BorderColor = "bd-tattoo"
+Minimap = { Shape = "Circle" }
+
 [Final.Uniques.T0]
 Combination = ["Templates/Rarities/Unique", "Templates/Groups/Equipment", "Templates/Tiers/Divine/T0", "Templates/Alerts/Divine/T0"]
 
@@ -1278,6 +1284,30 @@ Combination = ["Templates/Tiers/Mid/T6", "Templates/Groups/Divination"]
 
 [Final.Divination.Fallback]
 Combination = ["Templates/Tiers/High/T4", "Templates/Groups/Divination"]
+
+# Tattoos, tiered by their poe.ninja price like divination cards.
+[Final.Tattoos.T1]
+Combination = ["Templates/Tiers/Divine/T1", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T2]
+Combination = ["Templates/Tiers/High/T2", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T3]
+Combination = ["Templates/Tiers/High/T3", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T4]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T5]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Ancestors"]
+
+[Final.Tattoos.T6]
+Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Ancestors"]
+
+# Without a price a tattoo is a rare reward (Honoured, Loyalty, most Journey
+# tattoos), or the economy history predates it.
+[Final.Tattoos.Unpriced]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Ancestors"]
 
 [Final.Lab]
 Combination = ["Templates/Groups/Lab", "Templates/Tiers/High/T4"]

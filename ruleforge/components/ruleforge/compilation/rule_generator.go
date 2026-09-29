@@ -221,6 +221,8 @@ func (rg *RuleGenerator) handleMacroExpression(
 		return rg.handleGemTiering(variables, parameters)
 	case "divination_card_tiering":
 		return rg.handleDivinationCardTiering(variables, parameters)
+	case "tattoo_tiering":
+		return rg.handleTattooTiering(variables, parameters)
 	case "handle_csv":
 		return rg.handleCSVMacro(variables, parameters, sectionConditions)
 	case "veiled":
@@ -700,7 +702,11 @@ func (rg *RuleGenerator) constructItemProgressionRule(
 }
 
 type TieringConfig struct {
-	InitialCondition  model2.Condition
+	InitialCondition model2.Condition
+	// KindConditions narrow InitialCondition to the tiered kind of item in
+	// rules without a priced item list: the single-tier case and $fallback.
+	// Only kinds that share their item class with other items need them.
+	KindConditions    []model2.Condition
 	ItemClassToFilter string
 	TieredIdentifier  string
 }
@@ -747,6 +753,27 @@ func (rg *RuleGenerator) handleDivinationCardTiering(variables *map[string][]str
 	return rg.generateTieredRules(variables, parameters, divinationConfig)
 }
 
+// handleTattooTiering generates tiered rules for Trial of the Ancestors
+// tattoos based on economy data. Tattoos drop as Stackable Currency, so every
+// rule is also limited to base types containing "Tattoo".
+func (rg *RuleGenerator) handleTattooTiering(variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType]) ([][]string, error) {
+	tattooConfig := TieringConfig{
+		InitialCondition: model2.Condition{
+			Identifier: "@item_class",
+			Operator:   "==",
+			Value:      []string{"Stackable Currency"},
+		},
+		KindConditions: []model2.Condition{{
+			Identifier: "@item_type",
+			Operator:   "",
+			Value:      []string{"Tattoo"},
+		}},
+		ItemClassToFilter: "Tattoos",
+		TieredIdentifier:  "@item_type",
+	}
+	return rg.generateTieredRules(variables, parameters, tattooConfig)
+}
+
 func (rg *RuleGenerator) generateTieredRules(
 	variables *map[string][]string,
 	parameters []*shared.ParseTree[symbols.LexingTokenType],
@@ -760,10 +787,11 @@ func (rg *RuleGenerator) generateTieredRules(
 	// quality bracket (see emitTierRules), so quality is never shadowed by
 	// economy tiering the way it used to be for skill_gem_tiering, and
 	// tiering macros that don't pass any quality_ parameter (uniques,
-	// divination cards) behave exactly as before.
+	// divination cards) behave exactly as before. "$fallback" doesn't occupy
+	// a tier slot either: it styles whatever the economy data has no price for.
 	var tierStyles []*config.Style
 	var qualityBrackets []qualityBracket
-	var vaalStyle *config.Style
+	var vaalStyle, fallbackStyle *config.Style
 	for _, parameter := range parameters {
 		key, value := rg.getKeyAndValueFromParameter(parameter)
 		style, err := rg.styleManager.GetStyle(value)
@@ -778,8 +806,13 @@ func (rg *RuleGenerator) generateTieredRules(
 			vaalStyle = style
 			continue
 		}
+		if key == "$fallback" {
+			fallbackStyle = style
+			continue
+		}
 		tierStyles = append(tierStyles, style)
 	}
+	kindConditions := append([]model2.Condition{tieringConfiguration.InitialCondition}, tieringConfiguration.KindConditions...)
 	// Highest threshold first, so e.g. a 25%-quality item matches ">= 20"
 	// before it ever gets the chance to fall through to ">= 10".
 	sort.Slice(qualityBrackets, func(i, j int) bool {
@@ -791,7 +824,7 @@ func (rg *RuleGenerator) generateTieredRules(
 	// covers the whole class unconditionally), so $vaal is a no-op in this
 	// degenerate case.
 	if len(tierStyles) == 1 {
-		rules, err := rg.emitTierRules(tierStyles[0], []model2.Condition{tieringConfiguration.InitialCondition}, qualityBrackets, nil, variables)
+		rules, err := rg.emitTierRules(tierStyles[0], kindConditions, qualityBrackets, nil, variables)
 		if err != nil {
 			return generatedRules, err
 		}
@@ -846,6 +879,12 @@ func (rg *RuleGenerator) generateTieredRules(
 		ValueHalfLifeDays:        rg.valueHalfLifeDays,
 	})
 	if err != nil {
+		// A newly configured kind has no recorded prices until the next
+		// economy refresh; the fallback can carry it until then.
+		if fallbackStyle != nil && !hasEconomyItems(itemsToCheck) {
+			log.Printf("WARNING: no prices recorded for %s yet; every one gets the fallback style until the next economy refresh", tieringConfiguration.ItemClassToFilter)
+			return rg.emitTierRules(fallbackStyle, kindConditions, qualityBrackets, nil, variables)
+		}
 		return generatedRules, err
 	}
 
@@ -896,7 +935,26 @@ func (rg *RuleGenerator) generateTieredRules(
 		}
 	}
 
+	if fallbackStyle != nil {
+		rules, err := rg.emitTierRules(fallbackStyle, kindConditions, qualityBrackets, nil, variables)
+		if err != nil {
+			return generatedRules, err
+		}
+		generatedRules = append(generatedRules, rules...)
+	}
+
 	return generatedRules, nil
+}
+
+func hasEconomyItems(snapshotsByLeague map[string][]data_generation.EconomySnapshot) bool {
+	for _, snapshots := range snapshotsByLeague {
+		for _, snapshot := range snapshots {
+			if len(snapshot.Items) > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // splitVaalItems partitions base type names into Vaal and non-Vaal subsets.

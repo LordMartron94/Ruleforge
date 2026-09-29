@@ -14,7 +14,8 @@ type ItemPool struct {
 	Equipment  []EquipmentBase `json:"equipment"`
 	Gems       []Gem           `json:"gems"`
 	Uniques    []Unique        `json:"uniques"`
-	Cards      []Card          `json:"cards"`
+	Cards      []PricedItem    `json:"cards"`
+	Tattoos    []PricedItem    `json:"tattoos"`
 	Stackables []Stackable     `json:"stackables"`
 }
 
@@ -53,8 +54,8 @@ type Unique struct {
 	BaseType string `json:"base"`
 }
 
-// Card is a divination card with its most recent price in chaos.
-type Card struct {
+// PricedItem is a divination card or tattoo with its most recent price in chaos.
+type PricedItem struct {
 	Name  string  `json:"name"`
 	Value float64 `json:"value"`
 }
@@ -176,7 +177,8 @@ func NewItemPool(
 		pool.Uniques = append(pool.Uniques, Unique{Name: unique.Name, BaseType: unique.BaseType})
 	}
 
-	pool.Cards = latestCardValues(economy)
+	pool.Cards = latestValues(economy, "Divination Cards")
+	pool.Tattoos = latestValues(economy, "Tattoos")
 
 	seenStackables := make(map[Stackable]bool)
 	for _, entries := range automation {
@@ -197,9 +199,9 @@ func NewItemPool(
 	return pool
 }
 
-// latestCardValues takes each divination card's price from the newest snapshot
-// of any league, keeping the highest price when leagues disagree.
-func latestCardValues(economy map[string][]data_generation.EconomySnapshot) []Card {
+// latestValues takes the price of each item of an economy class from the
+// newest snapshot of any league, keeping the highest price when leagues disagree.
+func latestValues(economy map[string][]data_generation.EconomySnapshot, class string) []PricedItem {
 	values := make(map[string]float64)
 	for _, snapshots := range economy {
 		if len(snapshots) == 0 {
@@ -212,7 +214,7 @@ func latestCardValues(economy map[string][]data_generation.EconomySnapshot) []Ca
 			}
 		}
 		for _, item := range latest.Items {
-			if item.Class != "Divination Cards" {
+			if item.Class != class {
 				continue
 			}
 			if current, seen := values[item.BaseType]; !seen || item.ChaosValue > current {
@@ -220,10 +222,10 @@ func latestCardValues(economy map[string][]data_generation.EconomySnapshot) []Ca
 			}
 		}
 	}
-	cards := make([]Card, 0, len(values))
+	items := make([]PricedItem, 0, len(values))
 	for name, value := range values {
-		cards = append(cards, Card{Name: name, Value: value})
+		items = append(items, PricedItem{Name: name, Value: value})
 	}
-	sort.Slice(cards, func(i, j int) bool { return cards[i].Name < cards[j].Name })
-	return cards
+	sort.Slice(items, func(i, j int) bool { return items[i].Name < items[j].Name })
+	return items
 }

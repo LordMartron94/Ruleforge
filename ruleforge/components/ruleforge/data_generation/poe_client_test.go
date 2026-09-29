@@ -46,8 +46,17 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 			fmt.Fprint(w, `{"lines":[{"name":"Test unique","baseType":"Test base","chaosValue":25.5,"divineValue":0.2,"listingCount":12},{"name":"Unique without base","chaosValue":1}]}`)
 		case "/exchange/item/overview":
 			itemRequests++
-			if r.URL.Query().Get("type") != "DivinationCard" {
-				t.Errorf("expected DivinationCard category; got %q", r.URL.Query().Get("type"))
+			switch r.URL.Query().Get("type") {
+			case "Tattoo":
+				fmt.Fprint(w, `{
+				"core": {"primary": "chaos"},
+				"items": [{"id":"tattoo-of-the-valako-shieldbearer","name":"Tattoo of the Valako Shieldbearer"}],
+				"lines": [{"id":"tattoo-of-the-valako-shieldbearer","primaryValue":494,"volumePrimaryValue":4940}]
+			}`)
+				return
+			case "DivinationCard":
+			default:
+				t.Errorf("expected an exchange category; got %q", r.URL.Query().Get("type"))
 			}
 			fmt.Fprint(w, `{
 				"core": {"primary": "chaos"},
@@ -72,7 +81,7 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 	if err := exporter.RefreshEconomyData([]string{"Allflame"}, time.Hour, true); err != nil {
 		t.Fatal(err)
 	}
-	if requests != 8 || itemRequests != 7 {
+	if requests != 9 || itemRequests != 8 {
 		t.Fatalf("unexpected request counts total=%d item=%d", requests, itemRequests)
 	}
 	window, err := exporter.EconomyHistory([]string{"Allflame"})
@@ -83,8 +92,8 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 		t.Fatalf("expected exactly one recorded snapshot, got %#v", window)
 	}
 	fetched := window["Allflame"][0].Items
-	if len(fetched) != 10 {
-		t.Fatalf("expected five uniques, four gems, and one priced div card, got %#v", fetched)
+	if len(fetched) != 11 {
+		t.Fatalf("expected five uniques, four gems, one priced div card and one tattoo, got %#v", fetched)
 	}
 	first := fetched[0]
 	if first.BaseType != "Test base" || first.ChaosValue != 25.5 || first.DivineValue != 0.2 || first.ListingCount != 12 {
@@ -100,10 +109,13 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 	if divCard.Class != "Divination Cards" || divCard.BaseType != "The Doctor" || divCard.ChaosValue != 500 || divCard.ListingCount != 3 {
 		t.Fatalf("incorrect divination card economy record (name resolved via the exchange items lookup, unpriced/unnamed lines dropped): %#v", divCard)
 	}
+	if tattoo := fetched[10]; tattoo.Class != "Tattoos" || tattoo.BaseType != "Tattoo of the Valako Shieldbearer" || tattoo.ChaosValue != 494 || tattoo.ListingCount != 10 {
+		t.Fatalf("incorrect tattoo economy record: %#v", tattoo)
+	}
 	if err := exporter.RefreshEconomyData([]string{"Allflame"}, time.Hour, false); err != nil {
 		t.Fatal(err)
 	}
-	if requests != 8 {
+	if requests != 9 {
 		t.Fatalf("recent-enough snapshot triggered network access: %d requests", requests)
 	}
 }
