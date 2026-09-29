@@ -1279,6 +1279,20 @@ Minimap = { Shape = "Diamond" }
 Combination = ["Templates/Rarities/Rare", "Templates/Tiers/High/T3", "Templates/Leagues/Expedition"]
 Minimap = { Shape = "Diamond" }
 
+# Expedition artifacts, the currency the four Expedition vendors take. Size is
+# the pickup priority: Lesser T7, Greater T6, Grand T5, Exceptional T4.
+[Final.Leagues.Expedition.ArtifactLesser]
+Combination = ["Templates/Tiers/Mid/T7", "Templates/Leagues/Expedition"]
+
+[Final.Leagues.Expedition.ArtifactGreater]
+Combination = ["Templates/Tiers/Mid/T6", "Templates/Leagues/Expedition"]
+
+[Final.Leagues.Expedition.ArtifactGrand]
+Combination = ["Templates/Tiers/Mid/T5", "Templates/Leagues/Expedition"]
+
+[Final.Leagues.Expedition.ArtifactExceptional]
+Combination = ["Templates/Tiers/High/T4", "Templates/Leagues/Expedition"]
+
 [Final.Leagues.Breach.T1]
 Combination = ["Templates/Tiers/Divine/T0", "Templates/Leagues/Breach", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
