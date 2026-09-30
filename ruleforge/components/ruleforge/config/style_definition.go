@@ -101,8 +101,18 @@ func LoadStyleDefinitions(dir string) ([]StyleDefinition, error) {
 }
 
 func loadStyleDefinition(path string) (StyleDefinition, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return StyleDefinition{}, fmt.Errorf("reading style %s: %w", path, err)
+	}
+	return ParseStyleDefinition(path, contents)
+}
+
+// ParseStyleDefinition reads a style file's contents as if it were stored at
+// path, which is what its Stylesheet and BaseTypes paths are relative to.
+func ParseStyleDefinition(path string, contents []byte) (StyleDefinition, error) {
 	var style StyleDefinition
-	metadata, err := toml.DecodeFile(path, &style)
+	metadata, err := toml.Decode(string(contents), &style)
 	if err != nil {
 		return style, fmt.Errorf("reading style %s: %w", path, err)
 	}
@@ -129,10 +139,6 @@ func loadStyleDefinition(path string) (StyleDefinition, error) {
 	style.Stylesheet = resolveConfigurationPath(base, style.Stylesheet)
 	style.BaseTypes = resolveConfigurationPath(base, style.BaseTypes)
 
-	contents, err := os.ReadFile(path)
-	if err != nil {
-		return style, fmt.Errorf("reading style %s: %w", path, err)
-	}
 	style.PaletteGroups = paletteGroups(string(contents), style.Palette)
 
 	for name, value := range style.Palette {

@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -81,15 +82,26 @@ func LoadStyles(path string, palette map[string]string) (map[string]Style, error
 //
 //goland:noinspection t
 func LoadStylesheet(path string, palette map[string]string) (*Stylesheet, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read stylesheet %s: %w", path, err)
+	}
+	return ParseStylesheet(path, contents, palette)
+}
+
+// ParseStylesheet is LoadStylesheet for a stylesheet's contents; path only names it in errors.
+//
+//goland:noinspection t
+func ParseStylesheet(path string, contents []byte, palette map[string]string) (*Stylesheet, error) {
 	var raw map[string]interface{}
-	if _, err := toml.DecodeFile(path, &raw); err != nil {
+	if _, err := toml.Decode(string(contents), &raw); err != nil {
 		return nil, fmt.Errorf("failed to read stylesheet %s: %w", path, err)
 	}
 
 	var settings struct {
 		Studio StudioSettings `toml:"Studio"`
 	}
-	if _, err := toml.DecodeFile(path, &settings); err != nil {
+	if _, err := toml.Decode(string(contents), &settings); err != nil {
 		return nil, fmt.Errorf("failed to read studio settings in %s: %w", path, err)
 	}
 	delete(raw, studioKey)
@@ -438,3 +450,9 @@ func computeSources(all map[string]*Style) map[string]StyleSource {
 	}
 	return sources
 }
+
+// MinimapShapes lists the minimap icon shapes a style can use.
+func MinimapShapes() []string { return append([]string(nil), allowedMinimapShapes...) }
+
+// ColourLiterals lists the named colours of minimap icons and beams.
+func ColourLiterals() []string { return append([]string(nil), allowedColorLiterals...) }
