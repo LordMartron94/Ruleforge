@@ -402,3 +402,21 @@ func TestTattooTieringWithoutPricesUsesOnlyTheFallback(t *testing.T) {
 		t.Fatalf("expected the fallback rule for every tattoo, got:\n%s", joined)
 	}
 }
+
+func TestEveryMacroHasASpecAndAHandler(t *testing.T) {
+	specs := map[string]bool{}
+	for _, spec := range MacroSpecs {
+		if specs[spec.Name] {
+			t.Errorf("macro %s is described twice", spec.Name)
+		}
+		specs[spec.Name] = true
+		if _, ok := macroHandlers[spec.Name]; !ok {
+			t.Errorf("macro %s is described but not compiled", spec.Name)
+		}
+	}
+	for _, name := range MacroNames() {
+		if !specs[name] {
+			t.Errorf("macro %s has no MacroSpec, so the Studio cannot offer it", name)
+		}
+	}
+}

@@ -206,30 +206,11 @@ func (rg *RuleGenerator) handleMacroExpression(
 	macroType := macroExpressionNode.Children[1].Token.ValueToString()
 	parameters := macroExpressionNode.FindAllSymbolNodes(symbols.ParseSymbolParameter.String())
 
-	switch macroType {
-	case "max_roll_precedence":
-		return rg.handleMaxRollPrecedence(parameters)
-	case "item_progression-equipment-leveling":
-		return rg.handleEquipmentProgression(variables, parameters, 0, 67)
-	case "item_progression-equipment-mapping":
-		return rg.handleEquipmentProgression(variables, parameters, 68, 84) // 84 is max zone level for maps (T17)
-	case "item_progression-flasks":
-		return rg.handleFlaskProgression(variables, parameters)
-	case "unique_tiering":
-		return rg.handleUniqueTiering(variables, parameters)
-	case "skill_gem_tiering":
-		return rg.handleGemTiering(variables, parameters)
-	case "divination_card_tiering":
-		return rg.handleDivinationCardTiering(variables, parameters)
-	case "tattoo_tiering":
-		return rg.handleTattooTiering(variables, parameters)
-	case "handle_csv":
-		return rg.handleCSVMacro(variables, parameters, sectionConditions)
-	case "veiled":
-		return rg.handleVeiledEquipment(variables, parameters)
-	default:
+	handler, ok := macroHandlers[macroType]
+	if !ok {
 		return nil, fmt.Errorf("unsupported macro type: %s", macroType)
 	}
+	return handler(rg, variables, parameters, sectionConditions)
 }
 
 // handleMaxRollPrecedence makes max-rolled armour win the styling of every

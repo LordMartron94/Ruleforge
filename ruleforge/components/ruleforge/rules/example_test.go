@@ -51,3 +51,49 @@ func TestCorruptedModsLexesAsItsOwnCondition(t *testing.T) {
 		t.Fatalf("conditions = %q, want [@corrupted_mods @corrupted]", conditions)
 	}
 }
+
+func TestEveryConditionKeywordHasASpec(t *testing.T) {
+	specs := map[string]bool{}
+	for _, spec := range ConditionSpecs {
+		specs[spec.ID] = true
+	}
+	keywords := ConditionKeywords()
+	for _, keyword := range keywords {
+		if !specs[keyword] {
+			t.Errorf("condition %s has no ConditionSpec, so the Studio cannot offer it", keyword)
+		}
+		delete(specs, keyword)
+	}
+	for id := range specs {
+		t.Errorf("ConditionSpec %s is not a condition keyword", id)
+	}
+}
+
+func TestBuildAndStrictnessListsMatchTheKeywords(t *testing.T) {
+	literals := map[symbols.LexingTokenType][]string{}
+	for _, def := range keywordDefs {
+		literals[def.token] = append(literals[def.token], def.literal)
+	}
+	for _, strictness := range Strictnesses {
+		found := false
+		for _, typ := range []symbols.LexingTokenType{symbols.AllKeywordToken, symbols.SoftKeywordToken, symbols.SemiStrictKeywordToken, symbols.StrictKeywordToken, symbols.SuperStrictKeywordToken} {
+			for _, literal := range literals[typ] {
+				found = found || literal == strictness
+			}
+		}
+		if !found {
+			t.Errorf("strictness %s is not a keyword", strictness)
+		}
+	}
+	for _, build := range BuildKeywords {
+		found := false
+		for _, typ := range []symbols.LexingTokenType{symbols.MeleeBuildToken, symbols.DexBuildToken, symbols.SpellBuildToken, symbols.MeleeSpellHybridBuildToken, symbols.MeleeDexHybridBuildToken, symbols.SpellDexHybridBuildToken} {
+			for _, literal := range literals[typ] {
+				found = found || literal == build
+			}
+		}
+		if !found {
+			t.Errorf("build %s is not a keyword", build)
+		}
+	}
+}
