@@ -174,7 +174,8 @@ configuration from any working directory. Optional flags: `-verbose`,
 ### 4. Ruleforge Studio
 
 After compiling, Ruleforge writes a single HTML page to `StudioFile`. Open it
-in a browser; it needs no server.
+in a browser; it needs no server. To also edit themes, stylesheets and scripts
+in it, run the Studio server instead (see [Editing in the Studio](#editing-in-the-studio)).
 
 - **Loot simulator.** Rolls random drops for an area level (equipment with
   sockets and links, flasks, gems, currency, divination cards, uniques, league
@@ -210,6 +211,48 @@ in a browser; it needs no server.
 
 Item sizes are approximated per item class, and conditions the studio does not
 understand are flagged instead of guessed.
+
+#### Editing in the Studio
+
+```bash
+./run.sh -studio -open          # or the Sublime build variant "Studio (edit mode)"
+```
+
+`-studio` compiles as usual, then serves the Studio at `http://127.0.0.1:7878/`
+(`-studio-addr` changes it; keep it on localhost) until you stop it. `-open`
+opens it in your browser. Three more views appear:
+
+- **Themes.** Every style file in `StylesDir`, enabled or not: name, suffix,
+  whether it compiles, its stylesheet and base type CSV, and its palette in the
+  groups its comments make. Rename, add, remove, recolour and regroup colours,
+  with a live preview of the theme's labels. The editor lists colours the
+  stylesheet needs but the palette lacks, and can add them. "New theme…" starts
+  from a copy of a theme or from a blank palette for a stylesheet. The Palette
+  view's colour edits can be saved to the theme file too.
+- **Stylesheets.** Every style of a stylesheet, templates included, in a
+  searchable tree. Edit what a style combines and the properties it sets itself
+  (colours, font size, minimap icon, beam, sound, volume, comment); each
+  property shows what it would inherit instead, and a live label, the resolved
+  channels and the text contrast update as you type. Styles can be added,
+  duplicated and deleted, and the `[Studio.Distinct]` groups edited.
+- **Scripts.** A form for every construct of the scripting language: the
+  script's METADATA (name, version, strictness, build), IMPORTs, `var`
+  declarations with `+` combinations and `!override`s, and SECTIONs with their
+  METADATA, SECTION_CONDITIONS and RULES. Rules offer each condition with a
+  fitting value control (base type and item class lists, rarities, sockets,
+  numbers), a style picker with the stylesheet's styles and the script's
+  variables, `$Show`/`$Hide` and the optional `# STRICTNESS`. Macros offer their
+  parameters, with ordered tiers for the economy tiering macros. Comments stay
+  where they are and can be edited; a block whose layout does not fit the form
+  (such as several rules on one line) is edited as text.
+
+Every editor has **Check** (compile with the change, write nothing), **View
+changes** (the file lines a save changes) and **Save**. A save only writes a
+file that compiles: scripts with every enabled theme, themes with every script,
+stylesheets with every theme that uses them. It then recompiles and writes all
+filters, as a normal run does, and reloads the Studio. Saving keeps everything
+you did not change exactly as it was, comments and alignment included, and it
+refuses to overwrite a file that changed on disk after the Studio opened it.
 
 The enabled themes share a documented [visual channel policy](configuration/CHANNELS.md):
 text and size show pickup priority, backgrounds show purpose, and borders show

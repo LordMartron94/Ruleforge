@@ -16,7 +16,18 @@ import (
 )
 
 //go:embed studio.html
-var pageTemplate string
+var pageShell string
+
+// editorsScript holds the theme, stylesheet and script editors, which a page
+// served by the Studio server turns on.
+//
+//go:embed editors.js
+var editorsScript string
+
+const editorsPlaceholder = "/*STUDIO_EDITORS*/"
+
+// pageTemplate is the page with its editors inlined.
+var pageTemplate = strings.Replace(pageShell, editorsPlaceholder, strings.ReplaceAll(editorsScript, "</script", `<\/script`), 1)
 
 const dataPlaceholder = "/*STUDIO_DATA*/null"
 
@@ -26,6 +37,14 @@ type Data struct {
 	Styles      []Style  `json:"styles"`
 	Filters     []Filter `json:"filters"`
 	Items       ItemPool `json:"items"`
+	// Server is set when a Studio server serves the page; it turns the editors on.
+	Server *ServerInfo `json:"server,omitempty"`
+}
+
+// ServerInfo is what a served page needs to call its server.
+type ServerInfo struct {
+	// Token authenticates the page's requests.
+	Token string `json:"token"`
 }
 
 // Style is one style definition with its palette and every final style it resolves to.
@@ -53,10 +72,12 @@ type NamedLook struct {
 
 // Filter is one compiled filter: a script compiled with a style.
 type Filter struct {
-	Script   string                    `json:"script"`
-	StyleID  string                    `json:"style"`
-	FileName string                    `json:"file"`
-	Blocks   []compilation.StudioBlock `json:"blocks"`
+	Script string `json:"script"`
+	// ScriptFile is the script's file name in the input folder.
+	ScriptFile string                    `json:"scriptFile"`
+	StyleID    string                    `json:"style"`
+	FileName   string                    `json:"file"`
+	Blocks     []compilation.StudioBlock `json:"blocks"`
 }
 
 // NewStyle describes a style definition and its loaded stylesheet. Only the
@@ -86,6 +107,7 @@ func NewStyle(definition config.StyleDefinition, sheet *config.Stylesheet) Style
 // blocks refer to it by index.
 type page struct {
 	GeneratedAt string                          `json:"generatedAt"`
+	Server      *ServerInfo                     `json:"server,omitempty"`
 	Styles      []Style                         `json:"styles"`
 	Items       ItemPool                        `json:"items"`
 	Conditions  [][]compilation.StudioCondition `json:"conditions"`
@@ -95,10 +117,11 @@ type page struct {
 }
 
 type pageFilter struct {
-	Script   string      `json:"script"`
-	StyleID  string      `json:"style"`
-	FileName string      `json:"file"`
-	Blocks   []pageBlock `json:"blocks"`
+	Script     string      `json:"script"`
+	ScriptFile string      `json:"scriptFile"`
+	StyleID    string      `json:"style"`
+	FileName   string      `json:"file"`
+	Blocks     []pageBlock `json:"blocks"`
 }
 
 type pageBlock struct {
@@ -129,12 +152,12 @@ func (in *interner) id(value any, add func()) (int, error) {
 }
 
 func compact(data Data) (page, error) {
-	out := page{GeneratedAt: data.GeneratedAt, Styles: data.Styles, Items: data.Items}
+	out := page{GeneratedAt: data.GeneratedAt, Server: data.Server, Styles: data.Styles, Items: data.Items}
 	conditions := interner{map[string]int{}}
 	sources := interner{map[string]int{}}
 	looks := interner{map[string]int{}}
 	for _, filter := range data.Filters {
-		compacted := pageFilter{Script: filter.Script, StyleID: filter.StyleID, FileName: filter.FileName}
+		compacted := pageFilter{Script: filter.Script, ScriptFile: filter.ScriptFile, StyleID: filter.StyleID, FileName: filter.FileName}
 		for _, block := range filter.Blocks {
 			condition, err := conditions.id(block.Conditions, func() { out.Conditions = append(out.Conditions, block.Conditions) })
 			if err != nil {
@@ -158,25 +181,32 @@ func compact(data Data) (page, error) {
 	return out, nil
 }
 
-// Write renders the studio page to path.
-func Write(path string, data Data) error {
+// Render builds the studio page.
+func Render(data Data) ([]byte, error) {
 	compacted, err := compact(data)
 	if err != nil {
-		return fmt.Errorf("encoding studio data: %w", err)
+		return nil, fmt.Errorf("encoding studio data: %w", err)
 	}
 	payload, err := json.Marshal(compacted)
 	if err != nil {
-		return fmt.Errorf("encoding studio data: %w", err)
+		return nil, fmt.Errorf("encoding studio data: %w", err)
 	}
 	// The data sits inside a <script> element, so it must never close it.
 	safe := strings.ReplaceAll(string(payload), "</", `<\/`)
 	if !strings.Contains(pageTemplate, dataPlaceholder) {
-		return fmt.Errorf("studio template is missing its data placeholder")
+		return nil, fmt.Errorf("studio template is missing its data placeholder")
 	}
-	page := strings.Replace(pageTemplate, dataPlaceholder, safe, 1)
+	return []byte(strings.Replace(pageTemplate, dataPlaceholder, safe, 1)), nil
+}
 
+// Write renders the studio page to path.
+func Write(path string, data Data) error {
+	page, err := Render(data)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return fmt.Errorf("creating studio directory: %w", err)
 	}
-	return os.WriteFile(path, []byte(page), 0644)
+	return os.WriteFile(path, page, 0644)
 }

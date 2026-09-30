@@ -57,6 +57,16 @@
 					"working_dir": "${project_path}",
 				},
 				{
+					"name": "Studio (edit mode)",
+					"shell_cmd": "./run.sh --config=config.toml -studio -open",
+					"windows": {
+						"shell_cmd": "go build -o build\\ruleforge.exe .\\ruleforge\\components\\ruleforge\\entry && build\\ruleforge.exe -config config.toml -studio -open",
+					},
+					"working_dir": "${project_path}",
+					"target": "terminus_exec",
+					"cancel": "terminus_cancel_build",
+				},
+				{
 					"name": "Run (Verbose)",
 					"shell_cmd": "./run.sh --verbose",
 					"working_dir": "${project_path}",

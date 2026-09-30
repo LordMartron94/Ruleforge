@@ -40,8 +40,12 @@ func TestWriteSharesConditionsAndKeepsScriptTagClosed(t *testing.T) {
 	if strings.Contains(string(page), "/*STUDIO_DATA*/") {
 		t.Errorf("placeholder was not replaced")
 	}
-	if strings.Count(string(page), "</script>") != 2 {
-		t.Errorf("data closed a script tag early")
+	if strings.Contains(string(page), editorsPlaceholder) {
+		t.Errorf("the editors were not inlined")
+	}
+	// The data, the page script and the editors.
+	if strings.Count(string(page), "</script>") != 3 {
+		t.Errorf("data or the editors closed a script tag early")
 	}
 }
 

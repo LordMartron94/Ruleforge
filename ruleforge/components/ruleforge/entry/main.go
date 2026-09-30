@@ -5,9 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
+	"sort"
 	"strings"
 
 	common_compiler "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler"
@@ -29,6 +32,9 @@ type App struct {
 	verbose         bool
 	updateCacheOnly bool
 	refreshPoB      bool
+	studioServe     bool
+	studioAddr      string
+	studioOpen      bool
 
 	// Core Components
 	log      *log.Logger
@@ -58,6 +64,9 @@ func main() {
 	flag.BoolVar(&app.verbose, "verbose", false, "Enable verbose output for debugging.")
 	flag.BoolVar(&app.updateCacheOnly, "update-cache-only", false, "Fetch/update data and save to cache without running compilation.")
 	flag.BoolVar(&app.refreshPoB, "refresh-pob", false, "Check the official Path of Building revision now and download it if changed (error if offline).")
+	flag.BoolVar(&app.studioServe, "studio", false, "After compiling, serve the Ruleforge Studio with its theme, stylesheet and script editors until stopped.")
+	flag.StringVar(&app.studioAddr, "studio-addr", "127.0.0.1:7878", "Address the Studio server listens on. Keep it on localhost: the Studio writes your files.")
+	flag.BoolVar(&app.studioOpen, "open", false, "Open the Studio server in the default browser.")
 	flag.Parse()
 
 	if err := app.Run(); err != nil {
@@ -131,6 +140,9 @@ func (a *App) Run() error {
 	}
 
 	a.log.Println("Compilation finished successfully.")
+	if a.studioServe {
+		return a.serveStudio()
+	}
 	return nil
 }
 
@@ -140,6 +152,7 @@ func (a *App) loadStyles() error {
 	if err != nil {
 		return err
 	}
+	a.styles = nil
 	for _, style := range definitions {
 		if !style.IsEnabled() {
 			a.log.Printf("Style %q is disabled; skipping it.", style.Name)
@@ -269,40 +282,80 @@ func pricedOnlyBaseTypes(economyData map[string][]data_generation.EconomySnapsho
 	return baseTypes
 }
 
-// compileRules finds and processes all Ruleforge scripts.
+// compileRules compiles every Ruleforge script with every enabled style and
+// writes the filters.
 func (a *App) compileRules() error {
-	ruleforgeScripts, err := listFilesWithExtension(a.config.RuleforgeInputDir, ".rf")
+	filters, err := a.compile(compileOptions{write: true})
 	if err != nil {
-		return fmt.Errorf("could not list Ruleforge scripts in %s: %w", a.config.RuleforgeInputDir, err)
+		return err
 	}
-
-	if len(ruleforgeScripts) == 0 {
-		a.log.Printf("No .rf scripts found in %s. Nothing to compile.", a.config.RuleforgeInputDir)
-		return nil
-	}
-	a.log.Printf("Found %d Ruleforge scripts to process...", len(ruleforgeScripts))
-
-	for _, scriptPath := range ruleforgeScripts {
-		if err := a.processRuleforgeScript(scriptPath); err != nil {
-			return fmt.Errorf("failed to process script %s: %w", scriptPath, err)
-		}
-	}
+	a.studioFilters = filters
 	return nil
 }
 
+// compileOptions changes what a compile reads and writes, so the Studio can
+// check an edit before saving it.
+type compileOptions struct {
+	// write writes the filters to the output folders.
+	write bool
+	// scripts replaces the contents of these script paths; a path that does
+	// not exist yet is compiled as a new script.
+	scripts map[string]string
+	// only limits the compile to these script paths.
+	only map[string]bool
+	// styles replaces the enabled styles.
+	styles []config.StyleDefinition
+}
+
+// compile compiles the scripts once per style.
+func (a *App) compile(options compileOptions) ([]studio.Filter, error) {
+	paths, err := listFilesWithExtension(a.config.RuleforgeInputDir, ".rf")
+	if err != nil {
+		return nil, fmt.Errorf("could not list Ruleforge scripts in %s: %w", a.config.RuleforgeInputDir, err)
+	}
+	for path := range options.scripts {
+		if !slices.Contains(paths, path) {
+			paths = append(paths, path)
+		}
+	}
+	sort.Strings(paths)
+	if len(paths) == 0 {
+		a.log.Printf("No .rf scripts found in %s. Nothing to compile.", a.config.RuleforgeInputDir)
+		return nil, nil
+	}
+	styles := options.styles
+	if styles == nil {
+		styles = a.styles
+	}
+	var filters []studio.Filter
+	for _, path := range paths {
+		if options.only != nil && !options.only[path] {
+			continue
+		}
+		source, overridden := options.scripts[path]
+		if !overridden {
+			contents, err := os.ReadFile(path)
+			if err != nil {
+				return nil, fmt.Errorf("opening file %s: %w", path, err)
+			}
+			source = string(contents)
+		}
+		compiled, err := a.processRuleforgeScript(path, source, styles, options.write)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process script %s: %w", filepath.Base(path), err)
+		}
+		filters = append(filters, compiled...)
+	}
+	return filters, nil
+}
+
 // processRuleforgeScript parses one script and compiles it once per style.
-func (a *App) processRuleforgeScript(path string) error {
+func (a *App) processRuleforgeScript(path, source string, styles []config.StyleDefinition, write bool) ([]studio.Filter, error) {
 	a.log.Printf("Processing: %s", path)
 
-	file, err := a.openScript(path)
+	tree, err := a.lexAndParse(strings.NewReader(source))
 	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	tree, err := a.lexAndParse(file)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tree = a.postProcess(tree)
@@ -311,33 +364,37 @@ func (a *App) processRuleforgeScript(path string) error {
 	}
 
 	if err := a.validateTree(tree); err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, style := range a.styles {
+	var filters []studio.Filter
+	for _, style := range styles {
 		a.log.Printf("Compiling %s with style %q...", filepath.Base(path), style.Name)
 		baseTypeData, err := a.loadBaseTypeData(style.BaseTypes)
 		if err != nil {
-			return fmt.Errorf("style %q: %w", style.Name, err)
+			return nil, fmt.Errorf("style %q: %w", style.Name, err)
 		}
 
 		compiler, lines, name, err := a.compileTree(tree, *baseTypeData, style)
 		if err != nil {
-			return fmt.Errorf("style %q: %w", style.Name, err)
+			return nil, fmt.Errorf("style %q: %w", style.Name, err)
 		}
 
 		fileName := style.FilterFileName(name)
-		if err := a.writeOutputs(lines, fileName); err != nil {
-			return err
+		if write {
+			if err := a.writeOutputs(lines, fileName); err != nil {
+				return nil, err
+			}
 		}
-		a.studioFilters = append(a.studioFilters, studio.Filter{
-			Script:   name,
-			StyleID:  style.ID,
-			FileName: fileName,
-			Blocks:   compiler.StudioBlocks(lines),
+		filters = append(filters, studio.Filter{
+			Script:     name,
+			ScriptFile: filepath.Base(path),
+			StyleID:    style.ID,
+			FileName:   fileName,
+			Blocks:     compiler.StudioBlocks(lines),
 		})
 	}
-	return nil
+	return filters, nil
 }
 
 func (a *App) openScript(path string) (*os.File, error) {
@@ -348,7 +405,12 @@ func (a *App) openScript(path string) (*os.File, error) {
 	return file, nil
 }
 
-func (a *App) lexAndParse(file *os.File) (*shared.ParseTree[symbols.LexingTokenType], error) {
+func (a *App) lexAndParse(file io.Reader) (tree *shared.ParseTree[symbols.LexingTokenType], err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("the script could not be read: %v", r)
+		}
+	}()
 	handler := common_compiler.NewFileHandler(
 		file,
 		rules.GetLexingRules(),
@@ -358,7 +420,7 @@ func (a *App) lexAndParse(file *os.File) (*shared.ParseTree[symbols.LexingTokenT
 	if _, err := handler.Lex(); err != nil {
 		return nil, fmt.Errorf("lexing failed: %w", err)
 	}
-	tree, err := handler.Parse()
+	tree, err = handler.Parse()
 	if err != nil {
 		return nil, fmt.Errorf("parsing failed: %w", err)
 	}

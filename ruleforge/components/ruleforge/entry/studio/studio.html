@@ -204,8 +204,110 @@
   mark { background: rgba(255, 202, 73, .28); color: inherit; padding: 0 1px; }
 
 
+  /* Editors (served by ruleforge -studio) */
+  .views-note { margin-left: auto; align-self: center; font: .78rem var(--mono); color: var(--muted); }
+  .views-note code { color: var(--text); background: var(--panel-2); padding: 1px 5px; }
+  .edt-bar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+  .edt-bar .grow { flex: 1 1 auto; }
+  .edt-bar label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: .88rem; }
+  .edt-status { font: .8rem/1.45 var(--mono); color: var(--muted); white-space: pre-wrap; min-height: 1.3em; }
+  .edt-status.ok { color: var(--ok); }
+  .edt-status.warn { color: var(--warn); }
+  .edt-status.bad { color: var(--bad); }
+  .edt-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 18px; align-items: start; }
+  .edt-layout.wide-side { grid-template-columns: 300px minmax(0, 1fr); }
+  .edt-side, .pv-nav, .diff { scrollbar-color: var(--rule) var(--panel); }
+  .edt-side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; background: var(--panel); border: 1px solid var(--rule); padding: 8px; display: grid; gap: 2px; align-content: start; }
+  .edt-side input[type="search"] { width: 100%; margin-bottom: 6px; }
+  .edt-side button.entry { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; padding: 4px 8px; cursor: pointer; font-size: .86rem; color: var(--text); }
+  .edt-side button.entry:hover { background: var(--panel-2); }
+  .edt-side button.entry.active { background: var(--panel-2); color: var(--accent); }
+  .edt-side button.entry .n { font: .72rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .edt-side details > summary { cursor: pointer; padding: 5px 6px; font: 500 .72rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .edt-side .deleted { text-decoration: line-through; opacity: .6; }
+  .edt-main { display: grid; gap: 14px; min-width: 0; }
+  .edt-card { background: var(--panel); border: 1px solid var(--rule); padding: 12px 14px; display: grid; gap: 10px; min-width: 0; }
+  .edt-card > h3 { font-size: 1.15rem; }
+  .edt-card .hint { color: var(--muted); font-size: .85rem; }
+  .edt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px 14px; }
+  .edt-field { display: grid; gap: 4px; min-width: 0; }
+  .edt-field > span { font: 500 .7rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .edt, .edt-side input { background: var(--page); border: 1px solid var(--rule); color: var(--text); padding: 5px 8px; font: .88rem var(--body); min-width: 0; }
+  .edt.mono, textarea.edt { font: .8rem var(--mono); }
+  .edt.invalid { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad) inset; }
+  textarea.edt { width: 100%; min-height: 90px; resize: vertical; }
+  .edt-row { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; min-width: 0; }
+  .edt-row > .edt.fill { flex: 1 1 220px; }
+  .btn.small { padding: 3px 9px; font-size: .8rem; }
+  .btn.danger { color: var(--bad); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .icon { background: transparent; border: 1px solid transparent; color: var(--muted); cursor: pointer; padding: 0 5px; font: .85rem var(--mono); line-height: 1.3; }
+  .icon:hover:not(:disabled) { color: var(--text); border-color: var(--rule); }
+  .icon:disabled { opacity: .3; cursor: default; }
+  select.edt-add { background: transparent; border: 1px solid transparent; color: var(--muted); font: .78rem var(--mono); padding: 0 2px; cursor: pointer; }
+  select.edt-add:hover { border-color: var(--rule); color: var(--text); }
+  .edt-tools { display: inline-flex; gap: 1px; align-items: center; margin-left: auto; }
+  .edt-group { border-top: 1px solid var(--rule); padding-top: 10px; display: grid; gap: 8px; }
+  .edt-colours { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 6px 14px; }
+  .edt-colour { display: grid; grid-template-columns: 34px minmax(0, 1fr) 110px auto; gap: 6px; align-items: center; }
+  .edt-colour input[type="color"] { width: 34px; height: 26px; padding: 0; border: 1px solid #3a3e4d; background: none; cursor: pointer; }
+  .edt-preview { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: center; padding: 14px; background: #15161a; min-height: 70px; }
+  .edt-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .edt-chips span, .edt-chips button { font: .74rem var(--mono); padding: 2px 7px; border: 1px solid var(--rule); background: var(--page); color: var(--muted); }
+  .edt-chips button { cursor: pointer; }
+  .edt-chips button:hover { color: var(--text); border-color: var(--muted); }
+  .edt-props { display: grid; grid-template-columns: auto 150px minmax(0, 1fr); gap: 6px 10px; align-items: center; }
+  .edt-props .from { font: .72rem var(--mono); color: var(--faint); overflow-wrap: anywhere; }
+  .edt-props .inherited { color: var(--faint); font: .78rem var(--mono); }
+  .edt-list { display: grid; gap: 4px; }
+  .edt-list .edt-row { background: var(--page); border: 1px solid var(--rule); padding: 3px 6px; }
+  details.edt-section { background: var(--panel); border: 1px solid var(--rule); }
+  details.edt-section > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; padding: 10px 14px; }
+  details.edt-section > summary::-webkit-details-marker { display: none; }
+  details.edt-section > summary .nm { font: 700 1.1rem var(--display); }
+  details.edt-section > summary .nm::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); transition: transform .12s ease; }
+  details.edt-section[open] > summary .nm::before { transform: rotate(90deg); }
+  details.edt-section > summary .ds { color: var(--muted); font-size: .88rem; }
+  details.edt-section > .body { padding: 0 14px 12px; display: grid; gap: 8px; }
+  .edt-block { border-left: 2px solid var(--rule); padding-left: 10px; display: grid; gap: 4px; }
+  .edt-block > .lbl-sm { font: 500 .7rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .edt-item { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding: 3px 0; border-top: 1px solid rgba(40,43,55,.6); min-width: 0; }
+  .edt-item > .edt-tools, details.edt-section > summary > .edt-tools, .edt-card .edt-tools { opacity: .3; transition: opacity .1s ease; }
+  .edt-item:hover > .edt-tools, .edt-item:focus-within > .edt-tools, details.edt-section > summary:hover > .edt-tools,
+  details.edt-section > summary:focus-within > .edt-tools, .edt-card:hover .edt-tools, .edt-card:focus-within .edt-tools { opacity: 1; }
+  .edt-item.macro { display: grid; gap: 6px; }
+  .edt-item .kw { font: 500 .74rem var(--mono); color: var(--accent); letter-spacing: .04em; }
+  .edt-item .arrow { font: .8rem var(--mono); color: var(--faint); }
+  .edt-item .trailing { font: .74rem var(--mono); color: var(--faint); }
+  .edt-comment { flex: 1 1 400px; color: var(--muted) !important; font: .8rem var(--mono) !important; border-color: transparent !important; background: transparent !important; padding: 1px 4px !important; }
+  .edt-comment:focus { border-color: var(--rule) !important; background: var(--page) !important; }
+  .edt-blank { width: 100%; height: 6px; position: relative; }
+  .edt-blank button { position: absolute; right: 0; top: -9px; opacity: 0; }
+  .edt-blank:hover button, .edt-blank button:focus { opacity: 1; }
+  .edt-chain { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+  .edt-cond { display: inline-flex; gap: 4px; align-items: center; background: var(--page); border: 1px solid var(--rule); padding: 2px 4px; }
+  .edt-cond .edt { padding: 2px 5px; font-size: .8rem; }
+  .edt-params { display: grid; gap: 4px; padding-left: 16px; }
+  .edt-param { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .edt-param .key { font: .78rem var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+  .edt-macro-sum { font-size: .8rem; color: var(--faint); }
+  .edt-dirty { color: var(--accent); }
+  dialog.edt-dialog { background: var(--panel); color: var(--text); border: 1px solid var(--rule); width: min(1150px, 94vw); max-height: 88vh; padding: 14px; }
+  dialog.edt-dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog.edt-dialog .body { margin-top: 10px; display: grid; gap: 10px; }
+  .diff { margin: 0; font: .75rem/1.45 var(--mono); white-space: pre; overflow: auto; max-height: 68vh; background: var(--page); border: 1px solid var(--rule); padding: 8px 0; }
+  .diff div { padding: 0 10px; }
+  .diff .add { background: rgba(134,211,164,.12); color: var(--ok); }
+  .diff .del { background: rgba(242,125,108,.14); color: var(--bad); }
+  .diff .ctx { color: var(--muted); }
+  .diff .gap { color: var(--faint); background: var(--panel-2); }
+
+
   @media (max-width: 980px) {
-    .loot-grid, .palette-grid, .import-grid, .pv-layout { grid-template-columns: minmax(0, 1fr); }
+    .loot-grid, .palette-grid, .import-grid, .pv-layout, .edt-layout, .edt-layout.wide-side { grid-template-columns: minmax(0, 1fr); }
+    .edt-side { position: static; max-height: 50vh; }
+    .edt-props { grid-template-columns: auto minmax(0, 1fr); }
+    .edt-param { grid-template-columns: minmax(0, 1fr); }
     .pv-nav { position: static; max-height: none; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
     .pv-row { grid-template-columns: minmax(0, 1fr); }
     .pv-side { justify-items: start; grid-auto-flow: column; }
@@ -229,12 +331,13 @@
 
   <div class="picker" role="tablist" aria-label="Style" id="styles"></div>
 
-  <nav class="views" role="tablist" aria-label="View">
-    <button class="tab" role="tab" id="view-loot" type="button">Loot simulator</button>
-    <button class="tab" role="tab" id="view-palette" type="button">Palette</button>
+  <nav class="views" role="tablist" aria-label="View" id="views">
+    <button class="tab" role="tab" id="view-loot" data-view="loot" type="button">Loot simulator</button>
+    <button class="tab" role="tab" id="view-palette" data-view="palette" type="button">Palette</button>
+    <span class="views-note" id="views-note"></span>
   </nav>
 
-  <section id="loot" class="stack" style="gap:14px">
+  <section id="loot" class="stack" data-panel="loot" style="gap:14px">
     <div class="loot-controls">
       <label for="area">Area level <input type="range" id="area" min="1" max="84"> <input type="number" id="area-num" min="1" max="84" style="width:64px"></label>
       <label for="count">Drops <select id="count"><option>12</option><option selected>30</option><option>60</option><option>120</option></select></label>
@@ -262,7 +365,7 @@
     </div>
   </section>
 
-  <section id="palette" class="stack" hidden>
+  <section id="palette" class="stack" data-panel="palette" hidden>
     <div class="pv-toolbar">
       <input type="search" id="pv-search" placeholder="Search styles and colours: name, palette colour, hex, sound…" aria-label="Search styles and colours">
       <label class="pv-toggle"><input type="checkbox" id="pv-issues"> Only styles with issues</label>
@@ -762,10 +865,12 @@ function renderStyles() {
   const sp = document.getElementById('script-picker'), sel = document.getElementById('script');
   sp.hidden = scripts.length < 2;
   sel.replaceChildren(...scripts.map(n => { const o = document.createElement('option'); o.textContent = n; o.selected = n === state.script; return o; }));
-  document.getElementById('view-loot').setAttribute('aria-selected', String(state.view === 'loot'));
-  document.getElementById('view-palette').setAttribute('aria-selected', String(state.view === 'palette'));
-  document.getElementById('loot').hidden = state.view !== 'loot';
-  document.getElementById('palette').hidden = state.view !== 'palette';
+  document.querySelectorAll('#views .tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === state.view)));
+  document.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== state.view; });
+  // The theme tabs and script picker belong to the simulator and palette views.
+  const previewView = state.view === 'loot' || state.view === 'palette';
+  document.getElementById('styles').hidden = !previewView;
+  if (!previewView) sp.hidden = true;
   const f = currentFilter();
   document.getElementById('generated').textContent = `Generated ${DATA.generatedAt}` + (f ? ` · ${f.file}` : '');
 }
@@ -1296,12 +1401,28 @@ document.getElementById('reset').addEventListener('click', () => {
 });
 
 /* ---------- wiring ---------- */
+// Views the editors add: { id, label, render }.
+const EXTRA_VIEWS = [];
 function renderAll() {
   renderStyles();
-  if (state.view === 'loot') { evaluate(); evaluateImported(); renderLoot(); } else renderPalette();
+  if (state.view === 'loot') { evaluate(); evaluateImported(); renderLoot(); }
+  else if (state.view === 'palette') renderPalette();
+  else { const view = EXTRA_VIEWS.find(v => v.id === state.view); if (view) view.render(); }
 }
-document.getElementById('view-loot').addEventListener('click', () => { state.view = 'loot'; persist(); renderAll(); });
-document.getElementById('view-palette').addEventListener('click', () => { state.view = 'palette'; persist(); renderAll(); });
+function addView(view) {
+  EXTRA_VIEWS.push(view);
+  const tab = document.createElement('button');
+  tab.className = 'tab'; tab.type = 'button'; tab.setAttribute('role', 'tab'); tab.dataset.view = view.id; tab.textContent = view.label;
+  document.getElementById('views').insertBefore(tab, document.getElementById('views-note'));
+  const panel = document.createElement('section'); panel.className = 'stack'; panel.dataset.panel = view.id; panel.id = 'panel-' + view.id; panel.hidden = true;
+  document.querySelector('.wrap').append(panel);
+  return panel;
+}
+document.getElementById('views').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab || !tab.dataset.view) return;
+  state.view = tab.dataset.view; persist(); renderAll();
+});
 document.getElementById('script').addEventListener('change', e => { state.script = e.target.value; persist(); renderAll(); });
 const area = document.getElementById('area'), areaNum = document.getElementById('area-num');
 area.value = areaNum.value = state.area;
@@ -1364,12 +1485,17 @@ importInput.addEventListener('paste', event => {
 });
 if (state.importText.trim()) applyImportedText();
 
-if (!DATA || !DATA.styles.length) {
-  document.querySelector('.wrap').innerHTML = '<p>No styles were compiled, so there is nothing to show.</p>';
-} else {
+// The first render waits for the editors' script, which adds views.
+document.addEventListener('DOMContentLoaded', () => {
+  if (!DATA || !DATA.styles.length) {
+    document.querySelector('.wrap').innerHTML = '<p>No styles were compiled, so there is nothing to show.</p>';
+    return;
+  }
+  if (state.view !== 'loot' && state.view !== 'palette' && !EXTRA_VIEWS.some(v => v.id === state.view)) state.view = 'loot';
   roll();
   renderAll();
-}
+});
 </script>
+<script>/*STUDIO_EDITORS*/</script>
 </body>
 </html>
