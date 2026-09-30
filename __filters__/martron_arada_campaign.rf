@@ -141,6 +141,10 @@ SECTION {
     MACRO["handle_csv" -> $category => "Heist"]
     MACRO["handle_csv" -> $category => "Incursion"]
     MACRO["handle_csv" -> $category => "Eldritch"]
+
+    !! A Stacked Deck opens into a random divination card, so it wears the
+    !! card look; at about six chaos it ranks with T4 cards.
+    MACRO["handle_csv" -> $category => "Divination"]
     MACRO["divination_card_tiering"
       -> $tier_0 => "Final/Divination/T0"
       -> $tier_1 => "Final/Divination/T1"

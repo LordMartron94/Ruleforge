@@ -429,7 +429,7 @@ function pick(r, items, weight = () => 1) {
 const ARMOUR_CLASSES = { 'Body Armours': 8, Helmets: 7, Gloves: 7, Boots: 7, Shields: 5 };
 const JEWELLERY = { Rings: 3, Amulets: 2, Belts: 3 };
 const FLASKS = ['Life Flasks', 'Mana Flasks', 'Hybrid Flasks', 'Utility Flasks'];
-const CURRENCY_CATEGORIES = new Set(['Orbs', 'Supplies', 'Orbs-Mapping', 'Supplies-Mapping']);
+const CURRENCY_CATEGORIES = new Set(['Orbs', 'Supplies', 'Orbs-Mapping', 'Supplies-Mapping', 'Divination']);
 const STACKABLE_CLASS = { Scarabs: 'Map Fragments', 'Map Fragments': 'Map Fragments', Essences: 'Stackable Currency', Oils: 'Stackable Currency' };
 const socketCap = lvl => lvl <= 2 ? 2 : lvl <= 24 ? 3 : lvl <= 34 ? 4 : lvl <= 49 ? 5 : 6;
 const pool = DATA.items;

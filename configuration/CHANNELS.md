@@ -50,7 +50,7 @@ combination is authoritative; e.g. `Final/Orbs/T1` maps to global T0.
 | Cross | Skill/support gems |
 | Circle | Currency and crafting consumables, including essences/oils |
 | Kite | Utility supplies |
-| Pentagon | Divination cards |
+| Pentagon | Divination cards and Stacked Decks |
 | Diamond | Playable areas: maps, contracts, blueprints, logbooks, charts |
 | Star | Area-enabling fragments, breachstones and scarabs |
 | Square | Access/objective items: Labyrinth keys/trinkets and Stone of Passage |
