@@ -20,6 +20,7 @@ var conditionIdentifierToCompiledIdentifier = map[string]string{
 	"@map_tier":                "MapTier",
 	"@quality":                 "Quality",
 	"@corrupted":               "Corrupted",
+	"@corrupted_mods":          "CorruptedMods",
 	"@base_armour":             "BaseArmour",
 	"@base_evasion":            "BaseEvasion",
 	"@base_energy_shield":      "BaseEnergyShield",

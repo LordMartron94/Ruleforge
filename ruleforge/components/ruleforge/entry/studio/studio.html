@@ -462,7 +462,11 @@ function equipmentItem(r, area, classes, showcase, rarityOverride) {
   const item = fromBase(r, base, area, rarity, showcase);
   if (rarity === 'Rare' && area >= 12 && r() < (showcase ? 0.15 : 0.03)) item.mods.push('Veiled');
   if (area >= 68 && r() < (showcase ? 0.1 : 0.01)) item.fractured = true;
-  if (r() < (showcase ? 0.08 : 0.02)) item.corrupted = true;
+  if (r() < (showcase ? 0.08 : 0.02)) {
+    item.corrupted = true;
+    // One of a Vaal Orb's four equally likely outcomes adds a corruption implicit.
+    item.corruptedMods = r() < 0.25 ? 1 : 0;
+  }
   return item;
 }
 // Classes whose base defences roll within a range; other equipment reports 100.
@@ -491,7 +495,7 @@ function fromBase(r, base, area, rarity, showcase = false) {
   return {
     label: base.name, base: base.name, cls: base.class, rarity, ilvl: area, drop: base.drop, w: base.w, h: base.h,
     quality: r() < 0.06 ? 1 + Math.floor(r() * 20) : 0, stack: 1, sockets, links, mods: [],
-    corrupted: false, fractured: false, identified: rarity === 'Normal',
+    corrupted: false, corruptedMods: 0, fractured: false, identified: rarity === 'Normal',
     ...defences, defencePercentile: defencePercentile(base, defences),
   };
 }
@@ -567,7 +571,7 @@ function weaponClasses() {
 
 /* ---------- filter evaluation ---------- */
 const RARITY = { Normal: 0, Magic: 1, Rare: 2, Unique: 3 };
-const NUMERIC = { BaseDefencePercentile: 'defencePercentile', AreaLevel: 'area', ItemLevel: 'ilvl', DropLevel: 'drop', StackSize: 'stack', Height: 'h', Width: 'w', Quality: 'quality',
+const NUMERIC = { BaseDefencePercentile: 'defencePercentile', CorruptedMods: 'corruptedMods', AreaLevel: 'area', ItemLevel: 'ilvl', DropLevel: 'drop', StackSize: 'stack', Height: 'h', Width: 'w', Quality: 'quality',
   BaseArmour: 'armour', BaseEvasion: 'evasion', BaseEnergyShield: 'es', BaseWard: 'ward', GemLevel: 'gemLevel', MapTier: 'mapTier' };
 const BOOLEAN = { Corrupted: 'corrupted', FracturedItem: 'fractured', Identified: 'identified', Mirrored: 'mirrored', SynthesisedItem: 'synthesised', Replica: 'replica' };
 function compare(a, op, b) {
@@ -591,8 +595,9 @@ function valueSet(c) { let s = setCache.get(c); if (!s) { s = new Set(c.v); setC
 function evalCondition(item, c) {
   const op = c.op || '';
   if (c.k in NUMERIC) {
-    const value = item[NUMERIC[c.k]];
-    if (value === undefined) return false;
+    const value = c.k === 'CorruptedMods' && !item.corrupted ? 0 : item[NUMERIC[c.k]];
+    // Copied item text marks corruption implicits like any other implicit.
+    if (value === undefined) return c.k === 'CorruptedMods' ? null : false;
     return c.v.some(v => compare(value, op, Number(v)));
   }
   if (c.k in BOOLEAN) return !!item[BOOLEAN[c.k]] === (c.v[0] === 'True');
@@ -862,7 +867,8 @@ function renderInspectorTarget(d, boxId, emptyText) {
   add('Base type', d.base || d.baseDisplay); add('Unique', d.unique); add('Class', d.cls); add('Rarity', d.rarity); add('Category', d.category);
   add('Area level', d.area); add('Item level', d.ilvl); add('Drop level', d.drop); add('Stack size', d.stack > 1 ? d.stack : '');
   add('Quality', d.quality ? d.quality + '%' : ''); add('Sockets', d.links.length ? d.links.map(g => g.join('-')).join('  ') : '');
-  add('Size', `${d.w}×${d.h}`); add('Corrupted', d.corrupted); add('Fractured', d.fractured); add('Identified', d.identified ? '' : 'no');
+  add('Size', `${d.w}×${d.h}`); add('Corrupted', d.corrupted);
+  add('Corruption implicits', d.corrupted ? (d.corruptedMods === undefined ? 'unknown from a paste' : String(d.corruptedMods)) : ''); add('Fractured', d.fractured); add('Identified', d.identified ? '' : 'no');
   add('Mods', d.mods.join(', ')); add('Base armour / evasion / ES', d.armour || d.evasion || d.es ? `${d.armour} / ${d.evasion} / ${d.es}` : '');
   add('Base defence percentile', d.armour || d.evasion || d.es || d.ward ? `${d.defencePercentile}${d.defencePercentile === 100 ? ' (max-rolled)' : ''}` : '');
   add('Price', d.value !== undefined ? d.value.toFixed(1) + ' chaos' : ''); add('Parse note', d.parseNote);

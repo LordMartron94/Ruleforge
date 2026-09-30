@@ -323,6 +323,7 @@ The standard rule format is a chain of a condition, a style, and an action.
 - `WHERE`: The start of every rule. 
 - Condition: Defines what item property to check. 
   - Identifiers: `@area_level`, `@stack_size`, `@item_type`, `@item_class`, `@rarity`, `@sockets`, `@socket_group`, `@height`, `@width`. 
+    `@corrupted_mods` counts an item's corruption implicits (the game's `CorruptedMods`).
   - Operators: `==`, `!=`, `>=`, `<=`, `>`, `<`. 
   - Value: A quoted string `"value"`, a number, or a variable reference `$var`. 
 - Style: A reference to a style defined in the stylesheet, either by its full path (`Essences/Tiers/High`) or via a variable (`$my_style`). 

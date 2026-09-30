@@ -71,7 +71,8 @@ SECTION {
   RULES {
     !! Amulets have one of the widest modifier pools, so any rare one can be
     !! worth reading. No area limit, and early in the file so no later hide
-    !! rule can reach them.
+    !! rule can reach them. A corruption implicit takes the border.
+    WHERE @corrupted_mods >= 1 -> @item_class == "Amulets" -> @rarity == "Rare" => "Final/Equipment/Corrupted" => $Show
     WHERE @item_class == "Amulets" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
   }
 }
@@ -169,7 +170,29 @@ SECTION {
     !! these property marks must precede the secondary link/socket section.
     MACRO["veiled" -> $style => "Final/Equipment/Veiled"]
     WHERE @fractured == "True" => "Final/Equipment/Fractured" => $Show
-    WHERE @corrupted == "True" => "Final/Equipment/Corrupted" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Corruption Implicits"
+    DESCRIPTION => "Corrupted gear and jewels whose corruption added an implicit"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    !! Corruption on its own is no reason to show an item: it only takes away
+    !! crafting, recolouring and linking. What it can add is an implicit
+    !! (+1 to socketed gems, life, resistances, aura effect), so only items
+    !! with one get the corrupted border: rares the build can wear (belts
+    !! included), rare rings, and magic or rare jewels. Every other corrupted
+    !! item is judged like any other drop further down.
+    WHERE @corrupted_mods >= 1 -> @rarity == "Rare" -> @class_use == "true" => "Final/Equipment/Corrupted" => $Show
+    WHERE @corrupted_mods >= 1 -> @rarity == "Rare" -> @item_class == "Rings" => "Final/Equipment/Corrupted" => $Show
+    WHERE @corrupted_mods >= 1 -> @item_class == "Jewels" => "Final/Equipment/Corrupted" => $Show
   }
 }
 
@@ -299,7 +322,10 @@ SECTION {
     !! Socket and link layouts are already visible on the item label. Keep
     !! their styling secondary: 3/4-link and RGB marks are quiet, 5/6-link
     !! and 5/6-socket marks retain a border, and hidden item state (fractured,
-    !! corrupted, veiled, max-roll and quality where applicable) wins first.
+    !! corruption implicits, veiled, max-roll and quality where applicable)
+    !! wins first. These layouts keep their worth on corrupted gear too: a
+    !! 5/6-link can still be worn, and 6-socket and RGB items vendor for
+    !! currency.
     WHERE @socket_group >= "6" => "Final/Special/Sockets/6-link" => $Show
     WHERE @socket_group >= "5" => "Final/Special/Sockets/5-link" => $Show
     WHERE @socket_group >= "4RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB-4-socket" => $Show
@@ -307,6 +333,48 @@ SECTION {
     WHERE @socket_group == "RGB" -> @height == 3 -> @width == 1 => "Final/Special/RGB" => $Show
     WHERE @socket_group == "RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB" => $Show
     WHERE @sockets >= "6" => "Final/Special/Sockets/6-socket" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Corrupted Gear"
+    DESCRIPTION => "Hide corrupted normal and magic gear"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+    WHERE @corrupted == "True"
+  }
+
+  RULES {
+    !! Normal and magic gear is worth picking up in the campaign for what can
+    !! still be done to it: alchemy, crafting, recolouring and linking.
+    !! Corruption rules all of that out, so these hides come before the
+    !! socket reminders and progression rules that would otherwise show it.
+    !! Flasks and jewels are left to their own rules.
+    WHERE @rarity == "Normal" -> @class_use == "true" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @class_use == "false" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @item_class == "Rings" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @item_class == "Amulets" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "true" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "false" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @item_class == "Rings" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @item_class == "Amulets" => $old_equipment_magic => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Link Reminders"
+    DESCRIPTION => "Sockets worth linking or recolouring for the build"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
     WHERE @sockets >= "5" => "Final/Special/Sockets/5-socket" => $Show
     WHERE @socket_group >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-link" => $Show
     WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-socket" => $Show

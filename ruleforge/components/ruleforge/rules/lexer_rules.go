@@ -116,6 +116,7 @@ func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 		{"@sockets", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@map_tier", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@quality", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+		{"@corrupted_mods", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@corrupted", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@fractured", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 		{"@base_defence_percentile", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},

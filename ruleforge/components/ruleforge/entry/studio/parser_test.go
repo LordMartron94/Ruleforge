@@ -128,3 +128,27 @@ func TestPastedTattooKeepsItsNameAsTheBaseType(t *testing.T) {
 		t.Errorf("a tattoo missing from the pool must still match filter rules by name: %+v", got[1])
 	}
 }
+
+func TestCorruptedModsIsUnknownOnlyForPastedCorruptedItems(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is not installed")
+	}
+	script := strings.Join([]string{
+		section(t, "/* ---------- filter evaluation ---------- */", "/* ---------- pasted Path of Exile items ---------- */"),
+		`const c = { k: 'CorruptedMods', op: '>=', v: ['1'] };`,
+		`console.log(JSON.stringify([`,
+		`  evalCondition({ corrupted: false }, c),`,
+		`  evalCondition({ corrupted: true, corruptedMods: 1 }, c),`,
+		`  evalCondition({ corrupted: true, corruptedMods: 0 }, c),`,
+		`  evalCondition({ corrupted: true }, c),`,
+		`]));`,
+	}, "\n")
+	out, err := exec.Command(node, "-e", script).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(string(out)); got != "[false,true,false,null]" {
+		t.Fatalf("uncorrupted, one implicit, none, pasted = %s; want [false,true,false,null]", got)
+	}
+}

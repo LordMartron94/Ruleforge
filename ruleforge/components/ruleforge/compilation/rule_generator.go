@@ -1236,6 +1236,7 @@ var conditionOrder = map[string]int{
 	"@base_energy_shield":      7,
 	"@base_ward":               8,
 	"@base_defence_percentile": 8,
+	"@corrupted_mods":          8,
 	"@stack_size":              9,
 	"@height":                  10,
 	"@width":                   11,

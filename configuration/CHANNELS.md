@@ -9,7 +9,7 @@ tier has the same market price. Colours change with the palette; meanings do not
 | --- | --- |
 | Text colour and font size | Global priority tier, always. Neither rarity, subtype nor gem quality can take these channels. |
 | Background | Purpose/category, including the forge field for crafting bases and semantic league fields. In Aryzel, T0/T1 radiance overrides the category field; the shape and item name still identify purpose. |
-| Border | The most important property represented by the winning rule. Tier-specific radiance takes precedence; then hidden item state (quality, fractured, corrupted, veiled and max-roll), crafting eligibility, subtype/league, rare 5/6-link or 5/6-socket marks, and finally rarity. Ordinary links, sockets and RGB layouts are quiet reminders. |
+| Border | The most important property represented by the winning rule. Tier-specific radiance takes precedence; then hidden item state (quality, fractured, corruption implicits, veiled and max-roll), crafting eligibility, subtype/league, rare 5/6-link or 5/6-socket marks, and finally rarity. Ordinary links, sockets and RGB layouts are quiet reminders. |
 | Beam | Priority rank for T0–T4. Links and sockets never add a beam; a temporary green beam is reserved for crafting bases. |
 | Minimap colour and size | Global priority tier, including crafting. A crafting icon is a small cyan moon because crafting is T5; its green landing beam does not recolour the icon. |
 | Minimap shape | Broad purpose, never rarity or price. Related consumable families intentionally share a shape. |
@@ -90,8 +90,16 @@ armour (`BaseDefencePercentile == 100` on body armours, boots, gloves, helmets
 and shields). The copy keeps the rule's background and icon shape, takes the
 max-roll border, and takes the higher of the two priority tiers: a max-rolled
 3-link gets the full max-roll look, a max-rolled crafting base keeps its forge
-field and green beam. Hide rules get no copy. Fractured and corrupted rules
-also win before the link/socket section.
+field and green beam. Hide rules get no copy. Fractured and corruption-implicit
+rules also win before the link/socket section.
+
+Corruption alone never makes an item visible; it only takes away crafting,
+recolouring and linking. The corrupted border marks a corruption implicit
+(`CorruptedMods >= 1`) on rares the build can wear, rare rings and amulets, and
+magic or rare jewels. Corrupted normal and magic gear is hidden right after the
+socket layouts that keep their worth when corrupted (5/6-link, 6-socket, RGB)
+and before the socket reminders and progression rules. Corrupted rares without
+a corruption implicit are judged like any other rare.
 
 ## Campaign scope
 
