@@ -34,6 +34,8 @@ var ConditionSpecs = []ConditionSpec{
 	{ID: "@corrupted_mods", Label: "Corruption implicits", Kind: "number", Help: "How many implicits the item's corruption added."},
 	{ID: "@fractured", Label: "Fractured", Kind: "choice", Choices: []string{"True", "False"}, Quoted: true, Help: "Whether the item has fractured modifiers."},
 	{ID: "@base_defence_percentile", Label: "Base defence roll", Kind: "number", Help: "How high the base armour, evasion and energy shield rolled; 100 is max-rolled."},
+	{ID: "@item_level", Label: "Item level", Kind: "number", Help: "The item's level, which caps the modifier tiers it can roll."},
+	{ID: "@drop_level", Label: "Base drop level", Kind: "number", Help: "The level its base type starts dropping at; low means an early, weaker base."},
 }
 
 // ConditionKeywords lists the condition identifiers the lexer knows.

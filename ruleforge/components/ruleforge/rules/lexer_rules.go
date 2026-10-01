@@ -119,6 +119,8 @@ var keywordDefs = []struct {
 	{"@corrupted", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 	{"@fractured", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 	{"@base_defence_percentile", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@item_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@drop_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 
 	// Builds
 	{"MARAUDER", symbols.MeleeBuildToken, "BuildValueKeywordLexer"},

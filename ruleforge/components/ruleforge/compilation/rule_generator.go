@@ -31,6 +31,10 @@ type RuleGenerator struct {
 	valueHalfLifeDays     float64
 	baseTypeData          []config.BaseTypeAutomationEntry
 	build                 *Build
+
+	// sectionConditions are the conditions of the section being compiled.
+	// Every rule in the section needs them, including the rules macros build.
+	sectionConditions []model2.Condition
 }
 
 // NewRuleGenerator creates the rule generation engine.
@@ -107,6 +111,8 @@ func (rg *RuleGenerator) GenerateRulesForSection(
 	variables map[string][]string,
 ) ([][]string, error) {
 	var allGeneratedRules [][]string
+	rg.sectionConditions = section.Conditions
+	defer func() { rg.sectionConditions = nil }()
 
 	for _, childNode := range section.RuleNodes {
 		var generatedRules [][]string
@@ -1222,6 +1228,8 @@ var conditionOrder = map[string]int{
 	"@height":                  10,
 	"@width":                   11,
 	"@area_level":              12,
+	"@item_level":              12,
+	"@drop_level":              12,
 	"@map_tier":                13,
 
 	// Hash Set
@@ -1239,6 +1247,10 @@ var conditionOrder = map[string]int{
 
 //goland:noinspection t
 func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionConditions []model2.Condition) [][]string {
+	if len(sectionConditions) == 0 {
+		// Macros build their rules without passing the section's conditions.
+		sectionConditions = rg.sectionConditions
+	}
 	var macroConditions []model2.Condition
 	var standardRuleConditions []model2.Condition
 	macros := []string{"@class_use"}

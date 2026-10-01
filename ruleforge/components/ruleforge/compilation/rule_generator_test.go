@@ -420,3 +420,15 @@ func TestEveryMacroHasASpecAndAHandler(t *testing.T) {
 		}
 	}
 }
+
+func TestMacroRulesKeepTheirSectionsConditions(t *testing.T) {
+	rg := &RuleGenerator{ruleFactory: &RuleFactory{}}
+	rg.sectionConditions = []model2.Condition{{Identifier: "@area_level", Operator: "<", Value: []string{"73"}}}
+	rules, err := rg.emitTierRules(&config.Style{Name: "T1"}, []model2.Condition{{Identifier: "@item_class", Operator: "==", Value: []string{"Life Flasks"}}}, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if joined := strings.Join(rules[0], "\n"); !strings.Contains(joined, `AreaLevel < "73"`) || !strings.Contains(joined, `Class == "Life Flasks"`) {
+		t.Fatalf("a macro's rule lost its section's condition:\n%s", joined)
+	}
+}
