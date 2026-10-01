@@ -49,12 +49,18 @@ SECTION {
   }
 
   RULES {
+    !! Unique maps keep the map look; poe.ninja's unique prices leave them out.
+    WHERE @item_class == "Maps" -> @rarity == "Unique" => "Final/Maps/UniqueMaps" => $Show
+
+    !! A unique without a price is often new or rare, so it ranks above the
+    !! cheapest tier.
     MACRO["unique_tiering"
-      -> $tier_0 => "Final/Uniques/T0"
-      -> $tier_1 => "Final/Uniques/T1"
-      -> $tier_2 => "Final/Uniques/T2"
-      -> $tier_3 => "Final/Uniques/T3"
-      -> $tier_4 => "Final/Uniques/T4"
+      -> $tier_0   => "Final/Uniques/T0"
+      -> $tier_1   => "Final/Uniques/T1"
+      -> $tier_2   => "Final/Uniques/T2"
+      -> $tier_3   => "Final/Uniques/T3"
+      -> $tier_4   => "Final/Uniques/T4"
+      -> $fallback => "Final/Uniques/T3"
     ]
   }
 }
@@ -88,6 +94,7 @@ SECTION {
 
   RULES {
     !! Text, size, beam, minimap and sound always keep the economy tier.
+    !! Gems without a price (new or transfigured ones) take the lowest tier.
     !! Quality contributes only a border. A tier-specific border (radiance)
     !! wins over Vaal, which wins over quality. The item name and quality
     !! remain readable even when a higher-priority border takes the channel.
@@ -99,6 +106,7 @@ SECTION {
       -> $tier_5 => "Final/Gems/T5"
       -> $tier_6 => "Final/Gems/T6"
       -> $tier_7 => "Final/Gems/T7"
+      -> $fallback   => "Final/Gems/T7"
       -> $quality_20 => "Final/Special/Quality/Gems/Max"
       -> $quality_10 => "Final/Special/Quality/Gems/Mid"
       -> $quality_1  => "Final/Special/Quality/Gems/Low"
@@ -184,7 +192,6 @@ SECTION {
   }
 
   SECTION_CONDITIONS {
-    WHERE @area_level < 68
   }
 
   RULES {
@@ -197,6 +204,7 @@ SECTION {
     WHERE @corrupted_mods >= 1 -> @rarity == "Rare" -> @class_use == "true" => "Final/Equipment/Corrupted" => $Show
     WHERE @corrupted_mods >= 1 -> @rarity == "Rare" -> @item_class == "Rings" => "Final/Equipment/Corrupted" => $Show
     WHERE @corrupted_mods >= 1 -> @item_class == "Jewels" => "Final/Equipment/Corrupted" => $Show
+    WHERE @corrupted_mods >= 1 -> @item_class == "Abyss Jewels" => "Final/Equipment/Corrupted" => $Show
   }
 }
 
@@ -243,6 +251,24 @@ SECTION {
 
 SECTION {
   METADATA {
+    NAME        => "Mapping Currency and Supplies"
+    DESCRIPTION => "Currency and supplies from area level 68"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+  }
+
+  RULES {
+    !! Solo self-found: basic orbs are crafting currency, so even a single
+    !! Alteration or Chromatic Orb stays visible; stacks rank higher.
+    MACRO["handle_csv" -> $category => "Orbs-Mapping"]
+    MACRO["handle_csv" -> $category => "Supplies-Mapping"]
+  }
+}
+
+SECTION {
+  METADATA {
     NAME        => "Campaign Map Finds"
     DESCRIPTION => "Maps found before entering the Atlas"
   }
@@ -254,9 +280,48 @@ SECTION {
 
   RULES {
     !! First maps drop during the campaign. Keep this permissive regardless
-    !! of map tier so reward/manual drops are also visible. This does not
-    !! add any rules for mapping areas. Economy-tiered uniques still win.
+    !! of map tier so reward/manual drops are also visible. The Maps section
+    !! below takes over from area level 68. Economy-tiered uniques still win.
     WHERE @rarity == "Unique" => "Final/Maps/UniqueMaps" => $Show
+    WHERE @rarity == "Rare" => "Final/Maps/LowTierRareT1T2" => $Show
+    WHERE @rarity == "Magic" => "Final/Maps/LowTierMagicT1T2" => $Show
+    WHERE @rarity == "Normal" => "Final/Maps/LowTierNormalT1T2" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Maps"
+    DESCRIPTION => "Every map by tier and rarity from area level 68"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @item_class == "Maps"
+  }
+
+  RULES {
+    !! Every tier stays visible: lower maps still fill in the Atlas. Higher
+    !! tiers and rarer maps rank higher. Economy-tiered uniques win first.
+    WHERE @rarity == "Unique" => "Final/Maps/UniqueMaps" => $Show
+    WHERE @map_tier >= 17 -> @rarity == "Rare" => "Final/Maps/SpecialRareT17" => $Show
+    WHERE @map_tier >= 17 -> @rarity == "Magic" => "Final/Maps/SpecialMagicT17" => $Show
+    WHERE @map_tier >= 17 => "Final/Maps/SpecialNormalT17" => $Show
+    WHERE @map_tier >= 11 -> @rarity == "Rare" => "Final/Maps/TopTierRareT11T16" => $Show
+    WHERE @map_tier >= 11 -> @rarity == "Magic" => "Final/Maps/TopTierMagicT11T16" => $Show
+    WHERE @map_tier >= 11 => "Final/Maps/TopTierNormalT11T16" => $Show
+    WHERE @map_tier >= 8 -> @rarity == "Rare" => "Final/Maps/MidTierRareT8T10" => $Show
+    WHERE @map_tier >= 8 -> @rarity == "Magic" => "Final/Maps/MidTierMagicT8T10" => $Show
+    WHERE @map_tier >= 8 => "Final/Maps/MidTierNormalT8T10" => $Show
+    WHERE @map_tier >= 6 -> @rarity == "Rare" => "Final/Maps/MidTierRareT6T7" => $Show
+    WHERE @map_tier >= 6 -> @rarity == "Magic" => "Final/Maps/MidTierMagicT6T7" => $Show
+    WHERE @map_tier >= 6 => "Final/Maps/MidTierNormalT6T7" => $Show
+    WHERE @map_tier >= 5 -> @rarity == "Rare" => "Final/Maps/LowTierRareT5" => $Show
+    WHERE @map_tier >= 5 -> @rarity == "Magic" => "Final/Maps/LowTierMagicT5" => $Show
+    WHERE @map_tier >= 5 => "Final/Maps/LowTierNormalT5" => $Show
+    WHERE @map_tier >= 3 -> @rarity == "Rare" => "Final/Maps/LowTierRareT3T4" => $Show
+    WHERE @map_tier >= 3 -> @rarity == "Magic" => "Final/Maps/LowTierMagicT3T4" => $Show
+    WHERE @map_tier >= 3 => "Final/Maps/LowTierNormalT3T4" => $Show
     WHERE @rarity == "Rare" => "Final/Maps/LowTierRareT1T2" => $Show
     WHERE @rarity == "Magic" => "Final/Maps/LowTierMagicT1T2" => $Show
     WHERE @rarity == "Normal" => "Final/Maps/LowTierNormalT1T2" => $Show
@@ -314,12 +379,49 @@ SECTION {
 
 SECTION {
   METADATA {
+    NAME        => "Crafting Bases in Early Maps"
+    DESCRIPTION => "Every listed crafting base in white and yellow maps"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @area_level < 78
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! Drops here are item level 68 to 77: good enough to craft the gear
+    !! this character and the next one wear through the early atlas.
+    MACRO["handle_csv" -> $category => "Crafting Bases"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases in Red Maps"
+    DESCRIPTION => "Listed crafting bases of item level 83 and up from area level 78"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 78
+    WHERE @item_level >= 83
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! In red maps a base earns its pickup by its item level: 83 opens the
+    !! top weapon tiers, 84 and 86 the top life and resistance tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases"]
+  }
+}
+
+SECTION {
+  METADATA {
     NAME        => "Links and Sockets"
     DESCRIPTION => "Secondary styling for visible links sockets and trichromatic items"
   }
 
   SECTION_CONDITIONS {
-    WHERE @area_level < 68
   }
 
   RULES {
@@ -329,7 +431,8 @@ SECTION {
     !! corruption implicits, veiled, max-roll and quality where applicable)
     !! wins first. These layouts keep their worth on corrupted gear too: a
     !! 5/6-link can still be worn, and 6-socket and RGB items vendor for
-    !! currency.
+    !! currency. They hold in maps as well, where the vendor recipes are
+    !! a steady source of Jeweller's and Chromatic Orbs.
     WHERE @socket_group >= "6" => "Final/Special/Sockets/6-link" => $Show
     WHERE @socket_group >= "5" => "Final/Special/Sockets/5-link" => $Show
     WHERE @socket_group >= "4RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB-4-socket" => $Show
@@ -429,6 +532,32 @@ SECTION {
     WHERE @item_class == "Rings" -> @rarity == "Normal" => "Final/Jewelry/Normal" => $Show
     WHERE @item_class == "Amulets" -> @rarity == "Normal" => "Final/Jewelry/Normal" => $Show
     WHERE @item_class == "Jewels" => "Final/Jewels" => $Show
+    WHERE @item_class == "Abyss Jewels" => "Final/Jewels" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Mapping Jewellery and Jewels"
+    DESCRIPTION => "Rare jewellery and every jewel from area level 68"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+  }
+
+  RULES {
+    !! Rare rings and belts can roll anything worth wearing, and every jewel
+    !! is worth reading. Normal and magic rings and amulets are only worth
+    !! it as crafting bases, which the crafting sections already showed.
+    WHERE @item_class == "Rings" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
+    WHERE @item_class == "Belts" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
+    WHERE @item_class == "Jewels" => "Final/Jewels" => $Show
+    WHERE @item_class == "Abyss Jewels" => "Final/Jewels" => $Show
+    WHERE @item_class == "Rings" -> @rarity == "Normal" => $old_equipment_normal => $Hide
+    WHERE @item_class == "Amulets" -> @rarity == "Normal" => $old_equipment_normal => $Hide
+    WHERE @item_class == "Rings" -> @rarity == "Magic" => $old_equipment_magic => $Hide
+    WHERE @item_class == "Amulets" -> @rarity == "Magic" => $old_equipment_magic => $Hide
   }
 }
 
@@ -578,12 +707,58 @@ SECTION {
 
 SECTION {
   METADATA {
-    NAME        => "Campaign Flasks"
-    DESCRIPTION => "Level appropriate campaign flasks"
+    NAME        => "Mapping Gear"
+    DESCRIPTION => "Rares worth reading from area level 68"
   }
 
   SECTION_CONDITIONS {
-    WHERE @area_level < 68
+    WHERE @area_level >= 68
+  }
+
+  RULES {
+    !! In maps normal and magic gear is only worth it as a crafting base or
+    !! for its sockets, and the sections above already showed those.
+    WHERE @rarity == "Normal" -> @class_use == "true" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @class_use == "false" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "true" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "false" => $old_equipment_magic => $Hide
+
+    !! Armour on a base that starts dropping far below the area is outclassed
+    !! by the bases dropping now, whatever its mods (NeverSink's thresholds:
+    !! drop level under 40 from area 73, under 50 from 78, under 60 from 80).
+    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @item_class == "Body Armours" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @item_class == "Boots" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @item_class == "Gloves" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @item_class == "Helmets" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @item_class == "Body Armours" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @item_class == "Boots" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @item_class == "Gloves" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @item_class == "Helmets" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @item_class == "Body Armours" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @item_class == "Boots" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @item_class == "Gloves" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @item_class == "Helmets" => $old_equipment_rare => $Hide
+
+    !! Rares the build can wear are worth reading in every map.
+    WHERE @rarity == "Rare" -> @class_use == "true" => $equipment_rare => $Show
+
+    !! Compact off-class rares still sell for useful shards through yellow
+    !! maps; the rest of the off-class rares only cost inventory space.
+    WHERE @area_level < 78 -> @rarity == "Rare" -> @height <= 2 -> @width <= 2 => $equipment_rare => $Show
+    WHERE @area_level < 78 -> @rarity == "Rare" -> @height <= 3 -> @width == 1 => $equipment_rare => $Show
+    WHERE @area_level < 78 -> @rarity == "Rare" -> @height == 1 -> @width <= 3 => $equipment_rare => $Show
+    WHERE @rarity == "Rare" -> @class_use == "false" => $old_equipment_rare => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Campaign Flasks"
+    DESCRIPTION => "Level appropriate flasks through white maps"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 73
   }
 
   RULES {
@@ -591,5 +766,29 @@ SECTION {
       -> $show   => $flask_current
       -> $hidden => $flask_old
     ]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Mapping Flasks"
+    DESCRIPTION => "Utility flasks and high quality flasks from area level 73"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 73
+  }
+
+  RULES {
+    !! By yellow maps the life and mana flasks are settled; utility flasks
+    !! stay worth reading for their mods, and any flask with 20% quality is
+    !! a better base to craft.
+    WHERE @item_class == "Utility Flasks" => $flask_current => $Show
+    WHERE @quality >= 20 -> @item_class == "Life Flasks" => "Final/Special/Quality/MaxQualityFlask" => $Show
+    WHERE @quality >= 20 -> @item_class == "Mana Flasks" => "Final/Special/Quality/MaxQualityFlask" => $Show
+    WHERE @quality >= 20 -> @item_class == "Hybrid Flasks" => "Final/Special/Quality/MaxQualityFlask" => $Show
+    WHERE @item_class == "Life Flasks" => $flask_old => $Hide
+    WHERE @item_class == "Mana Flasks" => $flask_old => $Hide
+    WHERE @item_class == "Hybrid Flasks" => $flask_old => $Hide
   }
 }

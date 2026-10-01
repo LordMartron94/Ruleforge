@@ -107,7 +107,32 @@ The campaign's currency rules run first, then the supplemental mapping currency
 categories, all below area level 68. Overlapping entries retain the campaign
 priority. Maps have their own campaign-only rules before ordinary equipment
 rules. Those rules are permissive about map tier so reward or manually dropped
-maps also remain visible. They do not implement a filter for mapping areas.
+maps also remain visible.
+
+## Mapping scope
+
+From area level 68 (maps, and the merciless Labyrinth) each campaign-only
+section hands over to a mapping section at the same place in the script, so the
+order of priorities is the same. The policy follows NeverSink's mapping rules,
+adjusted for solo self-found:
+
+- Currency comes from the mapping CSV categories. Single basic orbs stay visible
+  because they are crafting currency; stacks rank higher.
+- Every map tier stays visible and ranks by tier and rarity.
+- Listed crafting bases show in white and yellow maps (area level 68-77); from
+  area level 78 only at item level 83 and up, where the top tiers open.
+- 5/6-links, 6-socket and small RGB items keep their campaign rules.
+- Rare rings, belts and amulets, and every jewel, show. Normal and magic rings,
+  amulets and other gear hide unless an earlier rule wanted them.
+- Rares the build can wear show, except body armours, boots, gloves and helmets
+  whose base starts dropping far below the area (drop level under 40 from area
+  73, under 50 from 78, under 60 from 80). Compact off-class rares show through
+  yellow maps; other off-class rares hide.
+- Flask progression continues through white maps. From area level 73 utility
+  flasks and 20%-quality flasks show; other life, mana and hybrid flasks hide.
+
+A section's conditions apply to every rule in it, including the rules a macro
+generates.
 
 Scouting Reports are legacy items, removed in 3.28. Orb of Unmaking has natural
 drop level 70. Supplemental rules can still style an item put on the ground or
