@@ -121,6 +121,8 @@ adjusted for solo self-found:
   Portal and Wisdom Scrolls from 5, as in NeverSink's strict filter; bigger
   stacks rank higher. Smaller stacks hide without a minimap icon, beam or
   sound. Rarer currency, from Orbs of Alchemy up, shows at any stack size.
+  Endgame currency, Delirium Orbs and Omens take the higher of their
+  NeverSink tier and a price tier (T1 from 400 chaos, T2 from 15, T3 from 3).
 - Every map tier stays visible and ranks by tier and rarity.
 - Crafting bases follow NeverSink's strict crafting matrix, with the build's
   own bases exempt. Exotic bases (Heist, Ritual, Expedition, Stygian Vise, Cord

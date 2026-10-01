@@ -141,6 +141,9 @@ SECTION {
 
     MACRO["handle_csv" -> $category => "Essences"]
     MACRO["handle_csv" -> $category => "Oils"]
+    !! Delirium Orbs and Ritual Omens are currency and wear its tiers.
+    MACRO["handle_csv" -> $category => "Delirium Orbs"]
+    MACRO["handle_csv" -> $category => "Omens"]
     MACRO["handle_csv" -> $category => "Catalysts"]
     MACRO["handle_csv" -> $category => "Breach"]
     MACRO["handle_csv" -> $category => "Delve"]
@@ -266,6 +269,10 @@ SECTION {
     !! bigger stacks rank higher. Smaller stacks stay hidden, without a
     !! minimap icon or sound. Everything rarer, from Orbs of Alchemy up,
     !! always shows.
+    !!
+    !! Endgame currency (influenced, Eldritch and Tainted orbs, Maven's
+    !! Chisels and the like) takes the higher of its NeverSink tier and its
+    !! price tier. Ancient Orbs fuel Allflame crafting since 3.29.1.
     MACRO["handle_csv" -> $category => "Orbs-Mapping"]
     MACRO["handle_csv" -> $category => "Supplies-Mapping"]
   }

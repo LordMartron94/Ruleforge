@@ -481,6 +481,14 @@ BaseType = "Golden Oil"
 BorderColor = "#9C1416"
 BaseType = "Tainted Oil"
 
+[Special.Oils.Types.Prismatic]
+BorderColor = "#A65A96"
+BaseType = "Prismatic Oil"
+
+[Special.Oils.Types.Reflective]
+BorderColor = "#4F7F95"
+BaseType = "Reflective Oil"
+
 [Special.Oils.Tiers.Common]
 Combination = ["Templates/Tiers/Mid/T7"]
 
@@ -528,6 +536,12 @@ Combination = ["Special/Oils/Base", "Special/Oils/Types/Opalescent", "Special/Oi
 
 [Special.Oils.Final.TaintedOil]
 Combination = ["Special/Oils/Base", "Special/Oils/Types/Tainted", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.PrismaticOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Prismatic", "Special/Oils/Tiers/Rare"]
+
+[Special.Oils.Final.ReflectiveOil]
+Combination = ["Special/Oils/Base", "Special/Oils/Types/Reflective", "Special/Oils/Tiers/Rare"]
 
 [Special.Oils.Final.SilverOil]
 Combination = ["Special/Oils/Base", "Special/Oils/Types/Silver", "Special/Oils/Tiers/Legendary", "Templates/Alerts/High/T2"]
@@ -595,6 +609,10 @@ BorderColor = "#CD821F"
 
 [Special.MapFragments.Types.Veritania]
 BorderColor = "#8E98AF"
+
+# Pinnacle boss fragments: the uber fragments and the Echoes and Memories.
+[Special.MapFragments.Types.Pinnacle]
+BorderColor = "#A688DD"
 
 [Special.MapFragments.Tiers.Standard]
 Combination = ["Templates/Tiers/High/T3"]
@@ -718,6 +736,14 @@ Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/UberElde
 
 [Special.MapFragments.Final.FragmentOfShape]
 Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/UberElder", "Special/MapFragments/Tiers/Standard"]
+
+[Special.MapFragments.Final.Pinnacle]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Pinnacle", "Special/MapFragments/Tiers/Standard"]
+
+# Boss keys without a family of their own (Syndicate Medallion, Valdo's
+# Puzzle Box, Zorath's Eyes, Hivebrain Gland).
+[Special.MapFragments.Final.Misc]
+Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Misc", "Special/MapFragments/Tiers/Standard"]
 
 [Special.MapFragments.Final.ReliquaryKey]
 Combination = ["Special/MapFragments/Base", "Special/MapFragments/Types/Reliquary", "Special/MapFragments/Tiers/Standard"]
