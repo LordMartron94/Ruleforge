@@ -116,11 +116,16 @@ section hands over to a mapping section at the same place in the script, so the
 order of priorities is the same. The policy follows NeverSink's mapping rules,
 adjusted for solo self-found:
 
-- Currency comes from the mapping CSV categories. Single basic orbs stay visible
-  because they are crafting currency; stacks rank higher.
+- Currency comes from the mapping CSV categories. Basic orbs (Transmutation,
+  Augmentation, Alteration, Chromatic, Jeweller's) show from a stack of 3, and
+  Portal and Wisdom Scrolls from 5, as in NeverSink's strict filter; bigger
+  stacks rank higher. Smaller stacks hide without a minimap icon, beam or
+  sound. Rarer currency, from Orbs of Alchemy up, shows at any stack size.
 - Every map tier stays visible and ranks by tier and rarity.
 - Listed crafting bases show in white and yellow maps (area level 68-77); from
-  area level 78 only at item level 83 and up, where the top tiers open.
+  area level 78 only at item level 83 and up, where the top tiers open. Campaign
+  drops are too low an item level to craft on, so below area level 68 a base
+  only shows when another rule wants it (links, sockets, progression).
 - 5/6-links, 6-socket and small RGB items keep their campaign rules.
 - Rare rings, belts and amulets, and every jewel, show. Normal and magic rings,
   amulets and other gear hide unless an earlier rule wanted them.

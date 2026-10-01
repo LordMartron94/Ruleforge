@@ -37,6 +37,14 @@ func TestEnabledThemesKeepGlobalPriorityChannels(t *testing.T) {
 					t.Errorf("%s: text and size do not identify a global priority tier", name)
 					continue
 				}
+				if strings.HasSuffix(name, "/Hidden") {
+					// Hidden labels only style Hide rules: no icon, beam or sound
+					// may point at an item the filter hides.
+					if final.Minimap != nil || final.Beam != nil || final.DropSound != nil {
+						t.Errorf("%s: a hidden label draws attention", name)
+					}
+					continue
+				}
 				if final.Minimap == nil || tier.Minimap == nil || !intPtrIsEqual(final.Minimap.Size, tier.Minimap.Size) || !stringPtrIsEqual(final.Minimap.Color, tier.Minimap.Color) {
 					t.Errorf("%s: minimap size/colour disagree with text priority", name)
 				}

@@ -260,8 +260,12 @@ SECTION {
   }
 
   RULES {
-    !! Solo self-found: basic orbs are crafting currency, so even a single
-    !! Alteration or Chromatic Orb stays visible; stacks rank higher.
+    !! Basic orbs and scrolls drop too often to pick up one by one: Orbs of
+    !! Transmutation, Augmentation and Alteration, Chromatic and Jeweller's
+    !! Orbs show from a stack of 3, Portal and Wisdom Scrolls from 5, and
+    !! bigger stacks rank higher. Smaller stacks stay hidden, without a
+    !! minimap icon or sound. Everything rarer, from Orbs of Alchemy up,
+    !! always shows.
     MACRO["handle_csv" -> $category => "Orbs-Mapping"]
     MACRO["handle_csv" -> $category => "Supplies-Mapping"]
   }
@@ -351,34 +355,6 @@ SECTION {
 
 SECTION {
   METADATA {
-    NAME        => "Crafting Bases"
-    DESCRIPTION => "Normal and magic bases worth crafting on for any class"
-  }
-
-  SECTION_CONDITIONS {
-    WHERE @area_level < 68
-    WHERE @corrupted == "False"
-  }
-
-  RULES {
-    !! The "Crafting Bases" CSV category lists bases for every class, since
-    !! they also gear future characters. A base qualifies through its
-    !! implicit (resistance, life and attribute jewellery, +2% maximum
-    !! resistance rings, +1 gem crowns, block gloves, suppression and
-    !! movement speed shields), by being the strongest base of its weapon
-    !! or defence type, or as a vendor recipe input (Rustic Sash, elemental
-    !! rings). Bases above drop level 67 cannot drop in the campaign; they
-    !! are listed for a later mapping section.
-    !!
-    !! Placed before the secondary link/socket section so the forge field
-    !! remains the winning look for a qualifying base; a max-rolled base
-    !! keeps the forge field but takes the max-roll border.
-    MACRO["handle_csv" -> $category => "Crafting Bases"]
-  }
-}
-
-SECTION {
-  METADATA {
     NAME        => "Crafting Bases in Early Maps"
     DESCRIPTION => "Every listed crafting base in white and yellow maps"
   }
@@ -390,8 +366,19 @@ SECTION {
   }
 
   RULES {
-    !! Drops here are item level 68 to 77: good enough to craft the gear
-    !! this character and the next one wear through the early atlas.
+    !! The "Crafting Bases" CSV category lists bases for every class, since
+    !! they also gear future characters. A base qualifies through its
+    !! implicit (resistance, life and attribute jewellery, +2% maximum
+    !! resistance rings, +1 gem crowns, block gloves, suppression and
+    !! movement speed shields), by being the strongest base of its weapon
+    !! or defence type, or as a vendor recipe input (Rustic Sash, elemental
+    !! rings).
+    !!
+    !! Campaign drops are too low an item level to craft on, so bases only
+    !! stand out from area level 68. Drops here are item level 68 to 77:
+    !! good enough to craft the gear this character and the next one wear
+    !! through the early atlas. The forge field wins over the link and
+    !! socket marks; a max-rolled base keeps it but takes the max-roll border.
     MACRO["handle_csv" -> $category => "Crafting Bases"]
   }
 }

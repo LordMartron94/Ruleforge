@@ -1067,6 +1067,13 @@ Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
 [Final.Orbs.T8]
 Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
 
+# Basic currency below its pickup stack in maps: hidden, and without a
+# minimap icon, beam or sound, so a hidden single cannot draw the eye.
+[Final.Orbs.Hidden]
+TextColor = "t10-low"
+BackgroundColor = "bg-orbs"
+FontSize = 22
+
 [Final.Supplies.T1]
 Combination = ["Templates/Groups/Supplies", "Templates/Tiers/High/T3"]
 
@@ -1087,6 +1094,11 @@ Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Low/T8"]
 
 [Final.Supplies.T7]
 Combination = ["Templates/Groups/Supplies", "Templates/Tiers/Low/T9"]
+
+[Final.Supplies.Hidden]
+TextColor = "t10-low"
+BackgroundColor = "bg-supplies"
+FontSize = 22
 
 [Final.Special.RGB]
 Combination = ["Templates/Groups/Equipment", "Templates/Properties/Sockets/RGB", "Templates/Tiers/Low/T10"]
