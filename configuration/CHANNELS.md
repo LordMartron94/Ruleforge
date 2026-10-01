@@ -122,17 +122,25 @@ adjusted for solo self-found:
   stacks rank higher. Smaller stacks hide without a minimap icon, beam or
   sound. Rarer currency, from Orbs of Alchemy up, shows at any stack size.
 - Every map tier stays visible and ranks by tier and rarity.
-- Listed crafting bases show in white and yellow maps (area level 68-77); from
-  area level 78 only at item level 83 and up, where the top tiers open. Campaign
-  drops are too low an item level to craft on, so below area level 68 a base
-  only shows when another rule wants it (links, sockets, progression).
+- Crafting bases follow NeverSink's strict crafting matrix, with the build's
+  own bases exempt. Exotic bases (Heist, Ritual, Expedition, Stygian Vise, Cord
+  Belt, Sacrificial Garb) always show. The build's own weapon, armour and belt
+  bases show at any item level. Every other listed base waits for its slot's
+  item level: 83 for melee weapons and daggers; 84 for rings, rune daggers,
+  sceptres, staves and wands; 85 for amulets, gloves and helmets; 86 for body
+  armours, boots, belts, bows, quivers and shields. Campaign drops are too low
+  an item level to craft on, so below area level 68 a base only shows when
+  another rule wants it (links, sockets, progression).
 - 5/6-links, 6-socket and small RGB items keep their campaign rules.
 - Rare rings, belts and amulets, and every jewel, show. Normal and magic rings,
   amulets and other gear hide unless an earlier rule wanted them.
-- Rares the build can wear show, except body armours, boots, gloves and helmets
-  whose base starts dropping far below the area (drop level under 40 from area
-  73, under 50 from 78, under 60 from 80). Compact off-class rares show through
-  yellow maps; other off-class rares hide.
+- The build's rares hide when their base starts dropping far below the area
+  (drop level under 40 from area 73, under 50 from 78, under 60 from 80, as in
+  NeverSink). Its rare armour then shows only on NeverSink's tiered bases: the
+  strict filter's tiers 1 and 2 plus the soft filter's tier 3, so white maps,
+  where the top body armours cannot drop yet, still offer upgrades. Its rare
+  weapons all show, since NeverSink's tiers hardly list weapons. Every other
+  class's rare gear hides.
 - Flask progression continues through white maps. From area level 73 utility
   flasks and 20%-quality flasks show; other life, mana and hybrid flasks hide.
 

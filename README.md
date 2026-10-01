@@ -357,6 +357,8 @@ SECTION {
 
 - `METADATA`: Contains the `NAME` and `DESCRIPTION` of the section, which are used to generate a Table of Contents in the final filter file. 
 - `SECTION_CONDITIONS`: A block where you can define conditions that apply to every rule inside this section. This is great for reducing repetition. 
+  They apply to the rules macros generate too. `@class_use` here narrows a macro's base type list (such as a
+  `handle_csv` category) to the bases the script's `BUILD` uses (`"true"`) or does not use (`"false"`).
 - `RULES`: The block that contains the actual filter rules and macros for this section.
 
 ### Rule Syntax
@@ -368,6 +370,7 @@ The standard rule format is a chain of a condition, a style, and an action.
   - Identifiers: `@area_level`, `@stack_size`, `@item_type`, `@item_class`, `@rarity`, `@sockets`, `@socket_group`, `@height`, `@width`. 
     `@corrupted_mods` counts an item's corruption implicits (the game's `CorruptedMods`); `@item_level` and
     `@drop_level` are the game's `ItemLevel` and `DropLevel`.
+    `@class_use` (`"true"` or `"false"`) matches the weapon classes and armour bases the script's `BUILD` uses.
   - Operators: `==`, `!=`, `>=`, `<=`, `>`, `<`. 
   - Value: A quoted string `"value"`, a number, or a variable reference `$var`. 
 - Style: A reference to a style defined in the stylesheet, either by its full path (`Essences/Tiers/High`) or via a variable (`$my_style`). 

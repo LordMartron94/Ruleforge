@@ -432,3 +432,49 @@ func TestMacroRulesKeepTheirSectionsConditions(t *testing.T) {
 		t.Fatalf("a macro's rule lost its section's condition:\n%s", joined)
 	}
 }
+
+func TestSectionClassUseNarrowsABaseTypeList(t *testing.T) {
+	bases := []string{"Legion Sword", "Imperial Claw", "Astral Plate", "Vaal Regalia", "Two-Stone Ring"}
+	rg := &RuleGenerator{
+		ruleFactory:    &RuleFactory{},
+		validBaseTypes: bases,
+		build:          &Build{Preset: EquipmentPreset{WeaponClasses: []WeaponClass{OneHandedSword}, ArmorTypes: []ArmorType{Armor}}},
+		weaponBases:    []model.ItemBase{{Name: "Legion Sword", Type: "One Handed Sword"}, {Name: "Imperial Claw", Type: "Claw"}},
+		armorBases:     []model.ItemBase{{Name: "Astral Plate", Type: "Body Armour", SubType: "Armour"}, {Name: "Vaal Regalia", Type: "Body Armour", SubType: "Energy Shield"}},
+	}
+	section := []model2.Condition{
+		{Identifier: "@class_use", Operator: "==", Value: []string{"true"}},
+		{Identifier: "@area_level", Operator: ">=", Value: []string{"68"}},
+	}
+	compile := func(conditions ...model2.Condition) string {
+		rule := &model2.ParsedRule{Style: &config.Style{Name: "Base"}, Action: model2.ShowRule, ValidBaseTypes: bases,
+			Conditions: append([]model2.Condition{{Identifier: "@item_type", Operator: "==", Value: bases}}, conditions...)}
+		var compiled []string
+		for _, block := range rg.compileParsedRule(rule, section) {
+			compiled = append(compiled, strings.Join(block, "\n"))
+		}
+		return strings.Join(compiled, "\n---\n")
+	}
+
+	if got := compile(); !strings.Contains(got, `BaseType == "Legion Sword" "Astral Plate"`) || !strings.Contains(got, `AreaLevel >= "68"`) ||
+		strings.Contains(got, "Class") || strings.Contains(got, "---") {
+		t.Fatalf("the section's class use did not narrow the list to one rule of the build's bases:\n%s", got)
+	}
+	if got := compile(model2.Condition{Identifier: "@class_use", Operator: "==", Value: []string{"false"}}); !strings.Contains(got, `BaseType == "Imperial Claw" "Vaal Regalia"`) {
+		t.Fatalf("the rule's own class use did not win over the section's:\n%s", got)
+	}
+	rg.build.Preset.WeaponClasses, rg.build.Preset.ArmorTypes = nil, nil
+	if got := compile(); got != "" {
+		t.Fatalf("a list without any of the build's bases still produced a rule:\n%s", got)
+	}
+}
+
+func TestRapiersAreThrustingSwords(t *testing.T) {
+	build := &Build{Preset: EquipmentPreset{WeaponClasses: []WeaponClass{OneHandedSword}}}
+	if build.IsWeaponAssociated(model.ItemBase{Name: "Jewelled Foil", Type: "One Handed Sword", SubType: "Thrusting"}) {
+		t.Error("a one-hand sword build counts rapiers as its weapons")
+	}
+	if !build.IsWeaponAssociated(model.ItemBase{Name: "Legion Sword", Type: "One Handed Sword"}) {
+		t.Error("a one-hand sword build does not count its swords")
+	}
+}

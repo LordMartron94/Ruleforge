@@ -1278,6 +1278,22 @@ func (rg *RuleGenerator) compileParsedRule(rule *model2.ParsedRule, sectionCondi
 	}
 	finalStandardConditions = append(finalStandardConditions, standardRuleConditions...)
 
+	// A section's @class_use expands like a rule's; the rule's own wins.
+	keptConditions := make([]model2.Condition, 0, len(finalStandardConditions))
+	for _, cond := range finalStandardConditions {
+		if !slices.Contains(macros, cond.Identifier) {
+			keptConditions = append(keptConditions, cond)
+			continue
+		}
+		overridden := slices.ContainsFunc(macroConditions, func(ruleCond model2.Condition) bool {
+			return ruleCond.Identifier == cond.Identifier && ruleCond.Operator == cond.Operator
+		})
+		if !overridden {
+			macroConditions = append(macroConditions, cond)
+		}
+	}
+	finalStandardConditions = keptConditions
+
 	if len(macroConditions) == 0 {
 		sort.Slice(finalStandardConditions, func(i, j int) bool {
 			orderI, okI := conditionOrder[finalStandardConditions[i].Identifier]
@@ -1323,7 +1339,7 @@ func (rg *RuleGenerator) handleClassUseMacro(
 	action model2.RuleType, style *config.Style, baseConditions []model2.Condition,
 	macro model2.Condition, variables *map[string][]string,
 ) [][]string {
-	generateRule := func(newCond model2.Condition) []string {
+	generateRuleFrom := func(baseConditions []model2.Condition, newCond model2.Condition) []string {
 		finalConditions := make([]model2.Condition, 0, len(baseConditions)+1)
 		finalConditions = append(finalConditions, baseConditions...)
 		finalConditions = append(finalConditions, newCond)
@@ -1345,6 +1361,30 @@ func (rg *RuleGenerator) handleClassUseMacro(
 			compiledConditions[i] = cond.ConstructCompiledCondition(variables, rg.validBaseTypes)
 		}
 		return rg.ruleFactory.ConstructRule(action, *style, compiledConditions)
+	}
+	generateRule := func(newCond model2.Condition) []string {
+		return generateRuleFrom(baseConditions, newCond)
+	}
+
+	// A base type list, such as a CSV category's, narrows to the bases the
+	// build uses (or does not use) instead of gaining a second BaseType line.
+	if wanted, valid := map[string]bool{"true": true, "false": false}[macro.Value[0]]; valid && macro.Operator == "==" {
+		for i, cond := range baseConditions {
+			if cond.Identifier != "@item_type" || cond.Operator != "==" {
+				continue
+			}
+			var kept []string
+			for _, baseType := range expandVariables(cond.Value, variables) {
+				if used, known := rg.classUse(baseType); known && used == wanted {
+					kept = append(kept, baseType)
+				}
+			}
+			if len(kept) == 0 {
+				return nil
+			}
+			rest := slices.Concat(baseConditions[:i], baseConditions[i+1:])
+			return [][]string{generateRuleFrom(rest, model2.Condition{Identifier: "@item_type", Operator: "==", Value: kept})}
+		}
 	}
 
 	var weaponClasses []string
@@ -1375,6 +1415,39 @@ func (rg *RuleGenerator) handleClassUseMacro(
 	armorRule := generateRule(armorCond)
 
 	return [][]string{weaponryRule, armorRule}
+}
+
+// classUse says whether the build uses a weapon or armour base type. known is
+// false for base types that are neither, such as rings and amulets.
+func (rg *RuleGenerator) classUse(baseType string) (used bool, known bool) {
+	for _, weapon := range rg.weaponBases {
+		if weapon.GetBaseType() == baseType {
+			return rg.build.IsWeaponAssociated(weapon), true
+		}
+	}
+	for _, armour := range rg.armorBases {
+		if armour.GetBaseType() == baseType {
+			return rg.build.IsArmorAssociated(armour), true
+		}
+	}
+	return false, false
+}
+
+// expandVariables replaces $variable values with the values they hold.
+func expandVariables(values []string, variables *map[string][]string) []string {
+	var expanded []string
+	for _, value := range values {
+		if variables == nil || !strings.HasPrefix(value, "$") {
+			expanded = append(expanded, value)
+			continue
+		}
+		if variableValues, ok := (*variables)[value[1:]]; ok {
+			expanded = append(expanded, variableValues...)
+			continue
+		}
+		expanded = append(expanded, value)
+	}
+	return expanded
 }
 
 // getDropLevel prefers verified drop data. Required level is only an estimate

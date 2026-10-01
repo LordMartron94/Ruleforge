@@ -235,7 +235,8 @@ func (b *Build) AssociatedWeaponClasses() []string {
 // IsWeaponAssociated checks if an ItemBase's weapon type matches the build preset.
 func (b *Build) IsWeaponAssociated(item model.ItemBase) bool {
 	wc, ok := pobTypeToWeaponClass[item.Type]
-	if item.Type == string(OneHandedSword) && item.SubType == "Thrusting" {
+	// Path of Building files rapiers as one-handed swords of subtype "Thrusting".
+	if wc == OneHandedSword && item.SubType == "Thrusting" {
 		wc = ThrustingOneHandedSword
 	}
 	if !ok {

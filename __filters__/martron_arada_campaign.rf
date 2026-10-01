@@ -355,50 +355,125 @@ SECTION {
 
 SECTION {
   METADATA {
-    NAME        => "Crafting Bases in Early Maps"
-    DESCRIPTION => "Every listed crafting base in white and yellow maps"
+    NAME        => "Exotic Crafting Bases"
+    DESCRIPTION => "Crafting bases from special sources in every map"
   }
 
   SECTION_CONDITIONS {
     WHERE @area_level >= 68
-    WHERE @area_level < 78
     WHERE @corrupted == "False"
   }
 
   RULES {
-    !! The "Crafting Bases" CSV category lists bases for every class, since
-    !! they also gear future characters. A base qualifies through its
-    !! implicit (resistance, life and attribute jewellery, +2% maximum
-    !! resistance rings, +1 gem crowns, block gloves, suppression and
-    !! movement speed shields), by being the strongest base of its weapon
-    !! or defence type, or as a vendor recipe input (Rustic Sash, elemental
-    !! rings).
+    !! The crafting base categories list bases for every class, since they
+    !! also gear future characters. A base qualifies through its implicit
+    !! (resistance, life and attribute jewellery, +2% maximum resistance
+    !! rings, +1 gem crowns, block gloves, suppression and movement speed
+    !! shields), by being the strongest base of its weapon or defence type,
+    !! or as a vendor recipe input (Rustic Sash, elemental rings).
     !!
     !! Campaign drops are too low an item level to craft on, so bases only
-    !! stand out from area level 68. Drops here are item level 68 to 77:
-    !! good enough to craft the gear this character and the next one wear
-    !! through the early atlas. The forge field wins over the link and
+    !! stand out from area level 68. The forge field wins over the link and
     !! socket marks; a max-rolled base keeps it but takes the max-roll border.
-    MACRO["handle_csv" -> $category => "Crafting Bases"]
+    !!
+    !! Exotic bases only come from special sources (Heist, Ritual, the
+    !! Expedition vendors, Stygian Vise, Cord Belt, Sacrificial Garb), so
+    !! like NeverSink every one of them shows.
+    MACRO["handle_csv" -> $category => "Exotic Crafting Bases"]
   }
 }
 
 SECTION {
   METADATA {
-    NAME        => "Crafting Bases in Red Maps"
-    DESCRIPTION => "Listed crafting bases of item level 83 and up from area level 78"
+    NAME        => "Build Crafting Bases"
+    DESCRIPTION => "Crafting bases this build wears at any item level in maps"
   }
 
   SECTION_CONDITIONS {
-    WHERE @area_level >= 78
+    WHERE @area_level >= 68
+    WHERE @corrupted == "False"
+    WHERE @class_use == "true"
+  }
+
+  RULES {
+    !! Bases for this character's own weapon and armour types, and belts,
+    !! which every build wears, are worth crafting on from the first map.
+    MACRO["handle_csv" -> $category => "Crafting Bases 83"]
+    MACRO["handle_csv" -> $category => "Crafting Bases 84"]
+    MACRO["handle_csv" -> $category => "Crafting Bases 85"]
+    MACRO["handle_csv" -> $category => "Crafting Bases 86"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases at Item Level 83"
+    DESCRIPTION => "Crafting bases for every class from item level 83"
+  }
+
+  SECTION_CONDITIONS {
     WHERE @item_level >= 83
     WHERE @corrupted == "False"
   }
 
   RULES {
-    !! In red maps a base earns its pickup by its item level: 83 opens the
-    !! top weapon tiers, 84 and 86 the top life and resistance tiers.
-    MACRO["handle_csv" -> $category => "Crafting Bases"]
+    !! Other classes' bases only show at the item level where NeverSink's
+    !! strict filter starts showing them, per slot.
+    !!
+    !! Claws, daggers and other melee weapons: 83 opens their top damage tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases 83"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases at Item Level 84"
+    DESCRIPTION => "Crafting bases for every class from item level 84"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_level >= 84
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! Rings, rune daggers, sceptres, staves and wands: 84 opens their top tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases 84"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases at Item Level 85"
+    DESCRIPTION => "Crafting bases for every class from item level 85"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_level >= 85
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! Amulets, gloves and helmets: 85 opens their top life and defence tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases 85"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases at Item Level 86"
+    DESCRIPTION => "Crafting bases for every class from item level 86"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_level >= 86
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! Body armours, boots, belts, bows, quivers and shields: 86 opens their top
+    !! life and defence tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases 86"]
   }
 }
 
@@ -695,7 +770,7 @@ SECTION {
 SECTION {
   METADATA {
     NAME        => "Mapping Gear"
-    DESCRIPTION => "Rares worth reading from area level 68"
+    DESCRIPTION => "Hides outdated gear from area level 68"
   }
 
   SECTION_CONDITIONS {
@@ -710,31 +785,59 @@ SECTION {
     WHERE @rarity == "Magic" -> @class_use == "true" => $old_equipment_magic => $Hide
     WHERE @rarity == "Magic" -> @class_use == "false" => $old_equipment_magic => $Hide
 
-    !! Armour on a base that starts dropping far below the area is outclassed
+    !! A rare on a base that starts dropping far below the area is outclassed
     !! by the bases dropping now, whatever its mods (NeverSink's thresholds:
     !! drop level under 40 from area 73, under 50 from 78, under 60 from 80).
-    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @item_class == "Body Armours" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @item_class == "Boots" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @item_class == "Gloves" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @item_class == "Helmets" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @item_class == "Body Armours" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @item_class == "Boots" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @item_class == "Gloves" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @item_class == "Helmets" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @item_class == "Body Armours" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @item_class == "Boots" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @item_class == "Gloves" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @item_class == "Helmets" => $old_equipment_rare => $Hide
+    !! Other classes' rares hide below anyway.
+    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+  }
+}
 
-    !! Rares the build can wear are worth reading in every map.
-    WHERE @rarity == "Rare" -> @class_use == "true" => $equipment_rare => $Show
+SECTION {
+  METADATA {
+    NAME        => "Build Armour in Maps"
+    DESCRIPTION => "Rare armour this build wears on NeverSink's tiered bases"
+  }
 
-    !! Compact off-class rares still sell for useful shards through yellow
-    !! maps; the rest of the off-class rares only cost inventory space.
-    WHERE @area_level < 78 -> @rarity == "Rare" -> @height <= 2 -> @width <= 2 => $equipment_rare => $Show
-    WHERE @area_level < 78 -> @rarity == "Rare" -> @height <= 3 -> @width == 1 => $equipment_rare => $Show
-    WHERE @area_level < 78 -> @rarity == "Rare" -> @height == 1 -> @width <= 3 => $equipment_rare => $Show
-    WHERE @rarity == "Rare" -> @class_use == "false" => $old_equipment_rare => $Hide
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @class_use == "true"
+  }
+
+  RULES {
+    !! NeverSink's strict filter shows rares on its tier 1 and 2 bases only.
+    !! For this character's own armour types the list goes one tier deeper
+    !! (its soft filter's tier 3), so white maps, where the tier 1 and 2 body
+    !! armours cannot drop yet, still offer upgrades.
+    MACRO["handle_csv" -> $category => "Endgame Rare Bases"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Mapping Gear Cutoff"
+    DESCRIPTION => "Shows this build's rare weapons and hides every other rare"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @rarity == "Rare"
+  }
+
+  RULES {
+    !! Armour off the tiered bases hides. Rare weapons of this build's
+    !! classes stay visible, since a weapon's damage rolls on any recent
+    !! base (NeverSink's tiers list almost no weapons); other classes'
+    !! rares hide.
+    WHERE @item_class == "Body Armours" => $old_equipment_rare => $Hide
+    WHERE @item_class == "Boots" => $old_equipment_rare => $Hide
+    WHERE @item_class == "Gloves" => $old_equipment_rare => $Hide
+    WHERE @item_class == "Helmets" => $old_equipment_rare => $Hide
+    WHERE @item_class == "Shields" => $old_equipment_rare => $Hide
+    WHERE @class_use == "true" => $equipment_rare => $Show
+    WHERE @class_use == "false" => $old_equipment_rare => $Hide
   }
 }
 

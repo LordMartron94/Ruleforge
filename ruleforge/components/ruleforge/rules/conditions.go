@@ -23,7 +23,7 @@ var ConditionSpecs = []ConditionSpec{
 	{ID: "@item_type", Label: "Base type", Kind: "baseType", Quoted: true, Help: "The item's base type, such as Chaos Orb or Light Brigandine."},
 	{ID: "@item_class", Label: "Item class", Kind: "itemClass", Quoted: true, Help: "The item's class, such as Body Armours or Stackable Currency."},
 	{ID: "@stack_size", Label: "Stack size", Kind: "number", Help: "How many items are in the stack."},
-	{ID: "@class_use", Label: "Build uses it", Kind: "choice", Choices: []string{"true", "false"}, Quoted: true, Help: "Whether the script's BUILD uses this weapon class or armour base. Expands into the matching classes and base types."},
+	{ID: "@class_use", Label: "Build uses it", Kind: "choice", Choices: []string{"true", "false"}, Quoted: true, Help: "Whether the script's BUILD uses this weapon class or armour base. Expands into the matching classes and base types; as a section condition it narrows a macro's base type list."},
 	{ID: "@socket_group", Label: "Linked sockets", Kind: "sockets", Quoted: true, Help: "A linked group, such as 5 (five links), RGB or 4RGB."},
 	{ID: "@sockets", Label: "Sockets", Kind: "sockets", Quoted: true, Help: "All sockets, linked or not, such as 6 or 5RGB."},
 	{ID: "@height", Label: "Height", Kind: "number", Help: "Inventory height in cells."},
