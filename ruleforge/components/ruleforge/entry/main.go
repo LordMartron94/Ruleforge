@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
@@ -32,6 +33,7 @@ type App struct {
 	verbose         bool
 	updateCacheOnly bool
 	refreshPoB      bool
+	refreshEconomy  bool
 	studioServe     bool
 	studioAddr      string
 	studioOpen      bool
@@ -49,6 +51,9 @@ type App struct {
 	gems        []model.Gem
 	uniques     []model.Unique
 	economyData map[string][]data_generation.EconomySnapshot
+	// currency is reloaded on every compile, so an edited profile table
+	// shows in the next Studio compile.
+	currency compilation.CurrencySettings
 
 	// Compiled filters, kept for the studio.
 	studioFilters []studio.Filter
@@ -64,6 +69,7 @@ func main() {
 	flag.BoolVar(&app.verbose, "verbose", false, "Enable verbose output for debugging.")
 	flag.BoolVar(&app.updateCacheOnly, "update-cache-only", false, "Fetch/update data and save to cache without running compilation.")
 	flag.BoolVar(&app.refreshPoB, "refresh-pob", false, "Check the official Path of Building revision now and download it if changed (error if offline).")
+	flag.BoolVar(&app.refreshEconomy, "refresh-economy", false, "Record fresh poe.ninja prices now, even if the last snapshot is younger than EconomyHistoryRefreshHours.")
 	flag.BoolVar(&app.studioServe, "studio", false, "After compiling, serve the Ruleforge Studio with its theme, stylesheet and script editors until stopped.")
 	flag.StringVar(&app.studioAddr, "studio-addr", "127.0.0.1:7878", "Address the Studio server listens on. Keep it on localhost: the Studio writes your files.")
 	flag.BoolVar(&app.studioOpen, "open", false, "Open the Studio server in the default browser.")
@@ -207,7 +213,7 @@ func (a *App) fetchData() error {
 		return fmt.Errorf("extractUniqueBases: %w", err)
 	}
 	a.log.Println("Item data loaded; fetching economy data (may require network access)...")
-	err = a.fetchEconomyData(false)
+	err = a.fetchEconomyData(a.refreshEconomy)
 	if err != nil {
 		return fmt.Errorf("fetchEconomyData: %w", err)
 	}
@@ -250,9 +256,9 @@ func (a *App) prepareBaseTypes() {
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.itemBases)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.essences)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(a.gems)...)
-	// Divination cards and tattoos aren't tracked by Path of Building, so their
-	// names come from whatever poe.ninja has actually priced instead of a
-	// bundled list.
+	// Divination cards, tattoos and currency aren't tracked by Path of
+	// Building, so their names come from whatever poe.ninja has actually
+	// priced instead of a bundled list.
 	baseTypes = append(baseTypes, pricedOnlyBaseTypes(a.economyData)...)
 	a.baseTypes = baseTypes
 	a.log.Printf("Total number of base types prepared for compiler: %d", len(a.baseTypes))
@@ -260,10 +266,10 @@ func (a *App) prepareBaseTypes() {
 
 // pricedOnlyClasses are the economy classes whose base types Path of Building
 // doesn't know.
-var pricedOnlyClasses = map[string]bool{"Divination Cards": true, "Tattoos": true}
+var pricedOnlyClasses = map[string]bool{"Divination Cards": true, "Tattoos": true, "Currency": true}
 
-// pricedOnlyBaseTypes collects every divination card and tattoo name seen
-// across all recorded economy history, deduplicated.
+// pricedOnlyBaseTypes collects every divination card, tattoo and currency name
+// seen across all recorded economy history, deduplicated.
 func pricedOnlyBaseTypes(economyData map[string][]data_generation.EconomySnapshot) []string {
 	seen := make(map[string]bool)
 	for _, snapshots := range economyData {
@@ -326,6 +332,9 @@ func (a *App) compile(options compileOptions) ([]studio.Filter, error) {
 	styles := options.styles
 	if styles == nil {
 		styles = a.styles
+	}
+	if err := a.loadCurrencyProfiles(styles); err != nil {
+		return nil, err
 	}
 	var filters []studio.Filter
 	for _, path := range paths {
@@ -454,6 +463,66 @@ func (a *App) validateTree(tree *shared.ParseTree[symbols.LexingTokenType]) erro
 	return nil
 }
 
+// loadCurrencyProfiles reads the currency_tiering profiles and reports what
+// they miss: priced currency that neither they nor any style's base type
+// categories list, and profiled currency without a price yet. A missing
+// profile file only matters to a script that uses currency_tiering.
+func (a *App) loadCurrencyProfiles(styles []config.StyleDefinition) error {
+	settings := a.config.CurrencyTiering
+	a.currency = compilation.CurrencySettings{CraftingWeight: settings.CraftingWeight, Source: settings.Profiles}
+	if _, err := os.Stat(settings.Profiles); errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	profiles, err := config.LoadCurrencyProfiles(settings.Profiles)
+	if err != nil {
+		return err
+	}
+	a.currency.Profiles = profiles
+
+	listed := make(map[string]bool)
+	for _, profile := range profiles {
+		listed[profile.BaseType] = true
+	}
+	for _, style := range styles {
+		entries, err := a.loadBaseTypeData(style.BaseTypes)
+		if err != nil {
+			return fmt.Errorf("style %q: %w", style.Name, err)
+		}
+		for _, entry := range *entries {
+			listed[entry.BaseType] = true
+		}
+	}
+	priced := make(map[string]bool)
+	for _, snapshots := range a.economyData {
+		for _, snapshot := range snapshots {
+			for _, item := range snapshot.Items {
+				if item.Class == "Currency" {
+					priced[item.BaseType] = true
+				}
+			}
+		}
+	}
+	var unlisted, unpriced []string
+	for baseType := range priced {
+		if !listed[baseType] {
+			unlisted = append(unlisted, baseType)
+		}
+	}
+	for _, profile := range profiles {
+		if !priced[profile.BaseType] {
+			unpriced = append(unpriced, profile.BaseType)
+		}
+	}
+	sort.Strings(unlisted)
+	if len(unlisted) > 0 {
+		a.log.Printf("WARNING: poe.ninja prices currency that no currency profile or base type category lists, so it drops with the fallback look: %s", strings.Join(unlisted, ", "))
+	}
+	if len(unpriced) > 0 && len(priced) > 0 {
+		a.log.Printf("Currency profiles without a price yet, tiered on their crafting rating alone: %s", strings.Join(unpriced, ", "))
+	}
+	return nil
+}
+
 func (a *App) loadBaseTypeData(path string) (*[]config.BaseTypeAutomationEntry, error) {
 	loader := config.NewBaseTypeAutomationLoader(path)
 	data, err := loader.Load()
@@ -484,6 +553,7 @@ func (a *App) compileTree(
 		a.config.EconomyValueHalfLifeDays,
 		baseTypeData,
 		a.config.CustomEquipmentPresets,
+		a.currency,
 	)
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("compiler initialization failed: %w", err)

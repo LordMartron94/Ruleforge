@@ -59,6 +59,20 @@ type TieringParameters struct {
 	// uses the newest snapshot's time, so the same economy data always yields
 	// the same tiers no matter when the filter is compiled.
 	Now time.Time
+	// ValueOffset is added to a chaos value before taking its logarithm. The
+	// default of 1 keeps cheap items from dominating the spread; currency,
+	// where fractions of a chaos still tell items apart, uses a small offset.
+	// Zero means the default.
+	ValueOffset float64
+}
+
+// valueLog is the logarithmic value scale every value z-score is taken on.
+func (p TieringParameters) valueLog(chaos float64) float64 {
+	offset := p.ValueOffset
+	if offset <= 0 {
+		offset = 1
+	}
+	return math.Log(chaos + offset)
 }
 
 func (p TieringParameters) now() time.Time {
@@ -82,6 +96,7 @@ type itemDataForGlobalNorm struct {
 	league      string
 	logChaos    float64
 	logListings float64
+	chaos       float64
 }
 
 // normalizedItem holds the Z-scores for an aggregated item.
@@ -89,6 +104,22 @@ type normalizedItem struct {
 	baseType     string
 	chaosZScore  float64
 	rarityZScore float64
+	// chaos is the aggregated value the chaos z-score was taken from.
+	chaos float64
+}
+
+// valueStats are the mean and standard deviation of a league's log values,
+// so any chaos value (such as a whole stack's) can be put on its z-scale.
+type valueStats struct {
+	mean, stdDev float64
+}
+
+// zScore puts a log value on the scale; a scale without spread is flat.
+func (v valueStats) zScore(logValue float64) float64 {
+	if v.stdDev == 0 {
+		return 0
+	}
+	return (logValue - v.mean) / v.stdDev
 }
 
 // finalScoredItem holds the final unified score for a base type across all leagues.
@@ -130,7 +161,7 @@ func GenerateTiers(
 	}
 
 	// --- Normalization Step ---
-	allNormalizedData, err := normalizeData(aggregatedData, params.NormStrategy)
+	allNormalizedData, _, err := normalizeData(aggregatedData, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed during normalization: %w", err)
 	}
@@ -166,19 +197,20 @@ func GenerateTiers(
 
 // --- Pipeline Helper Functions ---
 
-func normalizeData(aggregatedData map[string]map[string]aggregatedItem, strategy NormalizationStrategy) (map[string]map[string]normalizedItem, error) {
-	switch strategy {
+func normalizeData(aggregatedData map[string]map[string]aggregatedItem, params TieringParameters) (map[string]map[string]normalizedItem, map[string]valueStats, error) {
+	switch params.NormStrategy {
 	case Global:
-		return normalizeGlobally(aggregatedData)
+		return normalizeGlobally(aggregatedData, params)
 	case PerLeague:
-		return normalizePerLeague(aggregatedData)
+		return normalizePerLeague(aggregatedData, params)
 	default:
-		return nil, fmt.Errorf("unknown normalization strategy: %s", strategy)
+		return nil, nil, fmt.Errorf("unknown normalization strategy: %s", params.NormStrategy)
 	}
 }
 
-func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem) (map[string]map[string]normalizedItem, error) {
+func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem, params TieringParameters) (map[string]map[string]normalizedItem, map[string]valueStats, error) {
 	allNormData := make(map[string]map[string]normalizedItem)
+	allStats := make(map[string]valueStats)
 	for _, league := range sortedKeys(aggregatedData) {
 		aggMap := aggregatedData[league]
 		if len(aggMap) < 2 {
@@ -191,34 +223,34 @@ func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem) (ma
 		var baseTypes []string
 		for _, bt := range sortedKeys(aggMap) {
 			data := aggMap[bt]
-			values = append(values, math.Log(data.percentileChaos+1))
+			values = append(values, params.valueLog(data.percentileChaos))
 			listings = append(listings, math.Log(data.avgListingCount+1))
 			baseTypes = append(baseTypes, bt)
 		}
 
-		valueZScores, err := calculateZScores(values)
-		if err != nil {
-			return nil, fmt.Errorf("z-score failed for %s values: %w", league, err)
-		}
+		stats := valueStats{}
+		stats.mean, stats.stdDev = calculateMeanStdDev(values)
 		listingZScores, err := calculateZScores(listings)
 		if err != nil {
-			return nil, fmt.Errorf("z-score failed for %s listings: %w", league, err)
+			return nil, nil, fmt.Errorf("z-score failed for %s listings: %w", league, err)
 		}
 
 		normMap := make(map[string]normalizedItem)
 		for i, bt := range baseTypes {
 			normMap[bt] = normalizedItem{
 				baseType:     bt,
-				chaosZScore:  valueZScores[i],
+				chaosZScore:  stats.zScore(values[i]),
 				rarityZScore: -listingZScores[i],
+				chaos:        aggMap[bt].percentileChaos,
 			}
 		}
 		allNormData[league] = normMap
+		allStats[league] = stats
 	}
-	return allNormData, nil
+	return allNormData, allStats, nil
 }
 
-func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem) (map[string]map[string]normalizedItem, error) {
+func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem, params TieringParameters) (map[string]map[string]normalizedItem, map[string]valueStats, error) {
 	var allValueLogs, allListingLogs []float64
 	var itemMetadata []itemDataForGlobalNorm
 
@@ -227,7 +259,7 @@ func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem) (map
 		aggMap := aggregatedData[league]
 		for _, bt := range sortedKeys(aggMap) {
 			data := aggMap[bt]
-			logChaos := math.Log(data.percentileChaos + 1)
+			logChaos := params.valueLog(data.percentileChaos)
 			logListings := math.Log(data.avgListingCount + 1)
 			allValueLogs = append(allValueLogs, logChaos)
 			allListingLogs = append(allListingLogs, logListings)
@@ -236,39 +268,43 @@ func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem) (map
 				league:      league,
 				logChaos:    logChaos,
 				logListings: logListings,
+				chaos:       data.percentileChaos,
 			})
 		}
 	}
 
 	if len(allValueLogs) < 2 {
-		return nil, fmt.Errorf("not enough data points globally to normalize")
+		return nil, nil, fmt.Errorf("not enough data points globally to normalize")
 	}
 
 	// Calculate global mean and std dev
-	valueMean, valueStdDev := calculateMeanStdDev(allValueLogs)
+	stats := valueStats{}
+	stats.mean, stats.stdDev = calculateMeanStdDev(allValueLogs)
 	listingMean, listingStdDev := calculateMeanStdDev(allListingLogs)
 
-	if valueStdDev == 0 || listingStdDev == 0 {
-		return nil, fmt.Errorf("global standard deviation is zero, cannot normalize")
+	if stats.stdDev == 0 || listingStdDev == 0 {
+		return nil, nil, fmt.Errorf("global standard deviation is zero, cannot normalize")
 	}
 
 	// Calculate Z-scores and structure the output map
 	allNormData := make(map[string]map[string]normalizedItem)
+	allStats := make(map[string]valueStats)
 	for _, item := range itemMetadata {
 		if _, ok := allNormData[item.league]; !ok {
 			allNormData[item.league] = make(map[string]normalizedItem)
+			allStats[item.league] = stats
 		}
-		chaosZ := (item.logChaos - valueMean) / valueStdDev
 		listingZ := (item.logListings - listingMean) / listingStdDev
 
 		allNormData[item.league][item.baseType] = normalizedItem{
 			baseType:     item.baseType,
-			chaosZScore:  chaosZ,
+			chaosZScore:  stats.zScore(item.logChaos),
 			rarityZScore: -listingZ,
+			chaos:        item.chaos,
 		}
 	}
 
-	return allNormData, nil
+	return allNormData, allStats, nil
 }
 
 func calculateUnifiedScores(
@@ -324,6 +360,14 @@ func calculateUnifiedScores(
 // spaced quantiles instead of random centres, so the same economy data always
 // produces the same tiers.
 func assignTiers(scoredItems []finalScoredItem, numTiers int) (map[string]int, error) {
+	tiers, _ := assignTiersWithCentres(scoredItems, numTiers)
+	return tiers, nil
+}
+
+// assignTiersWithCentres is assignTiers that also returns each tier's centre,
+// best tier first, so a score outside the clustered set (such as a stack's)
+// can be placed in the tier whose centre is nearest.
+func assignTiersWithCentres(scoredItems []finalScoredItem, numTiers int) (map[string]int, []float64) {
 	if len(scoredItems) < numTiers {
 		log.Printf("WARN: Number of items (%d) is less than number of tiers (%d). Reducing tiers.", len(scoredItems), numTiers)
 		numTiers = len(scoredItems)
@@ -389,7 +433,11 @@ func assignTiers(scoredItems []finalScoredItem, numTiers int) (map[string]int, e
 	for i, item := range items {
 		finalTiers[item.baseType] = tierOfCluster[assignment[i]]
 	}
-	return finalTiers, nil
+	centres := make([]float64, numTiers)
+	for rank, cluster := range order {
+		centres[rank] = centers[cluster]
+	}
+	return finalTiers, centres
 }
 
 // newestSnapshotTime is the latest FetchedAt across every league, or zero when there is none.

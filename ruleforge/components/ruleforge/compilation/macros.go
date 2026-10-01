@@ -58,6 +58,9 @@ var MacroSpecs = []MacroSpec{
 		MacroParam{Key: "$vaal", Value: "style", Summary: "Optional border for Vaal gems; wins over quality."})},
 	{Name: "divination_card_tiering", Summary: "Tiers divination cards by their poe.ninja price.", Tiers: true, Params: tieringParams},
 	{Name: "tattoo_tiering", Summary: "Tiers Trial of the Ancestors tattoos by their poe.ninja price.", Tiers: true, Params: tieringParams},
+	{Name: "currency_tiering", Summary: "Tiers the configured currency profiles by poe.ninja value, rarity and trend blended with their crafting rating. Stacks worth more rank higher.", Tiers: true, Params: []MacroParam{
+		{Key: "$hidden", Value: "style", Summary: "Optional bottom tier that hides, in this style; stacks worth more still show."},
+	}},
 	{Name: "handle_csv", Summary: "Shows or hides every base type of one category of the style's base type automation CSV, in the CSV's styles.", Params: []MacroParam{
 		{Key: "$category", Value: "category", Required: true, Summary: "The CSV category."},
 	}},
@@ -96,6 +99,9 @@ var macroHandlers = map[string]macroHandler{
 	},
 	"tattoo_tiering": func(rg *RuleGenerator, variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], _ []model2.Condition) ([][]string, error) {
 		return rg.handleTattooTiering(variables, parameters)
+	},
+	"currency_tiering": func(rg *RuleGenerator, variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], _ []model2.Condition) ([][]string, error) {
+		return rg.handleCurrencyTiering(variables, parameters)
 	},
 	"handle_csv": func(rg *RuleGenerator, variables *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], sectionConditions []model2.Condition) ([][]string, error) {
 		return rg.handleCSVMacro(variables, parameters, sectionConditions)

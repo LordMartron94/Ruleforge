@@ -31,6 +31,7 @@ type RuleGenerator struct {
 	valueHalfLifeDays     float64
 	baseTypeData          []config.BaseTypeAutomationEntry
 	build                 *Build
+	currency              CurrencySettings
 
 	// sectionConditions are the conditions of the section being compiled.
 	// Every rule in the section needs them, including the rules macros build.
@@ -53,6 +54,7 @@ func NewRuleGenerator(
 	valueHalfLifeDays float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
 	build *Build,
+	currency CurrencySettings,
 ) *RuleGenerator {
 	sort.Slice(armors, func(i, j int) bool {
 		itemA := armors[i]
@@ -102,6 +104,7 @@ func NewRuleGenerator(
 		valueHalfLifeDays:     valueHalfLifeDays,
 		baseTypeData:          baseTypeData,
 		build:                 build,
+		currency:              currency,
 	}
 }
 
@@ -842,29 +845,13 @@ func (rg *RuleGenerator) generateTieredRules(
 		itemsToCheck[league] = filteredSnapshots
 	}
 
-	var normStrategy data_generation.NormalizationStrategy
-
-	switch rg.normalizationStrategy {
-	case "Global":
-		normStrategy = data_generation.Global
-	case "Per-League":
-		normStrategy = data_generation.PerLeague
-	default:
-		return generatedRules, fmt.Errorf("unsupported normalization strategy")
+	economyParameters, err := rg.economyParameters()
+	if err != nil {
+		return generatedRules, err
 	}
 
 	// 4. Generate tiers using economy data (Common Logic)
-	tiered, err := data_generation.GenerateTiers(itemsToCheck, len(tierStyles), data_generation.TieringParameters{
-		ValueWeight:              rg.economyWeights.Value,
-		RarityWeight:             rg.economyWeights.Rarity,
-		TrendWeight:              rg.economyWeights.Trend,
-		LeagueWeights:            rg.leagueWeights,
-		NormStrategy:             normStrategy,
-		ChaosOutlierPercentile:   0.95,
-		MinListingsForPercentile: 20,
-		ChasePotentialWeight:     rg.chasePotentialWeight,
-		ValueHalfLifeDays:        rg.valueHalfLifeDays,
-	})
+	tiered, err := data_generation.GenerateTiers(itemsToCheck, len(tierStyles), economyParameters)
 	if err != nil {
 		// A newly configured kind has no recorded prices until the next
 		// economy refresh; the fallback can carry it until then.
@@ -931,6 +918,30 @@ func (rg *RuleGenerator) generateTieredRules(
 	}
 
 	return generatedRules, nil
+}
+
+// economyParameters are the economy settings every tiering macro scores with.
+func (rg *RuleGenerator) economyParameters() (data_generation.TieringParameters, error) {
+	var normStrategy data_generation.NormalizationStrategy
+	switch rg.normalizationStrategy {
+	case "Global":
+		normStrategy = data_generation.Global
+	case "Per-League":
+		normStrategy = data_generation.PerLeague
+	default:
+		return data_generation.TieringParameters{}, fmt.Errorf("unsupported normalization strategy")
+	}
+	return data_generation.TieringParameters{
+		ValueWeight:              rg.economyWeights.Value,
+		RarityWeight:             rg.economyWeights.Rarity,
+		TrendWeight:              rg.economyWeights.Trend,
+		LeagueWeights:            rg.leagueWeights,
+		NormStrategy:             normStrategy,
+		ChaosOutlierPercentile:   0.95,
+		MinListingsForPercentile: 20,
+		ChasePotentialWeight:     rg.chasePotentialWeight,
+		ValueHalfLifeDays:        rg.valueHalfLifeDays,
+	}, nil
 }
 
 func hasEconomyItems(snapshotsByLeague map[string][]data_generation.EconomySnapshot) bool {

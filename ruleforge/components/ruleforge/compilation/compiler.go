@@ -30,6 +30,7 @@ type Compiler struct {
 	valueHalfLifeDays     float64
 	baseTypeData          []config.BaseTypeAutomationEntry
 	customPresets         map[string]config.EquipmentPreset
+	currency              CurrencySettings
 }
 
 // NewCompiler constructs a Compiler and captures all dependencies except the Build.
@@ -46,6 +47,7 @@ func NewCompiler(
 	valueHalfLifeDays float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
 	customPresets map[string]config.EquipmentPreset,
+	currency CurrencySettings,
 ) (*Compiler, error) {
 	styleMgr, err := NewStyleManager(configuration.StylesheetPath, parseTree, configuration.Palette)
 	if err != nil {
@@ -71,6 +73,7 @@ func NewCompiler(
 		valueHalfLifeDays:     valueHalfLifeDays,
 		baseTypeData:          baseTypeData,
 		customPresets:         customPresets,
+		currency:              currency,
 	}, nil
 }
 
@@ -127,6 +130,7 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 		c.valueHalfLifeDays,
 		c.baseTypeData,
 		buildInstance,
+		c.currency,
 	)
 
 	// 5. Generate rules for each section and track final line numbers

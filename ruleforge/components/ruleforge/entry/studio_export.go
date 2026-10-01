@@ -45,5 +45,9 @@ func (a *App) studioData() (studio.Data, error) {
 		automation = append(automation, *entries)
 	}
 	data.Items = studio.NewItemPool(a.itemBases, a.gems, a.uniques, a.economyData, automation)
+	// Profiled currencies no longer have rows in the automation CSV.
+	for _, profile := range a.currency.Profiles {
+		data.Items.Stackables = append(data.Items.Stackables, studio.Stackable{Category: "Orbs", BaseType: profile.BaseType, MinStack: 1})
+	}
 	return data, nil
 }

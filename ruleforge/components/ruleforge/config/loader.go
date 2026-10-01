@@ -21,7 +21,7 @@ func NewConfigurationLoader() *ConfigurationLoader {
 // Keys the model does not know are rejected, so a typo (or a setting from the old
 // JSON configuration) fails loudly instead of being silently ignored.
 func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationModel, error) {
-	var cfg ConfigurationModel
+	cfg := ConfigurationModel{CurrencyTiering: &CurrencyTiering{CraftingWeight: 0.4}}
 	metadata, err := toml.DecodeFile(file, &cfg)
 	if err != nil {
 		return nil, err
@@ -55,6 +55,10 @@ func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationMode
 	for i, directory := range cfg.FilterOutputDirs {
 		cfg.FilterOutputDirs[i] = resolve(directory)
 	}
+	if cfg.CurrencyTiering.Profiles == "" {
+		cfg.CurrencyTiering.Profiles = "configuration/currency/currency_profiles.csv"
+	}
+	cfg.CurrencyTiering.Profiles = resolve(cfg.CurrencyTiering.Profiles)
 	fmt.Println(cfg.String())
 
 	return &cfg, nil

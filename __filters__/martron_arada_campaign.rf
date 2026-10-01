@@ -141,9 +141,6 @@ SECTION {
 
     MACRO["handle_csv" -> $category => "Essences"]
     MACRO["handle_csv" -> $category => "Oils"]
-    !! Delirium Orbs and Ritual Omens are currency and wear its tiers.
-    MACRO["handle_csv" -> $category => "Delirium Orbs"]
-    MACRO["handle_csv" -> $category => "Omens"]
     MACRO["handle_csv" -> $category => "Catalysts"]
     MACRO["handle_csv" -> $category => "Breach"]
     MACRO["handle_csv" -> $category => "Delve"]
@@ -238,16 +235,29 @@ SECTION {
   }
 
   RULES {
-    MACRO["handle_csv" -> $category => "Orbs"]
+    !! Currency tiers itself: its poe.ninja value, rarity and trend, weighed
+    !! like every other economy tier, blended with how useful it is for
+    !! self-found hardcore crafting (configuration/currency/currency_profiles.csv).
+    !! A stack is scored as one item worth the whole stack, so stacks rank
+    !! higher by themselves. In the campaign every single orb shows.
+    MACRO["currency_tiering"
+      -> $tier_1 => "Final/Orbs/T1"
+      -> $tier_2 => "Final/Orbs/T2"
+      -> $tier_3 => "Final/Orbs/T3"
+      -> $tier_4 => "Final/Orbs/T4"
+      -> $tier_5 => "Final/Orbs/T5"
+      -> $tier_6 => "Final/Orbs/T6"
+      -> $tier_7 => "Final/Orbs/T7"
+      -> $tier_8 => "Final/Orbs/T8"
+    ]
     MACRO["handle_csv" -> $category => "Supplies"]
 
     !! Supplemental coverage for mapping supplies encountered before maps,
     !! including reward/manual drops. Earlier campaign tiers win overlaps.
     !! Scouting Reports are legacy (removed in 3.28); their presence in the
     !! Studio is synthetic and does not establish a current drop source.
-    !! Orb of Unmaking has natural drop level 70. These rules style items
-    !! on the ground; they intentionally do not impose acquisition rules.
-    MACRO["handle_csv" -> $category => "Orbs-Mapping"]
+    !! These rules style items on the ground; they intentionally do not
+    !! impose acquisition rules.
     MACRO["handle_csv" -> $category => "Supplies-Mapping"]
   }
 }
@@ -263,17 +273,22 @@ SECTION {
   }
 
   RULES {
-    !! Basic orbs and scrolls drop too often to pick up one by one: Orbs of
-    !! Transmutation, Augmentation and Alteration, Chromatic and Jeweller's
-    !! Orbs show from a stack of 3, Portal and Wisdom Scrolls from 5, and
-    !! bigger stacks rank higher. Smaller stacks stay hidden, without a
-    !! minimap icon or sound. Everything rarer, from Orbs of Alchemy up,
-    !! always shows.
-    !!
-    !! Endgame currency (influenced, Eldritch and Tainted orbs, Maven's
-    !! Chisels and the like) takes the higher of its NeverSink tier and its
-    !! price tier. Ancient Orbs fuel Allflame crafting since 3.29.1.
-    MACRO["handle_csv" -> $category => "Orbs-Mapping"]
+    !! The same currency tiering as the campaign, with one more tier below
+    !! the eight that hides: the currency that drops too often to pick up
+    !! one at a time. Its stacks still show once they are worth a tier, and
+    !! hidden singles get no minimap icon or sound. Portal and Wisdom Scrolls
+    !! show from a stack of 5.
+    MACRO["currency_tiering"
+      -> $tier_1 => "Final/Orbs/T1"
+      -> $tier_2 => "Final/Orbs/T2"
+      -> $tier_3 => "Final/Orbs/T3"
+      -> $tier_4 => "Final/Orbs/T4"
+      -> $tier_5 => "Final/Orbs/T5"
+      -> $tier_6 => "Final/Orbs/T6"
+      -> $tier_7 => "Final/Orbs/T7"
+      -> $tier_8 => "Final/Orbs/T8"
+      -> $hidden => "Final/Orbs/Hidden"
+    ]
     MACRO["handle_csv" -> $category => "Supplies-Mapping"]
   }
 }

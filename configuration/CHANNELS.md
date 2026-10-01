@@ -103,11 +103,10 @@ a corruption implicit are judged like any other rare.
 
 ## Campaign scope
 
-The campaign's currency rules run first, then the supplemental mapping currency
-categories, all below area level 68. Overlapping entries retain the campaign
-priority. Maps have their own campaign-only rules before ordinary equipment
-rules. Those rules are permissive about map tier so reward or manually dropped
-maps also remain visible.
+Below area level 68 the same currency tiering shows every profiled currency in
+eight tiers, then the supply categories. Maps have their own campaign-only
+rules before ordinary equipment rules. Those rules are permissive about map
+tier so reward or manually dropped maps also remain visible.
 
 ## Mapping scope
 
@@ -116,13 +115,14 @@ section hands over to a mapping section at the same place in the script, so the
 order of priorities is the same. The policy follows NeverSink's mapping rules,
 adjusted for solo self-found:
 
-- Currency comes from the mapping CSV categories. Basic orbs (Transmutation,
-  Augmentation, Alteration, Chromatic, Jeweller's) show from a stack of 3, and
-  Portal and Wisdom Scrolls from 5, as in NeverSink's strict filter; bigger
-  stacks rank higher. Smaller stacks hide without a minimap icon, beam or
-  sound. Rarer currency, from Orbs of Alchemy up, shows at any stack size.
-  Endgame currency, Delirium Orbs and Omens take the higher of their
-  NeverSink tier and a price tier (T1 from 400 chaos, T2 from 15, T3 from 3).
+- Currency tiers itself (`currency_tiering`): poe.ninja value, rarity and
+  trend, blended with each currency's self-found hardcore crafting rating in
+  `configuration/currency/currency_profiles.csv`. Maps add a ninth tier below
+  the eight shown that hides, without a minimap icon, beam or sound: the
+  lowest-scoring currency. Which currencies hide changes with the economy and
+  crafting ratings. A stack is scored as one item worth the whole stack, so
+  it shows, and ranks higher, once it is worth it.
+  Portal and Wisdom Scrolls still show from a stack of 5 (CSV).
 - Every map tier stays visible and ranks by tier and rarity.
 - Crafting bases follow NeverSink's strict crafting matrix, with the build's
   own bases exempt. Exotic bases (Heist, Ritual, Expedition, Stygian Vise, Cord

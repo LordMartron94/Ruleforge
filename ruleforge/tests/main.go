@@ -242,11 +242,18 @@ func processRuleforgeScript(
 		return fmt.Errorf("loading base type automation data: %w", err)
 	}
 
+	currency := compilation.CurrencySettings{CraftingWeight: configuration.CurrencyTiering.CraftingWeight, Source: configuration.CurrencyTiering.Profiles}
+	if _, err := os.Stat(currency.Source); err == nil {
+		if currency.Profiles, err = config.LoadCurrencyProfiles(currency.Source); err != nil {
+			return err
+		}
+	}
+
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StylesheetPath: style.Stylesheet,
 		Palette:        style.Palette,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, configuration.EconomyValueHalfLifeDays, *baseTypeData, configuration.CustomEquipmentPresets)
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, configuration.EconomyValueHalfLifeDays, *baseTypeData, configuration.CustomEquipmentPresets, currency)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)

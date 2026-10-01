@@ -248,6 +248,10 @@ var economyCategories = []struct {
 	{"SkillGem", "Gems", stashEndpoint},
 	{"DivinationCard", "Divination Cards", exchangeEndpoint},
 	{"Tattoo", "Tattoos", exchangeEndpoint},
+	// Currency feeds currency_tiering, which tiers whatever its profiles list.
+	{"Currency", "Currency", exchangeEndpoint},
+	{"DeliriumOrb", "Currency", exchangeEndpoint},
+	{"Omen", "Currency", exchangeEndpoint},
 }
 
 // RefreshEconomyData fetches a fresh poe.ninja snapshot and records it in the

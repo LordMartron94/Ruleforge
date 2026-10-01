@@ -39,6 +39,14 @@ Value = 0.65
 Rarity = 0.35
 Trend = 0.0
 
+# currency_tiering scores each currency like the other economy tiers (value,
+# rarity and trend with the weights above) and blends in how useful one unit
+# is for self-found hardcore crafting, rated in the profiles file. The profiles
+# also decide which currencies it tiers. CraftingWeight is the crafting share.
+[CurrencyTiering]
+Profiles = "configuration/currency/currency_profiles.csv"
+CraftingWeight = 0.4
+
 [CustomEquipmentPresets.MartronArada]
 DesiredWeaponClasses = ["One Hand Swords"]
 DesiredArmourTypes = ["Armour", "Armour/Evasion", "Armour/Evasion/Energy Shield"]

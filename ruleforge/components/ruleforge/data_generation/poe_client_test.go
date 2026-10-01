@@ -54,6 +54,16 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 				"lines": [{"id":"tattoo-of-the-valako-shieldbearer","primaryValue":494,"volumePrimaryValue":4940}]
 			}`)
 				return
+			case "Currency":
+				fmt.Fprint(w, `{
+				"core": {"primary": "chaos"},
+				"items": [{"id":"ancient-orb","name":"Ancient Orb"}],
+				"lines": [{"id":"ancient-orb","primaryValue":10,"volumePrimaryValue":2000}]
+			}`)
+				return
+			case "DeliriumOrb", "Omen":
+				fmt.Fprint(w, `{"core": {"primary": "chaos"}, "items": [], "lines": []}`)
+				return
 			case "DivinationCard":
 			default:
 				t.Errorf("expected an exchange category; got %q", r.URL.Query().Get("type"))
@@ -81,7 +91,7 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 	if err := exporter.RefreshEconomyData([]string{"Allflame"}, time.Hour, true); err != nil {
 		t.Fatal(err)
 	}
-	if requests != 9 || itemRequests != 8 {
+	if requests != 12 || itemRequests != 11 {
 		t.Fatalf("unexpected request counts total=%d item=%d", requests, itemRequests)
 	}
 	window, err := exporter.EconomyHistory([]string{"Allflame"})
@@ -92,8 +102,8 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 		t.Fatalf("expected exactly one recorded snapshot, got %#v", window)
 	}
 	fetched := window["Allflame"][0].Items
-	if len(fetched) != 11 {
-		t.Fatalf("expected five uniques, four gems, one priced div card and one tattoo, got %#v", fetched)
+	if len(fetched) != 12 {
+		t.Fatalf("expected five uniques, four gems, one priced div card, one tattoo and one currency, got %#v", fetched)
 	}
 	first := fetched[0]
 	if first.BaseType != "Test base" || first.ChaosValue != 25.5 || first.DivineValue != 0.2 || first.ListingCount != 12 {
@@ -112,10 +122,13 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 	if tattoo := fetched[10]; tattoo.Class != "Tattoos" || tattoo.BaseType != "Tattoo of the Valako Shieldbearer" || tattoo.ChaosValue != 494 || tattoo.ListingCount != 10 {
 		t.Fatalf("incorrect tattoo economy record: %#v", tattoo)
 	}
+	if orb := fetched[11]; orb.Class != "Currency" || orb.BaseType != "Ancient Orb" || orb.ChaosValue != 10 || orb.ListingCount != 200 {
+		t.Fatalf("incorrect currency economy record: %#v", orb)
+	}
 	if err := exporter.RefreshEconomyData([]string{"Allflame"}, time.Hour, false); err != nil {
 		t.Fatal(err)
 	}
-	if requests != 9 {
+	if requests != 12 {
 		t.Fatalf("recent-enough snapshot triggered network access: %d requests", requests)
 	}
 }

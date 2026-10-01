@@ -85,12 +85,17 @@ falls back to a default.
   each configured league must be available there. If a league is unavailable,
   the error lists the currently advertised names and IDs. Do not change the
   weights to another league silently: update `LeagueWeights` deliberately.
+- `[CurrencyTiering]`: `Profiles` is the currency profile CSV that
+  `currency_tiering` reads (default `configuration/currency/currency_profiles.csv`)
+  and `CraftingWeight` the share of each currency's score that comes from its
+  crafting rating rather than the economy (default 0.4).
 
 Ruleforge uses poe.ninja's documented PoE 1 economy endpoints
-(`/poe1/api/economy/leagues` and
-`/poe1/api/economy/stash/current/item/overview`). Old economy caches created
+(`/poe1/api/economy/leagues`, `/poe1/api/economy/stash/current/item/overview`,
+and `/poe1/api/economy/exchange/item/overview`). Old economy caches created
 with the retired `/api/data/itemoverview` endpoint are invalidated automatically.
-The economy cache lasts 24 hours; source Lua item caches are independent.
+Economy snapshots refresh after `EconomyHistoryRefreshHours` (24 hours by
+default; one hour in the supplied configuration); source Lua item caches are independent.
 An HTTP/API error aborts economy loading with the failed league, category, and
 status instead of repeatedly treating every failed request as an empty dataset.
 
@@ -169,7 +174,9 @@ Vars = ["bg-equipment", "bg-orbs", "bg-flasks"]
 
 See the Quick start above. Pass `-config /path/to/config.toml` to load another
 configuration from any working directory. Optional flags: `-verbose`,
-`-refresh-pob`, `-update-cache-only`.
+`-refresh-pob`, `-update-cache-only`, and `-refresh-economy`, which records
+fresh poe.ninja prices even when the last snapshot is younger than
+`EconomyHistoryRefreshHours`.
 
 ### 4. Ruleforge Studio
 
@@ -425,10 +432,10 @@ MACRO["unique_tiering"
 
 `divination_card_tiering` & `tattoo_tiering` work the same way for divination
 cards and Trial of the Ancestors tattoos, priced from poe.ninja's bulk exchange.
-Any tiering macro also takes an optional `$fallback` style, which does not take
-a tier: it goes after the tiers and styles every item of the kind that has no
-price. That includes all of them before the first economy refresh that records
-the kind.
+These economy-only tiering macros also take an optional `$fallback` style,
+which does not take a tier: it goes after the tiers and styles every item of
+the kind that has no price. That includes all of them before the first economy
+refresh that records the kind.
 
 ```rf
 MACRO["tattoo_tiering"
@@ -438,15 +445,42 @@ MACRO["tattoo_tiering"
 ]
 ```
 
+`currency_tiering`
+Tiers currency the same way, and blends in how useful one unit is for
+self-found hardcore crafting. The currency profile CSV (`BaseType,Crafting,Note`)
+decides which currencies it tiers and rates each one's crafting use from 0 to
+10; that rating is the hand-made part. A currency's score is
+`(1 - CraftingWeight) × economy score + CraftingWeight × crafting z-score`,
+where the economy score is the value, rarity and trend score every other
+tiering uses. A stack is scored as one item worth the whole stack, so stacks of
+3, 5, 10 and 20 get their own rules whenever they reach a better tier. With
+`$hidden`, one more tier is clustered below the given ones and hidden in that
+style; its stacks still show once they are worth a tier. A currency without a
+price yet is tiered on its rating against an average economy score. Compiling
+names any currency poe.ninja prices that neither the profiles nor a base type
+category list. The rarity input is a market-availability proxy: exchange
+volume divided by unit price supplies the count used by the shared rarity
+calculation. It is not a measured drop rate. Campaign rules show all profiled
+currencies; the mapping macro's hidden tier and stack thresholds adapt to the
+scores. Scrolls remain in the supply CSV with their fixed stack thresholds.
+
+```rf
+MACRO["currency_tiering"
+  -> $tier_1 => "Final/Orbs/T1"
+  -> $tier_2 => "Final/Orbs/T2"
+  -> $hidden => "Final/Orbs/Hidden"
+]
+```
+
 `handle_csv`
 This macro generates rules based on a CSV file,
 allowing for easy management of large, repetitive rule sets like currencies or essences.
-It uses the `basetype_automation_config.csv` file by default.
+It uses the CSV selected by the current style's `BaseTypes` setting.
 
 ```rf
-MACRO["handle_csv"->$category=>"Orbs"]
+MACRO["handle_csv"->$category=>"Essences"]
 ```
-This command would process all rows in the CSV file where the `Category` column is "Orbs,"
+This command would process all rows in the CSV file where the `Category` column is "Essences,"
 generating a rule for each one based on its configured `Basetype`, `MinStackSize`, `Style`, and `Tier`.
 
 `max_roll_precedence`

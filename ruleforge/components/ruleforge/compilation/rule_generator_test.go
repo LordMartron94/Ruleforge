@@ -478,3 +478,34 @@ func TestRapiersAreThrustingSwords(t *testing.T) {
 		t.Error("a one-hand sword build does not count its swords")
 	}
 }
+
+func TestCurrencyTierRulesPutBiggerStacksFirstAndHideTheBottomTier(t *testing.T) {
+	rg := &RuleGenerator{ruleFactory: &RuleFactory{}, validBaseTypes: []string{"Chaos Orb", "Orb of Alteration", "Orb of Transmutation"}}
+	rg.sectionConditions = []model2.Condition{{Identifier: "@area_level", Operator: ">=", Value: []string{"68"}}}
+	tiers := []data_generation.CurrencyTier{
+		{BaseType: "Chaos Orb", Tier: 1},
+		{BaseType: "Orb of Alteration", Tier: 3, Stacks: []data_generation.StackTier{{MinStack: 3, Tier: 2}, {MinStack: 10, Tier: 1}}},
+		{BaseType: "Orb of Transmutation", Tier: 3},
+	}
+	styles := []*config.Style{{Name: "T1"}, {Name: "T2"}}
+	var blocks []string
+	for _, rule := range rg.currencyTierRules(tiers, styles, &config.Style{Name: "Hidden"}, nil) {
+		blocks = append(blocks, strings.Join(rule, "\n"))
+	}
+	want := []struct{ action, stack, baseTypes string }{
+		{"Show", `StackSize >= "10"`, `"Orb of Alteration"`},
+		{"Show", `StackSize >= "3"`, `"Orb of Alteration"`},
+		{"Show", "", `"Chaos Orb"`},
+		{"Hide", "", `"Orb of Alteration" "Orb of Transmutation"`},
+	}
+	if len(blocks) != len(want) {
+		t.Fatalf("got %d rules, want %d:\n%s", len(blocks), len(want), strings.Join(blocks, "\n---\n"))
+	}
+	for i, w := range want {
+		block := blocks[i]
+		if !strings.HasPrefix(strings.TrimSpace(block), w.action) || !strings.Contains(block, w.baseTypes) || !strings.Contains(block, `AreaLevel >= "68"`) ||
+			(w.stack != "" && !strings.Contains(block, w.stack)) || (w.stack == "" && strings.Contains(block, "StackSize")) {
+			t.Fatalf("rule %d is not %s %s %s:\n%s", i, w.action, w.stack, w.baseTypes, block)
+		}
+	}
+}

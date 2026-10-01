@@ -77,6 +77,11 @@ type ConfigurationModel struct {
 
 	// CustomEquipmentPresets lets you specify named presets with weapons/armour lists.
 	CustomEquipmentPresets map[string]EquipmentPreset `toml:"CustomEquipmentPresets"`
+
+	// CurrencyTiering blends the economy score with crafting use for the
+	// currency_tiering macro. Left out, it reads
+	// configuration/currency/currency_profiles.csv with a crafting weight of 0.4.
+	CurrencyTiering *CurrencyTiering `toml:"CurrencyTiering"`
 }
 
 func (c *ConfigurationModel) String() string {
@@ -120,6 +125,9 @@ func (c *ConfigurationModel) String() string {
 	sb.WriteString(fmt.Sprintf("\n📈 Normalization Strategy: %s\n", c.EconomyNormalizationStrategy))
 	sb.WriteString(fmt.Sprintf("⚖️  Chase vs General Factor: %.2f\n", c.ChaseVSGeneralPotentialFactor))
 	sb.WriteString(fmt.Sprintf("📉 Economy Value Half-Life: %.1f days\n", c.EconomyValueHalfLifeDays))
+	if c.CurrencyTiering != nil {
+		sb.WriteString(fmt.Sprintf("🪙 Currency Tiering: crafting weight %.2f, profiles %s\n", c.CurrencyTiering.CraftingWeight, c.CurrencyTiering.Profiles))
+	}
 
 	sb.WriteString("\n🧩 Custom Equipment Presets:\n")
 	if len(c.CustomEquipmentPresets) > 0 {
@@ -195,6 +203,10 @@ func (c *ConfigurationModel) Validate() error {
 
 	if c.EconomyHistoryRefreshHours <= 0 {
 		return fmt.Errorf("EconomyHistoryRefreshHours must be greater than 0, got %f", c.EconomyHistoryRefreshHours)
+	}
+
+	if c.CurrencyTiering != nil && !(c.CurrencyTiering.CraftingWeight >= 0 && c.CurrencyTiering.CraftingWeight <= 1) {
+		return fmt.Errorf("CurrencyTiering.CraftingWeight must be between 0 and 1, got %f", c.CurrencyTiering.CraftingWeight)
 	}
 
 	for name, preset := range c.CustomEquipmentPresets {
