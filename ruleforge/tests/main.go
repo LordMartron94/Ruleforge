@@ -27,20 +27,8 @@ func main() {
 
 //goland:noinspection t
 func run() error {
-	cssParser, err := config.NewCSSParserFromFile("colors.css")
-
-	if err != nil {
-		return fmt.Errorf("NewCSSParserFromFile: %v", err)
-	}
-
-	props, err := cssParser.Parse()
-
-	if err != nil {
-		return fmt.Errorf("parse: %v", err)
-	}
-
 	configurationLoader := config.NewConfigurationLoader()
-	configuration, err := configurationLoader.LoadConfiguration("config.json")
+	configuration, err := configurationLoader.LoadConfiguration("config.toml")
 
 	if err != nil {
 		return fmt.Errorf("configurationLoader.LoadCache: %v", err)
@@ -51,7 +39,20 @@ func run() error {
 		return fmt.Errorf("configuration.Validate: %v", err)
 	}
 
-	exporter := data_generation.NewPathOfBuildingExporter()
+	styles, err := config.LoadStyleDefinitions(configuration.StylesDir)
+	if err != nil {
+		return fmt.Errorf("config.LoadStyleDefinitions: %v", err)
+	}
+
+	exporter, err := data_generation.NewPathOfBuildingExporter(
+		filepath.Join(filepath.Dir(configuration.PathOfBuildingDataPath), "data-cache"),
+		configuration.EconomyHistoryDBPath,
+	)
+	if err != nil {
+		return fmt.Errorf("NewPathOfBuildingExporter: %w", err)
+	}
+	defer exporter.Close()
+
 	itemBases, err := extractItemBases(configuration, exporter)
 	if err != nil {
 		return fmt.Errorf("extractItemBases: %v", err)
@@ -68,10 +69,21 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("extractUniqueBases: %v", err)
 	}
-	economyData, err := exporter.GetEconomyData(configuration.GetLeaguesToRetrieve())
-
+	leagues := configuration.GetLeaguesToRetrieve()
+	if err := exporter.RefreshEconomyData(leagues, configuration.GetEconomyHistoryRefreshInterval(), false); err != nil {
+		return fmt.Errorf("RefreshEconomyData: %w", err)
+	}
+	availableLeagues, err := exporter.LeaguesWithHistory(leagues)
 	if err != nil {
-		return fmt.Errorf("GetEconomyData: %v", err)
+		return fmt.Errorf("LeaguesWithHistory: %w", err)
+	}
+	leagueWeights, err := configuration.GetLeagueWeightsFor(availableLeagues)
+	if err != nil {
+		return fmt.Errorf("GetLeagueWeightsFor: %w", err)
+	}
+	economyData, err := exporter.EconomyHistory(availableLeagues)
+	if err != nil {
+		return fmt.Errorf("EconomyHistory: %w", err)
 	}
 
 	log.Println("Number of itemBases:", len(itemBases))
@@ -84,15 +96,11 @@ func run() error {
 		return fmt.Errorf("exporter.SaveItemCache: %v", err)
 	}
 
-	err = exporter.SaveEconomyCache(economyData)
-	if err != nil {
-		return fmt.Errorf("exporter.SaveEconomyCache: %v", err)
-	}
-
 	baseTypes := []string{"Gold"} // Manually include Gold because it's not really an item, but still a valid basetype.
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(itemBases)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(essences)...)
 	baseTypes = append(baseTypes, data_generation.GetBaseTypes(gems)...)
+	baseTypes = append(baseTypes, divinationCardBaseTypes(economyData)...)
 
 	log.Println("Number of BaseTypes: ", len(baseTypes))
 
@@ -103,9 +111,14 @@ func run() error {
 	}
 
 	for _, ruleforgeScript := range ruleforgeScripts {
-		err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData, props)
-		if err != nil {
-			return fmt.Errorf("processRuleforgeScript: %v", err)
+		for _, style := range styles {
+			if !style.IsEnabled() {
+				continue
+			}
+			err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData, leagueWeights, style)
+			if err != nil {
+				return fmt.Errorf("processRuleforgeScript: %v", err)
+			}
 		}
 	}
 
@@ -190,8 +203,9 @@ func processRuleforgeScript(
 	configuration *config.ConfigurationModel,
 	validBases []string,
 	itemBases []model.ItemBase,
-	economyCache map[string][]data_generation.EconomyCacheItem,
-	cssVariables map[string]string) error {
+	economyCache map[string][]data_generation.EconomySnapshot,
+	leagueWeights []config.LeagueWeights,
+	style config.StyleDefinition) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
 		return err
@@ -230,17 +244,25 @@ func processRuleforgeScript(
 		return fmt.Errorf("validating parse tree: %w", err)
 	}
 
-	baseTypeDataLoader := config.NewBaseTypeAutomationLoader("./basetype_automation_config.csv")
+	baseTypeDataLoader := config.NewBaseTypeAutomationLoader(style.BaseTypes)
 	baseTypeData, err := baseTypeDataLoader.Load()
 
 	if err != nil {
 		return fmt.Errorf("loading base type automation data: %w", err)
 	}
 
+	currency := compilation.CurrencySettings{CraftingWeight: configuration.CurrencyTiering.CraftingWeight, Source: configuration.CurrencyTiering.Profiles}
+	if _, err := os.Stat(currency.Source); err == nil {
+		if currency.Profiles, err = config.LoadCurrencyProfiles(currency.Source); err != nil {
+			return err
+		}
+	}
+
 	// 6) Compilation
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
-		StyleJsonPath: configuration.StyleJSONFile,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, *baseTypeData, cssVariables)
+		StylesheetPath: style.Stylesheet,
+		Palette:        style.Palette,
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, leagueWeights, configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, configuration.EconomyValueHalfLifeDays, *baseTypeData, configuration.CustomEquipmentPresets, currency)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)
@@ -254,7 +276,7 @@ func processRuleforgeScript(
 
 	// 7) Writing
 	for _, outputDir := range configuration.FilterOutputDirs {
-		outputFileName := filepath.Join(outputDir, outputName+".filter")
+		outputFileName := filepath.Join(outputDir, style.FilterFileName(outputName))
 		err = WriteLines(outputStrings, outputFileName)
 
 		if err != nil {
@@ -289,6 +311,28 @@ func printLexemes(lexemes []*shared.Token[symbols.LexingTokenType]) {
 	for i, lex := range lexemes {
 		fmt.Printf("Lexeme (%d): %q\n", i, lex.String())
 	}
+}
+
+// divinationCardBaseTypes collects every divination card name seen across all
+// recorded economy history, deduplicated. Divination cards aren't tracked by
+// Path of Building, so their names come from whatever poe.ninja has actually
+// priced instead of a bundled list.
+func divinationCardBaseTypes(economyData map[string][]data_generation.EconomySnapshot) []string {
+	seen := make(map[string]bool)
+	for _, snapshots := range economyData {
+		for _, snapshot := range snapshots {
+			for _, item := range snapshot.Items {
+				if item.Class == "Divination Cards" {
+					seen[item.BaseType] = true
+				}
+			}
+		}
+	}
+	baseTypes := make([]string, 0, len(seen))
+	for baseType := range seen {
+		baseTypes = append(baseTypes, baseType)
+	}
+	return baseTypes
 }
 
 // listFilesWithExtension returns all files (not directories) in dir

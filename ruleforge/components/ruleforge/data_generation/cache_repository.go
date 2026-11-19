@@ -10,7 +10,11 @@ import (
 	"time"
 )
 
+// Version 4 rebuilds caches whose per-item wiki requests silently failed.
+const itemCacheSchemaVersion = 4
+
 type ItemCacheModel struct {
+	Version    int              `json:"version"`
 	ExpiryDate time.Time        `json:"expiry_date"`
 	Items      []model.ItemBase `json:"items"`
 	Essences   []model.Essence  `json:"essences"`
@@ -18,6 +22,8 @@ type ItemCacheModel struct {
 	Uniques    []model.Unique   `json:"uniques"`
 }
 
+// EconomyCacheItem is one poe.ninja price line for a base type. It is the row
+// shape persisted per snapshot in EconomyHistoryStore.
 type EconomyCacheItem struct {
 	Class        string  `json:"class"`
 	Name         string  `json:"name"`
@@ -27,80 +33,68 @@ type EconomyCacheItem struct {
 	ChaosValue   float64 `json:"chaos_value"`
 	DivineValue  float64 `json:"divine_value"`
 	ExaltedValue float64 `json:"exalted_value"`
+	// Source distinguishes stash listings from exchange turnover. Legacy
+	// snapshots keep their original numbers, but are not liquidity evidence.
+	Source      string  `json:"source,omitempty"`
+	Category    string  `json:"category,omitempty"`
+	ItemID      string  `json:"item_id,omitempty"`
+	Variant     string  `json:"variant,omitempty"`
+	ItemLevel   int     `json:"item_level,omitempty"`
+	VolumeChaos float64 `json:"volume_chaos,omitempty"`
+	TradedUnits float64 `json:"traded_units,omitempty"`
 }
 
-type EconomyCacheModel struct {
-	ExpiryDate        time.Time                     `json:"expiry_date"`
-	EconomyCacheItems map[string][]EconomyCacheItem `json:"items"`
-}
-
+// CacheRepository persists the item base-type cache. Economy data has its own
+// history in EconomyHistoryStore, since a single JSON snapshot can't represent
+// a time series.
 type CacheRepository struct {
-	baseTypeCachePath   string
-	economyCacheRawPath string
+	baseTypeCachePath string
 }
 
-func NewCacheRepository(baseTypeCachePath, economyCachePath string) *CacheRepository {
+func NewCacheRepository(baseTypeCachePath string) *CacheRepository {
 	return &CacheRepository{
-		baseTypeCachePath:   baseTypeCachePath,
-		economyCacheRawPath: economyCachePath,
+		baseTypeCachePath: baseTypeCachePath,
 	}
 }
 
-// LoadCache reads both the item and economy cache files and unmarshals them.
-// It returns a nil value for any cache that doesn't exist or has expired,
-// without returning an error. An error is only returned for actual file I/O or JSON parsing issues.
-func (c *CacheRepository) LoadCache() (*ItemCacheModel, *EconomyCacheModel, error) {
-	var itemCache *ItemCacheModel
-	var economyCache *EconomyCacheModel
-	var err error
-
-	// 1. Attempt to load the item base type cache
+// LoadCache reads the item cache file and unmarshals it. It returns a nil
+// value if the cache doesn't exist or has expired, without returning an error.
+// An error is only returned for actual file I/O or JSON parsing issues.
+func (c *CacheRepository) LoadCache() (*ItemCacheModel, error) {
 	itemCacheExists, err := files.Exists(c.baseTypeCachePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error checking for item cache: %w", err)
+		return nil, fmt.Errorf("error checking for item cache: %w", err)
 	}
-	if itemCacheExists {
-		data, err := os.ReadFile(c.baseTypeCachePath)
-		if err != nil {
-			return nil, nil, err
-		}
-		var cache ItemCacheModel
-		if err := json.Unmarshal(data, &cache); err != nil {
-			return nil, nil, err
-		}
-		// Only use the cache if it's not expired
-		if time.Now().Before(cache.ExpiryDate) {
-			itemCache = &cache
-		}
+	if !itemCacheExists {
+		return nil, nil
 	}
 
-	// 2. Attempt to load the economy cache
-	economyCacheExists, err := files.Exists(c.economyCacheRawPath)
+	data, err := os.ReadFile(c.baseTypeCachePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error checking for economy cache: %w", err)
+		return nil, err
 	}
-	if economyCacheExists {
-		data, err := os.ReadFile(c.economyCacheRawPath)
-		if err != nil {
-			return nil, nil, err
-		}
-		var cache EconomyCacheModel
-		if err := json.Unmarshal(data, &cache); err != nil {
-			return nil, nil, err
-		}
-		// Only use the cache if it's not expired
-		if time.Now().Before(cache.ExpiryDate) {
-			economyCache = &cache
-		}
+	var cache ItemCacheModel
+	if err := json.Unmarshal(data, &cache); err != nil {
+		return nil, err
 	}
-
-	return itemCache, economyCache, nil
+	// Only use the cache if it's not expired
+	if cache.Version != itemCacheSchemaVersion || !time.Now().Before(cache.ExpiryDate) {
+		return nil, nil
+	}
+	return &cache, nil
 }
 
 // SaveItemCache saves the item, essence, gem, and unique data to the item cache file.
 func (c *CacheRepository) SaveItemCache(items []model.ItemBase, essences []model.Essence, gems []model.Gem, uniques []model.Unique) error {
 	expiryDate := time.Now().AddDate(0, 0, 14)
-	cache := ItemCacheModel{expiryDate, items, essences, gems, uniques}
+	cache := ItemCacheModel{
+		Version:    itemCacheSchemaVersion,
+		ExpiryDate: expiryDate,
+		Items:      items,
+		Essences:   essences,
+		Gems:       gems,
+		Uniques:    uniques,
+	}
 
 	dir := filepath.Dir(c.baseTypeCachePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -108,30 +102,6 @@ func (c *CacheRepository) SaveItemCache(items []model.ItemBase, essences []model
 	}
 
 	f, err := os.Create(c.baseTypeCachePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	return enc.Encode(cache)
-}
-
-// SaveEconomyCache saves the economy data to the economy cache file.
-func (c *CacheRepository) SaveEconomyCache(economyItems map[string][]EconomyCacheItem) error {
-	expiryDate := time.Now().Add(24 * time.Hour)
-	cache := EconomyCacheModel{
-		ExpiryDate:        expiryDate,
-		EconomyCacheItems: economyItems,
-	}
-
-	dir := filepath.Dir(c.economyCacheRawPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	f, err := os.Create(c.economyCacheRawPath)
 	if err != nil {
 		return err
 	}

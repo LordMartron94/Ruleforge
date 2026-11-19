@@ -1,0 +1,15 @@
+go 1.25.0
+
+use (
+	./ruleforge/components/ruleforge/common/compiler
+	./ruleforge/components/ruleforge/common/extensions
+	./ruleforge/components/ruleforge/common/files
+	./ruleforge/components/ruleforge/compilation
+	./ruleforge/components/ruleforge/config
+	./ruleforge/components/ruleforge/data_generation
+	./ruleforge/components/ruleforge/entry
+	./ruleforge/components/ruleforge/rules
+	./ruleforge/components/ruleforge/validation
+	./ruleforge/tests
+	./src_analyzer
+)

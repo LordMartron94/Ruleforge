@@ -8,25 +8,32 @@ import (
 )
 
 var conditionIdentifierToCompiledIdentifier = map[string]string{
-	"@area_level":         "AreaLevel",
-	"@stack_size":         "StackSize",
-	"@item_type":          "BaseType",
-	"@item_class":         "Class",
-	"@rarity":             "Rarity",
-	"@sockets":            "Sockets",
-	"@socket_group":       "SocketGroup",
-	"@height":             "Height",
-	"@width":              "Width",
-	"@map_tier":           "MapTier",
-	"@quality":            "Quality",
-	"@corrupted":          "Corrupted",
-	"@base_armour":        "BaseArmour",
-	"@base_evasion":       "BaseEvasion",
-	"@base_energy_shield": "BaseEnergyShield",
-	"@fractured":          "FracturedItem",
-	"@has_explicit_mod":   "HasExplicitMod",
-	"@identified":         "Identified",
-	"@base_ward":          "BaseWard",
+	"@fated":                   "Fated",
+	"@explicit_mod_count":      "HasExplicitMod",
+	"@area_level":              "AreaLevel",
+	"@stack_size":              "StackSize",
+	"@item_type":               "BaseType",
+	"@item_class":              "Class",
+	"@rarity":                  "Rarity",
+	"@sockets":                 "Sockets",
+	"@socket_group":            "SocketGroup",
+	"@height":                  "Height",
+	"@width":                   "Width",
+	"@map_tier":                "MapTier",
+	"@quality":                 "Quality",
+	"@corrupted":               "Corrupted",
+	"@corrupted_mods":          "CorruptedMods",
+	"@item_level":              "ItemLevel",
+	"@drop_level":              "DropLevel",
+	"@unidentified_item_tier":  "UnidentifiedItemTier",
+	"@base_armour":             "BaseArmour",
+	"@base_evasion":            "BaseEvasion",
+	"@base_energy_shield":      "BaseEnergyShield",
+	"@fractured":               "FracturedItem",
+	"@has_explicit_mod":        "HasExplicitMod",
+	"@identified":              "Identified",
+	"@base_ward":               "BaseWard",
+	"@base_defence_percentile": "BaseDefencePercentile",
 }
 
 type Condition struct {
@@ -49,12 +56,17 @@ func debugMap(m map[string][]string) {
 }
 
 func (c *Condition) ConstructCompiledCondition(variables *map[string][]string, validBaseTypes []string) string {
+	if c.Identifier == "@explicit_mod_count" {
+		return fmt.Sprintf("HasExplicitMod %s%s \"a\" \"e\" \"i\" \"o\" \"u\" \"y\" ", c.Operator, c.Value[0])
+	}
 	compiledIdentifier := compileIdentifier(c.Identifier)
 	var compiledValues []string
 
 	for _, value := range c.Value {
 		if value[0] != '$' {
-			if compiledIdentifier == "BaseType" {
+			// Without an operator the filter matches a part of the name,
+			// which is never a whole base type by itself.
+			if compiledIdentifier == "BaseType" && c.Operator != "" {
 				c.validateBaseType(value, validBaseTypes)
 			}
 

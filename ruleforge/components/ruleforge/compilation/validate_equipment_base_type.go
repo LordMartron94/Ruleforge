@@ -116,8 +116,9 @@ var pobArmorTypeToArmorType = map[string]ArmorType{
 
 // EquipmentPreset groups the allowed weapon classes and armor types for a build.
 type EquipmentPreset struct {
-	WeaponClasses []WeaponClass
-	ArmorTypes    []ArmorType
+	PreferredViscera []string
+	WeaponClasses    []WeaponClass
+	ArmorTypes       []ArmorType
 }
 
 // NewEquipmentPresetFromConfig converts a config.EquipmentPreset into a compilation.EquipmentPreset.
@@ -142,8 +143,9 @@ func NewEquipmentPresetFromConfig(cp config.EquipmentPreset) (EquipmentPreset, e
 	}
 
 	return EquipmentPreset{
-		WeaponClasses: wc,
-		ArmorTypes:    at,
+		WeaponClasses:    wc,
+		PreferredViscera: append([]string(nil), cp.PreferredViscera...),
+		ArmorTypes:       at,
 	}, nil
 }
 
@@ -235,7 +237,8 @@ func (b *Build) AssociatedWeaponClasses() []string {
 // IsWeaponAssociated checks if an ItemBase's weapon type matches the build preset.
 func (b *Build) IsWeaponAssociated(item model.ItemBase) bool {
 	wc, ok := pobTypeToWeaponClass[item.Type]
-	if item.Type == string(OneHandedSword) && item.SubType == "Thrusting" {
+	// Path of Building files rapiers as one-handed swords of subtype "Thrusting".
+	if wc == OneHandedSword && item.SubType == "Thrusting" {
 		wc = ThrustingOneHandedSword
 	}
 	if !ok {

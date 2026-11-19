@@ -24,24 +24,32 @@ func mapItemBasesFromLua(dataTable *lua.LTable) []model.ItemBase {
 }
 
 // enrichItemBasesWithDropLevels handles the separate concern of fetching external data.
-func enrichItemBasesWithDropLevels(models []model.ItemBase) {
+func enrichItemBasesWithDropLevels(models []model.ItemBase, client *dropLevelClient) error {
 	baseTypeNames := make([]string, 0, len(models))
 	for _, itemModel := range models {
 		baseTypeNames = append(baseTypeNames, itemModel.GetBaseType())
 	}
 
-	log.Printf("Fetching drop levels for %d base types concurrently...", len(baseTypeNames))
-	dropLevelsMap := GetBaseTypeDropLevels(baseTypeNames, 150)
+	log.Printf("Fetching drop levels for %d item bases in paced batches...", len(baseTypeNames))
+	dropLevelsMap, err := client.fetch(baseTypeNames)
+	if err != nil {
+		return err
+	}
 	log.Printf("Received %d drop levels. Mapping back to models...", len(dropLevelsMap))
 
+	var missing []string
 	for i := range models {
 		baseType := models[i].GetBaseType()
 		if dropLevel, ok := dropLevelsMap[baseType]; ok {
 			models[i].DropLevel = &dropLevel
 		} else {
-			log.Printf("WARN: Could not find a drop level for '%s'.", baseType)
+			missing = append(missing, models[i].Name)
 		}
 	}
+	if len(missing) > 0 {
+		log.Printf("WARNING: Wiki has no drop level for %d item bases: %v. Progression will use required level (or level 1 when omitted); these are estimates.", len(missing), missing)
+	}
+	return nil
 }
 
 // mapEssencesFromLua creates all essence models.

@@ -1,0 +1,74 @@
+# Ruleforge configuration.
+# Relative paths resolve against the folder this file is in.
+
+# Where compiled filters are written. Each style adds its own suffix to the file name.
+FilterOutputDirs = [
+  "__output__",
+  "/home/user/Desktop/steam/.steam/steam/steamapps/compatdata/238960/pfx/drive_c/users/steamuser/Documents/My Games/Path of Exile/",
+]
+
+# Folder with the .rf scripts to compile.
+RuleforgeInputDir = "__filters__"
+
+# Every *.toml style file in this folder is compiled into its own filter per script.
+StylesDir = "configuration/styles"
+
+# The Ruleforge Studio: palette checks and a loot simulator for every compiled filter.
+# Remove this line to skip it.
+StudioFile = "__output__/ruleforge-studio.html"
+
+PathOfBuildingDataPath = ".ruleforge-cache/pob"
+EconomyHistoryDBPath = ".ruleforge-cache/economy_history.db"
+EconomyHistoryRefreshHours = 4
+# After installing deployment/economy on server-media, enable remote history:
+# EconomyHistoryURL = "http://server-media:8087"
+EconomyHistoryTokenEnv = "RULEFORGE_HISTORY_TOKEN"
+
+# "Global" or "Per-League".
+EconomyNormalizationStrategy = "Global"
+ChaseVSGeneralPotentialFactor = 0.85
+EconomyValueHalfLifeDays = 14
+
+# Leagues whose prices feed the economy tiers. Weights must add up to 1.
+# A league poe.ninja doesn't list or has no prices for yet (e.g. a brand new
+# league) is skipped with a warning, and its weight is shared out over the
+# other leagues in proportion to theirs.
+[LeagueWeights]
+"Hardcore Covens" = 0.5
+"Covens" = 0.3
+"Hardcore" = 0.15
+"Standard" = 0.05
+
+# Must add up to 1.
+[EconomyWeights]
+Value = 0.65
+Rarity = 0.35
+Trend = 0.0
+
+# currency_tiering scores each currency like the other economy tiers (value,
+# rarity and trend with the weights above) and blends in how useful one unit
+# is for self-found hardcore crafting, rated in the profiles file. The profiles
+# also decide which currencies it tiers. CraftingWeight is the crafting share.
+[CurrencyTiering]
+Profiles = "configuration/currency/currency_profiles.csv"
+CraftingWeight = 0.4
+
+[CustomEquipmentPresets.MartronArada]
+DesiredWeaponClasses = ["One Hand Swords"]
+DesiredArmourTypes = ["Armour", "Armour/Evasion", "Armour/Evasion/Energy Shield"]
+
+[CustomEquipmentPresets.ThunderGod]
+DesiredWeaponClasses = ["Sceptres", "Wands"]
+DesiredArmourTypes = ["Armour", "Armour/Energy Shield", "Energy Shield"]
+
+# Raw history is retained. These settings select admissible current evidence.
+[EconomyMemory]
+GameVersion = "3.30"
+Since = "2026-11-13T19:00:00Z"
+MaxAgeHours = 72
+BucketHours = 4
+MinimumListings = 5
+MinimumTradedUnits = 20
+ReliableBuckets = 3
+PromotionBuckets = 2
+DemotionBuckets = 3

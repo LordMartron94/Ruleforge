@@ -1,6 +1,6 @@
 module github.com/LordMartron94/Ruleforge/ruleforge/tests
 
-go 1.23
+go 1.25.0
 
 require (
 	github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler v0.0.0-20251103190150-1572761805fc

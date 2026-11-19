@@ -1,0 +1,1524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruleforge Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&family=Cormorant+Garamond:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Deliberately single-theme: loot labels are judged against a dark game world. */
+  :root {
+    color-scheme: dark;
+    --page: #0b0c11;
+    --panel: #12141b;
+    --panel-2: #191c25;
+    --rule: #282b37;
+    --text: #e7e1d0;
+    --muted: #a29d90;
+    --faint: #6f6c63;
+    --accent: #ffca49;
+    --ok: #86d3a4;
+    --warn: #f1b75e;
+    --bad: #f27d6c;
+    --display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+    --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+    --label: "Alegreya SC", "Palatino Linotype", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { background: var(--page); }
+  body { margin: 0; color: var(--text); font: 15px/1.5 var(--body); padding: 24px 16px 64px; }
+  .wrap { max-width: 1320px; margin-inline: auto; display: grid; gap: 22px; }
+  .stack { display: grid; gap: 18px; min-width: 0; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.1; margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(2rem, 4vw, 2.8rem); }
+  h2 { font-size: 1.6rem; }
+  h3 { font-size: 1.2rem; }
+  p { margin: 0; max-width: 72ch; }
+  button, select, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .eyebrow { font: 500 0.72rem/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .muted { color: var(--muted); }
+  .mono { font-family: var(--mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+
+  header.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px; }
+  header.top .title { display: grid; gap: 8px; }
+  .picker { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tab, .seg button {
+    background: transparent; border: 1px solid var(--rule); padding: 6px 12px; cursor: pointer;
+    font-size: 0.88rem; color: var(--muted);
+  }
+  .tab[aria-selected="true"] { background: var(--accent); color: #17130a; border-color: var(--accent); font-weight: 700; }
+  .seg { display: inline-flex; }
+  .seg button + button { border-left: 0; }
+  .seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
+  select, input[type="number"] { background: var(--panel); border: 1px solid var(--rule); padding: 5px 8px; }
+  /* Option lists follow the select's own colours; spell them out so no list opens white. */
+  select { color-scheme: dark; }
+  option, optgroup { background: var(--panel); color: var(--text); }
+  .btn { background: var(--panel-2); border: 1px solid #3a3e4d; padding: 7px 14px; cursor: pointer; }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); color: #17130a; border-color: var(--accent); font-weight: 700; }
+  .views { display: flex; gap: 6px; border-bottom: 1px solid var(--rule); padding-bottom: 10px; flex-wrap: wrap; }
+
+  /* Item labels, drawn the way the game draws them */
+  .lbl {
+    display: inline-block; font-family: var(--label); font-weight: 500; line-height: 1.12;
+    padding: 0.12em 0.5em 0.16em; border: 2px solid transparent; white-space: nowrap; position: relative;
+  }
+  .drop { position: relative; display: inline-flex; flex-direction: column; align-items: center; cursor: pointer; background: none; border: 0; padding: 0; }
+  .drop .beam { width: 4px; height: 46px; margin-bottom: 2px; border-radius: 2px; }
+  .drop .beam.none { visibility: hidden; }
+  .drop .beam.temp { opacity: .55; }
+  .drop.hidden-item .lbl { opacity: .32; text-decoration: line-through; }
+  .drop.selected .lbl { outline: 2px dashed var(--text); outline-offset: 3px; }
+  .drop.unknown .lbl::after { content: "?"; position: absolute; top: -10px; right: -10px; background: var(--warn); color: #000; font: 700 11px/16px var(--mono); width: 16px; text-align: center; border-radius: 8px; }
+
+  /* Loot view */
+  .loot-controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  .loot-controls label { display: inline-flex; gap: 8px; align-items: center; font-size: 0.9rem; color: var(--muted); }
+  .loot-controls input[type="range"] { width: 160px; accent-color: var(--accent); }
+  .loot-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .ground {
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: end; gap: 6px 18px;
+    padding: 18px clamp(10px, 2vw, 26px) 26px; min-height: 360px; border: 1px solid var(--rule);
+  }
+  .summary { display: flex; flex-wrap: wrap; gap: 8px 16px; font: 0.82rem var(--mono); color: var(--muted); }
+  .summary b { color: var(--text); font-weight: 500; }
+  .inspector { background: var(--panel); border: 1px solid var(--rule); padding: 16px; display: grid; gap: 14px; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 0.86rem; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; font-family: var(--mono); font-size: 0.8rem; }
+  .rule { border: 1px solid var(--rule); padding: 10px 12px; display: grid; gap: 8px; background: var(--page); }
+  .rule.active { border-color: var(--accent); }
+  .rule-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font: 0.78rem var(--mono); color: var(--muted); }
+  .pill { font: 500 0.68rem/1 var(--mono); padding: 4px 7px; letter-spacing: .06em; text-transform: uppercase; }
+  .pill.active { background: var(--accent); color: #17130a; }
+  .pill.shadow { background: var(--panel-2); color: var(--muted); }
+  .pill.show { background: rgba(134,211,164,.14); color: var(--ok); }
+  .pill.hide { background: rgba(242,125,108,.16); color: var(--bad); }
+  .pill.ok { background: rgba(134,211,164,.14); color: var(--ok); }
+  .pill.warn { background: rgba(241,183,94,.14); color: var(--warn); }
+  .pill.bad { background: rgba(242,125,108,.16); color: var(--bad); }
+  .rule .src { font: 0.8rem var(--mono); color: var(--text); word-break: break-word; }
+  .conds { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font: 0.76rem/1.35 var(--mono); color: var(--muted); }
+  .conds b { color: var(--text); font-weight: 500; }
+  .alerts { display: flex; flex-wrap: wrap; gap: 6px 12px; font: 0.76rem var(--mono); color: var(--muted); align-items: center; }
+  .swatch-dot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; vertical-align: -1px; margin-right: 4px; }
+  .style-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 5px 10px; margin: 0; padding: 8px 10px; border: 1px solid var(--rule); background: var(--panel-2); font: 0.74rem var(--mono); }
+  .style-facts div { display: flex; gap: 6px; align-items: center; min-width: 0; }
+  .style-facts dt { color: var(--muted); }
+  .style-facts dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .style-swatch { width: 12px; height: 12px; border: 1px solid rgba(255,255,255,.45); display: inline-block; flex: 0 0 auto; }
+  .import-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; align-items: start; }
+  .import-panel { background: var(--panel); border: 1px solid var(--rule); padding: 16px; display: grid; gap: 10px; }
+  .import-panel h2 { font-size: 1.35rem; }
+  .import-panel textarea { width: 100%; min-height: 190px; resize: vertical; background: var(--page); color: var(--text); border: 1px solid var(--rule); padding: 10px; font: .76rem/1.4 var(--mono); }
+  .import-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .import-status { min-height: 1.2em; font: .78rem var(--mono); color: var(--muted); }
+
+  /* Palette view */
+  .palette-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .checks { display: grid; gap: 9px; background: var(--panel); border: 1px solid var(--rule); padding: 14px; }
+  .check { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: baseline; }
+  .check .val { font: 0.8rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .fails { margin: 0; padding: 10px 0 0; border-top: 1px solid var(--rule); list-style: none; display: grid; gap: 3px; font: 0.75rem/1.35 var(--mono); color: var(--muted); max-height: 260px; overflow: auto; }
+  .fails b { color: var(--warn); font-weight: 500; }
+  .gallery-group { display: grid; gap: 8px; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+  .tile { display: grid; gap: 4px; }
+  .tile .stage { display: flex; justify-content: center; align-items: center; min-height: 58px; padding: 8px; background: #15161a; overflow: hidden; }
+  .tile .cap { display: flex; justify-content: space-between; gap: 8px; font-size: 0.78rem; }
+  .tile .cap span:last-child { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+  .tile .cap .near { color: var(--warn); }
+  details.editor { background: var(--panel); border: 1px solid var(--rule); }
+  details.editor > summary { cursor: pointer; padding: 12px 14px; font: 700 1.15rem var(--display); }
+  .ed-body { padding: 0 14px 14px; display: grid; gap: 16px; }
+  .ed-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ed-group h4 { margin: 0 0 8px; font: 500 0.72rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .ed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px 14px; }
+  .ed-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; font: 0.78rem var(--mono); }
+  .ed-row input[type="color"] { width: 34px; height: 24px; padding: 0; border: 1px solid #3a3e4d; background: none; cursor: pointer; }
+  .ed-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ed-row.changed .nm { color: var(--accent); }
+  .status { font: 0.8rem var(--mono); color: var(--ok); min-height: 1.2em; }
+  textarea.fallback { width: 100%; min-height: 120px; background: var(--page); color: var(--text); border: 1px solid var(--rule); font: 0.75rem var(--mono); }
+  .empty { color: var(--muted); font-size: 0.9rem; }
+
+  /* Style browser */
+  .pv-toolbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .pv-toolbar input[type="search"] { flex: 1 1 320px; min-width: 0; background: var(--panel); border: 1px solid var(--rule); padding: 8px 10px; font-size: .92rem; }
+  .pv-toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: .9rem; }
+  .pv-count { font: .8rem var(--mono); color: var(--muted); }
+  .pv-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 18px; align-items: start; }
+  .pv-nav { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; display: grid; gap: 2px; background: var(--panel); border: 1px solid var(--rule); padding: 8px; }
+  .pv-nav button { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; padding: 6px 8px; cursor: pointer; font-size: .88rem; color: var(--text); }
+  .pv-nav button:hover { background: var(--panel-2); }
+  .pv-nav button .n { font: .74rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .pv-nav button .n b { color: var(--bad); font-weight: 500; }
+  .pv-nav .pv-nav-title { font: 500 .7rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 4px 8px 6px; }
+  .pv-main { display: grid; gap: 14px; min-width: 0; }
+  details.pv-panel, details.pv-cat, details.ed-set { background: var(--panel); border: 1px solid var(--rule); }
+  details.pv-panel > summary, details.pv-cat > summary, details.ed-set > summary {
+    cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 11px 14px;
+  }
+  details.pv-panel > summary::-webkit-details-marker, details.pv-cat > summary::-webkit-details-marker, details.ed-set > summary::-webkit-details-marker { display: none; }
+  details.pv-panel > summary > span:first-child, details.pv-cat > summary > span:first-child { font: 700 1.15rem var(--display); }
+  details.pv-panel > summary > span:first-child::before, details.pv-cat > summary > span:first-child::before, details.ed-set > summary > span:first-child::before {
+    content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); transition: transform .12s ease;
+  }
+  details[open] > summary > span:first-child::before { transform: rotate(90deg); }
+  .pv-sum { font: .78rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .pv-sum b { color: var(--bad); font-weight: 500; }
+  details.pv-panel > :not(summary) { padding: 0 14px 14px; }
+  details.pv-cat > .pv-cat-body { padding: 0 14px 12px; display: grid; gap: 10px; }
+  details.ed-set { background: var(--page); }
+  details.ed-set > summary { padding: 8px 10px; font: 500 .8rem var(--mono); color: var(--text); }
+  details.ed-set > .ed-grid { padding: 0 10px 10px; }
+  .ed-row { grid-template-columns: 34px minmax(0, 1fr) auto auto; }
+  .ed-row .used { background: transparent; border: 1px solid var(--rule); padding: 1px 6px; cursor: pointer; font: .7rem var(--mono); color: var(--muted); }
+  .ed-row .used:hover { color: var(--text); border-color: var(--muted); }
+  .pv-sub { font: 500 .7rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding-top: 4px; }
+  .pv-row { display: grid; grid-template-columns: minmax(150px, 230px) minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--rule); }
+  .pv-preview { display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 6px; background: #15161a; overflow: hidden; }
+  .pv-name { font-size: .92rem; overflow-wrap: anywhere; }
+  .pv-name small { display: block; font: .72rem var(--mono); color: var(--faint); }
+  .pv-chips { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; font: .72rem var(--mono); color: var(--muted); }
+  .pv-chips span { display: inline-flex; gap: 4px; align-items: center; }
+  .pv-side { display: grid; gap: 6px; justify-items: end; }
+  .pv-lc { font: .74rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .pv-lc.bad { color: var(--bad); }
+  .src-btn { background: transparent; border: 1px solid var(--rule); padding: 3px 9px; cursor: pointer; font: .74rem var(--mono); color: var(--muted); }
+  .src-btn[aria-expanded="true"], .src-btn:hover { color: var(--text); border-color: var(--muted); }
+  .pv-source { grid-column: 1 / -1; }
+  .source-view { display: grid; gap: 10px; padding: 10px 12px; background: var(--page); border: 1px solid var(--rule); font-size: .82rem; }
+  .source-view .note { color: var(--muted); }
+  .source-tree, .source-tree ul { list-style: none; margin: 0; padding: 0; }
+  .source-tree ul { padding-left: 16px; border-left: 1px solid var(--rule); margin-left: 5px; }
+  .source-tree li { padding: 2px 0; font: .76rem/1.45 var(--mono); }
+  .source-tree .own { color: var(--muted); }
+  .source-channels { width: 100%; border-collapse: collapse; font: .75rem var(--mono); }
+  .source-channels th, .source-channels td { text-align: left; padding: 3px 8px 3px 0; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+  .source-channels th { color: var(--muted); font-weight: 400; }
+  .source-channels td.from { color: var(--accent); overflow-wrap: anywhere; }
+  mark { background: rgba(255, 202, 73, .28); color: inherit; padding: 0 1px; }
+
+
+  /* Editors (served by ruleforge -studio) */
+  .views-note { margin-left: auto; align-self: center; font: .78rem var(--mono); color: var(--muted); }
+  .views-note code { color: var(--text); background: var(--panel-2); padding: 1px 5px; }
+  .edt-bar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+  .edt-bar .grow { flex: 1 1 auto; }
+  .edt-bar label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: .88rem; }
+  .edt-status { font: .8rem/1.45 var(--mono); color: var(--muted); white-space: pre-wrap; min-height: 1.3em; }
+  .edt-status.ok { color: var(--ok); }
+  .edt-status.warn { color: var(--warn); }
+  .edt-status.bad { color: var(--bad); }
+  .edt-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 18px; align-items: start; }
+  .edt-layout.wide-side { grid-template-columns: 300px minmax(0, 1fr); }
+  .edt-side, .pv-nav, .diff { scrollbar-color: var(--rule) var(--panel); }
+  .edt-side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; background: var(--panel); border: 1px solid var(--rule); padding: 8px; display: grid; gap: 2px; align-content: start; }
+  .edt-side input[type="search"] { width: 100%; margin-bottom: 6px; }
+  .edt-side button.entry { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; padding: 4px 8px; cursor: pointer; font-size: .86rem; color: var(--text); }
+  .edt-side button.entry:hover { background: var(--panel-2); }
+  .edt-side button.entry.active { background: var(--panel-2); color: var(--accent); }
+  .edt-side button.entry .n { font: .72rem var(--mono); color: var(--muted); white-space: nowrap; }
+  .edt-side details > summary { cursor: pointer; padding: 5px 6px; font: 500 .72rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .edt-side .deleted { text-decoration: line-through; opacity: .6; }
+  .edt-main { display: grid; gap: 14px; min-width: 0; }
+  .edt-card { background: var(--panel); border: 1px solid var(--rule); padding: 12px 14px; display: grid; gap: 10px; min-width: 0; }
+  .edt-card > h3 { font-size: 1.15rem; }
+  .edt-card .hint { color: var(--muted); font-size: .85rem; }
+  .edt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px 14px; }
+  .edt-field { display: grid; gap: 4px; min-width: 0; }
+  .edt-field > span { font: 500 .7rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .edt, .edt-side input { background: var(--page); border: 1px solid var(--rule); color: var(--text); padding: 5px 8px; font: .88rem var(--body); min-width: 0; }
+  .edt.mono, textarea.edt { font: .8rem var(--mono); }
+  .edt.invalid { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad) inset; }
+  textarea.edt { width: 100%; min-height: 90px; resize: vertical; }
+  .edt-row { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; min-width: 0; }
+  .edt-row > .edt.fill { flex: 1 1 220px; }
+  .btn.small { padding: 3px 9px; font-size: .8rem; }
+  .btn.danger { color: var(--bad); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .icon { background: transparent; border: 1px solid transparent; color: var(--muted); cursor: pointer; padding: 0 5px; font: .85rem var(--mono); line-height: 1.3; }
+  .icon:hover:not(:disabled) { color: var(--text); border-color: var(--rule); }
+  .icon:disabled { opacity: .3; cursor: default; }
+  select.edt-add { background: var(--panel-2); border: 1px solid var(--rule); color: var(--muted); font: .78rem var(--mono); padding: 1px 4px; cursor: pointer; }
+  select.edt-add:hover, select.edt-add:focus-visible { border-color: var(--muted); color: var(--text); }
+  select.edt-add option { font: .85rem var(--body); }
+  .edt-tools { display: inline-flex; gap: 1px; align-items: center; margin-left: auto; }
+  .edt-group { border-top: 1px solid var(--rule); padding-top: 10px; display: grid; gap: 8px; }
+  .edt-colours { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 6px 14px; }
+  .edt-colour { display: grid; grid-template-columns: 34px minmax(0, 1fr) 110px auto; gap: 6px; align-items: center; }
+  .edt-colour input[type="color"] { width: 34px; height: 26px; padding: 0; border: 1px solid #3a3e4d; background: none; cursor: pointer; }
+  .edt-preview { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: center; padding: 14px; background: #15161a; min-height: 70px; }
+  .edt-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .edt-chips span, .edt-chips button { font: .74rem var(--mono); padding: 2px 7px; border: 1px solid var(--rule); background: var(--page); color: var(--muted); }
+  .edt-chips button { cursor: pointer; }
+  .edt-chips button:hover { color: var(--text); border-color: var(--muted); }
+  .edt-props { display: grid; grid-template-columns: auto 150px minmax(0, 1fr); gap: 6px 10px; align-items: center; }
+  .edt-props .from { font: .72rem var(--mono); color: var(--faint); overflow-wrap: anywhere; }
+  .edt-props .inherited { color: var(--faint); font: .78rem var(--mono); }
+  .edt-list { display: grid; gap: 4px; }
+  .edt-list .edt-row { background: var(--page); border: 1px solid var(--rule); padding: 3px 6px; }
+  details.edt-section { background: var(--panel); border: 1px solid var(--rule); }
+  details.edt-section > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; padding: 10px 14px; }
+  details.edt-section > summary::-webkit-details-marker { display: none; }
+  details.edt-section > summary .nm { font: 700 1.1rem var(--display); }
+  details.edt-section > summary .nm::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); transition: transform .12s ease; }
+  details.edt-section[open] > summary .nm::before { transform: rotate(90deg); }
+  details.edt-section > summary .ds { color: var(--muted); font-size: .88rem; }
+  details.edt-section > .body { padding: 0 14px 12px; display: grid; gap: 8px; }
+  .edt-block { border-left: 2px solid var(--rule); padding-left: 10px; display: grid; gap: 4px; }
+  .edt-block > .lbl-sm { font: 500 .7rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .edt-item { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding: 3px 0; border-top: 1px solid rgba(40,43,55,.6); min-width: 0; }
+  .edt-item > .edt-tools, details.edt-section > summary > .edt-tools, .edt-card .edt-tools { opacity: .3; transition: opacity .1s ease; }
+  .edt-item:hover > .edt-tools, .edt-item:focus-within > .edt-tools, details.edt-section > summary:hover > .edt-tools,
+  details.edt-section > summary:focus-within > .edt-tools, .edt-card:hover .edt-tools, .edt-card:focus-within .edt-tools { opacity: 1; }
+  .edt-item.macro { display: grid; gap: 6px; }
+  .edt-item .kw { font: 500 .74rem var(--mono); color: var(--accent); letter-spacing: .04em; }
+  .edt-item .arrow { font: .8rem var(--mono); color: var(--faint); }
+  .edt-item .trailing { font: .74rem var(--mono); color: var(--faint); }
+  .edt-comment { flex: 1 1 400px; color: var(--muted) !important; font: .8rem var(--mono) !important; border-color: transparent !important; background: transparent !important; padding: 1px 4px !important; }
+  .edt-comment:focus { border-color: var(--rule) !important; background: var(--page) !important; }
+  .edt-blank { width: 100%; height: 6px; position: relative; }
+  .edt-blank button { position: absolute; right: 0; top: -9px; opacity: 0; }
+  .edt-blank:hover button, .edt-blank button:focus { opacity: 1; }
+  .edt-chain { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+  .edt-cond { display: inline-flex; gap: 4px; align-items: center; background: var(--page); border: 1px solid var(--rule); padding: 2px 4px; }
+  .edt-cond .edt { padding: 2px 5px; font-size: .8rem; }
+  .edt-params { display: grid; gap: 4px; padding-left: 16px; }
+  .edt-param { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .edt-param .key { font: .78rem var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+  .edt-macro-sum { font-size: .8rem; color: var(--faint); }
+  .edt-dirty { color: var(--accent); }
+  dialog.edt-dialog { background: var(--panel); color: var(--text); border: 1px solid var(--rule); width: min(1150px, 94vw); max-height: 88vh; padding: 14px; }
+  dialog.edt-dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog.edt-dialog .body { margin-top: 10px; display: grid; gap: 10px; }
+  .diff { margin: 0; font: .75rem/1.45 var(--mono); white-space: pre; overflow: auto; max-height: 68vh; background: var(--page); border: 1px solid var(--rule); padding: 8px 0; }
+  .diff div { padding: 0 10px; }
+  .diff .add { background: rgba(134,211,164,.12); color: var(--ok); }
+  .diff .del { background: rgba(242,125,108,.14); color: var(--bad); }
+  .diff .ctx { color: var(--muted); }
+  .diff .gap { color: var(--faint); background: var(--panel-2); }
+
+
+  @media (max-width: 980px) {
+    .loot-grid, .palette-grid, .import-grid, .pv-layout, .edt-layout, .edt-layout.wide-side { grid-template-columns: minmax(0, 1fr); }
+    .edt-side { position: static; max-height: 50vh; }
+    .edt-props { grid-template-columns: auto minmax(0, 1fr); }
+    .edt-param { grid-template-columns: minmax(0, 1fr); }
+    .pv-nav { position: static; max-height: none; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .pv-row { grid-template-columns: minmax(0, 1fr); }
+    .pv-side { justify-items: start; grid-auto-flow: column; }
+    .inspector { position: static; max-height: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title">
+      <span class="eyebrow" id="generated">Ruleforge Studio</span>
+      <h1>Ruleforge Studio</h1>
+    </div>
+    <div class="picker" id="script-picker" hidden>
+      <label class="muted" for="script">Script</label>
+      <select id="script"></select>
+    </div>
+  </header>
+
+  <div class="picker" role="tablist" aria-label="Style" id="styles"></div>
+
+  <nav class="views" role="tablist" aria-label="View" id="views">
+    <button class="tab" role="tab" id="view-loot" data-view="loot" type="button">Loot simulator</button>
+    <button class="tab" role="tab" id="view-palette" data-view="palette" type="button">Palette</button>
+    <span class="views-note" id="views-note"></span>
+  </nav>
+
+  <section id="loot" class="stack" data-panel="loot" style="gap:14px">
+    <div class="loot-controls">
+      <label for="area">Area level <input type="range" id="area" min="1" max="84"> <input type="number" id="area-num" min="1" max="84" style="width:64px"></label>
+      <label for="count">Drops <select id="count"><option>12</option><option selected>30</option><option>60</option><option>120</option></select></label>
+      <label for="mix">Mix <select id="mix"><option value="realistic">Realistic</option><option value="showcase">Showcase (every tier)</option></select></label>
+      <label><input type="checkbox" id="show-hidden"> Show hidden items</label>
+      <div class="seg" id="grounds" role="group" aria-label="Ground"></div>
+      <button class="btn primary" id="roll" type="button">Roll new drop</button>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="loot-grid">
+      <div class="ground" id="ground" aria-label="Dropped items"></div>
+      <aside class="inspector" id="inspector" aria-live="polite"></aside>
+    </div>
+    <div class="import-grid">
+      <section class="import-panel" aria-labelledby="import-title">
+        <h2 id="import-title">Inspect a pasted game item</h2>
+        <p class="muted">Copy an item in Path of Exile with Ctrl+C, then paste its text here. Ruleforge reads the text locally; it does not access the browser clipboard.</p>
+        <textarea id="item-import" spellcheck="false" placeholder="Rarity: Rare\nItem Class: Body Armours\n..."></textarea>
+        <div class="import-actions">
+          <button class="btn primary" id="inspect-item" type="button">Apply rules</button>
+          <span class="import-status" id="import-status" role="status"></span>
+        </div>
+      </section>
+      <aside class="inspector" id="import-inspector" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section id="palette" class="stack" data-panel="palette" hidden>
+    <div class="pv-toolbar">
+      <input type="search" id="pv-search" placeholder="Search styles and colours: name, palette colour, hex, sound…" aria-label="Search styles and colours">
+      <label class="pv-toggle"><input type="checkbox" id="pv-issues"> Only styles with issues</label>
+      <button class="btn" id="pv-expand" type="button">Expand all</button>
+      <button class="btn" id="pv-collapse" type="button">Collapse all</button>
+      <span class="pv-count" id="pv-count" role="status"></span>
+    </div>
+    <div class="pv-layout">
+      <nav class="pv-nav" id="pv-nav" aria-label="Style categories"></nav>
+      <div class="pv-main">
+        <details class="pv-panel" id="pv-checks" data-key="panel:checks" open>
+          <summary><span>Checks</span><span class="pv-sum" id="pv-checks-sum"></span></summary>
+          <div class="palette-grid">
+            <div class="checks" id="checks"></div>
+            <div class="checks" id="distinct"></div>
+          </div>
+        </details>
+        <details class="pv-panel" id="pv-colours" data-key="panel:colours">
+          <summary><span>Palette colours</span><span class="pv-sum" id="pv-colours-sum"></span></summary>
+          <div class="ed-body">
+            <p class="muted">Changing a colour recolours every style that uses it, on both views. "Used by" lists those styles. Copy your changes into the style file's [Palette] table (or back to Claude); edits are kept in this browser only.</p>
+            <div class="ed-actions">
+              <button class="btn primary" id="copy-changes" type="button">Copy changes as TOML</button>
+              <button class="btn" id="reset" type="button">Reset this style</button>
+              <span class="status" id="status" role="status"></span>
+            </div>
+            <textarea class="fallback" id="fallback" hidden readonly aria-label="Copy this text"></textarea>
+            <div id="ed-groups" class="stack"></div>
+          </div>
+        </details>
+        <div id="gallery" class="stack"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script id="studio-data" type="application/json">/*STUDIO_DATA*/null</script>
+<script>
+const DATA = JSON.parse(document.getElementById('studio-data').textContent);
+// Blocks point at a shared list of condition sets; attach them once.
+if (DATA) DATA.filters.forEach(f => f.blocks.forEach(b => {
+  b.conditions = DATA.conditions[b.cond] || [];
+  b.source = DATA.sources[b.src] || '';
+  b.look = DATA.looks[b.lk] || {};
+}));
+
+/* ---------- colour science ---------- */
+function hex2rgba(h) {
+  const v = h.replace('#', '');
+  const a = v.length === 8 ? parseInt(v.slice(6, 8), 16) / 255 : 1;
+  return [0, 2, 4].map(i => parseInt(v.slice(i, i + 2), 16) / 255).concat(a);
+}
+function flatten(hex, under = [0.07, 0.07, 0.08]) {
+  const [r, g, b, a] = hex2rgba(hex);
+  return [r * a + under[0] * (1 - a), g * a + under[1] * (1 - a), b * a + under[2] * (1 - a)];
+}
+const lin = c => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+function apca(txt, bg) {
+  const Y = rgb => 0.2126729 * rgb[0] ** 2.4 + 0.7151522 * rgb[1] ** 2.4 + 0.0721750 * rgb[2] ** 2.4;
+  const clamp = y => y > 0.022 ? y : y + (0.022 - y) ** 1.414;
+  const yt = clamp(Y(txt)), yb = clamp(Y(bg));
+  if (Math.abs(yb - yt) < 0.0005) return 0;
+  if (yb > yt) { const s = (yb ** 0.56 - yt ** 0.57) * 1.14; return s < 0.1 ? 0 : (s - 0.027) * 100; }
+  const s = (yb ** 0.65 - yt ** 0.62) * 1.14; return s > -0.1 ? 0 : (s + 0.027) * 100;
+}
+function lab(rgb) {
+  const [r, g, b] = rgb.map(lin);
+  const X = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047, Yv = 0.2126 * r + 0.7152 * g + 0.0722 * b, Z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+  const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  const fx = f(X), fy = f(Yv), fz = f(Z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+function de2000(c1, c2) {
+  const rad = Math.PI / 180, deg = 180 / Math.PI;
+  const [L1, a1, b1] = lab(c1), [L2, a2, b2] = lab(c2);
+  const Cb = (Math.hypot(a1, b1) + Math.hypot(a2, b2)) / 2;
+  const G = 0.5 * (1 - Math.sqrt(Cb ** 7 / (Cb ** 7 + 25 ** 7)));
+  const a1p = (1 + G) * a1, a2p = (1 + G) * a2;
+  const C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+  const h1p = (Math.atan2(b1, a1p) * deg + 360) % 360, h2p = (Math.atan2(b2, a2p) * deg + 360) % 360;
+  const dLp = L2 - L1, dCp = C2p - C1p;
+  let dh = h2p - h1p;
+  if (C1p * C2p === 0) dh = 0; else if (dh > 180) dh -= 360; else if (dh < -180) dh += 360;
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dh * rad / 2);
+  const Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+  let hbp;
+  if (C1p * C2p === 0) hbp = h1p + h2p;
+  else if (Math.abs(h1p - h2p) > 180) hbp = (h1p + h2p < 360) ? (h1p + h2p + 360) / 2 : (h1p + h2p - 360) / 2;
+  else hbp = (h1p + h2p) / 2;
+  const T = 1 - 0.17 * Math.cos((hbp - 30) * rad) + 0.24 * Math.cos(2 * hbp * rad) + 0.32 * Math.cos((3 * hbp + 6) * rad) - 0.20 * Math.cos((4 * hbp - 63) * rad);
+  const dth = 30 * Math.exp(-(((hbp - 275) / 25) ** 2));
+  const RC = 2 * Math.sqrt(Cbp ** 7 / (Cbp ** 7 + 25 ** 7));
+  const SL = 1 + 0.015 * (Lbp - 50) ** 2 / Math.sqrt(20 + (Lbp - 50) ** 2), SC = 1 + 0.045 * Cbp, SH = 1 + 0.015 * Cbp * T;
+  const RT = -Math.sin(2 * dth * rad) * RC;
+  return Math.sqrt((dLp / SL) ** 2 + (dCp / SC) ** 2 + (dHp / SH) ** 2 + RT * (dCp / SC) * (dHp / SH));
+}
+// APCA target by font size: bigger labels can carry a little less contrast.
+const textTarget = fs => fs >= 44 ? 75 : fs >= 36 ? 70 : fs >= 27 ? 60 : fs >= 23 ? 50 : 42;
+
+/* ---------- state ---------- */
+const store = {
+  get(key, fallback) { try { const v = localStorage.getItem('ruleforge-studio:' + key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
+  set(key, value) { try { localStorage.setItem('ruleforge-studio:' + key, JSON.stringify(value)); } catch (e) {} },
+};
+const scripts = [...new Set(DATA.filters.map(f => f.script))];
+const state = {
+  view: store.get('view', 'loot'),
+  script: scripts.includes(store.get('script', '')) ? store.get('script', '') : scripts[0],
+  style: store.get('style', DATA.styles[0] && DATA.styles[0].id),
+  ground: store.get('ground', 'strand'),
+  area: store.get('area', 30),
+  count: store.get('count', 30),
+  mix: store.get('mix', 'realistic'),
+  showHidden: store.get('showHidden', false),
+  seed: store.get('seed', 1),
+  edits: store.get('edits', {}),
+  importText: store.get('importText', ''),
+  pvSearch: store.get('pvSearch', ''),
+  pvIssues: store.get('pvIssues', false),
+  pvOpen: store.get('pvOpen', {}),
+  imported: null,
+  selected: 0,
+};
+if (!DATA.styles.some(s => s.id === state.style)) state.style = DATA.styles[0].id;
+const persist = () => ['view', 'script', 'style', 'ground', 'area', 'count', 'mix', 'showHidden', 'seed', 'edits', 'importText', 'pvSearch', 'pvIssues', 'pvOpen'].forEach(k => store.set(k, state[k]));
+const currentStyle = () => DATA.styles.find(s => s.id === state.style);
+const currentFilter = () => DATA.filters.find(f => f.script === state.script && f.style === state.style);
+const palette = () => ({ ...currentStyle().palette, ...(state.edits[state.style] || {}) });
+function colorOf(c, P) {
+  if (!c) return null;
+  if (c.var && P[c.var]) {
+    // Keep the stylesheet's alpha if the palette value has none.
+    const v = P[c.var];
+    return v.length === 7 && c.hex.length === 9 ? v + c.hex.slice(7) : v;
+  }
+  return c.hex;
+}
+
+/* ---------- labels ---------- */
+const DEFAULT_TEXT = { Normal: '#C8C8C8', Magic: '#8888FF', Rare: '#FFFF77', Unique: '#AF6025' };
+const BEAM = { Red: '#ff4a3d', Green: '#4dff6b', Blue: '#4d86ff', Brown: '#a8672e', White: '#ffffff', Yellow: '#ffe23b', Cyan: '#3bf3ff', Grey: '#a0a0a0', Orange: '#ff9a2b', Pink: '#ff6bd3', Purple: '#b34bff' };
+const px = fs => Math.max(10, (fs || 32) * 0.5);
+function labelEl(text, look, P, rarity, scale = 1) {
+  const el = document.createElement('span');
+  el.className = 'lbl';
+  el.textContent = text;
+  const bg = colorOf(look.background, P) || '#000000F0';
+  el.style.color = colorOf(look.text, P) || DEFAULT_TEXT[rarity] || '#C8C8C8';
+  el.style.background = bg;
+  el.style.borderColor = colorOf(look.border, P) || 'transparent';
+  el.style.fontSize = (px(look.fontSize) * scale).toFixed(1) + 'px';
+  return el;
+}
+
+/* ---------- random loot ---------- */
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function pick(r, items, weight = () => 1) {
+  let total = 0; const w = items.map(i => { const v = Math.max(0, weight(i)); total += v; return v; });
+  if (!total) return null;
+  let x = r() * total;
+  for (let i = 0; i < items.length; i++) { x -= w[i]; if (x <= 0) return items[i]; }
+  return items[items.length - 1];
+}
+const ARMOUR_CLASSES = { 'Body Armours': 8, Helmets: 7, Gloves: 7, Boots: 7, Shields: 5 };
+const JEWELLERY = { Rings: 3, Amulets: 2, Belts: 3 };
+const FLASKS = ['Life Flasks', 'Mana Flasks', 'Hybrid Flasks', 'Utility Flasks'];
+const CURRENCY_CATEGORIES = new Set(['Orbs', 'Supplies', 'Orbs-Mapping', 'Supplies-Mapping', 'Divination']);
+const STACKABLE_CLASS = { Wickerman: 'Viscera', Threads: 'Map Fragments', Scarabs: 'Map Fragments', 'Map Fragments': 'Map Fragments', Essences: 'Stackable Currency', Oils: 'Stackable Currency' };
+const socketCap = lvl => lvl <= 2 ? 2 : lvl <= 24 ? 3 : lvl <= 34 ? 4 : lvl <= 49 ? 5 : 6;
+const pool = DATA.items;
+const baseByName = new Map(pool.equipment.map(b => [b.name, b]));
+const currencyBases = [...new Map(pool.stackables.filter(s => CURRENCY_CATEGORIES.has(s.category)).map(s => [s.base, s])).values()];
+const leagueBases = [...new Map(pool.stackables.filter(s => !CURRENCY_CATEGORIES.has(s.category)).map(s => [s.category + '|' + s.base + '|' + (s.rarity || ''), s])).values()];
+const stackSteps = new Map();
+pool.stackables.forEach(s => { if (s.minStack) stackSteps.set(s.base, [...new Set([...(stackSteps.get(s.base) || []), s.minStack])].sort((a, b) => a - b)); });
+
+function rollSockets(r, base, ilvl) {
+  const max = Math.min(base.sockets || 0, socketCap(ilvl));
+  if (!max) return { sockets: [], links: [] };
+  const n = 1 + Math.floor(Math.pow(r(), 1.6) * max);
+  const attr = [['R', base.str || 0], ['G', base.dex || 0], ['B', base.int || 0]];
+  const sockets = [];
+  for (let i = 0; i < n; i++) sockets.push(r() < 0.8 ? 'W' : pick(r, attr, a => a[1] + 10)[0]);
+  const fullLink = r() < 0.015;
+  const links = [[sockets[0]]];
+  for (let i = 1; i < n; i++) (fullLink || r() < 0.42) ? links[links.length - 1].push(sockets[i]) : links.push([sockets[i]]);
+  return { sockets, links };
+}
+function recency(area, drop) { return 1 + 3 * Math.exp(-Math.max(0, area - drop) / 10); }
+function equipmentItem(r, area, classes, showcase, rarityOverride) {
+  const cls = pick(r, Object.keys(classes), c => classes[c]);
+  const bases = pool.equipment.filter(b => b.class === cls && (showcase || b.drop <= area));
+  const base = pick(r, bases.length ? bases : pool.equipment.filter(b => b.class === cls), b => recency(area, b.drop));
+  if (!base) return null;
+  const roll = r();
+  const rarity = rarityOverride || (roll < 0.5 ? 'Normal' : roll < 0.86 ? 'Magic' : 'Rare');
+  const item = fromBase(r, base, area, rarity, showcase);
+  if (rarity === 'Rare' && area >= 12 && r() < (showcase ? 0.15 : 0.03)) item.mods.push('Veiled');
+  if (area >= 68 && r() < (showcase ? 0.1 : 0.01)) item.fractured = true;
+  if (r() < (showcase ? 0.08 : 0.02)) {
+    item.corrupted = true;
+    // One of a Vaal Orb's four equally likely outcomes adds a corruption implicit.
+    item.corruptedMods = r() < 0.25 ? 1 : 0;
+  }
+  return item;
+}
+// Classes whose base defences roll within a range; other equipment reports 100.
+const ROLLED_DEFENCE_CLASSES = new Set(['Body Armours', 'Boots', 'Gloves', 'Helmets', 'Shields']);
+const DEFENCES = [['armour', 'armourMin'], ['evasion', 'evasionMin'], ['es', 'esMin'], ['ward', 'wardMin']];
+// The game's BaseDefencePercentile: the average percentile of the item's base defence rolls.
+function defencePercentile(base, values) {
+  if (!base) return 0;
+  if (!ROLLED_DEFENCE_CLASSES.has(base.class)) return 100;
+  const parts = DEFENCES.filter(([max]) => base[max] > 0).map(([max, min]) => {
+    const lo = base[min] || base[max], hi = base[max];
+    return hi === lo ? 100 : Math.max(0, Math.min(100, (values[max] - lo) / (hi - lo) * 100));
+  });
+  return parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : 100;
+}
+function rollDefences(r, base, showcase) {
+  // One roll for every defence type, with extra max rolls in showcase mode so they are easy to find.
+  const roll = showcase && r() < 0.25 ? 1 : r();
+  const values = {};
+  DEFENCES.forEach(([max, min]) => { values[max] = base[max] ? Math.round((base[min] || base[max]) + roll * (base[max] - (base[min] || base[max]))) : 0; });
+  return values;
+}
+function fromBase(r, base, area, rarity, showcase = false) {
+  const { sockets, links } = rollSockets(r, base, area);
+  const defences = rollDefences(r, base, showcase);
+  return {
+    label: base.name, base: base.name, cls: base.class, rarity, ilvl: area, drop: base.drop, w: base.w, h: base.h,
+    quality: r() < 0.06 ? 1 + Math.floor(r() * 20) : 0, stack: 1, sockets, links, mods: [],
+    corrupted: false, corruptedMods: 0, fractured: false, identified: rarity === 'Normal',
+    // Illustrative tier sampling, not measured game drop rates.
+    itemTier: area >= 45 && ['Magic', 'Rare'].includes(rarity) && r() < (showcase ? .65 : .12) ? pick(r, [2,3,4,5], n => 6-n) : 0,
+    fated: rarity === 'Rare' && r() < (showcase ? .2 : .02),
+    ...defences, defencePercentile: defencePercentile(base, defences),
+  };
+}
+function stackItem(r, s, showcase) {
+  let stack = 1;
+  const steps = stackSteps.get(s.base);
+  if (steps) stack = showcase ? pick(r, steps) + Math.floor(r() * 3) : (r() < 0.8 ? 1 + Math.floor(r() * 3) : r() < 0.8 ? 5 + Math.floor(r() * 10) : 20 + Math.floor(r() * 20));
+  const rarity = s.rarity || 'Normal';
+  return {
+    label: stack > 1 ? `${stack}x ${s.base}` : s.base, base: s.base, cls: s.class || (s.base === 'Frayed Thread' ? 'Stackable Currency' : STACKABLE_CLASS[s.category]) || 'Stackable Currency',
+    category: s.category, rarity, stack, w: 1, h: 1, quality: 0, sockets: [], links: [], mods: [],
+    corrupted: false, fractured: false, identified: true,
+  };
+}
+const KIND_WEIGHTS = {
+  campaign: { equipment: 44, jewellery: 7, flask: 8, gem: 4, currency: 18, gold: 12, card: 3, unique: 2, jewel: 1, league: 3, tattoo: 1 },
+  maps: { equipment: 28, jewellery: 5, flask: 3, gem: 3, currency: 20, gold: 10, card: 6, unique: 3, jewel: 2, league: 20, tattoo: 2 },
+  showcase: { equipment: 14, jewellery: 6, flask: 6, gem: 8, currency: 16, gold: 5, card: 10, unique: 10, jewel: 3, league: 22, tattoo: 6 },
+};
+function rollItem(r, area, mix) {
+  const showcase = mix === 'showcase';
+  const weights = showcase ? KIND_WEIGHTS.showcase : area >= 68 ? KIND_WEIGHTS.maps : KIND_WEIGHTS.campaign;
+  const tierWeight = s => showcase ? 1 : Math.pow(Math.max(1, s.priority), 2.6);
+  switch (pick(r, Object.keys(weights), k => weights[k])) {
+    case 'equipment': return equipmentItem(r, area, { ...ARMOUR_CLASSES, ...weaponClasses() }, showcase);
+    case 'jewellery': return equipmentItem(r, area, JEWELLERY, showcase);
+    case 'jewel': return equipmentItem(r, area, { Jewels: 3, 'Abyss Jewels': 1 }, showcase, r() < 0.5 ? 'Magic' : 'Rare');
+    case 'flask': {
+      const bases = pool.equipment.filter(b => FLASKS.includes(b.class) && (showcase || b.drop <= area));
+      const base = pick(r, bases, b => recency(area, b.drop));
+      if (!base) return null;
+      const item = fromBase(r, base, area, r() < 0.7 ? 'Normal' : 'Magic');
+      item.quality = r() < 0.1 ? 1 + Math.floor(r() * 20) : 0;
+      return item;
+    }
+    case 'gem': {
+      const gem = pick(r, pool.gems, g => g.vaal ? 0.3 : 1);
+      if (!gem) return null;
+      const q = r();
+      return { label: gem.name, base: gem.name, cls: gem.class, rarity: 'Normal', stack: 1, w: 1, h: 1, quality: q < 0.85 ? 0 : q < 0.95 ? 1 + Math.floor(r() * 9) : q < 0.99 ? 10 + Math.floor(r() * 10) : 20,
+        sockets: [], links: [], mods: [], corrupted: !!gem.vaal, fractured: false, identified: true, gemLevel: 1 };
+    }
+    case 'currency': { const s = pick(r, currencyBases, tierWeight); return s && stackItem(r, s, showcase); }
+    case 'league': { const s = pick(r, leagueBases, tierWeight); return s && stackItem(r, s, showcase); }
+    case 'gold': { const n = Math.round(area * (6 + r() * 30)); return { label: `${n} Gold`, base: 'Gold', cls: 'Gold', rarity: 'Normal', stack: n, w: 1, h: 1, quality: 0, sockets: [], links: [], mods: [], corrupted: false, fractured: false, identified: true }; }
+    case 'card': {
+      const card = pick(r, pool.cards, c => showcase ? 1 : 1 / Math.pow(1 + c.value, 0.8));
+      return card && { label: card.name, base: card.name, cls: 'Divination Cards', rarity: 'Normal', stack: 1, w: 1, h: 1, quality: 0, sockets: [], links: [], mods: [], corrupted: false, fractured: false, identified: true, value: card.value };
+    }
+    case 'tattoo': {
+      const tattoo = pick(r, pool.tattoos, t => showcase ? 1 : 1 / Math.pow(1 + t.value, 0.8));
+      return tattoo && { label: tattoo.name, base: tattoo.name, cls: 'Stackable Currency', rarity: 'Normal', stack: 1, w: 1, h: 1, quality: 0, sockets: [], links: [], mods: [], corrupted: false, fractured: false, identified: true, value: tattoo.value };
+    }
+    case 'unique': {
+      const options = pool.uniques.filter(u => showcase || (baseByName.get(u.base) || {}).drop <= area);
+      const u = pick(r, options);
+      if (!u) return null;
+      const item = fromBase(r, baseByName.get(u.base), area, 'Unique');
+      item.unique = u.name;
+      return item;
+    }
+  }
+  return null;
+}
+let weaponCache = null;
+function weaponClasses() {
+  if (weaponCache) return weaponCache;
+  const skip = new Set([...Object.keys(ARMOUR_CLASSES), ...Object.keys(JEWELLERY), ...FLASKS, 'Jewels', 'Abyss Jewels', 'Tinctures']);
+  weaponCache = {};
+  pool.equipment.forEach(b => { if (!skip.has(b.class)) weaponCache[b.class] = 2; });
+  return weaponCache;
+}
+
+/* ---------- filter evaluation ---------- */
+const RARITY = { Normal: 0, Magic: 1, Rare: 2, Unique: 3 };
+const NUMERIC = { UnidentifiedItemTier: 'itemTier', BaseDefencePercentile: 'defencePercentile', CorruptedMods: 'corruptedMods', AreaLevel: 'area', ItemLevel: 'ilvl', DropLevel: 'drop', StackSize: 'stack', Height: 'h', Width: 'w', Quality: 'quality',
+  BaseArmour: 'armour', BaseEvasion: 'evasion', BaseEnergyShield: 'es', BaseWard: 'ward', GemLevel: 'gemLevel', MapTier: 'mapTier' };
+const BOOLEAN = { Fated: 'fated', Corrupted: 'corrupted', FracturedItem: 'fractured', Identified: 'identified', Mirrored: 'mirrored', SynthesisedItem: 'synthesised', Replica: 'replica' };
+function compare(a, op, b) {
+  switch (op || '=') {
+    case '=': case '==': return a === b;
+    case '!': case '!=': return a !== b;
+    case '<': return a < b; case '<=': return a <= b;
+    case '>': return a > b; case '>=': return a >= b;
+  }
+  return false;
+}
+function hasColours(sockets, letters) {
+  const have = {}; sockets.forEach(s => { have[s] = (have[s] || 0) + 1; });
+  const need = {}; for (const l of letters) need[l] = (need[l] || 0) + 1;
+  return Object.entries(need).every(([l, n]) => (have[l] || 0) >= n);
+}
+function socketSpec(v) { const m = /^(\d*)([RGBWAD]*)$/i.exec(v) || ['', '', '']; return { n: m[1] === '' ? null : +m[1], letters: m[2].toUpperCase() }; }
+const setCache = new WeakMap();
+function valueSet(c) { let s = setCache.get(c); if (!s) { s = new Set(c.v); setCache.set(c, s); } return s; }
+// Returns true, false, or null when the studio cannot evaluate the condition.
+function evalCondition(item, c) {
+  const op = c.op || '';
+  if (c.k in NUMERIC) {
+    const value = c.k === 'CorruptedMods' && !item.corrupted ? 0 : item[NUMERIC[c.k]];
+    // Copied item text marks corruption implicits like any other implicit.
+    if (value === undefined) return c.k === 'CorruptedMods' ? null : false;
+    return c.v.some(v => compare(value, op, Number(v)));
+  }
+  if (c.k in BOOLEAN) return !!item[BOOLEAN[c.k]] === (c.v[0] === 'True');
+  if (c.k === 'Rarity') {
+    const value = RARITY[item.rarity];
+    if (!op || op === '=' || op === '==') return c.v.some(v => RARITY[v] === value);
+    return c.v.some(v => compare(value, op, RARITY[v]));
+  }
+  if (c.k === 'Class' || c.k === 'BaseType' || c.k === 'HasExplicitMod') {
+    if (c.k === 'HasExplicitMod' && c.v.length && /^\d+$/.test(c.v[0])) {
+      // The compiler's count rule tests all names. Count advanced modifier
+      // records once, never their multiple human-readable description lines.
+      if (item.explicitModCount === undefined) return null;
+      return compare(item.explicitModCount, op || '>=', Number(c.v[0]));
+    }
+    const values = c.k === 'Class' ? [item.cls] : c.k === 'BaseType' ? [item.base] : (item.modNames || item.mods);
+    const negate = op === '!' || op === '!=';
+    const exact = op === '==' || op === '!=';
+    const hit = exact ? values.some(v => valueSet(c).has(v)) : values.some(v => c.v.some(x => v.includes(x)));
+    return negate ? !hit : hit;
+  }
+  if (c.k === 'Sockets' || c.k === 'SocketGroup') {
+    return c.v.some(v => {
+      const spec = socketSpec(v);
+      if (c.k === 'Sockets') return (spec.n === null || compare(item.sockets.length, op || '>=', spec.n)) && hasColours(item.sockets, spec.letters);
+      return item.links.some(g => (spec.n === null || compare(g.length, op || '>=', spec.n)) && hasColours(g, spec.letters));
+    });
+  }
+  return null;
+}
+function matchingBlocks(item, blocks) {
+  const matches = []; let unknown = false;
+  for (const block of blocks) {
+    let ok = true, blocked = false;
+    for (const c of block.conditions || []) {
+      const res = evalCondition(item, c);
+      if (res === null) { blocked = true; continue; }
+      if (!res) { ok = false; break; }
+    }
+    if (blocked && ok) unknown = true;
+    if (ok && !blocked) matches.push(block);
+  }
+  return { matches, unknown };
+}
+
+/* ---------- pasted Path of Exile items ---------- */
+const IMPORT_METADATA = /^(Rarity|Item Class|Item Level|Drop Level|Item Tier|Map Tier|Stack Size|Quality|Sockets|LevelReq|Requirements|Implicits|Explicits|Prefixes|Suffixes|Armour|Evasion Rating|Energy Shield|Ward):/i;
+const IMPORT_FLAGS = /^(Corrupted|Fractured Item|Mirrored|Synthesised Item|Replica|Fated|Unidentified(?:\s*\(Tier\s*:?\s*[0-5]\))?)$/i;
+// Requirement lines sit between dividers like mods do, but are not mods.
+const IMPORT_REQUIREMENTS = /^(Level|Str|Dex|Int|Class):\s/i;
+function importKnown(name) {
+  if (!name) return null;
+  const equipment = pool.equipment.find(b => b.name === name);
+  if (equipment) return { base: equipment.name, cls: equipment.class, equipment };
+  const gem = pool.gems.find(g => g.name === name);
+  if (gem) return { base: gem.name, cls: gem.class, gem };
+  const card = pool.cards.find(c => c.name === name);
+  if (card) return { base: card.name, cls: 'Divination Cards', priced: card };
+  const tattoo = pool.tattoos.find(t => t.name === name);
+  if (tattoo) return { base: tattoo.name, cls: 'Stackable Currency', priced: tattoo };
+  const stack = pool.stackables.find(s => s.base === name);
+  if (stack) return { base: stack.base, cls: stack.class || (stack.base === 'Frayed Thread' ? 'Stackable Currency' : STACKABLE_CLASS[stack.category]) || 'Stackable Currency', stack };
+  const unique = pool.uniques.find(u => u.name === name);
+  if (unique) {
+    const baseInfo = importKnown(unique.base);
+    return { base: unique.base, cls: baseInfo ? baseInfo.cls : '', unique, equipment: baseInfo && baseInfo.equipment };
+  }
+  return null;
+}
+function socketLayout(raw) {
+  if (!raw) return { sockets: [], links: [] };
+  const groups = raw.trim().split(/\s+/).filter(Boolean).map(group => group.split('-').map(s => s.toUpperCase()).filter(s => /^[RGBWAD]$/.test(s)));
+  const links = groups.filter(group => group.length);
+  return { sockets: links.flat(), links };
+}
+function numericHeader(lines, name) {
+  const line = lines.find(l => l.toLowerCase().startsWith(name.toLowerCase() + ':'));
+  const match = line && line.match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : 0;
+}
+function parseGameItem(text) {
+  const lines = String(text || '').replace(/\r/g, '').split('\n').map(line => line.trim()).filter(Boolean);
+  if (!lines.length) throw new Error('Paste the item text first.');
+  const rarityLine = lines.find(l => /^Rarity:/i.test(l));
+  if (!rarityLine) throw new Error('The paste does not contain a Rarity header.');
+  const rarity = (rarityLine.split(':')[1] || '').trim().split(/\s+/)[0] || 'Normal';
+  const classLine = lines.find(l => /^Item Class:/i.test(l));
+  const cls = classLine ? classLine.replace(/^Item Class:\s*/i, '').trim() : '';
+  const divider = lines.indexOf('--------');
+  const headerLines = lines.slice(0, divider < 0 ? lines.length : divider);
+  const visible = headerLines.filter(l => !/^Rarity:/i.test(l) && !/^Item Class:/i.test(l) && !IMPORT_METADATA.test(l) && !IMPORT_FLAGS.test(l));
+  let known = null;
+  for (const line of [...visible].reverse()) {
+    known = importKnown(line);
+    if (known) break;
+  }
+  const label = visible[0] || (known && known.base) || cls || 'Pasted item';
+  const baseDisplay = visible.length > 1 ? visible[visible.length - 1] : label;
+  if (!known) known = importKnown(baseDisplay) || importKnown(label);
+  const socketsLine = lines.find(l => /^Sockets:/i.test(l));
+  const socketed = socketLayout(socketsLine ? socketsLine.replace(/^Sockets:\s*/i, '') : '');
+  const quality = numericHeader(lines, 'Quality');
+  const stackLine = lines.find(l => /^Stack Size:/i.test(l));
+  const stack = stackLine ? Number((stackLine.match(/\d+/) || ['1'])[0]) : 1;
+  const itemLevel = numericHeader(lines, 'Item Level');
+  const mapTier = numericHeader(lines, 'Map Tier');
+  const firstDivider = divider < 0 ? lines.length : divider;
+  const modLines = lines.slice(firstDivider + 1).filter(l => l !== '--------' && !IMPORT_METADATA.test(l) && !IMPORT_FLAGS.test(l) && !IMPORT_REQUIREMENTS.test(l));
+  // A currency or card name is its base type, even when the pool doesn't list it.
+  const base = known && known.base ? known.base : /^(Currency|Divination)$/i.test(rarity) ? label : '';
+  const equipment = known && known.equipment;
+  const item = {
+    label, base, baseDisplay, cls: cls || (known && known.cls) || '', category: known && known.stack ? known.stack.category : '', rarity,
+    unique: known && known.unique ? known.unique.name : undefined,
+    ilvl: itemLevel, drop: equipment ? equipment.drop : 0, mapTier, stack, w: equipment ? equipment.w : 1, h: equipment ? equipment.h : 1,
+    quality, sockets: socketed.sockets, links: socketed.links, mods: modLines,
+    corrupted: lines.some(l => /^Corrupted$/i.test(l)), fractured: lines.some(l => /^Fractured Item$/i.test(l)),
+    identified: !lines.some(l => /^Unidentified(?:\s*\(Tier\s*:?\s*[0-5]\))?$/i.test(l)),
+    itemTier: Number((lines.join('\n').match(/^Unidentified\s*\(Tier\s*:?\s*([0-5])\)$/mi) || [])[1] || numericHeader(lines, 'Item Tier') || 0),
+    fated: lines.some(l => /^Fated$/i.test(l)), mirrored: lines.some(l => /^Mirrored$/i.test(l)),
+    synthesised: lines.some(l => /^Synthesised Item$/i.test(l)), replica: lines.some(l => /^Replica$/i.test(l)),
+    ...baseDefences(lines, modLines, quality),
+    area: state.area, value: known && known.priced ? known.priced.value : undefined,
+  };
+  const namedMods = modLines.filter(l => /^\{\s*(?:Prefix|Suffix|Map) Modifier\b/i.test(l));
+  if (namedMods.length) {
+    item.explicitModCount = namedMods.length;
+    item.modNames = namedMods.map(l => (l.match(/Modifier\s+"([^"]+)"/) || [])[1]).filter(Boolean);
+  }
+  item.defencePercentile = equipment ? defencePercentile(equipment, item) : 0;
+  if (!item.base) item.parseNote = 'The base type was not found in the Studio item pool; class and visible text rules can still be checked.';
+  return item;
+}
+// The copied item shows defences after local mods and quality. BaseArmour and
+// BaseDefencePercentile compare the base roll, so undo the local modifiers:
+// shown = (base + flat) * (1 + (increased% + quality%) / 100).
+const DEFENCE_HEADERS = { armour: 'Armour', evasion: 'Evasion Rating', es: 'Energy Shield', ward: 'Ward' };
+function baseDefences(lines, modLines, quality) {
+  const flat = { armour: 0, evasion: 0, es: 0, ward: 0 }, increased = { armour: 0, evasion: 0, es: 0, ward: 0 };
+  for (const raw of modLines) {
+    // Advanced copies add the roll range, e.g. "+14(10-27) to Armour".
+    const line = raw.replace(/\(\s*-?[\d.]+\s*-\s*-?[\d.]+\s*\)/g, '').replace(/\s+/g, ' ').trim();
+    let m;
+    if ((m = line.match(/^\+(\d+) to Armour$/i))) flat.armour += +m[1];
+    else if ((m = line.match(/^\+(\d+) to Evasion Rating$/i))) flat.evasion += +m[1];
+    else if ((m = line.match(/^\+(\d+) to maximum Energy Shield$/i))) flat.es += +m[1];
+    else if ((m = line.match(/^\+(\d+) to Ward$/i))) flat.ward += +m[1];
+    else if ((m = line.match(/^(\d+)% increased (Armour|Evasion Rating|Energy Shield|Ward|Armour and Evasion|Armour and Energy Shield|Evasion and Energy Shield|Armour, Evasion and Energy Shield)$/i))) {
+      const what = m[2].toLowerCase();
+      if (what.includes('armour')) increased.armour += +m[1];
+      if (what.includes('evasion')) increased.evasion += +m[1];
+      if (what.includes('energy shield')) increased.es += +m[1];
+      if (what === 'ward') increased.ward += +m[1];
+    }
+  }
+  const out = {};
+  for (const [key, header] of Object.entries(DEFENCE_HEADERS)) {
+    const shown = numericHeader(lines, header);
+    out[key] = shown ? Math.max(0, Math.round(shown / (1 + (increased[key] + quality) / 100) - flat[key])) : 0;
+  }
+  return out;
+}
+
+/* ---------- rendering: shared ---------- */
+function renderStyles() {
+  const host = document.getElementById('styles'); host.replaceChildren();
+  for (const s of DATA.styles) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tab'; b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(s.id === state.style));
+    b.textContent = s.name;
+    b.addEventListener('click', () => { state.style = s.id; persist(); renderAll(); });
+    host.append(b);
+  }
+  const sp = document.getElementById('script-picker'), sel = document.getElementById('script');
+  sp.hidden = scripts.length < 2;
+  sel.replaceChildren(...scripts.map(n => { const o = document.createElement('option'); o.textContent = n; o.selected = n === state.script; return o; }));
+  document.querySelectorAll('#views .tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === state.view)));
+  document.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== state.view; });
+  // The theme tabs and script picker belong to the simulator and palette views.
+  const previewView = state.view === 'loot' || state.view === 'palette';
+  document.getElementById('styles').hidden = !previewView;
+  if (!previewView) sp.hidden = true;
+  const f = currentFilter();
+  document.getElementById('generated').textContent = `Generated ${DATA.generatedAt}` + (f ? ` · ${f.file}` : '');
+}
+
+/* ---------- rendering: loot ---------- */
+const GROUNDS = {
+  strand: { name: 'Twilight Strand', base: 'linear-gradient(160deg,#27322f 0%,#1b2322 55%,#2c3533 100%)' },
+  keep: { name: 'Stone keep', base: 'linear-gradient(170deg,#4a453d 0%,#3a3631 60%,#524b41 100%)' },
+  sun: { name: 'Sunlit sand', base: 'linear-gradient(165deg,#c2ab7f 0%,#a88f64 55%,#cdb68a 100%)' },
+};
+let drops = [];
+function roll() {
+  const r = mulberry32(state.seed * 7919 + state.area * 131);
+  drops = [];
+  for (let guard = 0; drops.length < state.count && guard < state.count * 5; guard++) {
+    const item = rollItem(r, state.area, state.mix);
+    if (item) { item.area = state.area; drops.push(item); }
+  }
+  evaluate();
+}
+function evaluate() {
+  const f = currentFilter();
+  drops.forEach(d => { const res = f ? matchingBlocks(d, f.blocks) : { matches: [], unknown: false }; d.matches = res.matches; d.unknown = res.unknown; });
+  state.selected = Math.min(state.selected, Math.max(0, drops.length - 1));
+}
+function renderLoot() {
+  const P = palette();
+  const seg = document.getElementById('grounds'); seg.replaceChildren();
+  for (const [k, G] of Object.entries(GROUNDS)) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = G.name;
+    b.setAttribute('aria-pressed', String(k === state.ground));
+    b.addEventListener('click', () => { state.ground = k; persist(); renderLoot(); });
+    seg.append(b);
+  }
+  const ground = document.getElementById('ground');
+  ground.style.background = (GROUNDS[state.ground] || GROUNDS.strand).base;
+  ground.replaceChildren();
+  let shown = 0, hidden = 0, unknown = 0;
+  drops.forEach((d, i) => {
+    const active = d.matches[0];
+    const isHidden = active && active.action === 'Hide';
+    isHidden ? hidden++ : shown++;
+    if (d.unknown) unknown++;
+    if (isHidden && !state.showHidden) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'drop' + (isHidden ? ' hidden-item' : '') + (i === state.selected ? ' selected' : '') + (d.unknown ? ' unknown' : '');
+    const beam = document.createElement('span');
+    beam.className = 'beam' + (active && active.look.beam ? (active.look.beamTemp ? ' temp' : '') : ' none');
+    if (active && active.look.beam) beam.style.background = `linear-gradient(to top, ${BEAM[active.look.beam] || '#fff'}, transparent)`;
+    btn.append(beam, labelEl(d.label, active ? active.look : {}, P, d.rarity));
+    btn.setAttribute('aria-label', `${d.label}${isHidden ? ' (hidden)' : ''}`);
+    btn.addEventListener('click', () => { state.selected = i; renderLoot(); });
+    ground.append(btn);
+  });
+  document.getElementById('summary').innerHTML =
+    `<span><b>${shown}</b> shown</span><span><b>${hidden}</b> hidden</span>` +
+    (unknown ? `<span><b>${unknown}</b> skipped a rule with a condition the studio can't evaluate (marked ?)</span>` : '') +
+    `<span>seed ${state.seed}</span>`;
+  renderInspector();
+  renderImportedInspector();
+}
+function fmtCondition(c) {
+  const vals = c.v.length > 4 ? c.v.slice(0, 4).map(v => `"${v}"`).join(' ') + ` … and ${c.v.length - 4} more` : c.v.map(v => /^\d+$|^True$|^False$/.test(v) ? v : `"${v}"`).join(' ');
+  return `<b>${c.k}</b> ${c.op ? c.op + ' ' : ''}${escapeHTML(vals)}`;
+}
+function escapeHTML(s) { return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])); }
+function styleFacts(look, P) {
+  const facts = document.createElement('dl'); facts.className = 'style-facts';
+  const add = (name, value, swatch) => {
+    const row = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = name;
+    const dd = document.createElement('dd');
+    if (swatch) { const dot = document.createElement('span'); dot.className = 'style-swatch'; dot.style.background = swatch; dd.append(dot); }
+    const text = document.createElement('span'); text.textContent = value; dd.append(text); row.append(dt, dd); facts.append(row);
+  };
+  const color = (name, value) => { const resolved = colorOf(value, P); add(name, resolved || 'default', resolved); };
+  color('Text', look.text); color('Background', look.background); color('Border', look.border);
+  add('Font', look.fontSize ? `${look.fontSize} pt` : 'default');
+  add('Beam', look.beam ? `${look.beam}${look.beamTemp ? ' (temp)' : ''}` : 'none');
+  add('Minimap', look.minimapShape ? `${look.minimapSize} ${look.minimapColor} ${look.minimapShape}` : 'none');
+  add('Sound', look.sound ? `${look.sound}${look.volume ? ` @${look.volume}` : ''}` : 'none');
+  return facts;
+}
+function renderInspectorTarget(d, boxId, emptyText) {
+  const box = document.getElementById(boxId); box.replaceChildren();
+  if (!d) { box.innerHTML = `<p class="empty">${escapeHTML(emptyText)}</p>`; return; }
+  const P = palette();
+  const head = document.createElement('div');
+  head.style.cssText = 'display:grid;gap:10px;justify-items:start';
+  const active = d.matches[0];
+  head.append(labelEl(d.label, active ? active.look : {}, P, d.rarity, 1.15));
+  if (active) {
+    const applied = document.createElement('div'); applied.style.cssText = 'display:grid;gap:6px;width:100%';
+    const appliedTitle = document.createElement('div'); appliedTitle.className = 'eyebrow'; appliedTitle.textContent = 'Applied styling';
+    applied.append(appliedTitle, styleFacts(active.look, P)); head.append(applied);
+  }
+  const facts = document.createElement('dl'); facts.className = 'facts';
+  const add = (k, v) => { if (v === undefined || v === null || v === '' || v === false) return; const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v === true ? 'yes' : v; facts.append(dt, dd); };
+  add('Base type', d.base || d.baseDisplay); add('Unique', d.unique); add('Class', d.cls); add('Rarity', d.rarity); add('Category', d.category);
+  add('Area level', d.area); add('Item level', d.ilvl); add('Drop level', d.drop); add('Stack size', d.stack > 1 ? d.stack : '');
+  add('Quality', d.quality ? d.quality + '%' : ''); add('Sockets', d.links.length ? d.links.map(g => g.join('-')).join('  ') : '');
+  add('Size', `${d.w}×${d.h}`); add('Corrupted', d.corrupted);
+  add('Corruption implicits', d.corrupted ? (d.corruptedMods === undefined ? 'unknown from a paste' : String(d.corruptedMods)) : ''); add('Fractured', d.fractured); add('Identified', d.identified ? '' : 'no');
+  add('Item tier', d.itemTier ? String(d.itemTier) : ''); add('Fated', d.fated);
+  const economy = (DATA.economy || []).filter(e => e.base === d.base);
+  add('Economy history', economy.map(e => `${e.league}: ${e.state}, ${e.reliableBuckets}/${e.buckets} reliable time buckets; last seen ${new Date(e.lastSeen).toLocaleString()}${e.listings ? `; ${e.listings} listings` : ''}${e.tradedUnits ? `; ${e.tradedUnits.toFixed(1)} exchange units` : ''}`).join(' · '));
+  add('Mods', d.mods.join(', ')); add('Base armour / evasion / ES', d.armour || d.evasion || d.es ? `${d.armour} / ${d.evasion} / ${d.es}` : '');
+  add('Base defence percentile', d.armour || d.evasion || d.es || d.ward ? `${d.defencePercentile}${d.defencePercentile === 100 ? ' (max-rolled)' : ''}` : '');
+  add('Price', d.value !== undefined ? d.value.toFixed(1) + ' chaos' : ''); add('Parse note', d.parseNote);
+  head.append(facts);
+  box.append(head);
+  const title = document.createElement('h3');
+  title.textContent = d.matches.length === 1 ? '1 rule matches' : `${d.matches.length} rules match`;
+  const note = document.createElement('p'); note.className = 'muted'; note.style.fontSize = '.85rem';
+  note.textContent = d.matches.length ? 'The top one decides how the item looks; the game never reaches the rest.' : 'No rule matches, so the game would use its default look.';
+  box.append(title, note);
+  d.matches.forEach((b, i) => {
+    const card = document.createElement('div'); card.className = 'rule' + (i === 0 ? ' active' : '');
+    const h = document.createElement('div'); h.className = 'rule-head';
+    h.innerHTML = `<span class="pill ${i === 0 ? 'active' : 'shadow'}">${i === 0 ? 'Active' : 'Shadowed'}</span><span class="pill ${b.action === 'Hide' ? 'hide' : 'show'}">${b.action}</span><span>line ${b.line}</span><span>${escapeHTML(b.section || '')}</span>`;
+    card.append(h);
+    if (b.source) { const source = document.createElement('div'); source.className = 'src'; source.textContent = b.source; card.append(source); }
+    const preview = document.createElement('div'); preview.style.cssText = 'display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+    preview.append(labelEl(d.label, b.look, P, d.rarity, 0.8));
+    const alerts = document.createElement('div'); alerts.className = 'alerts';
+    const bits = [];
+    if (b.style) bits.push(escapeHTML(b.style));
+    if (b.look.beam) bits.push(`<span><span class="swatch-dot" style="background:${BEAM[b.look.beam] || '#fff'}"></span>beam ${b.look.beam}${b.look.beamTemp ? ' (temp)' : ''}</span>`);
+    if (b.look.minimapShape) bits.push(`minimap ${b.look.minimapSize} ${b.look.minimapColor} ${b.look.minimapShape}`);
+    if (b.look.sound) bits.push(`sound ${escapeHTML(b.look.sound)}${b.look.volume ? ' @' + b.look.volume : ''}`);
+    alerts.innerHTML = bits.map(x => `<span>${x}</span>`).join('');
+    preview.append(alerts); card.append(preview);
+    if (i !== 0) card.append(styleFacts(b.look, P));
+    if (b.conditions && b.conditions.length) {
+      const ul = document.createElement('ul'); ul.className = 'conds';
+      ul.innerHTML = b.conditions.map(c => `<li>${fmtCondition(c)}</li>`).join('');
+      card.append(ul);
+    }
+    const tools = document.createElement('div'); tools.className = 'alerts';
+    card.append(tools);
+    tools.append(sourceToggle(b.style, b.look, P, card));
+    box.append(card);
+  });
+}
+function renderInspector() {
+  renderInspectorTarget(drops[state.selected], 'inspector', 'Roll a drop, then pick an item to see which rules it falls into.');
+}
+function renderImportedInspector() {
+  renderInspectorTarget(state.imported, 'import-inspector', 'Paste an in-game item to see which rules apply.');
+}
+
+/* ---------- rendering: palette ---------- */
+function lookLc(look, P) {
+  const bg = flatten(colorOf(look.background, P) || '#000000F0');
+  const text = look.text ? flatten(colorOf(look.text, P)) : null;
+  return text ? Math.abs(apca(text, bg)) : null;
+}
+function borderLc(look, P) {
+  if (!look.border || !look.background) return null;
+  const b = colorOf(look.border, P), g = colorOf(look.background, P);
+  if (b.toUpperCase() === g.toUpperCase() || hex2rgba(b)[3] === 0) return null;
+  return Math.abs(apca(flatten(b), flatten(g)));
+}
+function checkRow(name, val, lvl) {
+  return `<div class="check"><span class="pill ${lvl}">${lvl === 'ok' ? 'Pass' : lvl === 'warn' ? 'Close' : 'Fail'}</span><span>${escapeHTML(name)}</span><span class="val">${escapeHTML(val)}</span></div>`;
+}
+
+// Categories for the style browser, first match wins. Each final style path is
+// grouped by what the item is, the way FilterBlade's customizer is organised.
+const STYLE_CATEGORIES = [
+  ['Uniques', /^Final\/Uniques\//],
+  ['Equipment', /^Final\/(Equipment|OldEquipment|UnassociatedEquipment)\//],
+  ['Jewellery & jewels', /^Final\/(Jewelry\/|Jewels$)/],
+  ['Crafting bases', /^Final\/Crafting\//],
+  ['Links & sockets', /^Final\/Special\/(Sockets\/|RGB)/],
+  ['Gems', /^Final\/(Gems\/|Special\/(Quality\/Gems|Vaal))/],
+  ['Flasks', /^Final\/(Flasks|OldFlasks|Special\/Quality\/MaxQualityFlask)/],
+  ['Currency & supplies', /^Final\/(Orbs|Supplies|Catalysts)\//],
+  ['Gold', /^Final\/Leagues\/Gold_/],
+  ['Divination cards', /^Final\/Divination\//],
+  ['Tattoos', /^Final\/Tattoos\//],
+  ['Maps & atlas', /^(Final\/(Maps|Scarabs)\/|Final\/Leagues\/Chart$|Special\/MapFragments\/)/],
+  ['Essences & oils', /^Special\/(Essences|Oils)\//],
+  ['League mechanics', /^Final\/(Leagues|Eldritch)\//],
+  ['Labyrinth', /^Final\/Lab$/],
+  ['Diagnostics', /^Fallback$/],
+];
+function styleCategory(name) {
+  const hit = STYLE_CATEGORIES.find(([, re]) => re.test(name));
+  const category = hit ? hit[0] : 'Other';
+  const parts = name.split('/');
+  const sub = parts.slice(0, -1).filter(p => p !== 'Final' && p !== 'Special' && p !== 'Leagues').join(' / ');
+  return { category, sub: sub || category, leaf: parts[parts.length - 1] };
+}
+const lookVars = look => ['text', 'background', 'border'].map(k => look[k] && look[k].var).filter(Boolean);
+function styleIssues(name, look, P) {
+  if (name === 'Fallback') return [];
+  const issues = [];
+  const lc = lookLc(look, P), need = textTarget(look.fontSize || 32);
+  if (lc !== null && lc < need) issues.push(`text Lc ${lc.toFixed(0)} < ${need}`);
+  const lb = borderLc(look, P);
+  if (lb !== null && lb < 40) issues.push(`border Lc ${lb.toFixed(0)} < 40`);
+  return issues;
+}
+function usageIndex(style) {
+  const used = new Map();
+  for (const { name, look } of style.looks) for (const v of lookVars(look)) {
+    if (!used.has(v)) used.set(v, []);
+    if (!used.get(v).includes(name)) used.get(v).push(name);
+  }
+  return used;
+}
+const searchQuery = () => state.pvSearch.trim().toLowerCase();
+function styleMatches(name, look, q) {
+  if (!q) return true;
+  const hay = [name, ...lookVars(look), look.sound || '', look.beam || '', look.minimapShape || '', styleCategory(name).category].join(' ').toLowerCase();
+  return q.split(/\s+/).every(term => hay.includes(term));
+}
+function highlight(text, q) {
+  const safe = escapeHTML(text);
+  if (!q) return safe;
+  const terms = q.split(/\s+/).filter(Boolean).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return terms.length ? safe.replace(new RegExp(`(${terms.join('|')})`, 'gi'), '<mark>$1</mark>') : safe;
+}
+function openState(key, fallback) { return key in state.pvOpen ? state.pvOpen[key] : fallback; }
+function trackOpen(details) {
+  details.addEventListener('toggle', () => { state.pvOpen[details.dataset.key] = details.open; persist(); });
+}
+
+// ---- source view: which styles composed a look, and who supplied each channel ----
+const CHANNELS = [
+  ['text', 'Text colour'], ['background', 'Background'], ['border', 'Border'], ['fontSize', 'Font size'],
+  ['beam', 'Beam'], ['beamTemp', 'Beam temporary'], ['minimapSize', 'Icon size'], ['minimapColor', 'Icon colour'],
+  ['minimapShape', 'Icon shape'], ['sound', 'Sound'], ['volume', 'Volume'],
+];
+function channelValue(key, look, P) {
+  const colour = c => { const hex = colorOf(c, P); return hex ? `<span class="style-swatch" style="background:${hex}"></span> ${escapeHTML(hex)}${c.var ? ` <span class="muted">${escapeHTML(c.var)}</span>` : ''}` : '—'; };
+  switch (key) {
+    case 'text': case 'background': case 'border': return look[key] ? colour(look[key]) : '—';
+    case 'beamTemp': return look.beam ? (look.beamTemp ? 'yes' : 'no') : '—';
+    case 'minimapSize': return look.minimapSize !== undefined && look.minimapSize !== null ? String(look.minimapSize) : '—';
+    case 'minimapColor': return look.minimapColor ? escapeHTML(look.minimapColor) : '—';
+    case 'minimapShape': return look.minimapShape ? escapeHTML(look.minimapShape) : '—';
+    default: return look[key] !== undefined && look[key] !== '' && look[key] !== 0 ? escapeHTML(String(look[key])) : '—';
+  }
+}
+function sourceTree(name, sources, depth = 0, seen = new Set()) {
+  const src = sources[name];
+  const li = document.createElement('li');
+  const own = src && src.own && src.own.length ? ` <span class="own">sets ${src.own.join(', ')}</span>` : '';
+  li.innerHTML = `${escapeHTML(name)}${own}`;
+  if (src && src.combination && src.combination.length && depth < 8 && !seen.has(name)) {
+    const ul = document.createElement('ul');
+    const next = new Set(seen); next.add(name);
+    src.combination.forEach(dep => ul.append(sourceTree(dep, sources, depth + 1, next)));
+    li.append(ul);
+  }
+  return li;
+}
+function sourceView(styleName, look, P) {
+  const box = document.createElement('div'); box.className = 'source-view';
+  const sources = currentStyle().sources || {};
+  let name = styleName || '', precedence = null;
+  if (name.includes(' over ')) {
+    // A max-roll precedence copy: the max-roll style over the rule it restyles.
+    const at = name.indexOf(' over ');
+    precedence = name.slice(0, at); name = name.slice(at + 6);
+    const note = document.createElement('p'); note.className = 'note';
+    note.textContent = `Max-roll precedence copy of the rule below. It keeps ${name}'s background and icon shape, takes ${precedence}'s border, and takes whichever tier ranks higher for text, size, icon, beam and sound.`;
+    box.append(note);
+  }
+  const src = sources[name];
+  if (!src) {
+    const note = document.createElement('p'); note.className = 'note';
+    note.textContent = styleName
+      ? `${styleName} was composed by the compiler from the script (for example a gem tier with its quality border), so it has no stylesheet entry. The applied channels are listed below.`
+      : 'This rule has no recorded style.';
+    box.append(note);
+  } else {
+    const tree = document.createElement('ul'); tree.className = 'source-tree';
+    tree.append(sourceTree(name, sources));
+    if (precedence && sources[precedence]) tree.append(sourceTree(precedence, sources));
+    box.append(tree);
+  }
+  const table = document.createElement('table'); table.className = 'source-channels';
+  table.innerHTML = '<thead><tr><th>Channel</th><th>Value</th><th>Supplied by</th></tr></thead>';
+  const body = document.createElement('tbody');
+  for (const [key, label] of CHANNELS) {
+    const value = channelValue(key, look, P);
+    let from = src && src.channels[key] ? src.channels[key] : (value === '—' ? '' : 'the compiler');
+    if (precedence && sources[precedence]) {
+      const owner = sources[precedence].channels[key];
+      if (key === 'border' || (owner && look[key] !== undefined && channelFromPrecedence(key, look, precedence))) from = owner || precedence;
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<th>${label}</th><td>${value}</td><td class="from">${escapeHTML(from)}</td>`;
+    body.append(tr);
+  }
+  table.append(body); box.append(table);
+  return box;
+}
+// For a precedence copy, a tier channel came from the max-roll style when its
+// value equals that style's value and differs from the restyled rule's.
+function channelFromPrecedence(key, look, precedenceName) {
+  const entry = currentStyle().looks.find(l => l.name === precedenceName);
+  if (!entry) return false;
+  const a = entry.look[key], b = look[key];
+  const same = (x, y) => (x && y && typeof x === 'object') ? x.hex === y.hex : x === y;
+  return same(a, b) && ['text', 'fontSize', 'minimapSize', 'minimapColor', 'sound', 'volume', 'beam', 'beamTemp'].includes(key);
+}
+function sourceToggle(styleName, look, P, host) {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'src-btn'; btn.textContent = 'Source'; btn.setAttribute('aria-expanded', 'false');
+  const panel = document.createElement('div'); panel.className = 'pv-source'; panel.hidden = true;
+  btn.addEventListener('click', () => {
+    const open = panel.hidden;
+    if (open && !panel.childElementCount) panel.append(sourceView(styleName, look, P));
+    panel.hidden = !open; btn.setAttribute('aria-expanded', String(open));
+  });
+  host.append(panel);
+  return btn;
+}
+
+// ---- checks ----
+function renderChecks(style, P) {
+  let textOK = 0, textN = 0, bdOK = 0, bdN = 0; const fails = [];
+  for (const { name, look } of style.looks) {
+    if (name === 'Fallback') continue;
+    const lc = lookLc(look, P);
+    if (lc !== null) { textN++; const need = textTarget(look.fontSize || 32); if (lc >= need) textOK++; else fails.push(`<b>text Lc ${lc.toFixed(0)} &lt; ${need}</b> ${escapeHTML(name)}`); }
+    const lb = borderLc(look, P);
+    if (lb !== null) { bdN++; if (lb >= 40) bdOK++; else fails.push(`<b>border Lc ${lb.toFixed(0)}</b> ${escapeHTML(name)}`); }
+  }
+  document.getElementById('checks').innerHTML = `<h3>Contrast</h3><p class="muted" style="font-size:.82rem">Text targets by font size: APCA Lc 75 at 44+, 70 at 36+, 60 at 27+, 50 at 23+, 42 below. Borders Lc 40.</p>` +
+    checkRow('Text contrast', `${textOK} / ${textN} styles`, textOK === textN ? 'ok' : 'bad') +
+    checkRow('Borders readable', `${bdOK} / ${bdN} styles`, bdOK === bdN ? 'ok' : 'bad') +
+    (fails.length ? `<ul class="fails">${fails.map(f => `<li>${f}</li>`).join('')}</ul>` : '<p class="muted" style="font-size:.85rem">Every final style meets its target.</p>');
+
+  const groups = Object.entries(style.distinct || {});
+  let html = `<h3>Colours kept apart</h3><p class="muted" style="font-size:.82rem">Groups from the stylesheet's [Studio.Distinct] tables. Distance is CIEDE2000.</p>`;
+  if (!groups.length) html += '<p class="muted" style="font-size:.85rem">This stylesheet declares no groups.</p>';
+  const dfails = []; let close = 0;
+  for (const [name, g] of groups) {
+    let min = Infinity, bad = 0;
+    const vars = (g.Vars || []).filter(v => P[v]);
+    for (let i = 0; i < vars.length; i++) for (let j = i + 1; j < vars.length; j++) {
+      const d = de2000(flatten(P[vars[i]]), flatten(P[vars[j]]));
+      min = Math.min(min, d);
+      if (d < g.Min) { bad++; dfails.push(`<b>${name} ΔE ${d.toFixed(1)}</b> ${vars[i]} / ${vars[j]}`); }
+    }
+    if (bad) close++;
+    html += checkRow(`${name} (≥ ${g.Min})`, vars.length > 1 ? `closest ΔE ${min.toFixed(1)}` : 'one colour', bad ? 'warn' : 'ok');
+  }
+  if (dfails.length) html += `<ul class="fails">${dfails.map(f => `<li>${f}</li>`).join('')}</ul>`;
+  document.getElementById('distinct').innerHTML = html;
+  const failing = (textN - textOK) + (bdN - bdOK);
+  document.getElementById('pv-checks-sum').innerHTML = `${failing ? `<b>${failing} contrast issue${failing === 1 ? '' : 's'}</b>` : 'contrast ok'} · ${close ? `${close} group${close === 1 ? '' : 's'} close` : 'colours apart'}`;
+}
+
+// ---- style list ----
+function renderStyleList(style, P) {
+  const q = searchQuery();
+  const gallery = document.getElementById('gallery'); gallery.replaceChildren();
+  const nav = document.getElementById('pv-nav'); nav.replaceChildren();
+  const title = document.createElement('div'); title.className = 'pv-nav-title'; title.textContent = 'Categories'; nav.append(title);
+  const cats = new Map();
+  let shown = 0, total = 0;
+  for (const entry of style.looks) {
+    total++;
+    const issues = styleIssues(entry.name, entry.look, P);
+    if (state.pvIssues && !issues.length) continue;
+    if (!styleMatches(entry.name, entry.look, q)) continue;
+    shown++;
+    const { category, sub } = styleCategory(entry.name);
+    if (!cats.has(category)) cats.set(category, { subs: new Map(), count: 0, issues: 0 });
+    const cat = cats.get(category);
+    cat.count++; if (issues.length) cat.issues++;
+    if (!cat.subs.has(sub)) cat.subs.set(sub, []);
+    cat.subs.get(sub).push({ ...entry, issues });
+  }
+  const order = [...STYLE_CATEGORIES.map(c => c[0]), 'Other'];
+  for (const category of order.filter(c => cats.has(c))) {
+    const cat = cats.get(category);
+    const details = document.createElement('details'); details.className = 'pv-cat';
+    details.dataset.key = 'cat:' + category; details.id = 'cat-' + category.replace(/\W+/g, '-');
+    details.open = q || state.pvIssues ? true : openState(details.dataset.key, false);
+    trackOpen(details);
+    const summary = document.createElement('summary');
+    summary.innerHTML = `<span>${escapeHTML(category)}</span><span class="pv-sum">${cat.count} style${cat.count === 1 ? '' : 's'}${cat.issues ? ` · <b>${cat.issues} with issues</b>` : ''}</span>`;
+    details.append(summary);
+    const body = document.createElement('div'); body.className = 'pv-cat-body';
+    // Rows are only built when the category is open, so a closed page stays light.
+    const build = () => {
+      if (body.childElementCount) return;
+      for (const [sub, entries] of cat.subs) {
+        if (cat.subs.size > 1 || sub !== category) { const h = document.createElement('div'); h.className = 'pv-sub'; h.textContent = sub; body.append(h); }
+        entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        for (const entry of entries) body.append(styleRow(entry, P, q));
+      }
+    };
+    if (details.open) build();
+    details.addEventListener('toggle', () => { if (details.open) build(); });
+    details.append(body);
+    gallery.append(details);
+
+    const link = document.createElement('button'); link.type = 'button';
+    link.innerHTML = `<span>${escapeHTML(category)}</span><span class="n">${cat.count}${cat.issues ? ` · <b>${cat.issues}!</b>` : ''}</span>`;
+    link.addEventListener('click', () => { details.open = true; build(); details.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    nav.append(link);
+  }
+  if (!shown) gallery.innerHTML = `<p class="empty">No styles match${q ? ` “${escapeHTML(state.pvSearch)}”` : ''}${state.pvIssues ? ' with issues' : ''}.</p>`;
+  document.getElementById('pv-count').textContent = `${shown} of ${total} styles`;
+}
+function styleRow(entry, P, q) {
+  const { name, look, issues } = entry;
+  const row = document.createElement('div'); row.className = 'pv-row';
+  const preview = document.createElement('div'); preview.className = 'pv-preview';
+  preview.append(labelEl(styleCategory(name).leaf, look, P, 'Normal', 0.8));
+  const meta = document.createElement('div');
+  meta.innerHTML = `<div class="pv-name">${highlight(styleCategory(name).leaf, q)}<small>${highlight(name, q)}</small></div>`;
+  const chips = document.createElement('div'); chips.className = 'pv-chips';
+  const chip = (label, colour) => { const s = document.createElement('span'); if (colour) { const d = document.createElement('span'); d.className = 'style-swatch'; d.style.background = colour; s.append(d); } const t = document.createElement('span'); t.innerHTML = label; s.append(t); chips.append(s); };
+  for (const key of ['text', 'background', 'border']) if (look[key]) chip(highlight(look[key].var || colorOf(look[key], P), q), colorOf(look[key], P));
+  chip(`${look.fontSize || '–'} pt`);
+  if (look.beam) chip(`${escapeHTML(look.beam)} beam${look.beamTemp ? ' (temp)' : ''}`, BEAM[look.beam]);
+  if (look.minimapShape) chip(`icon ${look.minimapSize} ${escapeHTML(look.minimapColor)} ${highlight(look.minimapShape, q)}`);
+  if (look.sound) chip(`♪ ${highlight(look.sound, q)}`);
+  meta.append(chips);
+  const side = document.createElement('div'); side.className = 'pv-side';
+  const lc = lookLc(look, P);
+  const badge = document.createElement('span'); badge.className = 'pv-lc' + (issues.length ? ' bad' : '');
+  badge.textContent = issues.length ? issues.join(' · ') : (lc === null ? '' : `Lc ${lc.toFixed(0)}`);
+  side.append(badge, sourceToggle(name, look, P, row));
+  row.prepend(preview, meta, side);
+  return row;
+}
+
+// ---- palette colours ----
+function paletteGroup(name) {
+  if (name.startsWith('rad-')) return 'Radiance';
+  if (/^t\d+(-|$)/.test(name)) return 'Tier text';
+  if (name.startsWith('bg-')) return 'Backgrounds';
+  if (name.startsWith('bd-')) return 'Borders';
+  if (name.startsWith('id-')) return 'Identity colours';
+  return 'Other';
+}
+function paletteSets(style) {
+  // The style file's own comment headings, or name prefixes when it has none.
+  if (style.paletteGroups && style.paletteGroups.length > 1) return style.paletteGroups.map(g => [g.title, g.vars]);
+  const groups = new Map();
+  Object.keys(style.palette).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach(k => {
+    const g = paletteGroup(k); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(k);
+  });
+  return [...groups];
+}
+function renderEditor() {
+  const style = currentStyle(), O = style.palette, E = state.edits[style.id] || {}, P = palette();
+  const q = searchQuery(), used = usageIndex(style);
+  const host = document.getElementById('ed-groups'); host.replaceChildren();
+  let shown = 0;
+  for (const [title, keys] of paletteSets(style)) {
+    const visible = keys.filter(k => O[k] && (!q || [k, P[k], title].join(' ').toLowerCase().includes(q)));
+    if (!visible.length) continue;
+    shown += visible.length;
+    const set = document.createElement('details'); set.className = 'ed-set';
+    set.dataset.key = 'pal:' + title; set.open = q ? true : openState(set.dataset.key, true);
+    trackOpen(set);
+    const changed = visible.filter(k => k in E).length;
+    set.innerHTML = `<summary><span>${escapeHTML(title)}</span><span class="pv-sum">${visible.length}${changed ? ` · ${changed} changed` : ''}</span></summary>`;
+    const grid = document.createElement('div'); grid.className = 'ed-grid';
+    for (const k of visible) {
+      const row = document.createElement('div'); row.className = 'ed-row' + (k in E ? ' changed' : '');
+      const inp = document.createElement('input'); inp.type = 'color'; inp.value = P[k].slice(0, 7).toLowerCase(); inp.id = `ed-${style.id}-${k}`;
+      inp.setAttribute('aria-label', k);
+      const nm = document.createElement('label'); nm.className = 'nm'; nm.htmlFor = inp.id; nm.innerHTML = highlight(k, q);
+      const hx = document.createElement('span'); hx.textContent = P[k].toUpperCase();
+      const users = used.get(k) || [];
+      const use = document.createElement('button'); use.type = 'button'; use.className = 'used';
+      use.textContent = users.length ? `used by ${users.length}` : 'unused';
+      use.title = users.slice(0, 12).join('\n') + (users.length > 12 ? `\n… and ${users.length - 12} more` : '');
+      use.addEventListener('click', () => { setSearch(k); document.getElementById('gallery').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      inp.addEventListener('input', () => {
+        const alpha = O[k].length === 9 ? O[k].slice(7) : '';
+        const v = (inp.value + alpha).toUpperCase();
+        state.edits[style.id] = state.edits[style.id] || {};
+        if (v === O[k].toUpperCase()) delete state.edits[style.id][k]; else state.edits[style.id][k] = v;
+        hx.textContent = v; row.classList.toggle('changed', k in state.edits[style.id]);
+        persist(); refreshColours();
+      });
+      row.append(inp, nm, hx, use); grid.append(row);
+    }
+    set.append(grid); host.append(set);
+  }
+  if (!shown) host.innerHTML = `<p class="empty">No palette colours match “${escapeHTML(state.pvSearch)}”.</p>`;
+  const edits = Object.keys(E).length;
+  document.getElementById('pv-colours-sum').textContent = `${Object.keys(O).length} colours${edits ? ` · ${edits} changed` : ''}`;
+}
+function renderPalette(rebuildEditor = true) {
+  const style = currentStyle(), P = palette();
+  renderChecks(style, P);
+  renderStyleList(style, P);
+  if (rebuildEditor) renderEditor();
+}
+function setSearch(value) {
+  state.pvSearch = value;
+  const input = document.getElementById('pv-search');
+  if (input.value !== value) input.value = value;
+  persist(); renderPalette();
+}
+let refreshTimer = 0;
+function refreshColours() {
+  // Keep the editor in place so an open colour picker survives the re-render.
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(() => { state.view === 'loot' ? renderLoot() : renderPalette(false); }, 60);
+}
+
+async function copyText(text, okMsg) {
+  const status = document.getElementById('status'), fb = document.getElementById('fallback');
+  try { await navigator.clipboard.writeText(text); status.textContent = okMsg; fb.hidden = true; }
+  catch (e) { fb.hidden = false; fb.value = text; fb.focus(); fb.select(); status.textContent = 'The clipboard is blocked here. The text is selected below; copy it by hand.'; }
+}
+document.getElementById('copy-changes').addEventListener('click', () => {
+  const style = currentStyle(), E = state.edits[style.id] || {};
+  const keys = Object.keys(E);
+  if (!keys.length) { document.getElementById('status').textContent = 'Nothing changed yet.'; return; }
+  copyText(`# ${style.file}, in the [Palette] table\n` + keys.map(k => `${k} = "${E[k]}"`).join('\n') + '\n', 'Copied the changed colours.');
+});
+document.getElementById('reset').addEventListener('click', () => {
+  delete state.edits[state.style]; persist(); renderAll();
+  document.getElementById('status').textContent = 'This style is back to its file.';
+});
+
+/* ---------- wiring ---------- */
+// Views the editors add: { id, label, render }.
+const EXTRA_VIEWS = [];
+function renderAll() {
+  renderStyles();
+  if (state.view === 'loot') { evaluate(); evaluateImported(); renderLoot(); }
+  else if (state.view === 'palette') renderPalette();
+  else { const view = EXTRA_VIEWS.find(v => v.id === state.view); if (view) view.render(); }
+}
+function addView(view) {
+  EXTRA_VIEWS.push(view);
+  const tab = document.createElement('button');
+  tab.className = 'tab'; tab.type = 'button'; tab.setAttribute('role', 'tab'); tab.dataset.view = view.id; tab.textContent = view.label;
+  document.getElementById('views').insertBefore(tab, document.getElementById('views-note'));
+  const panel = document.createElement('section'); panel.className = 'stack'; panel.dataset.panel = view.id; panel.id = 'panel-' + view.id; panel.hidden = true;
+  document.querySelector('.wrap').append(panel);
+  return panel;
+}
+document.getElementById('views').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab || !tab.dataset.view) return;
+  state.view = tab.dataset.view; persist(); renderAll();
+});
+document.getElementById('script').addEventListener('change', e => { state.script = e.target.value; persist(); renderAll(); });
+const area = document.getElementById('area'), areaNum = document.getElementById('area-num');
+area.value = areaNum.value = state.area;
+const setArea = v => { state.area = Math.min(84, Math.max(1, Number(v) || 1)); area.value = areaNum.value = state.area; persist(); roll(); renderLoot(); };
+area.addEventListener('input', () => setArea(area.value));
+areaNum.addEventListener('change', () => setArea(areaNum.value));
+const count = document.getElementById('count'); count.value = String(state.count);
+count.addEventListener('change', () => { state.count = Number(count.value); persist(); roll(); renderLoot(); });
+const mix = document.getElementById('mix'); mix.value = state.mix;
+mix.addEventListener('change', () => { state.mix = mix.value; persist(); roll(); renderLoot(); });
+const showHidden = document.getElementById('show-hidden'); showHidden.checked = state.showHidden;
+showHidden.addEventListener('change', () => { state.showHidden = showHidden.checked; persist(); renderLoot(); });
+document.getElementById('roll').addEventListener('click', () => { state.seed++; state.selected = 0; persist(); roll(); renderLoot(); });
+
+const pvSearch = document.getElementById('pv-search');
+pvSearch.value = state.pvSearch;
+let pvTimer = 0;
+pvSearch.addEventListener('input', () => { clearTimeout(pvTimer); pvTimer = setTimeout(() => setSearch(pvSearch.value), 120); });
+const pvIssues = document.getElementById('pv-issues');
+pvIssues.checked = state.pvIssues;
+pvIssues.addEventListener('change', () => { state.pvIssues = pvIssues.checked; persist(); renderPalette(false); });
+function setAllOpen(open) {
+  document.querySelectorAll('#palette details[data-key]').forEach(d => { d.open = open; state.pvOpen[d.dataset.key] = open; });
+  persist();
+}
+document.getElementById('pv-expand').addEventListener('click', () => setAllOpen(true));
+document.getElementById('pv-collapse').addEventListener('click', () => setAllOpen(false));
+document.querySelectorAll('#palette details.pv-panel').forEach(d => { d.open = openState(d.dataset.key, d.open); trackOpen(d); });
+
+function evaluateImported() {
+  if (!state.imported) return;
+  state.imported.area = state.area;
+  const f = currentFilter();
+  const res = f ? matchingBlocks(state.imported, f.blocks) : { matches: [], unknown: false };
+  state.imported.matches = res.matches; state.imported.unknown = res.unknown;
+}
+function applyImportedText() {
+  const input = document.getElementById('item-import');
+  const status = document.getElementById('import-status');
+  state.importText = input.value; persist();
+  if (!input.value.trim()) {
+    state.imported = null; status.textContent = 'Paste an item to inspect it.'; renderImportedInspector(); return;
+  }
+  try {
+    state.imported = parseGameItem(input.value);
+    evaluateImported();
+    status.textContent = state.imported.parseNote || `${state.imported.matches.length} matching rules; the first rule is applied.`;
+  } catch (error) {
+    state.imported = null; status.textContent = error.message;
+  }
+  renderImportedInspector();
+}
+const importInput = document.getElementById('item-import');
+importInput.value = state.importText;
+document.getElementById('inspect-item').addEventListener('click', applyImportedText);
+importInput.addEventListener('paste', event => {
+  const text = event.clipboardData && event.clipboardData.getData('text/plain');
+  if (!text) return;
+  setTimeout(() => { importInput.value = text; applyImportedText(); }, 0);
+});
+if (state.importText.trim()) applyImportedText();
+
+// The first render waits for the editors' script, which adds views.
+document.addEventListener('DOMContentLoaded', () => {
+  if (!DATA || !DATA.styles.length) {
+    document.querySelector('.wrap').innerHTML = '<p>No styles were compiled, so there is nothing to show.</p>';
+    return;
+  }
+  if (state.view !== 'loot' && state.view !== 'palette' && !EXTRA_VIEWS.some(v => v.id === state.view)) state.view = 'loot';
+  roll();
+  renderAll();
+});
+</script>
+<script>/*STUDIO_EDITORS*/</script>
+</body>
+</html>

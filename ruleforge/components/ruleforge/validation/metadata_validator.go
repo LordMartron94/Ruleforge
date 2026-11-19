@@ -25,7 +25,7 @@ var requiredOrder = []symbols.LexingTokenType{
 func (m *FilterMetadataValidator) Validate() error {
 	fv := helpers.NewMetadataFieldsValidator(m.metadataBlock, helpers.ValidationOptions{
 		RequiredFields:     requiredOrder,
-		OptionalFields:     nil,
+		OptionalFields:     map[symbols.LexingTokenType]struct{}{symbols.ThemesKeywordToken: {}},
 		CheckRequiredOrder: true,
 	})
 	if err := fv.Validate(); err != nil {

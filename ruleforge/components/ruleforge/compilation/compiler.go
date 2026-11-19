@@ -14,6 +14,7 @@ import (
 
 // Compiler is now a lean orchestrator without prewired build.
 type Compiler struct {
+	economyState *data_generation.TierStateOptions
 	treeWalker   *TreeWalker
 	styleManager *StyleManager
 	ruleFactory  *RuleFactory
@@ -22,14 +23,15 @@ type Compiler struct {
 	armorBases            []model.ItemBase
 	weaponBases           []model.ItemBase
 	flaskBases            []model.ItemBase
-	economyCache          map[string][]data_generation.EconomyCacheItem
+	economyCache          map[string][]data_generation.EconomySnapshot
 	economyWeights        config.EconomyWeights
 	leagueWeights         []config.LeagueWeights
 	normalizationStrategy string
 	chasePotentialWeight  float64
+	valueHalfLifeDays     float64
 	baseTypeData          []config.BaseTypeAutomationEntry
-	cssVariables          map[string]string
 	customPresets         map[string]config.EquipmentPreset
+	currency              CurrencySettings
 }
 
 // NewCompiler constructs a Compiler and captures all dependencies except the Build.
@@ -38,26 +40,32 @@ func NewCompiler(
 	configuration CompilerConfiguration,
 	validBaseTypes []string,
 	itemBases []model.ItemBase,
-	economyCache map[string][]data_generation.EconomyCacheItem,
+	economyCache map[string][]data_generation.EconomySnapshot,
 	economyWeights config.EconomyWeights,
 	leagueWeights []config.LeagueWeights,
 	normalizationStrategy string,
 	chasePotentialWeight float64,
+	valueHalfLifeDays float64,
 	baseTypeData []config.BaseTypeAutomationEntry,
-	cssVariables map[string]string,
 	customPresets map[string]config.EquipmentPreset,
+	currency CurrencySettings,
 ) (*Compiler, error) {
-	styleMgr, err := NewStyleManager(configuration.StyleJsonPath, parseTree, cssVariables)
+	styleMgr, err := NewStyleManager(configuration.StylesheetPath, parseTree, configuration.Palette)
 	if err != nil {
 		return nil, err
 	}
 
 	armorBases, weaponBases, flaskBases := prepareItemData(itemBases, validBaseTypes)
+	gearBases := map[string]bool{}
+	for _, base := range itemBases {
+		gearBases[base.GetBaseType()] = true
+	}
 
 	return &Compiler{
+		economyState: configuration.EconomyState,
 		treeWalker:   NewTreeWalker(parseTree),
 		styleManager: styleMgr,
-		ruleFactory:  &RuleFactory{},
+		ruleFactory:  &RuleFactory{gearBases: gearBases},
 
 		validBaseTypes:        validBaseTypes,
 		armorBases:            armorBases,
@@ -68,9 +76,10 @@ func NewCompiler(
 		leagueWeights:         leagueWeights,
 		normalizationStrategy: normalizationStrategy,
 		chasePotentialWeight:  chasePotentialWeight,
+		valueHalfLifeDays:     valueHalfLifeDays,
 		baseTypeData:          baseTypeData,
-		cssVariables:          cssVariables,
 		customPresets:         customPresets,
+		currency:              currency,
 	}, nil
 }
 
@@ -124,9 +133,13 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 		c.leagueWeights,
 		c.normalizationStrategy,
 		c.chasePotentialWeight,
+		c.valueHalfLifeDays,
 		c.baseTypeData,
 		buildInstance,
+		c.currency,
 	)
+
+	ruleGenerator.economyState = c.economyState
 
 	// 5. Generate rules for each section and track final line numbers
 	for _, section := range sections {
@@ -134,6 +147,7 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 
 		body = append(body, c.constructSectionHeading(section.Name, section.Description))
 		lineCounter++
+		c.ruleFactory.SetSection(section.Name)
 
 		compiledRules, err := ruleGenerator.GenerateRulesForSection(section, variables)
 		if err != nil {
@@ -145,8 +159,12 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 			lineCounter += len(rule)
 		}
 
-		body = body[:len(body)-1]
-		lineCounter--
+		// Drop the last rule's trailing blank line; a section that only
+		// configures later rules has none, and keeps its heading.
+		if len(compiledRules) > 0 {
+			body = body[:len(body)-1]
+			lineCounter--
+		}
 
 		divider := c.constructDivider()
 		body = append(body, divider...)
@@ -167,7 +185,14 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 	toc = append(toc, c.constructComment(fmt.Sprintf("\tLine %d: %s (%s)", fallbackLineNumber, fallbackName, fallbackDesc)))
 
 	// 8. Add fallback rules
-	fallbackStyle, _ := c.styleManager.GetStyle("Fallback")
+	fallbackStyle, err := c.styleManager.GetStyle("Fallback")
+	if err != nil {
+		return nil, fmt.Errorf("the stylesheet needs a Fallback style: %w", err), metadata.Name
+	}
+	// The fallback means "unclassified"; no property may restyle it.
+	c.ruleFactory.SetMaxRollPrecedence(nil)
+	c.ruleFactory.SetSection(fallbackName)
+	c.ruleFactory.SetSource("Everything the script did not match")
 	fallbackRule := c.ruleFactory.ConstructRule(model2.ShowRule, *fallbackStyle, []string{})
 	fallbackHeading := c.constructSectionHeading(fallbackName, fallbackDesc)
 
@@ -213,6 +238,12 @@ func (c *Compiler) constructComment(content string) string {
 
 func (c *Compiler) constructDivider() []string {
 	return []string{"", c.constructComment("============================================================================"), ""}
+}
+
+// StudioBlocks describes every block of a compiled filter for the Ruleforge Studio.
+// lines must be the output of CompileIntoFilter on this compiler.
+func (c *Compiler) StudioBlocks(lines []string) []StudioBlock {
+	return BuildStudioBlocks(lines, c.ruleFactory.Records())
 }
 
 // prepareItemData filters and categorizes a raw list of item bases.

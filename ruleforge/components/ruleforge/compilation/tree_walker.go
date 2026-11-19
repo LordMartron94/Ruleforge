@@ -15,6 +15,10 @@ type ExtractedMetadata struct {
 	Version    string
 	Strictness string
 	Build      string
+
+	// Themes is the script's THEMES value: space-separated theme names, or
+	// empty for every enabled theme.
+	Themes string
 }
 
 // ExtractedSection holds the raw data for a single section block.
@@ -61,6 +65,8 @@ func (tw *TreeWalker) ExtractMetadata() ExtractedMetadata {
 			meta.Strictness = value
 		case "BUILD":
 			meta.Build = value
+		case "THEMES":
+			meta.Themes = value
 		}
 	}
 	return meta

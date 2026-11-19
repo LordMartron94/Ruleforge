@@ -16,6 +16,9 @@ type Color struct {
 	Green *uint8 `json:"green"`
 	Blue  *uint8 `json:"blue"`
 	Alpha *uint8 `json:"alpha"`
+
+	// Var is the palette name this colour came from, empty for literal colours.
+	Var string `json:"var,omitempty"`
 }
 
 func (c *Color) IsEqual(other *Color) bool {
@@ -23,6 +26,9 @@ func (c *Color) IsEqual(other *Color) bool {
 		return true
 	}
 	if c == nil || other == nil {
+		return false
+	}
+	if c.Var != other.Var {
 		return false
 	}
 	if (c.Red == nil) != (other.Red == nil) {

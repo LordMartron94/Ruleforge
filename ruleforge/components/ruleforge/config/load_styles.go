@@ -3,10 +3,13 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"slices"
 	"strconv"
+	"strings"
+
+	"github.com/BurntSushi/toml"
+	"github.com/google/uuid"
 )
 
 var allowedMinimapShapes = []string{
@@ -33,22 +36,78 @@ var knownStyleKeys = map[string]struct{}{
 	"Combination":     {},
 }
 
-// LoadStyles reads a JSON file, recursively parses it, and resolves style combinations.
+// colorKeys are the style properties that hold a colour.
+var colorKeys = map[string]struct{}{
+	"TextColor":       {},
+	"BorderColor":     {},
+	"BackgroundColor": {},
+}
+
+// studioKey is the top-level stylesheet table with studio settings instead of styles.
+const studioKey = "Studio"
+
+// Stylesheet is a loaded stylesheet: every resolved style plus the studio settings it declares.
+type Stylesheet struct {
+	Styles  map[string]Style
+	Studio  StudioSettings
+	Sources map[string]StyleSource
+}
+
+// StudioSettings configures the checks the Ruleforge Studio runs on a palette.
+type StudioSettings struct {
+	// Distinct lists groups of palette colours that must stay perceptually apart.
+	Distinct map[string]DistinctGroup `toml:"Distinct"`
+}
+
+// DistinctGroup is a set of palette colours whose pairwise CIEDE2000 distance should be at least Min.
+type DistinctGroup struct {
+	Min  float64  `toml:"Min"`
+	Vars []string `toml:"Vars"`
+}
+
+// LoadStyles reads a TOML stylesheet and resolves its colours against palette.
+func LoadStyles(path string, palette map[string]string) (map[string]Style, error) {
+	sheet, err := LoadStylesheet(path, palette)
+	if err != nil {
+		return nil, err
+	}
+	return sheet.Styles, nil
+}
+
+// LoadStylesheet reads a TOML stylesheet, recursively parses it, resolves its colours
+// against palette, and resolves style combinations.
+//
+// A colour is written as a palette name ("t2"), a literal ("#RRGGBB" or "#RRGGBBAA"),
+// { var = "t2" }, or { red = .., green = .., blue = .., alpha = .. }.
 //
 //goland:noinspection t
-func LoadStyles(path string, cssVariables map[string]string) (map[string]Style, error) {
-	data, err := os.ReadFile(path)
+func LoadStylesheet(path string, palette map[string]string) (*Stylesheet, error) {
+	contents, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read style file: %w", err)
+		return nil, fmt.Errorf("failed to read stylesheet %s: %w", path, err)
 	}
+	return ParseStylesheet(path, contents, palette)
+}
 
+// ParseStylesheet is LoadStylesheet for a stylesheet's contents; path only names it in errors.
+//
+//goland:noinspection t
+func ParseStylesheet(path string, contents []byte, palette map[string]string) (*Stylesheet, error) {
 	var raw map[string]interface{}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal styles json: %w", err)
+	if _, err := toml.Decode(string(contents), &raw); err != nil {
+		return nil, fmt.Errorf("failed to read stylesheet %s: %w", path, err)
 	}
 
-	if err := resolveVarColorsInTree(raw, cssVariables); err != nil {
-		return nil, err
+	var settings struct {
+		Studio StudioSettings `toml:"Studio"`
+	}
+	if _, err := toml.Decode(string(contents), &settings); err != nil {
+		return nil, fmt.Errorf("failed to read studio settings in %s: %w", path, err)
+	}
+	delete(raw, studioKey)
+
+	if err := resolveVarColorsInTree(raw, palette); err != nil {
+		return nil, fmt.Errorf("stylesheet %s: %w", path, err)
 	}
 
 	allStyles := make(map[string]*Style)
@@ -71,7 +130,7 @@ func LoadStyles(path string, cssVariables map[string]string) (map[string]Style, 
 		finalStyles[name] = *stylePtr
 	}
 
-	return finalStyles, nil
+	return &Stylesheet{Styles: finalStyles, Studio: settings.Studio, Sources: computeSources(allStyles)}, nil
 }
 
 //goland:noinspection t
@@ -217,44 +276,78 @@ func validateStyle(style *Style) error {
 	return nil
 }
 
+// resolveVarColorsInTree turns every colour in the stylesheet into an RGBA table.
+// Colours that came from the palette keep their palette name under "var", so the
+// studio can recolour them when the palette changes.
+//
 //goland:noinspection t
-func resolveVarColorsInTree(
-	node interface{},
-	cssVars map[string]string,
-) error {
+func resolveVarColorsInTree(node interface{}, palette map[string]string) error {
 	switch val := node.(type) {
 	case map[string]interface{}:
-		// first, if this is a color-like object:
-		if hexRef, ok := val["var"].(string); ok {
-			// lookup and parse it
-			hex, found := cssVars[hexRef]
-			if !found {
-				return fmt.Errorf("css variable %q not found", hexRef)
+		for key, child := range val {
+			if _, isColor := colorKeys[key]; isColor {
+				resolved, err := resolveColor(child, palette)
+				if err != nil {
+					return fmt.Errorf("%s: %w", key, err)
+				}
+				val[key] = resolved
+				continue
 			}
-			r, g, b, a, err := parseHexRGBA(hex)
-			if err != nil {
-				return fmt.Errorf("invalid css var %q: %w", hexRef, err)
-			}
-			val["red"] = uint8(r)
-			val["green"] = uint8(g)
-			val["blue"] = uint8(b)
-			val["alpha"] = uint8(a)
-			delete(val, "var")
-		}
-		for _, child := range val {
-			if err := resolveVarColorsInTree(child, cssVars); err != nil {
+			if err := resolveVarColorsInTree(child, palette); err != nil {
 				return err
 			}
 		}
-
 	case []interface{}:
 		for _, item := range val {
-			if err := resolveVarColorsInTree(item, cssVars); err != nil {
+			if err := resolveVarColorsInTree(item, palette); err != nil {
+				return err
+			}
+		}
+	case []map[string]interface{}:
+		for _, item := range val {
+			if err := resolveVarColorsInTree(item, palette); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+func resolveColor(value interface{}, palette map[string]string) (map[string]interface{}, error) {
+	var name, hex string
+	switch v := value.(type) {
+	case string:
+		if strings.HasPrefix(v, "#") {
+			hex = v
+		} else {
+			name = v
+		}
+	case map[string]interface{}:
+		reference, hasVar := v["var"].(string)
+		if !hasVar {
+			return v, nil
+		}
+		name = reference
+	default:
+		return nil, fmt.Errorf("unsupported colour value %v", value)
+	}
+
+	if name != "" {
+		found, ok := palette[name]
+		if !ok {
+			return nil, fmt.Errorf("colour %q is not in the style's palette", name)
+		}
+		hex = found
+	}
+	r, g, b, a, err := parseHexRGBA(hex)
+	if err != nil {
+		return nil, fmt.Errorf("invalid colour %q: %w", hex, err)
+	}
+	resolved := map[string]interface{}{"red": uint8(r), "green": uint8(g), "blue": uint8(b), "alpha": uint8(a)}
+	if name != "" {
+		resolved["var"] = name
+	}
+	return resolved, nil
 }
 
 func parseHexRGBA(hex string) (r, g, b, a uint64, err error) {
@@ -287,3 +380,79 @@ func parseHexRGBA(hex string) (r, g, b, a uint64, err error) {
 	a, err = strconv.ParseUint(hex[6:8], 16, 8)
 	return
 }
+
+// StyleSource records how a style was composed: the styles it combines, in
+// order, the channels it sets itself, and which style supplied each channel of
+// the resolved result. Channel names match the studio's look fields.
+type StyleSource struct {
+	Combination []string          `json:"combination,omitempty"`
+	Own         []string          `json:"own,omitempty"`
+	Channels    map[string]string `json:"channels"`
+}
+
+// ownChannels lists the channels a style sets itself, before any combination.
+func ownChannels(style *Style) []string {
+	var channels []string
+	add := func(set bool, name string) {
+		if set {
+			channels = append(channels, name)
+		}
+	}
+	add(style.TextColor != nil, "text")
+	add(style.BackgroundColor != nil, "background")
+	add(style.BorderColor != nil, "border")
+	add(style.FontSize != nil, "fontSize")
+	if style.Beam != nil {
+		add(style.Beam.Color != nil, "beam")
+		add(style.Beam.Temp != nil, "beamTemp")
+	}
+	if style.Minimap != nil {
+		add(style.Minimap.Size != nil, "minimapSize")
+		add(style.Minimap.Color != nil, "minimapColor")
+		add(style.Minimap.Shape != nil, "minimapShape")
+	}
+	add(style.DropSound != nil, "sound")
+	add(style.DropVolume != nil, "volume")
+	return channels
+}
+
+// computeSources mirrors resolveCombination's precedence: later combined styles
+// win, and a style's own channels win over everything it combines.
+func computeSources(all map[string]*Style) map[string]StyleSource {
+	sources := make(map[string]StyleSource, len(all))
+	var visit func(name string) StyleSource
+	visit = func(name string) StyleSource {
+		if source, done := sources[name]; done {
+			return source
+		}
+		style := all[name]
+		source := StyleSource{Channels: make(map[string]string)}
+		if style == nil {
+			return source
+		}
+		if style.Combination != nil {
+			source.Combination = append([]string(nil), *style.Combination...)
+			for _, dependency := range source.Combination {
+				for channel, owner := range visit(dependency).Channels {
+					source.Channels[channel] = owner
+				}
+			}
+		}
+		source.Own = ownChannels(style)
+		for _, channel := range source.Own {
+			source.Channels[channel] = name
+		}
+		sources[name] = source
+		return source
+	}
+	for name := range all {
+		visit(name)
+	}
+	return sources
+}
+
+// MinimapShapes lists the minimap icon shapes a style can use.
+func MinimapShapes() []string { return append([]string(nil), allowedMinimapShapes...) }
+
+// ColourLiterals lists the named colours of minimap icons and beams.
+func ColourLiterals() []string { return append([]string(nil), allowedColorLiterals...) }

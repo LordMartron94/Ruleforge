@@ -38,9 +38,21 @@ func (e *LuaExecutor) ExecuteScriptAsFunc(luaFilePath string) (*lua.LTable, erro
 	L.Push(fn)
 	L.Push(argTable)
 
-	// 5. Call the function with 1 argument, expecting 0 return values.
-	if err := L.PCall(1, 0, nil); err != nil {
+	// 5. Call the chunk with 1 argument. Older PoB data files fill the table
+	// from the chunk itself (`local itemBases = ...`). Since PoB's class syntax
+	// rework the chunk instead returns `function(itemBases) ... end`, which
+	// has to be called with the table in a second step; skipping it leaves the
+	// table empty without any error.
+	if err := L.PCall(1, 1, nil); err != nil {
 		return nil, fmt.Errorf("error executing lua script '%s': %w", luaFilePath, err)
+	}
+	if populate, ok := L.Get(-1).(*lua.LFunction); ok {
+		L.Pop(1)
+		L.Push(populate)
+		L.Push(argTable)
+		if err := L.PCall(1, 0, nil); err != nil {
+			return nil, fmt.Errorf("error executing lua script function '%s': %w", luaFilePath, err)
+		}
 	}
 
 	// 6. Return the now-populated table.

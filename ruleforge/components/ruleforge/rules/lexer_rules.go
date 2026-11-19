@@ -73,66 +73,78 @@ func GetLexingRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
 	)
 }
 
+// keywordDefs lists every keyword with the token it lexes to.
+var keywordDefs = []struct {
+	literal string
+	token   symbols.LexingTokenType
+	symbol  string
+}{
+	// Metadata Assignments
+	{"METADATA", symbols.MetadataKeywordToken, "MetadataKeywordLexer"},
+	{"BUILD", symbols.BuildKeywordToken, "BuildKeywordLexer"},
+	{"THEMES", symbols.ThemesKeywordToken, "ThemesKeywordLexer"},
+	{"NAME", symbols.NameKeywordToken, "NameKeywordLexer"},
+	{"VERSION", symbols.VersionKeywordToken, "VersionKeywordLexer"},
+	{"STRICTNESS", symbols.StrictnessKeywordToken, "StrictnessKeywordLexer"},
+
+	// Metadata Assignment Values
+	{"ALL", symbols.AllKeywordToken, "AllKeywordLexer"},
+	{"SOFT", symbols.SoftKeywordToken, "SoftKeywordLexer"},
+	{"SEMI-STRICT", symbols.SemiStrictKeywordToken, "SemiStrictKeywordLexer"},
+	{"STRICT", symbols.StrictKeywordToken, "StrictKeywordLexer"},
+	{"SUPER-STRICT", symbols.SuperStrictKeywordToken, "SuperStrictKeywordLexer"},
+
+	// Structure
+	{"SECTION", symbols.SectionKeywordToken, "SectionKeywordLexer"},
+	{"SECTION_CONDITIONS", symbols.SectionConditionsKeywordToken, "SectionConditionsKeywordLexer"},
+	{"WHERE", symbols.ConditionAssignmentKeywordToken, "ConditionAssignmentKeywordLexer"},
+	{"DESCRIPTION", symbols.DescriptionAssignmentKeywordToken, "DescriptionAssignmentKeywordToken"},
+	{"EQUIPMENT", symbols.IdentifierValueToken, "IdentifierValueToken"},
+	{"RULES", symbols.RuleKeywordToken, "RuleKeywordToken"},
+	{"IMPORT", symbols.ImportKeywordToken, "ImportKeywordToken"},
+
+	// Conditions
+	{"@area_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@rarity", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@item_type", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@item_class", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@stack_size", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@class_use", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@socket_group", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@height", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@width", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@sockets", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@map_tier", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@quality", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@corrupted_mods", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@corrupted", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@fractured", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@base_defence_percentile", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@item_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@drop_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@unidentified_item_tier", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+
+	{"@fated", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@identified", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@has_explicit_mod", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@explicit_mod_count", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+
+	// Builds
+	{"MARAUDER", symbols.MeleeBuildToken, "BuildValueKeywordLexer"},
+	{"RANGER", symbols.DexBuildToken, "BuildValueKeywordLexer"},
+	{"WITCH", symbols.SpellBuildToken, "BuildValueKeywordLexer"},
+	{"TEMPLAR", symbols.MeleeSpellHybridBuildToken, "BuildValueKeywordLexer"},
+	{"DUELIST", symbols.MeleeDexHybridBuildToken, "BuildValueKeywordLexer"},
+	{"SHADOW", symbols.SpellDexHybridBuildToken, "BuildValueKeywordLexer"},
+
+	// Other
+	{"var", symbols.VariableKeywordToken, "VariableKeywordLexer"},
+	{"MACRO", symbols.FunctionKeywordToken, "FunctionKeywordToken"},
+	{"!override", symbols.StyleOverrideToken, "StyleOverrideToken"},
+}
+
 // buildKeywordRules defines all keyword lexing rules.
 func buildKeywordRules() []rules.LexingRuleInterface[symbols.LexingTokenType] {
-	keywordDefs := []struct {
-		literal string
-		token   symbols.LexingTokenType
-		symbol  string
-	}{
-		// Metadata Assignments
-		{"METADATA", symbols.MetadataKeywordToken, "MetadataKeywordLexer"},
-		{"BUILD", symbols.BuildKeywordToken, "BuildKeywordLexer"},
-		{"NAME", symbols.NameKeywordToken, "NameKeywordLexer"},
-		{"VERSION", symbols.VersionKeywordToken, "VersionKeywordLexer"},
-		{"STRICTNESS", symbols.StrictnessKeywordToken, "StrictnessKeywordLexer"},
-
-		// Metadata Assignment Values
-		{"ALL", symbols.AllKeywordToken, "AllKeywordLexer"},
-		{"SOFT", symbols.SoftKeywordToken, "SoftKeywordLexer"},
-		{"SEMI-STRICT", symbols.SemiStrictKeywordToken, "SemiStrictKeywordLexer"},
-		{"STRICT", symbols.StrictKeywordToken, "StrictKeywordLexer"},
-		{"SUPER-STRICT", symbols.SuperStrictKeywordToken, "SuperStrictKeywordLexer"},
-
-		// Structure
-		{"SECTION", symbols.SectionKeywordToken, "SectionKeywordLexer"},
-		{"SECTION_CONDITIONS", symbols.SectionConditionsKeywordToken, "SectionConditionsKeywordLexer"},
-		{"WHERE", symbols.ConditionAssignmentKeywordToken, "ConditionAssignmentKeywordLexer"},
-		{"DESCRIPTION", symbols.DescriptionAssignmentKeywordToken, "DescriptionAssignmentKeywordToken"},
-		{"EQUIPMENT", symbols.IdentifierValueToken, "IdentifierValueToken"},
-		{"RULES", symbols.RuleKeywordToken, "RuleKeywordToken"},
-		{"IMPORT", symbols.ImportKeywordToken, "ImportKeywordToken"},
-
-		// Conditions
-		{"@area_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@rarity", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@item_type", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@item_class", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@stack_size", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@class_use", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@socket_group", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@height", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@width", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@sockets", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@map_tier", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@quality", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@corrupted", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-		{"@fractured", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
-
-		// Builds
-		{"MARAUDER", symbols.MeleeBuildToken, "BuildValueKeywordLexer"},
-		{"RANGER", symbols.DexBuildToken, "BuildValueKeywordLexer"},
-		{"WITCH", symbols.SpellBuildToken, "BuildValueKeywordLexer"},
-		{"TEMPLAR", symbols.MeleeSpellHybridBuildToken, "BuildValueKeywordLexer"},
-		{"DUELIST", symbols.MeleeDexHybridBuildToken, "BuildValueKeywordLexer"},
-		{"SHADOW", symbols.SpellDexHybridBuildToken, "BuildValueKeywordLexer"},
-
-		// Other
-		{"var", symbols.VariableKeywordToken, "VariableKeywordLexer"},
-		{"MACRO", symbols.FunctionKeywordToken, "FunctionKeywordToken"},
-		{"!override", symbols.StyleOverrideToken, "StyleOverrideToken"},
-	}
-
 	output := make([]rules.LexingRuleInterface[symbols.LexingTokenType], len(keywordDefs))
 	for i, def := range keywordDefs {
 		output[i] = special.NewKeywordLexingRule(def.literal, def.symbol, def.token, unquotedIdentifierCharsRule)
