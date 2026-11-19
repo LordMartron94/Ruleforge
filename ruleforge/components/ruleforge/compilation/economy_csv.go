@@ -71,22 +71,8 @@ func (rg *RuleGenerator) handleEconomyCSV(v *map[string][]string, p []*shared.Pa
 	if err != nil {
 		return nil, err
 	}
-	proposed := map[int][]string{}
-	for _, tier := range tiers {
-		proposed[tier.Tier] = append(proposed[tier.Tier], tier.BaseType)
-	}
-	stable, err := rg.stabilizeTiers("csv:"+category, len(styles), proposed, profiles)
-	if err != nil {
+	if err := rg.stabilizeCurrencyTiers("csv:"+category, len(styles), tiers, profiles); err != nil {
 		return nil, err
-	}
-	byBase := map[string]int{}
-	for tier, names := range stable {
-		for _, name := range names {
-			byBase[name] = tier
-		}
-	}
-	for i := range tiers {
-		tiers[i].Tier = byBase[tiers[i].BaseType]
 	}
 	// CSV categories inherit their section constraints just like their static
 	// fallback. Currency emission normally runs in an unconstrained section.
