@@ -31,7 +31,7 @@ jobs:
           go-version-file: go.work
           cache-dependency-path: '**/go.sum'
       - name: Test affected modules
-        run: go test -mod=mod ./ruleforge/components/ruleforge/data_generation/... ./ruleforge/components/ruleforge/compilation/... ./ruleforge/components/ruleforge/config/... ./ruleforge/components/ruleforge/rules/... ./ruleforge/components/ruleforge/entry/...
+        run: go test -mod=readonly ./ruleforge/components/ruleforge/data_generation/... ./ruleforge/components/ruleforge/compilation/... ./ruleforge/components/ruleforge/config/... ./ruleforge/components/ruleforge/rules/... ./ruleforge/components/ruleforge/entry/...
   image:
     needs: test
     runs-on: ubuntu-latest
@@ -58,6 +58,27 @@ jobs:
             type=ref,event=pr
             type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
+      - name: Build native smoke image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deployment/economy/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ruleforge-economy:smoke
+          cache-from: type=gha
+      - name: Start the collector image and check its health
+        shell: bash
+        run: |
+          set -euo pipefail
+          token=$(openssl rand -hex 32)
+          trap 'docker logs ruleforge-economy-smoke; docker rm -f -v ruleforge-economy-smoke' EXIT
+          docker run --detach --name ruleforge-economy-smoke --read-only --cap-drop ALL --security-opt no-new-privileges:true --env RULEFORGE_HISTORY_TOKEN="$token" ruleforge-economy:smoke -collect=false
+          for attempt in $(seq 1 30); do
+            if docker exec ruleforge-economy-smoke /economy-history -healthcheck http://127.0.0.1:8087; then exit 0; fi
+            sleep 1
+          done
+          exit 1
       - name: Build and publish
         uses: docker/build-push-action@v6
         with:

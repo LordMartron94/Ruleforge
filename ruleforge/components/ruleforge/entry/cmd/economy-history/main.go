@@ -36,6 +36,7 @@ func run() error {
 	interval := flag.Duration("interval", 4*time.Hour, "Minimum interval between snapshots of a league (at least 15m)")
 	version := flag.String("game-version", data.CurrentEconomyVersion, "Patch regime recorded with observations")
 	configFile := flag.String("feeds", "", "Optional TOML replacing the default category list")
+	collect := flag.Bool("collect", true, "Collect prices; false serves an existing history without external polling")
 	healthcheck := flag.String("healthcheck", "", "Check a service's /healthz and exit")
 	flag.Parse()
 	if *healthcheck != "" {
@@ -93,7 +94,12 @@ func run() error {
 	serverErrors := make(chan error, 1)
 	go func() { serverErrors <- server.ListenAndServe() }()
 	done := make(chan struct{})
-	go func() { defer close(done); collectLoop(ctx, store, *leagues, feeds, *interval, *version) }()
+	go func() {
+		defer close(done)
+		if *collect {
+			collectLoop(ctx, store, *leagues, feeds, *interval, *version)
+		}
+	}()
 	log.Printf("Economy history listening on %s; interval %s; patch %s", *listen, *interval, *version)
 	select {
 	case <-ctx.Done():

@@ -4,7 +4,7 @@ ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=mod -trimpath -ldflags='-s -w' -o /out/economy-history ./ruleforge/components/ruleforge/entry/cmd/economy-history
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=readonly -trimpath -ldflags='-s -w' -o /out/economy-history ./ruleforge/components/ruleforge/entry/cmd/economy-history
 RUN mkdir -p /out/data && chown 65532:65532 /out/data
 
 FROM scratch

@@ -93,7 +93,8 @@ For multiple desktops, each gets its own checkpoint and local cache.
 `GET /v1/status` and `GET /v1/snapshots` require
 `Authorization: Bearer <secret>`. Status includes per-league counts, latest
 successful snapshot, category capability, last attempt and last error. There
-are no remote write or forced-refresh endpoints.
+are no remote write or forced-refresh endpoints. Pass `-collect=false` to
+serve an archive without making external polling requests.
 
 Default feeds include uniques, gems, cards, tattoos, currency, delirium orbs and
 omens. The additional Fragment, AllflameEmber, Essence, Oil, Fossil and Viscera
@@ -151,7 +152,8 @@ run manually. Use a floating branch/`latest` tag for updates; use an immutable
 only from the default branch; the initial feature image uses
 `codex-filter-economy-330`.
 
-GitHub Actions tests the affected Go modules before publishing the two-platform
+GitHub Actions tests the affected Go modules and smoke-tests the native image
+before publishing the two-platform
 image to `ghcr.io/lordmartron94/ruleforge-economy`. Pull requests build but do not
 publish. A weekly default-branch rebuild refreshes the base image once this
 workflow is merged to the default branch. Until then, pushes on this feature
