@@ -10,6 +10,7 @@ METADATA {
   VERSION    => "0.5.0"
   STRICTNESS => ALL
   BUILD      => "MartronArada"
+  THEMES     => "aryzel"
 }
 
 !! Campaign progression styles
@@ -27,15 +28,40 @@ var flask_old     => "Final/OldFlasks"
 
 SECTION {
   METADATA {
-    NAME        => "Tinctures"
-    DESCRIPTION => "Hide every tincture"
+    NAME        => "Equipment Properties"
+    DESCRIPTION => "Shown max-rolled armour takes the max-roll look"
   }
 
   SECTION_CONDITIONS {
   }
 
   RULES {
-    WHERE @item_class == "Tinctures" => $old_equipment_normal => $Hide
+    !! A max-rolled base is not visible in the ground label, so it outranks
+    !! the properties that are (links, sockets) and crafting eligibility.
+    !! This shows nothing by itself: every later Show rule that could match
+    !! armour gets a max-roll copy placed just before it, so an item is only
+    !! restyled when a rule already shows it. Hide rules get no copy. The copy
+    !! keeps the rule's purpose (background, icon shape), takes the max-roll
+    !! border, and takes the higher of the two priority tiers.
+    MACRO["max_roll_precedence" -> $style => $equipment_max_rolled]
+    MACRO["fated_precedence" -> $style => "Final/Equipment/Fated"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Tiered Equipment"
+    DESCRIPTION => "Roll potential crossed with build use and base quality"
+  }
+  SECTION_CONDITIONS { }
+  RULES {
+    !! Before campaign cutoffs, magic-jewellery hides and generic rare rules.
+    MACRO["item_tier_matrix"
+      -> $tier_5 => "Final/Equipment/Tier5"
+      -> $tier_4 => "Final/Equipment/Tier4"
+      -> $tier_3 => "Final/Equipment/Tier3"
+      -> $tier_2 => "Final/Equipment/Tier2"
+    ]
   }
 }
 
@@ -62,6 +88,24 @@ SECTION {
       -> $tier_4   => "Final/Uniques/T4"
       -> $fallback => "Final/Uniques/T3"
     ]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Tinctures"
+    DESCRIPTION => "Visible tinctures by rarity"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_class == "Tinctures"
+  }
+
+  RULES {
+    !! Unique tinctures keep the economy tiers above. Magic tinctures rank
+    !! at T5; ordinary crafting bases use the flask priority, T6.
+    WHERE @rarity == "Magic" => "Final/Tinctures/Magic" => $Show
+    WHERE @rarity == "Normal" => "Final/Tinctures/Normal" => $Show
   }
 }
 
@@ -125,11 +169,23 @@ SECTION {
   }
 
   RULES {
+    !! Covens of Umbra (3.30): Wickerman body parts (Viscera).
+    MACRO["viscera_preferences" -> $style => "Final/Leagues/Wickerman/T2"]
+    MACRO["handle_csv" -> $category => "Wickerman"]
+
+    !! Every Viscera not listed above (the item class is "Viscera") still shows.
+    WHERE @item_class == "Viscera" => "Final/Leagues/Wickerman/Unclassified" => $Show
+
     !! Curse of the Allflame (3.29) and forward-compatible class fallbacks.
     MACRO["handle_csv" -> $category => "Charts"]
     MACRO["handle_csv" -> $category => "Ducats"]
     MACRO["handle_csv" -> $category => "Allflame"]
-    MACRO["handle_csv" -> $category => "Allflame Embers"]
+    MACRO["economy_csv" -> $category => "Map Enchantments"
+      -> $tier_1 => "Final/MapEnchantments/T1"
+      -> $tier_2 => "Final/MapEnchantments/T2"
+      -> $tier_3 => "Final/MapEnchantments/T3"
+      -> $tier_4 => "Final/MapEnchantments/T4"
+    ]
     MACRO["handle_csv" -> $category => "Enshrouding Crystals"]
     MACRO["handle_csv" -> $category => "Mercenaries"]
 
@@ -176,7 +232,13 @@ SECTION {
       -> $fallback => "Final/Tattoos/Unpriced"
     ]
     MACRO["handle_csv" -> $category => "Map Fragments"]
-    MACRO["handle_csv" -> $category => "Scarabs"]
+    !! Threads replaced scarabs in 3.30 and use the scarab look.
+    MACRO["economy_csv" -> $category => "Threads"
+      -> $tier_1 => "Final/Scarabs/T1"
+      -> $tier_2 => "Final/Scarabs/T2"
+      -> $tier_3 => "Final/Scarabs/T3"
+      -> $tier_4 => "Final/Scarabs/T4"
+    ]
 
     !! Hidden item state is less visible than sockets in the drop label, so
     !! these property marks must precede the secondary link/socket section.
@@ -327,6 +389,16 @@ SECTION {
   }
 
   RULES {
+    !! Identified maps with special encounters rank above generic maps.
+    WHERE @identified == "True" -> @map_tier >= 16 -> @has_explicit_mod == "of Zarokh" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 16 -> @has_explicit_mod == "of the Woods" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of Unearthed Technology" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of Beidat" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of Ghorr" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of K'Tash" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of Insanity" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @corrupted == "True" -> @explicit_mod_count >= 7 => "Final/Maps/SevenMod" => $Show
+
     !! Every tier stays visible: lower maps still fill in the Atlas. Higher
     !! tiers and rarer maps rank higher. Economy-tiered uniques win first.
     WHERE @rarity == "Unique" => "Final/Maps/UniqueMaps" => $Show
@@ -354,26 +426,6 @@ SECTION {
   }
 }
 
-SECTION {
-  METADATA {
-    NAME        => "Max-Roll Precedence"
-    DESCRIPTION => "Shown max-rolled armour takes the max-roll look"
-  }
-
-  SECTION_CONDITIONS {
-  }
-
-  RULES {
-    !! A max-rolled base is not visible in the ground label, so it outranks
-    !! the properties that are (links, sockets) and crafting eligibility.
-    !! This shows nothing by itself: every later Show rule that could match
-    !! armour gets a max-roll copy placed just before it, so an item is only
-    !! restyled when a rule already shows it. Hide rules get no copy. The copy
-    !! keeps the rule's purpose (background, icon shape), takes the max-roll
-    !! border, and takes the higher of the two priority tiers.
-    MACRO["max_roll_precedence" -> $style => $equipment_max_rolled]
-  }
-}
 
 SECTION {
   METADATA {
@@ -399,8 +451,11 @@ SECTION {
     !! socket marks; a max-rolled base keeps it but takes the max-roll border.
     !!
     !! Exotic bases only come from special sources (Heist, Ritual, the
-    !! Expedition vendors, Stygian Vise, Cord Belt, Sacrificial Garb), so
-    !! like NeverSink every one of them shows.
+    !! Expedition vendors, Sacrificial Garb), so like NeverSink every one of
+    !! them shows. Stygian Vise, Cord Belt, Astrolabe, Focused and Simplex
+    !! Amulets and the Cogwork, Composite, Geodesic, Helical, Manifold and
+    !! Ratcheting Rings joined the core drop pool in 3.30, so they are no
+    !! longer exotic and follow the item level crafting sections below.
     MACRO["handle_csv" -> $category => "Exotic Crafting Bases"]
   }
 }
@@ -801,7 +856,12 @@ SECTION {
 
   RULES {
     !! In maps normal and magic gear is only worth it as a crafting base or
-    !! for its sockets, and the sections above already showed those.
+    !! for its sockets, and the sections above already showed those. A tier 5
+    !! magic item (3.30's UnidentifiedItemTier) is the only magic item that can
+    !! drop Fractured or with +1 item level, and the only tier that drops the
+    !! new core bases (Stygian Vise, Cord Belt, Simplex Amulet), so it stays as
+    !! a crafting base.
+    WHERE @unidentified_item_tier >= 5 -> @rarity == "Magic" -> @class_use == "true" => $equipment_magic => $Show
     WHERE @rarity == "Normal" -> @class_use == "true" => $old_equipment_normal => $Hide
     WHERE @rarity == "Normal" -> @class_use == "false" => $old_equipment_normal => $Hide
     WHERE @rarity == "Magic" -> @class_use == "true" => $old_equipment_magic => $Hide
@@ -810,10 +870,12 @@ SECTION {
     !! A rare on a base that starts dropping far below the area is outclassed
     !! by the bases dropping now, whatever its mods (NeverSink's thresholds:
     !! drop level under 40 from area 73, under 50 from 78, under 60 from 80).
+    !! A tier 4 or 5 rare (UnidentifiedItemTier) is exempt, since the tier
+    !! lifts its modifiers and base above what its drop level suggests.
     !! Other classes' rares hide below anyway.
-    WHERE @area_level >= 73 -> @drop_level < 40 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 78 -> @drop_level < 50 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
-    WHERE @area_level >= 80 -> @drop_level < 60 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 73 -> @drop_level < 40 -> @unidentified_item_tier < 4 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 78 -> @drop_level < 50 -> @unidentified_item_tier < 4 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 80 -> @drop_level < 60 -> @unidentified_item_tier < 4 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
   }
 }
 
@@ -852,7 +914,9 @@ SECTION {
     !! Armour off the tiered bases hides. Rare weapons of this build's
     !! classes stay visible, since a weapon's damage rolls on any recent
     !! base (NeverSink's tiers list almost no weapons); other classes'
-    !! rares hide.
+    !! rares hide. A tier 4 or 5 rare of this build's classes shows
+    !! regardless of its base.
+    WHERE @unidentified_item_tier >= 4 -> @class_use == "true" => $equipment_rare => $Show
     WHERE @item_class == "Body Armours" => $old_equipment_rare => $Hide
     WHERE @item_class == "Boots" => $old_equipment_rare => $Hide
     WHERE @item_class == "Gloves" => $old_equipment_rare => $Hide

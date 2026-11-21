@@ -1167,7 +1167,7 @@ function metadataView(item, top, index, toolbar) {
   const grid = h('div', { class: 'edt-grid' });
   const fields = item.items.filter(i => i.kind === 'field');
   fields.forEach(f => {
-    const removable = !top && f.key === 'STRICTNESS';
+    const removable = (!top && f.key === 'STRICTNESS') || (top && f.key === 'THEMES');
     add(grid, field(f.key, h('span', { class: 'edt-row' }, fieldControl(f, () => touch(f)),
       removable ? iconButton('×', 'Remove', () => { item.items.splice(item.items.indexOf(f), 1); listChanged(item); drawScripts(); }) : null)));
   });
@@ -1176,9 +1176,14 @@ function metadataView(item, top, index, toolbar) {
       item.items.push(adopt({ kind: 'field', key: 'STRICTNESS', value: { text: 'ALL', kind: 'keyword' } }, item)); listChanged(item); drawScripts();
     } })));
   }
+  if (top && !fields.some(f => f.key === 'THEMES')) {
+    add(grid, h('div', {}, h('button', { class: 'btn small', type: 'button', title: 'Compile this script with only some themes. Without THEMES it compiles with every enabled theme.', text: '+ themes', onclick: () => {
+      item.items.push(adopt({ kind: 'field', key: 'THEMES', value: { text: '', kind: 'string' } }, item)); listChanged(item); drawScripts();
+    } })));
+  }
   const comments = item.items.filter(i => i.kind === 'comment');
   if (!top) return h('div', { class: 'stack', style: { gap: '6px' } }, grid, comments.map(c => h('p', { class: 'hint mono', text: c.text })));
-  return h('div', { class: 'edt-card', id: 'sc-item-' + index }, h('div', { class: 'edt-row' }, h('h3', { text: 'Script settings' }), h('span', { class: 'hint', text: 'NAME names the compiled filter; BUILD picks the class or equipment preset the progression rules follow.' }), toolbar && toolbar()), grid, comments.map(c => h('p', { class: 'hint mono', text: c.text })));
+  return h('div', { class: 'edt-card', id: 'sc-item-' + index }, h('div', { class: 'edt-row' }, h('h3', { text: 'Script settings' }), h('span', { class: 'hint', text: 'NAME names the compiled filter; BUILD picks the class or equipment preset the progression rules follow; THEMES (optional) lists the theme names it compiles with, such as aryzel original. A name is a theme file name or its first words.' }), toolbar && toolbar()), grid, comments.map(c => h('p', { class: 'hint mono', text: c.text })));
 }
 
 function valuePicker(value, onChange, { kind = 'style', label = 'Style' } = {}) {

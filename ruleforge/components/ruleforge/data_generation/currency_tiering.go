@@ -156,7 +156,7 @@ func GenerateCurrencyTiers(
 		currency := CurrencyTier{BaseType: profile.BaseType, Tier: tiers[profile.BaseType], Priced: priced}
 		best := currency.Tier
 		for _, stack := range stackSizes {
-			if stack <= 1 || !priced {
+			if stack <= 1 || !priced || (len(centres) > 0 && centres[0] == centres[len(centres)-1]) {
 				continue
 			}
 			stackScore, _ := score(i, float64(stack))

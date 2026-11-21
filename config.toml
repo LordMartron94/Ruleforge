@@ -19,7 +19,10 @@ StudioFile = "__output__/ruleforge-studio.html"
 
 PathOfBuildingDataPath = ".ruleforge-cache/pob"
 EconomyHistoryDBPath = ".ruleforge-cache/economy_history.db"
-EconomyHistoryRefreshHours = 1
+EconomyHistoryRefreshHours = 4
+EconomyHistoryURL = "https://server-media.tail3f3108.ts.net:8447"
+EconomyHistoryTokenEnv = "RULEFORGE_HISTORY_TOKEN"
+EconomyHistoryTokenFile = ".ruleforge-cache/history-token"
 
 # "Global" or "Per-League".
 EconomyNormalizationStrategy = "Global"
@@ -27,9 +30,12 @@ ChaseVSGeneralPotentialFactor = 0.85
 EconomyValueHalfLifeDays = 14
 
 # Leagues whose prices feed the economy tiers. Weights must add up to 1.
+# A league poe.ninja doesn't list or has no prices for yet (e.g. a brand new
+# league) is skipped with a warning, and its weight is shared out over the
+# other leagues in proportion to theirs.
 [LeagueWeights]
-"Hardcore Allflame" = 0.5
-"Allflame" = 0.3
+"Hardcore Covens" = 0.5
+"Covens" = 0.3
 "Hardcore" = 0.15
 "Standard" = 0.05
 
@@ -50,3 +56,19 @@ CraftingWeight = 0.4
 [CustomEquipmentPresets.MartronArada]
 DesiredWeaponClasses = ["One Hand Swords"]
 DesiredArmourTypes = ["Armour", "Armour/Evasion", "Armour/Evasion/Energy Shield"]
+
+[CustomEquipmentPresets.ThunderGod]
+DesiredWeaponClasses = ["Sceptres", "Wands"]
+DesiredArmourTypes = ["Armour", "Armour/Energy Shield", "Energy Shield"]
+
+# Raw history is retained. These settings select admissible current evidence.
+[EconomyMemory]
+GameVersion = "3.30"
+Since = "2026-11-13T19:00:00Z"
+MaxAgeHours = 72
+BucketHours = 4
+MinimumListings = 5
+MinimumTradedUnits = 20
+ReliableBuckets = 3
+PromotionBuckets = 2
+DemotionBuckets = 3

@@ -45,6 +45,8 @@ type TieringParameters struct {
 	LeagueWeights            []config.LeagueWeights
 	NormStrategy             NormalizationStrategy
 	ChaosOutlierPercentile   float64
+	ObservationBucketHours   float64
+	MinSupplyListings        int
 	MinListingsForPercentile int
 	ChasePotentialWeight     float64
 	// ValueHalfLifeDays exponentially decays how much each recorded snapshot
@@ -89,6 +91,7 @@ type aggregatedItem struct {
 	baseType        string
 	percentileChaos float64
 	avgListingCount float64
+	supplyKnown     bool
 }
 
 type itemDataForGlobalNorm struct {
@@ -97,6 +100,7 @@ type itemDataForGlobalNorm struct {
 	logChaos    float64
 	logListings float64
 	chaos       float64
+	supplyKnown bool
 }
 
 // normalizedItem holds the Z-scores for an aggregated item.
@@ -213,7 +217,7 @@ func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem, par
 	allStats := make(map[string]valueStats)
 	for _, league := range sortedKeys(aggregatedData) {
 		aggMap := aggregatedData[league]
-		if len(aggMap) < 2 {
+		if len(aggMap) == 0 {
 			log.Printf("WARN: Not enough data points in league %s to normalize, skipping.", league)
 			continue
 		}
@@ -224,23 +228,22 @@ func normalizePerLeague(aggregatedData map[string]map[string]aggregatedItem, par
 		for _, bt := range sortedKeys(aggMap) {
 			data := aggMap[bt]
 			values = append(values, params.valueLog(data.percentileChaos))
-			listings = append(listings, math.Log(data.avgListingCount+1))
+			if data.supplyKnown {
+				listings = append(listings, math.Log(data.avgListingCount+1))
+			}
 			baseTypes = append(baseTypes, bt)
 		}
 
 		stats := valueStats{}
 		stats.mean, stats.stdDev = calculateMeanStdDev(values)
-		listingZScores, err := calculateZScores(listings)
-		if err != nil {
-			return nil, nil, fmt.Errorf("z-score failed for %s listings: %w", league, err)
-		}
+		listingMean, listingSD := calculateMeanStdDev(listings)
 
 		normMap := make(map[string]normalizedItem)
 		for i, bt := range baseTypes {
 			normMap[bt] = normalizedItem{
 				baseType:     bt,
 				chaosZScore:  stats.zScore(values[i]),
-				rarityZScore: -listingZScores[i],
+				rarityZScore: supplyZ(aggMap[bt].supplyKnown, math.Log(aggMap[bt].avgListingCount+1), listingMean, listingSD),
 				chaos:        aggMap[bt].percentileChaos,
 			}
 		}
@@ -262,18 +265,21 @@ func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem, para
 			logChaos := params.valueLog(data.percentileChaos)
 			logListings := math.Log(data.avgListingCount + 1)
 			allValueLogs = append(allValueLogs, logChaos)
-			allListingLogs = append(allListingLogs, logListings)
+			if data.supplyKnown {
+				allListingLogs = append(allListingLogs, logListings)
+			}
 			itemMetadata = append(itemMetadata, itemDataForGlobalNorm{
 				baseType:    bt,
 				league:      league,
 				logChaos:    logChaos,
 				logListings: logListings,
 				chaos:       data.percentileChaos,
+				supplyKnown: data.supplyKnown,
 			})
 		}
 	}
 
-	if len(allValueLogs) < 2 {
+	if len(allValueLogs) == 0 {
 		return nil, nil, fmt.Errorf("not enough data points globally to normalize")
 	}
 
@@ -281,10 +287,6 @@ func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem, para
 	stats := valueStats{}
 	stats.mean, stats.stdDev = calculateMeanStdDev(allValueLogs)
 	listingMean, listingStdDev := calculateMeanStdDev(allListingLogs)
-
-	if stats.stdDev == 0 || listingStdDev == 0 {
-		return nil, nil, fmt.Errorf("global standard deviation is zero, cannot normalize")
-	}
 
 	// Calculate Z-scores and structure the output map
 	allNormData := make(map[string]map[string]normalizedItem)
@@ -294,7 +296,7 @@ func normalizeGlobally(aggregatedData map[string]map[string]aggregatedItem, para
 			allNormData[item.league] = make(map[string]normalizedItem)
 			allStats[item.league] = stats
 		}
-		listingZ := (item.logListings - listingMean) / listingStdDev
+		listingZ := -supplyZ(item.supplyKnown, item.logListings, listingMean, listingStdDev)
 
 		allNormData[item.league][item.baseType] = normalizedItem{
 			baseType:     item.baseType,
@@ -368,6 +370,7 @@ func assignTiers(scoredItems []finalScoredItem, numTiers int) (map[string]int, e
 // best tier first, so a score outside the clustered set (such as a stack's)
 // can be placed in the tier whose centre is nearest.
 func assignTiersWithCentres(scoredItems []finalScoredItem, numTiers int) (map[string]int, []float64) {
+	requestedTiers := numTiers
 	if len(scoredItems) < numTiers {
 		log.Printf("WARN: Number of items (%d) is less than number of tiers (%d). Reducing tiers.", len(scoredItems), numTiers)
 		numTiers = len(scoredItems)
@@ -384,6 +387,15 @@ func assignTiersWithCentres(scoredItems []finalScoredItem, numTiers int) (map[st
 		return items[i].baseType < items[j].baseType
 	})
 
+	// A flat/one-item population carries no relative priority evidence.
+	// Do not label every item top-tier merely because all distances tie.
+	if items[0].score == items[len(items)-1].score {
+		result := map[string]int{}
+		for _, item := range items {
+			result[item.baseType] = requestedTiers
+		}
+		return result, make([]float64, requestedTiers)
+	}
 	centers := make([]float64, numTiers)
 	for tier := range centers {
 		// The middle of each equal-sized slice of the ranked scores.
@@ -658,6 +670,11 @@ func aggregateAndBlendUniques(
 ) map[string]map[string]aggregatedItem {
 	now := params.now()
 	halfLife := time.Duration(params.ValueHalfLifeDays * float64(24*time.Hour))
+	bucketHours := params.ObservationBucketHours
+	if bucketHours <= 0 {
+		bucketHours = 4
+	}
+	bucketSize := time.Duration(bucketHours * float64(time.Hour))
 
 	finalAggregatedData := make(map[string]map[string]aggregatedItem)
 
@@ -676,7 +693,7 @@ func aggregateAndBlendUniques(
 		for _, snapshot := range snapshots {
 			w := recencyWeight(now.Sub(snapshot.FetchedAt), halfLife)
 			for _, item := range snapshot.Items {
-				if item.BaseType == "" || item.Name == "" {
+				if item.BaseType == "" || item.Name == "" || !validPrice(item.ChaosValue) {
 					continue
 				}
 				bt := baseTypes[item.BaseType]
@@ -684,16 +701,20 @@ func aggregateAndBlendUniques(
 					bt = &baseTypeAgg{byName: make(map[string]*nameAgg)}
 					baseTypes[item.BaseType] = bt
 				}
-				bt.chaosValues = append(bt.chaosValues, weightedValue{value: item.ChaosValue, weight: w})
-				bt.listingValues = append(bt.listingValues, weightedValue{value: float64(item.ListingCount), weight: w})
+				bt.chaosValues = append(bt.chaosValues, weightedValue{value: item.ChaosValue, weight: w, reliable: supplyKnown(item) && item.ListingCount >= params.MinListingsForPercentile, bucket: snapshot.FetchedAt.Truncate(bucketSize)})
+				if supplyKnown(item) && item.ListingCount >= max(params.MinSupplyListings, 1) {
+					bt.listingValues = append(bt.listingValues, weightedValue{value: float64(item.ListingCount), weight: w})
+				}
 
 				na := bt.byName[item.Name]
 				if na == nil {
 					na = &nameAgg{}
 					bt.byName[item.Name] = na
 				}
-				na.chaosValues = append(na.chaosValues, weightedValue{value: item.ChaosValue, weight: w})
-				na.listingValues = append(na.listingValues, weightedValue{value: float64(item.ListingCount), weight: w})
+				na.chaosValues = append(na.chaosValues, weightedValue{value: item.ChaosValue, weight: w, reliable: supplyKnown(item) && item.ListingCount >= params.MinListingsForPercentile, bucket: snapshot.FetchedAt.Truncate(bucketSize)})
+				if supplyKnown(item) && item.ListingCount >= max(params.MinSupplyListings, 1) {
+					na.listingValues = append(na.listingValues, weightedValue{value: float64(item.ListingCount), weight: w})
+				}
 			}
 		}
 
@@ -723,6 +744,7 @@ func aggregateAndBlendUniques(
 				baseType:        baseType,
 				percentileChaos: chaseChaos*chaseWeight + generalChaosValue*generalWeight,
 				avgListingCount: chaseListing*chaseWeight + generalListingAvg*generalWeight,
+				supplyKnown:     len(bt.listingValues) > 0,
 			}
 		}
 		finalAggregatedData[league] = leagueAggMap
@@ -734,8 +756,10 @@ func aggregateAndBlendUniques(
 
 // weightedValue is one observation with a recency weight (see recencyWeight).
 type weightedValue struct {
-	value  float64
-	weight float64
+	bucket   time.Time
+	reliable bool
+	value    float64
+	weight   float64
 }
 
 // unweighted wraps plain values with an equal weight of 1, for callers (like
@@ -820,8 +844,18 @@ func calculateRobustValue(values []weightedValue, params TieringParameters) floa
 	if len(values) == 0 {
 		return 0
 	}
-	if len(values) >= params.MinListingsForPercentile {
-		return weightedPercentile(values, params.ChaosOutlierPercentile)
+	var reliable []weightedValue
+	buckets := map[time.Time]bool{}
+	for _, value := range values {
+		if value.reliable {
+			reliable = append(reliable, value)
+			if !value.bucket.IsZero() {
+				buckets[value.bucket] = true
+			}
+		}
+	}
+	if len(buckets) >= max(params.MinListingsForPercentile, 1) {
+		return weightedPercentile(reliable, params.ChaosOutlierPercentile)
 	}
 	return weightedMedian(values)
 }
@@ -895,4 +929,12 @@ func validateParams(leagueData map[string][]EconomySnapshot, numTiers int, param
 		return fmt.Errorf("ChasePotentialWeight must be between 0 and 1")
 	}
 	return nil
+}
+
+// Unknown exchange/legacy supply is neutral, never a scarcity bonus.
+func supplyZ(known bool, value, mean, sd float64) float64 {
+	if !known || sd == 0 {
+		return 0
+	}
+	return -(value - mean) / sd
 }

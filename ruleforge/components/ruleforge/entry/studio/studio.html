@@ -537,7 +537,7 @@ const ARMOUR_CLASSES = { 'Body Armours': 8, Helmets: 7, Gloves: 7, Boots: 7, Shi
 const JEWELLERY = { Rings: 3, Amulets: 2, Belts: 3 };
 const FLASKS = ['Life Flasks', 'Mana Flasks', 'Hybrid Flasks', 'Utility Flasks'];
 const CURRENCY_CATEGORIES = new Set(['Orbs', 'Supplies', 'Orbs-Mapping', 'Supplies-Mapping', 'Divination']);
-const STACKABLE_CLASS = { Scarabs: 'Map Fragments', 'Map Fragments': 'Map Fragments', Essences: 'Stackable Currency', Oils: 'Stackable Currency' };
+const STACKABLE_CLASS = { Wickerman: 'Viscera', Threads: 'Map Fragments', Scarabs: 'Map Fragments', 'Map Fragments': 'Map Fragments', Essences: 'Stackable Currency', Oils: 'Stackable Currency' };
 const socketCap = lvl => lvl <= 2 ? 2 : lvl <= 24 ? 3 : lvl <= 34 ? 4 : lvl <= 49 ? 5 : 6;
 const pool = DATA.items;
 const baseByName = new Map(pool.equipment.map(b => [b.name, b]));
@@ -603,6 +603,9 @@ function fromBase(r, base, area, rarity, showcase = false) {
     label: base.name, base: base.name, cls: base.class, rarity, ilvl: area, drop: base.drop, w: base.w, h: base.h,
     quality: r() < 0.06 ? 1 + Math.floor(r() * 20) : 0, stack: 1, sockets, links, mods: [],
     corrupted: false, corruptedMods: 0, fractured: false, identified: rarity === 'Normal',
+    // Illustrative tier sampling, not measured game drop rates.
+    itemTier: area >= 45 && ['Magic', 'Rare'].includes(rarity) && r() < (showcase ? .65 : .12) ? pick(r, [2,3,4,5], n => 6-n) : 0,
+    fated: rarity === 'Rare' && r() < (showcase ? .2 : .02),
     ...defences, defencePercentile: defencePercentile(base, defences),
   };
 }
@@ -612,7 +615,7 @@ function stackItem(r, s, showcase) {
   if (steps) stack = showcase ? pick(r, steps) + Math.floor(r() * 3) : (r() < 0.8 ? 1 + Math.floor(r() * 3) : r() < 0.8 ? 5 + Math.floor(r() * 10) : 20 + Math.floor(r() * 20));
   const rarity = s.rarity || 'Normal';
   return {
-    label: stack > 1 ? `${stack}x ${s.base}` : s.base, base: s.base, cls: STACKABLE_CLASS[s.category] || 'Stackable Currency',
+    label: stack > 1 ? `${stack}x ${s.base}` : s.base, base: s.base, cls: s.class || (s.base === 'Frayed Thread' ? 'Stackable Currency' : STACKABLE_CLASS[s.category]) || 'Stackable Currency',
     category: s.category, rarity, stack, w: 1, h: 1, quality: 0, sockets: [], links: [], mods: [],
     corrupted: false, fractured: false, identified: true,
   };
@@ -678,9 +681,9 @@ function weaponClasses() {
 
 /* ---------- filter evaluation ---------- */
 const RARITY = { Normal: 0, Magic: 1, Rare: 2, Unique: 3 };
-const NUMERIC = { BaseDefencePercentile: 'defencePercentile', CorruptedMods: 'corruptedMods', AreaLevel: 'area', ItemLevel: 'ilvl', DropLevel: 'drop', StackSize: 'stack', Height: 'h', Width: 'w', Quality: 'quality',
+const NUMERIC = { UnidentifiedItemTier: 'itemTier', BaseDefencePercentile: 'defencePercentile', CorruptedMods: 'corruptedMods', AreaLevel: 'area', ItemLevel: 'ilvl', DropLevel: 'drop', StackSize: 'stack', Height: 'h', Width: 'w', Quality: 'quality',
   BaseArmour: 'armour', BaseEvasion: 'evasion', BaseEnergyShield: 'es', BaseWard: 'ward', GemLevel: 'gemLevel', MapTier: 'mapTier' };
-const BOOLEAN = { Corrupted: 'corrupted', FracturedItem: 'fractured', Identified: 'identified', Mirrored: 'mirrored', SynthesisedItem: 'synthesised', Replica: 'replica' };
+const BOOLEAN = { Fated: 'fated', Corrupted: 'corrupted', FracturedItem: 'fractured', Identified: 'identified', Mirrored: 'mirrored', SynthesisedItem: 'synthesised', Replica: 'replica' };
 function compare(a, op, b) {
   switch (op || '=') {
     case '=': case '==': return a === b;
@@ -714,7 +717,13 @@ function evalCondition(item, c) {
     return c.v.some(v => compare(value, op, RARITY[v]));
   }
   if (c.k === 'Class' || c.k === 'BaseType' || c.k === 'HasExplicitMod') {
-    const values = c.k === 'Class' ? [item.cls] : c.k === 'BaseType' ? [item.base] : item.mods;
+    if (c.k === 'HasExplicitMod' && c.v.length && /^\d+$/.test(c.v[0])) {
+      // The compiler's count rule tests all names. Count advanced modifier
+      // records once, never their multiple human-readable description lines.
+      if (item.explicitModCount === undefined) return null;
+      return compare(item.explicitModCount, op || '>=', Number(c.v[0]));
+    }
+    const values = c.k === 'Class' ? [item.cls] : c.k === 'BaseType' ? [item.base] : (item.modNames || item.mods);
     const negate = op === '!' || op === '!=';
     const exact = op === '==' || op === '!=';
     const hit = exact ? values.some(v => valueSet(c).has(v)) : values.some(v => c.v.some(x => v.includes(x)));
@@ -735,18 +744,18 @@ function matchingBlocks(item, blocks) {
     let ok = true, blocked = false;
     for (const c of block.conditions || []) {
       const res = evalCondition(item, c);
-      if (res === null) { blocked = true; ok = false; break; }
+      if (res === null) { blocked = true; continue; }
       if (!res) { ok = false; break; }
     }
-    if (blocked) unknown = true;
-    if (ok) matches.push(block);
+    if (blocked && ok) unknown = true;
+    if (ok && !blocked) matches.push(block);
   }
   return { matches, unknown };
 }
 
 /* ---------- pasted Path of Exile items ---------- */
-const IMPORT_METADATA = /^(Rarity|Item Class|Item Level|Drop Level|Map Tier|Stack Size|Quality|Sockets|LevelReq|Requirements|Implicits|Explicits|Prefixes|Suffixes|Armour|Evasion Rating|Energy Shield|Ward):/i;
-const IMPORT_FLAGS = /^(Corrupted|Fractured Item|Mirrored|Synthesised Item|Replica|Unidentified)$/i;
+const IMPORT_METADATA = /^(Rarity|Item Class|Item Level|Drop Level|Item Tier|Map Tier|Stack Size|Quality|Sockets|LevelReq|Requirements|Implicits|Explicits|Prefixes|Suffixes|Armour|Evasion Rating|Energy Shield|Ward):/i;
+const IMPORT_FLAGS = /^(Corrupted|Fractured Item|Mirrored|Synthesised Item|Replica|Fated|Unidentified(?:\s*\(Tier\s*:?\s*[0-5]\))?)$/i;
 // Requirement lines sit between dividers like mods do, but are not mods.
 const IMPORT_REQUIREMENTS = /^(Level|Str|Dex|Int|Class):\s/i;
 function importKnown(name) {
@@ -760,7 +769,7 @@ function importKnown(name) {
   const tattoo = pool.tattoos.find(t => t.name === name);
   if (tattoo) return { base: tattoo.name, cls: 'Stackable Currency', priced: tattoo };
   const stack = pool.stackables.find(s => s.base === name);
-  if (stack) return { base: stack.base, cls: STACKABLE_CLASS[stack.category] || 'Stackable Currency', stack };
+  if (stack) return { base: stack.base, cls: stack.class || (stack.base === 'Frayed Thread' ? 'Stackable Currency' : STACKABLE_CLASS[stack.category]) || 'Stackable Currency', stack };
   const unique = pool.uniques.find(u => u.name === name);
   if (unique) {
     const baseInfo = importKnown(unique.base);
@@ -816,11 +825,18 @@ function parseGameItem(text) {
     ilvl: itemLevel, drop: equipment ? equipment.drop : 0, mapTier, stack, w: equipment ? equipment.w : 1, h: equipment ? equipment.h : 1,
     quality, sockets: socketed.sockets, links: socketed.links, mods: modLines,
     corrupted: lines.some(l => /^Corrupted$/i.test(l)), fractured: lines.some(l => /^Fractured Item$/i.test(l)),
-    identified: !lines.some(l => /^Unidentified$/i.test(l)), mirrored: lines.some(l => /^Mirrored$/i.test(l)),
+    identified: !lines.some(l => /^Unidentified(?:\s*\(Tier\s*:?\s*[0-5]\))?$/i.test(l)),
+    itemTier: Number((lines.join('\n').match(/^Unidentified\s*\(Tier\s*:?\s*([0-5])\)$/mi) || [])[1] || numericHeader(lines, 'Item Tier') || 0),
+    fated: lines.some(l => /^Fated$/i.test(l)), mirrored: lines.some(l => /^Mirrored$/i.test(l)),
     synthesised: lines.some(l => /^Synthesised Item$/i.test(l)), replica: lines.some(l => /^Replica$/i.test(l)),
     ...baseDefences(lines, modLines, quality),
     area: state.area, value: known && known.priced ? known.priced.value : undefined,
   };
+  const namedMods = modLines.filter(l => /^\{\s*(?:Prefix|Suffix|Map) Modifier\b/i.test(l));
+  if (namedMods.length) {
+    item.explicitModCount = namedMods.length;
+    item.modNames = namedMods.map(l => (l.match(/Modifier\s+"([^"]+)"/) || [])[1]).filter(Boolean);
+  }
   item.defencePercentile = equipment ? defencePercentile(equipment, item) : 0;
   if (!item.base) item.parseNote = 'The base type was not found in the Studio item pool; class and visible text rules can still be checked.';
   return item;
@@ -978,6 +994,9 @@ function renderInspectorTarget(d, boxId, emptyText) {
   add('Quality', d.quality ? d.quality + '%' : ''); add('Sockets', d.links.length ? d.links.map(g => g.join('-')).join('  ') : '');
   add('Size', `${d.w}×${d.h}`); add('Corrupted', d.corrupted);
   add('Corruption implicits', d.corrupted ? (d.corruptedMods === undefined ? 'unknown from a paste' : String(d.corruptedMods)) : ''); add('Fractured', d.fractured); add('Identified', d.identified ? '' : 'no');
+  add('Item tier', d.itemTier ? String(d.itemTier) : ''); add('Fated', d.fated);
+  const economy = (DATA.economy || []).filter(e => e.base === d.base);
+  add('Economy history', economy.map(e => `${e.league}: ${e.state}, ${e.reliableBuckets}/${e.buckets} reliable time buckets; last seen ${new Date(e.lastSeen).toLocaleString()}${e.listings ? `; ${e.listings} listings` : ''}${e.tradedUnits ? `; ${e.tradedUnits.toFixed(1)} exchange units` : ''}`).join(' · '));
   add('Mods', d.mods.join(', ')); add('Base armour / evasion / ES', d.armour || d.evasion || d.es ? `${d.armour} / ${d.evasion} / ${d.es}` : '');
   add('Base defence percentile', d.armour || d.evasion || d.es || d.ward ? `${d.defencePercentile}${d.defencePercentile === 100 ? ' (max-rolled)' : ''}` : '');
   add('Price', d.value !== undefined ? d.value.toFixed(1) + ' chaos' : ''); add('Parse note', d.parseNote);

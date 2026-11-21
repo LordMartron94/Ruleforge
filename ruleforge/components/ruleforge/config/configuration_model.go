@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"math"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ type LeagueWeights struct {
 }
 
 type EquipmentPreset struct {
+	PreferredViscera     []string `toml:"PreferredViscera"`
 	DesiredWeaponClasses []string `toml:"DesiredWeaponClasses"`
 	DesiredArmourTypes   []string `toml:"DesiredArmourTypes"`
 }
@@ -54,6 +56,11 @@ type ConfigurationModel struct {
 	// EconomyHistoryRefreshHours is how many hours must pass since a league's
 	// last recorded snapshot before Ruleforge fetches a new one from poe.ninja.
 	EconomyHistoryRefreshHours float64 `toml:"EconomyHistoryRefreshHours"`
+	// A configured service supplies raw history instead of doing desktop polls.
+	EconomyHistoryURL       string         `toml:"EconomyHistoryURL"`
+	EconomyHistoryTokenEnv  string         `toml:"EconomyHistoryTokenEnv"`
+	EconomyHistoryTokenFile string         `toml:"EconomyHistoryTokenFile"`
+	EconomyMemory           *EconomyMemory `toml:"EconomyMemory"`
 
 	// LeagueWeights defines the leagues to be used for economy-based data, along with their relative weighting.
 	LeagueWeights map[string]float64 `toml:"LeagueWeights"`
@@ -82,6 +89,26 @@ type ConfigurationModel struct {
 	// currency_tiering macro. Left out, it reads
 	// configuration/currency/currency_profiles.csv with a crafting weight of 0.4.
 	CurrencyTiering *CurrencyTiering `toml:"CurrencyTiering"`
+}
+
+// EconomyHistoryToken uses an explicit environment override first, then a
+// private file so GUI launches do not depend on a terminal's environment.
+func (c *ConfigurationModel) EconomyHistoryToken() (string, error) {
+	if token := os.Getenv(c.EconomyHistoryTokenEnv); token != "" {
+		return token, nil
+	}
+	if c.EconomyHistoryTokenFile == "" {
+		return "", nil
+	}
+	raw, err := os.ReadFile(c.EconomyHistoryTokenFile)
+	if err != nil {
+		return "", fmt.Errorf("read economy history token file: %w", err)
+	}
+	token := strings.TrimSpace(string(raw))
+	if token == "" || strings.ContainsAny(token, "\r\n\t ") {
+		return "", fmt.Errorf("economy history token file must contain one nonempty token")
+	}
+	return token, nil
 }
 
 func (c *ConfigurationModel) String() string {
@@ -161,6 +188,25 @@ func (c *ConfigurationModel) GetLeagueWeights() []LeagueWeights {
 	return leagueWeights
 }
 
+// GetLeagueWeightsFor returns the configured league weights restricted to the
+// leagues that actually have economy data, scaled so they still add up to 1.
+// A configured league with no data yet therefore hands its share to the others
+// in proportion to their own weights.
+func (c *ConfigurationModel) GetLeagueWeightsFor(available []string) ([]LeagueWeights, error) {
+	total := 0.0
+	for _, league := range available {
+		total += c.LeagueWeights[league]
+	}
+	if total <= 0 {
+		return nil, fmt.Errorf("none of the leagues with economy data (%v) has a positive weight in LeagueWeights", available)
+	}
+	weights := make([]LeagueWeights, 0, len(available))
+	for _, league := range available {
+		weights = append(weights, LeagueWeights{League: league, Weight: c.LeagueWeights[league] / total})
+	}
+	return weights, nil
+}
+
 //goland:noinspection t
 func (c *ConfigurationModel) Validate() error {
 	if !slices.Contains(validNormalizationStrategies, c.EconomyNormalizationStrategy) {
@@ -207,6 +253,11 @@ func (c *ConfigurationModel) Validate() error {
 
 	if c.CurrencyTiering != nil && !(c.CurrencyTiering.CraftingWeight >= 0 && c.CurrencyTiering.CraftingWeight <= 1) {
 		return fmt.Errorf("CurrencyTiering.CraftingWeight must be between 0 and 1, got %f", c.CurrencyTiering.CraftingWeight)
+	}
+	if c.EconomyMemory != nil {
+		if err := c.EconomyMemory.Validate(); err != nil {
+			return err
+		}
 	}
 
 	for name, preset := range c.CustomEquipmentPresets {

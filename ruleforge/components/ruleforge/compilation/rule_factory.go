@@ -16,10 +16,12 @@ type BlockRecord struct {
 }
 
 type RuleFactory struct {
-	section  string
-	source   string
-	records  []BlockRecord
-	maxRolls *MaxRollPrecedence
+	fated     *config.Style
+	gearBases map[string]bool
+	section   string
+	source    string
+	records   []BlockRecord
+	maxRolls  *MaxRollPrecedence
 }
 
 // SetMaxRollPrecedence makes every later Show rule that could match armour
@@ -46,18 +48,18 @@ func (r *RuleFactory) Records() []BlockRecord {
 
 func (r *RuleFactory) ConstructRule(ruleType model.RuleType, style config.Style, conditions []string) []string {
 	if r.maxRolls == nil || ruleType != model.ShowRule {
-		return r.constructBlock(ruleType, style, conditions, r.source)
+		return r.constructDecoratedBlock(ruleType, style, conditions, r.source)
 	}
 	variant, applies := r.maxRolls.variantConditions(conditions)
 	if !applies {
-		return r.constructBlock(ruleType, style, conditions, r.source)
+		return r.constructDecoratedBlock(ruleType, style, conditions, r.source)
 	}
 	source := "Max-roll precedence"
 	if r.source != "" {
 		source += " over: " + r.source
 	}
-	output := r.constructBlock(ruleType, r.maxRolls.variantStyle(style), variant, source)
-	return append(output, r.constructBlock(ruleType, style, conditions, r.source)...)
+	output := r.constructDecoratedBlock(ruleType, r.maxRolls.variantStyle(style), variant, source)
+	return append(output, r.constructDecoratedBlock(ruleType, style, conditions, r.source)...)
 }
 
 func (r *RuleFactory) constructBlock(ruleType model.RuleType, style config.Style, conditions []string, source string) []string {

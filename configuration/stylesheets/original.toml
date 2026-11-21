@@ -107,6 +107,10 @@ BorderColor = "#8108AE"
 TextColor = "#C59B27"
 BorderColor = "#C59B27"
 
+[Essences.Types.Desolation]
+TextColor = "#E8893A"
+BorderColor = "#E8893A"
+
 [Essences.Tiers.Low]
 Comment = "For Tiers 1-2 (Whispering/Muttering). Has no border."
 FontSize = 28
@@ -442,6 +446,9 @@ Combination = ["Essences/Base", "Essences/Types/Delirium", "Essences/Tiers/Speci
 
 [Essences.Final.EssenceOfHysteria]
 Combination = ["Essences/Base", "Essences/Types/Hysteria", "Essences/Tiers/Special"]
+
+[Essences.Final.EssenceOfDesolation]
+Combination = ["Essences/Base", "Essences/Types/Desolation", "Essences/Tiers/Special"]
 
 [MapFragments.Base]
 Comment = "The single, foundational style for ALL map fragments. Defines the shared background color."

@@ -9,7 +9,7 @@ import (
 )
 
 func currency(name string, chaos float64, listings int) EconomyCacheItem {
-	return EconomyCacheItem{Class: "Currency", Name: name, BaseType: name, ChaosValue: chaos, ListingCount: listings}
+	return EconomyCacheItem{Source: "stash", Class: "Currency", Name: name, BaseType: name, ChaosValue: chaos, ListingCount: listings}
 }
 
 func currencyFixture() map[string][]EconomySnapshot {

@@ -141,7 +141,10 @@ func intersect(values []string, keep func(string) bool) []string {
 
 func compiledCondition(key, operator string, values []string) string {
 	var builder strings.Builder
-	builder.WriteString(key + " " + operator + " ")
+	builder.WriteString(key + " ")
+	if operator != "" {
+		builder.WriteString(operator + " ")
+	}
 	for _, value := range values {
 		builder.WriteString(fmt.Sprintf("%q ", value))
 	}

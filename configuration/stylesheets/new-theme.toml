@@ -92,6 +92,9 @@ BorderColor = "#C35FF5"
 [Special.Essences.Types.Hysteria]
 BorderColor = "#C59B27"
 
+[Special.Essences.Types.Desolation]
+BorderColor = "#E8893A"
+
 [Special.Essences.Tiers.Low]
 Combination = ["Templates/Tiers/Mid/T7"]
 
@@ -418,6 +421,9 @@ Combination = ["Special/Essences/Base", "Special/Essences/Types/Delirium", "Spec
 
 [Special.Essences.Final.EssenceOfHysteria]
 Combination = ["Special/Essences/Base", "Special/Essences/Types/Hysteria", "Special/Essences/Tiers/Special", "Templates/Alerts/High/T2"]
+
+[Special.Essences.Final.EssenceOfDesolation]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Desolation", "Special/Essences/Tiers/Special", "Templates/Alerts/High/T2"]
 
 [Special.Oils.Base]
 Comment = "The single, foundational style for ALL oils. Defines the shared minimap icon."
@@ -1634,6 +1640,15 @@ Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T6"]
 [Final.Leagues.Runegrafts.T8]
 Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Mid/T7"]
 
+[Final.Leagues.Wickerman.T1]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0", "Templates/Alerts/Divine/T0"]
+
+[Final.Leagues.Wickerman.T2]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T1", "Templates/Alerts/Divine/T1"]
+
+[Final.Leagues.Wickerman.T3]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
+
 [Final.Leagues.Keepers.T1]
 Combination = ["Templates/Groups/Orbs", "Templates/Tiers/Divine/T0", "Templates/Alerts/Divine/T0"]
 
@@ -1718,3 +1733,50 @@ DropVolume = 300
 [Templates.Alerts.High.T2]
 DropSound = "amazing.mp3"
 DropVolume = 200
+
+# Game tiers describe roll potential; these styles are pickup priority.
+[Final.Equipment.Tier5]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/High/T2"]
+BorderColor = "t2-high"
+
+[Final.Equipment.Tier4]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/High/T3"]
+BorderColor = "t3-high"
+
+[Final.Equipment.Tier3]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/High/T4"]
+BorderColor = "t4-high"
+
+[Final.Equipment.Tier2]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/Mid/T5"]
+BorderColor = "t5-mid"
+
+[Final.Equipment.Fated]
+BorderColor = "bd-fated"
+
+[Final.Maps.Exotic]
+Combination = ["Templates/Groups/Maps", "Templates/Tiers/High/T2"]
+BorderColor = "t2-high"
+
+[Final.Maps.SevenMod]
+Combination = ["Templates/Groups/Maps", "Templates/Tiers/High/T3"]
+BorderColor = "t3-high"
+
+[Final.Leagues.Wickerman.Unclassified]
+Combination = ["Final/Leagues/Wickerman/T3", "Templates/Tiers/High/T3"]
+BorderColor = "t3-high"
+
+[Final.MapEnchantments.T1]
+Combination = ["Final/Leagues/AllflameEmbers/T1"]
+
+[Final.MapEnchantments.T2]
+Combination = ["Final/Leagues/AllflameEmbers/T2"]
+
+[Final.MapEnchantments.T3]
+Combination = ["Final/Leagues/AllflameEmbers/T3"]
+
+[Final.MapEnchantments.T4]
+Combination = ["Final/Leagues/AllflameEmbers/T4"]
+
+[Final.Leagues.EssenceOfTrickery]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]

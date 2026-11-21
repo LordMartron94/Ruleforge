@@ -1,0 +1,974 @@
+!! ThunderGod campaign filter
+!!
+!! A Templar holy / lightning caster: sceptres and wands with Strength / Intelligence
+!! armour. The build's equipment lives in config.toml under
+!! [CustomEquipmentPresets.ThunderGod]. Styled with the "general" theme.
+!!
+!! This first version is deliberately permissive. High-value and specialised
+!! drops are styled first, while campaign equipment and flasks are generated
+!! near the bottom. Anything not matched remains visible through Ruleforge's
+!! generated fallback rule.
+
+METADATA {
+  NAME       => "ThunderGod"
+  VERSION    => "0.5.0"
+  STRICTNESS => ALL
+  BUILD      => "ThunderGod"
+  THEMES     => "general"
+}
+
+!! Campaign progression styles
+var equipment_normal     => "Final/Equipment/Normal"
+var equipment_magic      => "Final/Equipment/Magic"
+var equipment_rare       => "Final/Equipment/Rare"
+var equipment_max_rolled => "Final/Equipment/MaxRolled"
+
+var old_equipment_normal => "Final/OldEquipment/Normal"
+var old_equipment_magic  => "Final/OldEquipment/Magic"
+var old_equipment_rare   => "Final/OldEquipment/Rare"
+
+var flask_current => "Final/Flasks"
+var flask_old     => "Final/OldFlasks"
+
+SECTION {
+  METADATA {
+    NAME        => "Equipment Properties"
+    DESCRIPTION => "Shown max-rolled armour takes the max-roll look"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! A max-rolled base is not visible in the ground label, so it outranks
+    !! the properties that are (links, sockets) and crafting eligibility.
+    !! This shows nothing by itself: every later Show rule that could match
+    !! armour gets a max-roll copy placed just before it, so an item is only
+    !! restyled when a rule already shows it. Hide rules get no copy. The copy
+    !! keeps the rule's purpose (background, icon shape), takes the max-roll
+    !! border, and takes the higher of the two priority tiers.
+    MACRO["max_roll_precedence" -> $style => $equipment_max_rolled]
+    MACRO["fated_precedence" -> $style => "Final/Equipment/Fated"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Tiered Equipment"
+    DESCRIPTION => "Roll potential crossed with build use and base quality"
+  }
+  SECTION_CONDITIONS { }
+  RULES {
+    !! Before campaign cutoffs, magic-jewellery hides and generic rare rules.
+    MACRO["item_tier_matrix"
+      -> $tier_5 => "Final/Equipment/Tier5"
+      -> $tier_4 => "Final/Equipment/Tier4"
+      -> $tier_3 => "Final/Equipment/Tier3"
+      -> $tier_2 => "Final/Equipment/Tier2"
+    ]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Uniques"
+    DESCRIPTION => "Economy tiered unique items"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! Unique maps keep the map look; poe.ninja's unique prices leave them out.
+    WHERE @item_class == "Maps" -> @rarity == "Unique" => "Final/Maps/UniqueMaps" => $Show
+
+    !! A unique without a price is often new or rare, so it ranks above the
+    !! cheapest tier.
+    MACRO["unique_tiering"
+      -> $tier_0   => "Final/Uniques/T0"
+      -> $tier_1   => "Final/Uniques/T1"
+      -> $tier_2   => "Final/Uniques/T2"
+      -> $tier_3   => "Final/Uniques/T3"
+      -> $tier_4   => "Final/Uniques/T4"
+      -> $fallback => "Final/Uniques/T3"
+    ]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Tinctures"
+    DESCRIPTION => "Visible tinctures by rarity"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_class == "Tinctures"
+  }
+
+  RULES {
+    !! Unique tinctures keep the economy tiers above. Magic tinctures rank
+    !! at T5; ordinary crafting bases use the flask priority, T6.
+    WHERE @rarity == "Magic" => "Final/Tinctures/Magic" => $Show
+    WHERE @rarity == "Normal" => "Final/Tinctures/Normal" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Rare Amulets"
+    DESCRIPTION => "Always show rare amulets"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! Amulets have one of the widest modifier pools, so any rare one can be
+    !! worth reading. No area limit, and early in the file so no later hide
+    !! rule can reach them. A corruption implicit takes the border.
+    WHERE @corrupted_mods >= 1 -> @item_class == "Amulets" -> @rarity == "Rare" => "Final/Equipment/Corrupted" => $Show
+    WHERE @item_class == "Amulets" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Gems"
+    DESCRIPTION => "Economy tiered and quality gems"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! Text, size, beam, minimap and sound always keep the economy tier.
+    !! Gems without a price (new or transfigured ones) take the lowest tier.
+    !! Quality contributes only a border. A tier-specific border (radiance)
+    !! wins over Vaal, which wins over quality. The item name and quality
+    !! remain readable even when a higher-priority border takes the channel.
+    MACRO["skill_gem_tiering"
+      -> $tier_1 => "Final/Gems/T1"
+      -> $tier_2 => "Final/Gems/T2"
+      -> $tier_3 => "Final/Gems/T3"
+      -> $tier_4 => "Final/Gems/T4"
+      -> $tier_5 => "Final/Gems/T5"
+      -> $tier_6 => "Final/Gems/T6"
+      -> $tier_7 => "Final/Gems/T7"
+      -> $fallback   => "Final/Gems/T7"
+      -> $quality_20 => "Final/Special/Quality/Gems/Max"
+      -> $quality_10 => "Final/Special/Quality/Gems/Mid"
+      -> $quality_1  => "Final/Special/Quality/Gems/Low"
+      -> $vaal       => "Final/Special/Vaal"
+    ]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "League Mechanics"
+    DESCRIPTION => "Configured league mechanic drops"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! Covens of Umbra (3.30): Wickerman body parts (Viscera).
+    MACRO["viscera_preferences" -> $style => "Final/Leagues/Wickerman/T2"]
+    MACRO["handle_csv" -> $category => "Wickerman"]
+
+    !! Every Viscera not listed above (the item class is "Viscera") still shows.
+    WHERE @item_class == "Viscera" => "Final/Leagues/Wickerman/Unclassified" => $Show
+
+    !! Curse of the Allflame (3.29) and forward-compatible class fallbacks.
+    MACRO["handle_csv" -> $category => "Charts"]
+    MACRO["handle_csv" -> $category => "Ducats"]
+    MACRO["handle_csv" -> $category => "Allflame"]
+    MACRO["economy_csv" -> $category => "Map Enchantments"
+      -> $tier_1 => "Final/MapEnchantments/T1"
+      -> $tier_2 => "Final/MapEnchantments/T2"
+      -> $tier_3 => "Final/MapEnchantments/T3"
+      -> $tier_4 => "Final/MapEnchantments/T4"
+    ]
+    MACRO["handle_csv" -> $category => "Enshrouding Crystals"]
+    MACRO["handle_csv" -> $category => "Mercenaries"]
+
+    !! Mirage (3.28) and Keepers (3.27) items that remain obtainable.
+    MACRO["handle_csv" -> $category => "Mirage"]
+    MACRO["handle_csv" -> $category => "Astrolabes"]
+    MACRO["handle_csv" -> $category => "Runegrafts"]
+    MACRO["handle_csv" -> $category => "Keepers"]
+
+    MACRO["handle_csv" -> $category => "Essences"]
+    MACRO["handle_csv" -> $category => "Oils"]
+    MACRO["handle_csv" -> $category => "Catalysts"]
+    MACRO["handle_csv" -> $category => "Breach"]
+    MACRO["handle_csv" -> $category => "Delve"]
+    MACRO["handle_csv" -> $category => "Expedition"]
+    MACRO["handle_csv" -> $category => "Harvest"]
+    MACRO["handle_csv" -> $category => "Heist"]
+    MACRO["handle_csv" -> $category => "Incursion"]
+    MACRO["handle_csv" -> $category => "Eldritch"]
+
+    !! A Stacked Deck opens into a random divination card, so it wears the
+    !! card look; at about six chaos it ranks with T4 cards.
+    MACRO["handle_csv" -> $category => "Divination"]
+    MACRO["divination_card_tiering"
+      -> $tier_0 => "Final/Divination/T0"
+      -> $tier_1 => "Final/Divination/T1"
+      -> $tier_2 => "Final/Divination/T2"
+      -> $tier_3 => "Final/Divination/T3"
+      -> $tier_4 => "Final/Divination/T4"
+      -> $tier_5 => "Final/Divination/T5"
+      -> $tier_6 => "Final/Divination/T6"
+    ]
+
+    !! Tattoos swing from fractions of a chaos to divines and follow the build
+    !! meta, so they are tiered by price like divination cards. A tattoo with
+    !! no price is a rare reward (Honoured, Loyalty and most Journey tattoos).
+    MACRO["tattoo_tiering"
+      -> $tier_1   => "Final/Tattoos/T1"
+      -> $tier_2   => "Final/Tattoos/T2"
+      -> $tier_3   => "Final/Tattoos/T3"
+      -> $tier_4   => "Final/Tattoos/T4"
+      -> $tier_5   => "Final/Tattoos/T5"
+      -> $tier_6   => "Final/Tattoos/T6"
+      -> $fallback => "Final/Tattoos/Unpriced"
+    ]
+    MACRO["handle_csv" -> $category => "Map Fragments"]
+    !! Threads replaced scarabs in 3.30 and use the scarab look.
+    MACRO["economy_csv" -> $category => "Threads"
+      -> $tier_1 => "Final/Scarabs/T1"
+      -> $tier_2 => "Final/Scarabs/T2"
+      -> $tier_3 => "Final/Scarabs/T3"
+      -> $tier_4 => "Final/Scarabs/T4"
+    ]
+
+    !! Hidden item state is less visible than sockets in the drop label, so
+    !! these property marks must precede the secondary link/socket section.
+    MACRO["veiled" -> $style => "Final/Equipment/Veiled"]
+    WHERE @fractured == "True" => "Final/Equipment/Fractured" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Corruption Implicits"
+    DESCRIPTION => "Corrupted gear and jewels whose corruption added an implicit"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! Corruption on its own is no reason to show an item: it only takes away
+    !! crafting, recolouring and linking. What it can add is an implicit
+    !! (+1 to socketed gems, life, resistances, aura effect), so only items
+    !! with one get the corrupted border: rares the build can wear (belts
+    !! included), rare rings, and magic or rare jewels. Every other corrupted
+    !! item is judged like any other drop further down.
+    WHERE @corrupted_mods >= 1 -> @rarity == "Rare" -> @class_use == "true" => "Final/Equipment/Corrupted" => $Show
+    WHERE @corrupted_mods >= 1 -> @rarity == "Rare" -> @item_class == "Rings" => "Final/Equipment/Corrupted" => $Show
+    WHERE @corrupted_mods >= 1 -> @item_class == "Jewels" => "Final/Equipment/Corrupted" => $Show
+    WHERE @corrupted_mods >= 1 -> @item_class == "Abyss Jewels" => "Final/Equipment/Corrupted" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Gold"
+    DESCRIPTION => "Gold stacks for campaign and league mechanics"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    WHERE @item_type == "Gold" -> @stack_size >= 1000 => "Final/Leagues/Gold_High" => $Show
+    WHERE @item_type == "Gold" -> @stack_size >= 250 => "Final/Leagues/Gold_Mid" => $Show
+    WHERE @item_type == "Gold" => "Final/Leagues/Gold_Low" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Currency and Supplies"
+    DESCRIPTION => "Campaign currency and utility supplies"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    !! Currency tiers itself: its poe.ninja value, rarity and trend, weighed
+    !! like every other economy tier, blended with how useful it is for
+    !! self-found hardcore crafting (configuration/currency/currency_profiles.csv).
+    !! A stack is scored as one item worth the whole stack, so stacks rank
+    !! higher by themselves. In the campaign every single orb shows.
+    MACRO["currency_tiering"
+      -> $tier_1 => "Final/Orbs/T1"
+      -> $tier_2 => "Final/Orbs/T2"
+      -> $tier_3 => "Final/Orbs/T3"
+      -> $tier_4 => "Final/Orbs/T4"
+      -> $tier_5 => "Final/Orbs/T5"
+      -> $tier_6 => "Final/Orbs/T6"
+      -> $tier_7 => "Final/Orbs/T7"
+      -> $tier_8 => "Final/Orbs/T8"
+    ]
+    MACRO["handle_csv" -> $category => "Supplies"]
+
+    !! Supplemental coverage for mapping supplies encountered before maps,
+    !! including reward/manual drops. Earlier campaign tiers win overlaps.
+    !! Scouting Reports are legacy (removed in 3.28); their presence in the
+    !! Studio is synthetic and does not establish a current drop source.
+    !! These rules style items on the ground; they intentionally do not
+    !! impose acquisition rules.
+    MACRO["handle_csv" -> $category => "Supplies-Mapping"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Mapping Currency and Supplies"
+    DESCRIPTION => "Currency and supplies from area level 68"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+  }
+
+  RULES {
+    !! The same currency tiering as the campaign, with one more tier below
+    !! the eight that hides: the currency that drops too often to pick up
+    !! one at a time. Its stacks still show once they are worth a tier, and
+    !! hidden singles get no minimap icon or sound. Portal and Wisdom Scrolls
+    !! show from a stack of 5.
+    MACRO["currency_tiering"
+      -> $tier_1 => "Final/Orbs/T1"
+      -> $tier_2 => "Final/Orbs/T2"
+      -> $tier_3 => "Final/Orbs/T3"
+      -> $tier_4 => "Final/Orbs/T4"
+      -> $tier_5 => "Final/Orbs/T5"
+      -> $tier_6 => "Final/Orbs/T6"
+      -> $tier_7 => "Final/Orbs/T7"
+      -> $tier_8 => "Final/Orbs/T8"
+      -> $hidden => "Final/Orbs/Hidden"
+    ]
+    MACRO["handle_csv" -> $category => "Supplies-Mapping"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Campaign Map Finds"
+    DESCRIPTION => "Maps found before entering the Atlas"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+    WHERE @item_class == "Maps"
+  }
+
+  RULES {
+    !! First maps drop during the campaign. Keep this permissive regardless
+    !! of map tier so reward/manual drops are also visible. The Maps section
+    !! below takes over from area level 68. Economy-tiered uniques still win.
+    WHERE @rarity == "Unique" => "Final/Maps/UniqueMaps" => $Show
+    WHERE @rarity == "Rare" => "Final/Maps/LowTierRareT1T2" => $Show
+    WHERE @rarity == "Magic" => "Final/Maps/LowTierMagicT1T2" => $Show
+    WHERE @rarity == "Normal" => "Final/Maps/LowTierNormalT1T2" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Maps"
+    DESCRIPTION => "Every map by tier and rarity from area level 68"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @item_class == "Maps"
+  }
+
+  RULES {
+    !! Identified maps with special encounters rank above generic maps.
+    WHERE @identified == "True" -> @map_tier >= 16 -> @has_explicit_mod == "of Zarokh" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 16 -> @has_explicit_mod == "of the Woods" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of Unearthed Technology" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of Beidat" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of Ghorr" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of K'Tash" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @map_tier >= 14 -> @has_explicit_mod == "of Insanity" => "Final/Maps/Exotic" => $Show
+    WHERE @identified == "True" -> @corrupted == "True" -> @explicit_mod_count >= 7 => "Final/Maps/SevenMod" => $Show
+
+    !! Every tier stays visible: lower maps still fill in the Atlas. Higher
+    !! tiers and rarer maps rank higher. Economy-tiered uniques win first.
+    WHERE @rarity == "Unique" => "Final/Maps/UniqueMaps" => $Show
+    WHERE @map_tier >= 17 -> @rarity == "Rare" => "Final/Maps/SpecialRareT17" => $Show
+    WHERE @map_tier >= 17 -> @rarity == "Magic" => "Final/Maps/SpecialMagicT17" => $Show
+    WHERE @map_tier >= 17 => "Final/Maps/SpecialNormalT17" => $Show
+    WHERE @map_tier >= 11 -> @rarity == "Rare" => "Final/Maps/TopTierRareT11T16" => $Show
+    WHERE @map_tier >= 11 -> @rarity == "Magic" => "Final/Maps/TopTierMagicT11T16" => $Show
+    WHERE @map_tier >= 11 => "Final/Maps/TopTierNormalT11T16" => $Show
+    WHERE @map_tier >= 8 -> @rarity == "Rare" => "Final/Maps/MidTierRareT8T10" => $Show
+    WHERE @map_tier >= 8 -> @rarity == "Magic" => "Final/Maps/MidTierMagicT8T10" => $Show
+    WHERE @map_tier >= 8 => "Final/Maps/MidTierNormalT8T10" => $Show
+    WHERE @map_tier >= 6 -> @rarity == "Rare" => "Final/Maps/MidTierRareT6T7" => $Show
+    WHERE @map_tier >= 6 -> @rarity == "Magic" => "Final/Maps/MidTierMagicT6T7" => $Show
+    WHERE @map_tier >= 6 => "Final/Maps/MidTierNormalT6T7" => $Show
+    WHERE @map_tier >= 5 -> @rarity == "Rare" => "Final/Maps/LowTierRareT5" => $Show
+    WHERE @map_tier >= 5 -> @rarity == "Magic" => "Final/Maps/LowTierMagicT5" => $Show
+    WHERE @map_tier >= 5 => "Final/Maps/LowTierNormalT5" => $Show
+    WHERE @map_tier >= 3 -> @rarity == "Rare" => "Final/Maps/LowTierRareT3T4" => $Show
+    WHERE @map_tier >= 3 -> @rarity == "Magic" => "Final/Maps/LowTierMagicT3T4" => $Show
+    WHERE @map_tier >= 3 => "Final/Maps/LowTierNormalT3T4" => $Show
+    WHERE @rarity == "Rare" => "Final/Maps/LowTierRareT1T2" => $Show
+    WHERE @rarity == "Magic" => "Final/Maps/LowTierMagicT1T2" => $Show
+    WHERE @rarity == "Normal" => "Final/Maps/LowTierNormalT1T2" => $Show
+  }
+}
+
+
+SECTION {
+  METADATA {
+    NAME        => "Exotic Crafting Bases"
+    DESCRIPTION => "Crafting bases from special sources in every map"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! The crafting base categories list bases for every class, since they
+    !! also gear future characters. A base qualifies through its implicit
+    !! (resistance, life and attribute jewellery, +2% maximum resistance
+    !! rings, +1 gem crowns, block gloves, suppression and movement speed
+    !! shields), by being the strongest base of its weapon or defence type,
+    !! or as a vendor recipe input (Rustic Sash, elemental rings).
+    !!
+    !! Campaign drops are too low an item level to craft on, so bases only
+    !! stand out from area level 68. The forge field wins over the link and
+    !! socket marks; a max-rolled base keeps it but takes the max-roll border.
+    !!
+    !! Exotic bases only come from special sources (Heist, Ritual, the
+    !! Expedition vendors, Sacrificial Garb), so like NeverSink every one of
+    !! them shows. Stygian Vise, Cord Belt, Astrolabe, Focused and Simplex
+    !! Amulets and the Cogwork, Composite, Geodesic, Helical, Manifold and
+    !! Ratcheting Rings joined the core drop pool in 3.30, so they are no
+    !! longer exotic and follow the item level crafting sections below.
+    MACRO["handle_csv" -> $category => "Exotic Crafting Bases"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Build Crafting Bases"
+    DESCRIPTION => "Crafting bases this build wears at any item level in maps"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @corrupted == "False"
+    WHERE @class_use == "true"
+  }
+
+  RULES {
+    !! Bases for this character's own weapon and armour types, and belts,
+    !! which every build wears, are worth crafting on from the first map.
+    MACRO["handle_csv" -> $category => "Crafting Bases 83"]
+    MACRO["handle_csv" -> $category => "Crafting Bases 84"]
+    MACRO["handle_csv" -> $category => "Crafting Bases 85"]
+    MACRO["handle_csv" -> $category => "Crafting Bases 86"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases at Item Level 83"
+    DESCRIPTION => "Crafting bases for every class from item level 83"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_level >= 83
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! Other classes' bases only show at the item level where NeverSink's
+    !! strict filter starts showing them, per slot.
+    !!
+    !! Claws, daggers and other melee weapons: 83 opens their top damage tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases 83"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases at Item Level 84"
+    DESCRIPTION => "Crafting bases for every class from item level 84"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_level >= 84
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! Rings, rune daggers, sceptres, staves and wands: 84 opens their top tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases 84"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases at Item Level 85"
+    DESCRIPTION => "Crafting bases for every class from item level 85"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_level >= 85
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! Amulets, gloves and helmets: 85 opens their top life and defence tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases 85"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Crafting Bases at Item Level 86"
+    DESCRIPTION => "Crafting bases for every class from item level 86"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @item_level >= 86
+    WHERE @corrupted == "False"
+  }
+
+  RULES {
+    !! Body armours, boots, belts, bows, quivers and shields: 86 opens their top
+    !! life and defence tiers.
+    MACRO["handle_csv" -> $category => "Crafting Bases 86"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Links and Sockets"
+    DESCRIPTION => "Secondary styling for visible links sockets and trichromatic items"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! Socket and link layouts are already visible on the item label. Keep
+    !! their styling secondary: 3/4-link and RGB marks are quiet, 5/6-link
+    !! and 5/6-socket marks retain a border, and hidden item state (fractured,
+    !! corruption implicits, veiled, max-roll and quality where applicable)
+    !! wins first. These layouts keep their worth on corrupted gear too: a
+    !! 5/6-link can still be worn, and 6-socket and RGB items vendor for
+    !! currency. They hold in maps as well, where the vendor recipes are
+    !! a steady source of Jeweller's and Chromatic Orbs.
+    WHERE @socket_group >= "6" => "Final/Special/Sockets/6-link" => $Show
+    WHERE @socket_group >= "5" => "Final/Special/Sockets/5-link" => $Show
+    WHERE @socket_group >= "4RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB-4-socket" => $Show
+    WHERE @socket_group == "RGB" -> @height == 1 -> @width == 3 => "Final/Special/RGB" => $Show
+    WHERE @socket_group == "RGB" -> @height == 3 -> @width == 1 => "Final/Special/RGB" => $Show
+    WHERE @socket_group == "RGB" -> @height == 2 -> @width == 2 => "Final/Special/RGB" => $Show
+    WHERE @sockets >= "6" => "Final/Special/Sockets/6-socket" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Corrupted Gear"
+    DESCRIPTION => "Hide corrupted normal and magic gear"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+    WHERE @corrupted == "True"
+  }
+
+  RULES {
+    !! Normal and magic gear is worth picking up in the campaign for what can
+    !! still be done to it: alchemy, crafting, recolouring and linking.
+    !! Corruption rules all of that out, so these hides come before the
+    !! socket reminders and progression rules that would otherwise show it.
+    !! Flasks and jewels are left to their own rules.
+    WHERE @rarity == "Normal" -> @class_use == "true" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @class_use == "false" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @item_class == "Rings" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @item_class == "Amulets" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "true" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "false" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @item_class == "Rings" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @item_class == "Amulets" => $old_equipment_magic => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Link Reminders"
+    DESCRIPTION => "Sockets worth linking or recolouring for the build"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    WHERE @sockets >= "5" => "Final/Special/Sockets/5-socket" => $Show
+    WHERE @socket_group >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-link" => $Show
+    WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "true" => "Final/Special/Sockets/4-socket" => $Show
+    WHERE @area_level <= 24 -> @socket_group >= "3" -> @class_use == "true" => "Final/Special/Sockets/3-link" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Off-Class Links"
+    DESCRIPTION => "Hide off-class linked and socketed gear"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    !! Off-class items with the same link/socket counts keep the identical
+    !! style, just hidden instead of shown: PoE still renders MinimapIcon and
+    !! PlayEffect on Hide blocks, so the minimap ping survives even though the
+    !! on-ground text/border doesn't - better than losing the signal entirely
+    !! by falling through to a generic hide rule further down.
+    WHERE @socket_group >= "6" -> @class_use == "false" => "Final/Special/Sockets/6-link" => $Hide
+    WHERE @socket_group >= "5" -> @class_use == "false" => "Final/Special/Sockets/5-link" => $Hide
+    WHERE @socket_group >= "4" -> @class_use == "false" => "Final/Special/Sockets/4-link" => $Hide
+    WHERE @area_level <= 40 -> @sockets >= "6" -> @class_use == "false" => "Final/Special/Sockets/6-socket" => $Hide
+    WHERE @area_level <= 40 -> @sockets >= "5" -> @class_use == "false" => "Final/Special/Sockets/5-socket" => $Hide
+    WHERE @area_level <= 40 -> @sockets >= "4" -> @class_use == "false" => "Final/Special/Sockets/4-socket" => $Hide
+    WHERE @area_level <= 24 -> @socket_group >= "3" -> @class_use == "false" => "Final/Special/Sockets/3-link" => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Campaign Jewelry"
+    DESCRIPTION => "Visible campaign jewelry and jewels"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    WHERE @item_class == "Rings" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
+    WHERE @item_class == "Rings" -> @rarity == "Magic" => "Final/Jewelry/Magic" => $Show
+    WHERE @item_class == "Amulets" -> @rarity == "Magic" => "Final/Jewelry/Magic" => $Show
+    WHERE @item_class == "Rings" -> @rarity == "Normal" => "Final/Jewelry/Normal" => $Show
+    WHERE @item_class == "Amulets" -> @rarity == "Normal" => "Final/Jewelry/Normal" => $Show
+    WHERE @item_class == "Jewels" => "Final/Jewels" => $Show
+    WHERE @item_class == "Abyss Jewels" => "Final/Jewels" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Mapping Jewellery and Jewels"
+    DESCRIPTION => "Rare jewellery and every jewel from area level 68"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+  }
+
+  RULES {
+    !! Rare rings and belts can roll anything worth wearing, and every jewel
+    !! is worth reading. Normal and magic rings and amulets are only worth
+    !! it as crafting bases, which the crafting sections already showed.
+    WHERE @item_class == "Rings" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
+    WHERE @item_class == "Belts" -> @rarity == "Rare" => "Final/Jewelry/Rare" => $Show
+    WHERE @item_class == "Jewels" => "Final/Jewels" => $Show
+    WHERE @item_class == "Abyss Jewels" => "Final/Jewels" => $Show
+    WHERE @item_class == "Rings" -> @rarity == "Normal" => $old_equipment_normal => $Hide
+    WHERE @item_class == "Amulets" -> @rarity == "Normal" => $old_equipment_normal => $Hide
+    WHERE @item_class == "Rings" -> @rarity == "Magic" => $old_equipment_magic => $Hide
+    WHERE @item_class == "Amulets" -> @rarity == "Magic" => $old_equipment_magic => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Labyrinth"
+    DESCRIPTION => "Labyrinth keys and Izaro-fight trinkets"
+  }
+
+  SECTION_CONDITIONS {
+  }
+
+  RULES {
+    !! Labyrinth Items = the Silver/Ornate/Gold reliquary keys; Labyrinth
+    !! Trinkets = the consumables that help against Izaro. The real filter
+    !! classes are plural (verified against NeverSink's filter, since the
+    !! game rejected the singular "Labyrinth Item"/"Labyrinth Trinket" with
+    !! "No item classes found exactly matching"). Neither has meaningful
+    !! named variants worth tiering, so a plain class match covers each
+    !! (hand-written WHERE conditions only take one value each - multi-value
+    !! lists are a macro-only feature - so this needs two lines).
+    WHERE @item_class == "Labyrinth Items" => "Final/Lab" => $Show
+    WHERE @item_class == "Labyrinth Trinkets" => "Final/Lab" => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Small Campaign Rares"
+    DESCRIPTION => "Compact rare items to sell for useful shards"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+    WHERE @rarity == "Rare"
+  }
+
+  RULES {
+    !! Match before equipment progression and class-use rules so outdated or
+    !! off-build rares remain visible. Use the compact vendor-item footprints.
+    WHERE @height <= 2 -> @width <= 2 => $equipment_rare => $Show
+    WHERE @height <= 3 -> @width == 1 => $equipment_rare => $Show
+    WHERE @height == 1 -> @width <= 3 => $equipment_rare => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Normal Gear Cutoff"
+    DESCRIPTION => "Hide ordinary normal equipment after Act One"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+    WHERE @area_level > 13
+  }
+
+  RULES {
+    !! Together these cover every weapon and armour base. Earlier value rules
+    !! remain exceptions because they appear first in the generated filter.
+    WHERE @rarity == "Normal" -> @class_use == "true" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @class_use == "false" => $old_equipment_normal => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Magic Gear Cutoff"
+    DESCRIPTION => "Hide ordinary magic equipment after Act Two"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+    WHERE @area_level > 23
+  }
+
+  RULES {
+    WHERE @rarity == "Magic" -> @class_use == "true" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "false" => $old_equipment_magic => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Off-Class Rare Cutoff"
+    DESCRIPTION => "Hide non-class-use rares after Act Two"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+    WHERE @area_level > 23
+  }
+
+  RULES {
+    !! Compact/valuable-shape rares are already shown by Small Campaign Rares,
+    !! which matches earlier in the file, so they remain visible regardless.
+    WHERE @rarity == "Rare" -> @class_use == "false" => $old_equipment_rare => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "ThunderGod Equipment"
+    DESCRIPTION => "Level appropriate gear"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    MACRO["item_progression-equipment-leveling"
+      -> $show_normal   => $equipment_normal
+      -> $show_magic    => $equipment_magic
+      -> $show_rare     => $equipment_rare
+      -> $hidden_normal => $old_equipment_normal
+      -> $hidden_magic  => $old_equipment_magic
+      -> $hidden_rare   => $old_equipment_rare
+    ]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Unmatched Campaign Equipment"
+    DESCRIPTION => "Hide all remaining weapons and armour"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 68
+  }
+
+  RULES {
+    !! Normal equipment
+    WHERE @rarity == "Normal" -> @class_use == "true" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @class_use == "false" => $old_equipment_normal => $Hide
+
+    !! Magic equipment
+    WHERE @rarity == "Magic" -> @class_use == "true" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "false" => $old_equipment_magic => $Hide
+
+    !! Rare equipment
+    WHERE @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Show
+    WHERE @rarity == "Rare" -> @class_use == "false" => $old_equipment_rare => $Show
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Mapping Gear"
+    DESCRIPTION => "Hides outdated gear from area level 68"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+  }
+
+  RULES {
+    !! In maps normal and magic gear is only worth it as a crafting base or
+    !! for its sockets, and the sections above already showed those. A tier 5
+    !! magic item (3.30's UnidentifiedItemTier) is the only magic item that can
+    !! drop Fractured or with +1 item level, and the only tier that drops the
+    !! new core bases (Stygian Vise, Cord Belt, Simplex Amulet), so it stays as
+    !! a crafting base.
+    WHERE @unidentified_item_tier >= 5 -> @rarity == "Magic" -> @class_use == "true" => $equipment_magic => $Show
+    WHERE @rarity == "Normal" -> @class_use == "true" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Normal" -> @class_use == "false" => $old_equipment_normal => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "true" => $old_equipment_magic => $Hide
+    WHERE @rarity == "Magic" -> @class_use == "false" => $old_equipment_magic => $Hide
+
+    !! A rare on a base that starts dropping far below the area is outclassed
+    !! by the bases dropping now, whatever its mods (NeverSink's thresholds:
+    !! drop level under 40 from area 73, under 50 from 78, under 60 from 80).
+    !! A tier 4 or 5 rare (UnidentifiedItemTier) is exempt, since the tier
+    !! lifts its modifiers and base above what its drop level suggests.
+    !! Other classes' rares hide below anyway.
+    WHERE @area_level >= 73 -> @drop_level < 40 -> @unidentified_item_tier < 4 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 78 -> @drop_level < 50 -> @unidentified_item_tier < 4 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+    WHERE @area_level >= 80 -> @drop_level < 60 -> @unidentified_item_tier < 4 -> @rarity == "Rare" -> @class_use == "true" => $old_equipment_rare => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Build Armour in Maps"
+    DESCRIPTION => "Rare armour this build wears on NeverSink's tiered bases"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @class_use == "true"
+  }
+
+  RULES {
+    !! NeverSink's strict filter shows rares on its tier 1 and 2 bases only.
+    !! For this character's own armour types the list goes one tier deeper
+    !! (its soft filter's tier 3), so white maps, where the tier 1 and 2 body
+    !! armours cannot drop yet, still offer upgrades.
+    MACRO["handle_csv" -> $category => "Endgame Rare Bases"]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Mapping Gear Cutoff"
+    DESCRIPTION => "Shows this build's rare weapons and hides every other rare"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 68
+    WHERE @rarity == "Rare"
+  }
+
+  RULES {
+    !! Armour off the tiered bases hides. Rare weapons of this build's
+    !! classes stay visible, since a weapon's damage rolls on any recent
+    !! base (NeverSink's tiers list almost no weapons); other classes'
+    !! rares hide. A tier 4 or 5 rare of this build's classes shows
+    !! regardless of its base.
+    WHERE @unidentified_item_tier >= 4 -> @class_use == "true" => $equipment_rare => $Show
+    WHERE @item_class == "Body Armours" => $old_equipment_rare => $Hide
+    WHERE @item_class == "Boots" => $old_equipment_rare => $Hide
+    WHERE @item_class == "Gloves" => $old_equipment_rare => $Hide
+    WHERE @item_class == "Helmets" => $old_equipment_rare => $Hide
+    WHERE @item_class == "Shields" => $old_equipment_rare => $Hide
+    WHERE @class_use == "true" => $equipment_rare => $Show
+    WHERE @class_use == "false" => $old_equipment_rare => $Hide
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Campaign Flasks"
+    DESCRIPTION => "Level appropriate flasks through white maps"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level < 73
+  }
+
+  RULES {
+    MACRO["item_progression-flasks"
+      -> $show   => $flask_current
+      -> $hidden => $flask_old
+    ]
+  }
+}
+
+SECTION {
+  METADATA {
+    NAME        => "Mapping Flasks"
+    DESCRIPTION => "Utility flasks and high quality flasks from area level 73"
+  }
+
+  SECTION_CONDITIONS {
+    WHERE @area_level >= 73
+  }
+
+  RULES {
+    !! By yellow maps the life and mana flasks are settled; utility flasks
+    !! stay worth reading for their mods, and any flask with 20% quality is
+    !! a better base to craft.
+    WHERE @item_class == "Utility Flasks" => $flask_current => $Show
+    WHERE @quality >= 20 -> @item_class == "Life Flasks" => "Final/Special/Quality/MaxQualityFlask" => $Show
+    WHERE @quality >= 20 -> @item_class == "Mana Flasks" => "Final/Special/Quality/MaxQualityFlask" => $Show
+    WHERE @quality >= 20 -> @item_class == "Hybrid Flasks" => "Final/Special/Quality/MaxQualityFlask" => $Show
+    WHERE @item_class == "Life Flasks" => $flask_old => $Hide
+    WHERE @item_class == "Mana Flasks" => $flask_old => $Hide
+    WHERE @item_class == "Hybrid Flasks" => $flask_old => $Hide
+  }
+}

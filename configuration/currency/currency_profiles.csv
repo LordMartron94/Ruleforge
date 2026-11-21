@@ -13,7 +13,7 @@ Hinekora's Lock,9,Foresees the next currency's result: risk-free high-end crafti
 Divine Orb,8,Rerolls mod values; one can perfect a finished item
 Exalted Orb,6,Adds a mod; the last step of most crafts
 Orb of Annulment,6,Removes a mod to rescue a near-finished rare
-Sacred Orb,4,Rerolls an armour's base defences; improves a finished piece with a low defence roll
+Sacred Orb,6,Rerolls armour base defences and pays the weapon prefix or suffix locking cost in 3.30
 Chaos Orb,7,Rerolls rares and pays vendors and recipes; the backbone of self-found crafting
 Orb of Alchemy,6,Rolls maps and bases to rare; one is one rare map
 Orb of Fusing,6,Links sockets; a 5- or 6-link takes many
@@ -29,7 +29,6 @@ Orb of Regret,4,Respecs passives as the character adapts
 Blessed Orb,2,Rerolls implicit values
 Orb of Chance,4,Chances uniques and fuels Allflame crafting since 3.29.1
 Ancient Orb,5,Rerolls a unique in its class and fuels Allflame crafting since 3.29.1
-Orb of Binding,3,Makes a rare with up to four links
 Orb of Horizons,1,Changes a map's layout
 Orb of Unmaking,1,Refunds an atlas passive
 Instilling Orb,5,Makes utility flasks trigger by themselves: hardcore uptime
@@ -64,7 +63,7 @@ Tainted Armourer's Scrap,2,Quality on corrupted armour
 Maven's Chisel of Avarice,4,Map quality towards currency
 Maven's Chisel of Proliferation,4,Map quality towards pack size
 Maven's Chisel of Procurement,3,Map quality towards item rarity
-Maven's Chisel of Scarabs,3,Map quality towards scarabs
+Maven's Chisel of Threads,3,Map quality towards threads
 Maven's Chisel of Divination,3,Map quality towards divination cards
 Flesh of Xesht,2,Turns a Breach unique into its alternate form
 Orb of Remembrance,3,Rerolls the Memory Strands on normal gear
@@ -73,7 +72,7 @@ Orb of Intention,2,More Memory Strands but fewer drops on a memory map
 Diviner's Delirium Orb,3,Delirium for divination cards; delirium is dangerous in hardcore
 Fine Delirium Orb,3,Delirium for currency
 Cartographer's Delirium Orb,3,Delirium for maps
-Skittering Delirium Orb,3,Delirium for scarabs
+Threaded Delirium Orb,3,Delirium for threads
 Whispering Delirium Orb,2,Delirium for essences
 Thaumaturge's Delirium Orb,2,Delirium for gems
 Armoursmith's Delirium Orb,2,Delirium for armour
@@ -81,7 +80,6 @@ Blacksmith's Delirium Orb,2,Delirium for weapons
 Jeweller's Delirium Orb,2,Delirium for jewellery
 Singular Delirium Orb,2,Delirium for uniques
 Blighted Delirium Orb,2,Delirium for blighted maps
-Fragmented Delirium Orb,2,Delirium for fragments
 Omen of Connections,9,Guarantees maximum links from the next Orb of Fusing
 Omen of the Jeweller,6,Guarantees maximum sockets from the next Jeweller's Orb
 Omen of Trichromatism,4,Guarantees a red green and blue socket from the next Chromatic Orb

@@ -73,7 +73,15 @@ func run() error {
 	if err := exporter.RefreshEconomyData(leagues, configuration.GetEconomyHistoryRefreshInterval(), false); err != nil {
 		return fmt.Errorf("RefreshEconomyData: %w", err)
 	}
-	economyData, err := exporter.EconomyHistory(leagues)
+	availableLeagues, err := exporter.LeaguesWithHistory(leagues)
+	if err != nil {
+		return fmt.Errorf("LeaguesWithHistory: %w", err)
+	}
+	leagueWeights, err := configuration.GetLeagueWeightsFor(availableLeagues)
+	if err != nil {
+		return fmt.Errorf("GetLeagueWeightsFor: %w", err)
+	}
+	economyData, err := exporter.EconomyHistory(availableLeagues)
 	if err != nil {
 		return fmt.Errorf("EconomyHistory: %w", err)
 	}
@@ -107,7 +115,7 @@ func run() error {
 			if !style.IsEnabled() {
 				continue
 			}
-			err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData, style)
+			err = processRuleforgeScript(ruleforgeScript, configuration, baseTypes, itemBases, economyData, leagueWeights, style)
 			if err != nil {
 				return fmt.Errorf("processRuleforgeScript: %v", err)
 			}
@@ -196,6 +204,7 @@ func processRuleforgeScript(
 	validBases []string,
 	itemBases []model.ItemBase,
 	economyCache map[string][]data_generation.EconomySnapshot,
+	leagueWeights []config.LeagueWeights,
 	style config.StyleDefinition) error {
 	file, err := openFile(ruleforgeScriptPath)
 	if err != nil {
@@ -253,7 +262,7 @@ func processRuleforgeScript(
 	compiler, err := compilation.NewCompiler(tree, compilation.CompilerConfiguration{
 		StylesheetPath: style.Stylesheet,
 		Palette:        style.Palette,
-	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, configuration.GetLeagueWeights(), configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, configuration.EconomyValueHalfLifeDays, *baseTypeData, configuration.CustomEquipmentPresets, currency)
+	}, validBases, itemBases, economyCache, *configuration.EconomyWeights, leagueWeights, configuration.EconomyNormalizationStrategy, configuration.ChaseVSGeneralPotentialFactor, configuration.EconomyValueHalfLifeDays, *baseTypeData, configuration.CustomEquipmentPresets, currency)
 
 	if err != nil {
 		return fmt.Errorf("compilation.NewCompiler: %w", err)

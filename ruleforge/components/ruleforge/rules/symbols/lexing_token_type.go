@@ -67,4 +67,7 @@ const (
 	DotToken
 	FunctionKeywordToken
 	StyleOverrideToken
+
+	// METADATA, added after the others so existing token values stay put.
+	ThemesKeywordToken
 )

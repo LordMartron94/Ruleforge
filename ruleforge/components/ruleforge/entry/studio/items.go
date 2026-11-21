@@ -62,6 +62,7 @@ type PricedItem struct {
 
 // Stackable is a currency-like base type from a base type automation CSV.
 type Stackable struct {
+	Class    string `json:"class,omitempty"`
 	Category string `json:"category"`
 	BaseType string `json:"base"`
 	MinStack int    `json:"minStack,omitempty"`
@@ -183,7 +184,7 @@ func NewItemPool(
 	seenStackables := make(map[Stackable]bool)
 	for _, entries := range automation {
 		for _, entry := range entries {
-			stackable := Stackable{Category: entry.Category, BaseType: entry.BaseType, Priority: entry.Priority}
+			stackable := Stackable{Category: entry.Category, BaseType: entry.BaseType, Priority: entry.Priority, Class: StackableClass(entry.Category, entry.BaseType)}
 			if entry.MinStackSize != nil {
 				stackable.MinStack = *entry.MinStackSize
 			}
@@ -228,4 +229,22 @@ func latestValues(economy map[string][]data_generation.EconomySnapshot, class st
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].Name < items[j].Name })
 	return items
+}
+
+// StackableClass keeps configuration categories separate from game classes.
+func StackableClass(category, base string) string {
+	switch category {
+	case "Wickerman":
+		return "Viscera"
+	case "Threads":
+		if base == "Frayed Thread" {
+			return "Stackable Currency"
+		}
+		return "Map Fragments"
+	case "Map Fragments":
+		return "Map Fragments"
+	case "Charts":
+		return "Chart"
+	}
+	return "Stackable Currency"
 }

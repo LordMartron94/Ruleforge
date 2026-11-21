@@ -82,6 +82,7 @@ var keywordDefs = []struct {
 	// Metadata Assignments
 	{"METADATA", symbols.MetadataKeywordToken, "MetadataKeywordLexer"},
 	{"BUILD", symbols.BuildKeywordToken, "BuildKeywordLexer"},
+	{"THEMES", symbols.ThemesKeywordToken, "ThemesKeywordLexer"},
 	{"NAME", symbols.NameKeywordToken, "NameKeywordLexer"},
 	{"VERSION", symbols.VersionKeywordToken, "VersionKeywordLexer"},
 	{"STRICTNESS", symbols.StrictnessKeywordToken, "StrictnessKeywordLexer"},
@@ -121,6 +122,12 @@ var keywordDefs = []struct {
 	{"@base_defence_percentile", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 	{"@item_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 	{"@drop_level", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@unidentified_item_tier", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+
+	{"@fated", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@identified", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@has_explicit_mod", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
+	{"@explicit_mod_count", symbols.ConditionKeywordToken, "ConditionKeywordLexer"},
 
 	// Builds
 	{"MARAUDER", symbols.MeleeBuildToken, "BuildValueKeywordLexer"},

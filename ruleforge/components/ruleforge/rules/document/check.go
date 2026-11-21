@@ -152,7 +152,7 @@ func validateItem(item *Item, place string) error {
 		return validateItems(item.Items, place)
 	case KindField:
 		switch item.Key {
-		case "NAME", "VERSION", "STRICTNESS", "DESCRIPTION", "BUILD":
+		case "NAME", "VERSION", "STRICTNESS", "DESCRIPTION", "BUILD", "THEMES":
 		default:
 			return fmt.Errorf("%s: %q is not a METADATA field", place, item.Key)
 		}

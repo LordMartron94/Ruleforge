@@ -18,6 +18,10 @@ type ConditionSpec struct {
 
 // ConditionSpecs lists every condition a script can use.
 var ConditionSpecs = []ConditionSpec{
+	{ID: "@fated", Label: "Fated", Kind: "choice", Choices: []string{"True", "False"}, Quoted: true, Help: "Whether Umbra modified this item with Fated modifiers."},
+	{ID: "@identified", Label: "Identified", Kind: "choice", Choices: []string{"True", "False"}, Quoted: true, Help: "Whether the item's modifiers are identified."},
+	{ID: "@has_explicit_mod", Label: "Explicit modifier", Kind: "choice", Quoted: true, Help: "A modifier name; == matches the exact name."},
+	{ID: "@explicit_mod_count", Label: "Explicit mod count", Kind: "number", Help: "Number of explicit modifiers; excludes implicits."},
 	{ID: "@area_level", Label: "Area level", Kind: "number", Help: "The level of the area the item drops in."},
 	{ID: "@rarity", Label: "Rarity", Kind: "choice", Choices: []string{"Normal", "Magic", "Rare", "Unique"}, Quoted: true, Help: "The item's rarity; < and > compare in that order."},
 	{ID: "@item_type", Label: "Base type", Kind: "baseType", Quoted: true, Help: "The item's base type, such as Chaos Orb or Light Brigandine."},
@@ -36,6 +40,7 @@ var ConditionSpecs = []ConditionSpec{
 	{ID: "@base_defence_percentile", Label: "Base defence roll", Kind: "number", Help: "How high the base armour, evasion and energy shield rolled; 100 is max-rolled."},
 	{ID: "@item_level", Label: "Item level", Kind: "number", Help: "The item's level, which caps the modifier tiers it can roll."},
 	{ID: "@drop_level", Label: "Base drop level", Kind: "number", Help: "The level its base type starts dropping at; low means an early, weaker base."},
+	{ID: "@unidentified_item_tier", Label: "Item tier", Kind: "number", Help: "The item tier (0-5) that 3.30 gives Magic and Rare drops from Act 6 on; a higher tier rolls higher modifier tiers, better bases, quality and sockets (the game's UnidentifiedItemTier)."},
 }
 
 // ConditionKeywords lists the condition identifiers the lexer knows.

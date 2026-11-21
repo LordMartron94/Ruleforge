@@ -1,0 +1,10 @@
+[Unit]
+Description=Update Ruleforge economy collector image
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ruleforge/deployment/economy
+ExecStart=/opt/ruleforge/deployment/economy/update.sh

@@ -10,3 +10,8 @@ vendor/
 /ruleforge/components/ruleforge/entry/entry
 /ruleforge/tests/tests
 /src_analyzer/src_analyzer
+
+# Economy server deployment secrets and update lock
+/deployment/economy/.env
+/deployment/economy/history-token
+/deployment/economy/.update.lock

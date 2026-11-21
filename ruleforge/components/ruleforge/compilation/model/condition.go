@@ -8,6 +8,8 @@ import (
 )
 
 var conditionIdentifierToCompiledIdentifier = map[string]string{
+	"@fated":                   "Fated",
+	"@explicit_mod_count":      "HasExplicitMod",
 	"@area_level":              "AreaLevel",
 	"@stack_size":              "StackSize",
 	"@item_type":               "BaseType",
@@ -23,6 +25,7 @@ var conditionIdentifierToCompiledIdentifier = map[string]string{
 	"@corrupted_mods":          "CorruptedMods",
 	"@item_level":              "ItemLevel",
 	"@drop_level":              "DropLevel",
+	"@unidentified_item_tier":  "UnidentifiedItemTier",
 	"@base_armour":             "BaseArmour",
 	"@base_evasion":            "BaseEvasion",
 	"@base_energy_shield":      "BaseEnergyShield",
@@ -53,6 +56,9 @@ func debugMap(m map[string][]string) {
 }
 
 func (c *Condition) ConstructCompiledCondition(variables *map[string][]string, validBaseTypes []string) string {
+	if c.Identifier == "@explicit_mod_count" {
+		return fmt.Sprintf("HasExplicitMod %s%s \"a\" \"e\" \"i\" \"o\" \"u\" \"y\" ", c.Operator, c.Value[0])
+	}
 	compiledIdentifier := compileIdentifier(c.Identifier)
 	var compiledValues []string
 

@@ -29,6 +29,7 @@ func (a *App) studioData() (studio.Data, error) {
 	data := studio.Data{
 		GeneratedAt: time.Now().Format("2006-01-02 15:04"),
 		Filters:     a.studioFilters,
+		Economy:     a.economyEvidence,
 	}
 	var automation [][]config.BaseTypeAutomationEntry
 	for _, definition := range a.styles {
@@ -47,7 +48,7 @@ func (a *App) studioData() (studio.Data, error) {
 	data.Items = studio.NewItemPool(a.itemBases, a.gems, a.uniques, a.economyData, automation)
 	// Profiled currencies no longer have rows in the automation CSV.
 	for _, profile := range a.currency.Profiles {
-		data.Items.Stackables = append(data.Items.Stackables, studio.Stackable{Category: "Orbs", BaseType: profile.BaseType, MinStack: 1})
+		data.Items.Stackables = append(data.Items.Stackables, studio.Stackable{Category: "Orbs", Class: "Stackable Currency", BaseType: profile.BaseType, MinStack: 1})
 	}
 	return data, nil
 }

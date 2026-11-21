@@ -13,6 +13,7 @@ import (
 
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/config"
+	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation"
 )
 
 //go:embed studio.html
@@ -33,10 +34,11 @@ const dataPlaceholder = "/*STUDIO_DATA*/null"
 
 // Data is everything the studio page needs.
 type Data struct {
-	GeneratedAt string   `json:"generatedAt"`
-	Styles      []Style  `json:"styles"`
-	Filters     []Filter `json:"filters"`
-	Items       ItemPool `json:"items"`
+	Economy     []data_generation.EconomyEvidence `json:"economy,omitempty"`
+	GeneratedAt string                            `json:"generatedAt"`
+	Styles      []Style                           `json:"styles"`
+	Filters     []Filter                          `json:"filters"`
+	Items       ItemPool                          `json:"items"`
 	// Server is set when a Studio server serves the page; it turns the editors on.
 	Server *ServerInfo `json:"server,omitempty"`
 }
@@ -106,14 +108,15 @@ func NewStyle(definition config.StyleDefinition, sheet *config.Stylesheet) Style
 // sources and looks many times over, so each distinct value is stored once and
 // blocks refer to it by index.
 type page struct {
-	GeneratedAt string                          `json:"generatedAt"`
-	Server      *ServerInfo                     `json:"server,omitempty"`
-	Styles      []Style                         `json:"styles"`
-	Items       ItemPool                        `json:"items"`
-	Conditions  [][]compilation.StudioCondition `json:"conditions"`
-	Sources     []string                        `json:"sources"`
-	Looks       []compilation.StudioLook        `json:"looks"`
-	Filters     []pageFilter                    `json:"filters"`
+	Economy     []data_generation.EconomyEvidence `json:"economy,omitempty"`
+	GeneratedAt string                            `json:"generatedAt"`
+	Server      *ServerInfo                       `json:"server,omitempty"`
+	Styles      []Style                           `json:"styles"`
+	Items       ItemPool                          `json:"items"`
+	Conditions  [][]compilation.StudioCondition   `json:"conditions"`
+	Sources     []string                          `json:"sources"`
+	Looks       []compilation.StudioLook          `json:"looks"`
+	Filters     []pageFilter                      `json:"filters"`
 }
 
 type pageFilter struct {
@@ -152,7 +155,7 @@ func (in *interner) id(value any, add func()) (int, error) {
 }
 
 func compact(data Data) (page, error) {
-	out := page{GeneratedAt: data.GeneratedAt, Server: data.Server, Styles: data.Styles, Items: data.Items}
+	out := page{Economy: data.Economy, GeneratedAt: data.GeneratedAt, Server: data.Server, Styles: data.Styles, Items: data.Items}
 	conditions := interner{map[string]int{}}
 	sources := interner{map[string]int{}}
 	looks := interner{map[string]int{}}

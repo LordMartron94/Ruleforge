@@ -1,6 +1,8 @@
 package compilation
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
 	model2 "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/compilation/model"
@@ -17,6 +19,7 @@ import (
 
 // RuleGenerator is the engine for compiling rules. It contains all complex game logic.
 type RuleGenerator struct {
+	economyState          *data_generation.TierStateOptions
 	ruleFactory           *RuleFactory
 	styleManager          *StyleManager
 	validBaseTypes        []string
@@ -839,7 +842,9 @@ func (rg *RuleGenerator) generateTieredRules(
 				validItems = append(validItems, item)
 			}
 			totalValid += len(validItems)
-			filteredSnapshots = append(filteredSnapshots, data_generation.EconomySnapshot{FetchedAt: snapshot.FetchedAt, Items: validItems})
+			filtered := snapshot
+			filtered.Items = validItems
+			filteredSnapshots = append(filteredSnapshots, filtered)
 		}
 		log.Printf("Valid %s for League %s: %d (across %d snapshot(s))\n", tieringConfiguration.ItemClassToFilter, league, totalValid, len(filteredSnapshots))
 		itemsToCheck[league] = filteredSnapshots
@@ -862,6 +867,10 @@ func (rg *RuleGenerator) generateTieredRules(
 		return generatedRules, err
 	}
 
+	tiered, err = rg.stabilizeTiers(tieringConfiguration.ItemClassToFilter, len(tierStyles), tiered, nil)
+	if err != nil {
+		return nil, err
+	}
 	// 5. Sort tiers and construct rules (Common Logic)
 	var sortedTiers []int
 	for tier := range tiered {
@@ -931,7 +940,7 @@ func (rg *RuleGenerator) economyParameters() (data_generation.TieringParameters,
 	default:
 		return data_generation.TieringParameters{}, fmt.Errorf("unsupported normalization strategy")
 	}
-	return data_generation.TieringParameters{
+	params := data_generation.TieringParameters{
 		ValueWeight:              rg.economyWeights.Value,
 		RarityWeight:             rg.economyWeights.Rarity,
 		TrendWeight:              rg.economyWeights.Trend,
@@ -939,9 +948,16 @@ func (rg *RuleGenerator) economyParameters() (data_generation.TieringParameters,
 		NormStrategy:             normStrategy,
 		ChaosOutlierPercentile:   0.95,
 		MinListingsForPercentile: 20,
+		MinSupplyListings:        5,
+		ObservationBucketHours:   4,
 		ChasePotentialWeight:     rg.chasePotentialWeight,
 		ValueHalfLifeDays:        rg.valueHalfLifeDays,
-	}, nil
+	}
+	if rg.economyState != nil {
+		params.MinSupplyListings = rg.economyState.Policy.MinimumListings
+		params.ObservationBucketHours = rg.economyState.Policy.BucketHours
+	}
+	return params, nil
 }
 
 func hasEconomyItems(snapshotsByLeague map[string][]data_generation.EconomySnapshot) bool {
@@ -1241,6 +1257,7 @@ var conditionOrder = map[string]int{
 	"@area_level":              12,
 	"@item_level":              12,
 	"@drop_level":              12,
+	"@unidentified_item_tier":  12,
 	"@map_tier":                13,
 
 	// Hash Set
@@ -1472,4 +1489,23 @@ func getDropLevel(item *model.ItemBase) int {
 		return requiredLevel
 	}
 	return 1
+}
+
+// Scope is independent of palette/build but changes when scoring policy does.
+func (rg *RuleGenerator) stabilizeTiers(class string, count int, tiers map[int][]string, extra any) (map[int][]string, error) {
+	if rg.economyState == nil {
+		return tiers, nil
+	}
+	params, err := rg.economyParameters()
+	if err != nil {
+		return nil, err
+	}
+	params.LeagueWeights = append([]config.LeagueWeights(nil), params.LeagueWeights...)
+	sort.Slice(params.LeagueWeights, func(i, j int) bool { return params.LeagueWeights[i].League < params.LeagueWeights[j].League })
+	raw, err := json.Marshal([]any{class, count, params, rg.economyState.Policy, extra})
+	if err != nil {
+		return nil, err
+	}
+	key := fmt.Sprintf("%x", sha256.Sum256(raw))
+	return rg.economyState.StabilizeTiers(key, class, tiers)
 }

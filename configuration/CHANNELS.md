@@ -52,7 +52,7 @@ combination is authoritative; e.g. `Final/Orbs/T1` maps to global T0.
 | Kite | Utility supplies |
 | Pentagon | Divination cards and Stacked Decks |
 | Diamond | Playable areas: maps, contracts, blueprints, logbooks, charts |
-| Star | Area-enabling fragments, breachstones and scarabs |
+| Star | Area-enabling fragments, breachstones and threads |
 | Square | Access/objective items: Labyrinth keys/trinkets and Stone of Passage |
 | Hexagon | Gold |
 | UpsideDownHouse | Unclassified fallback |
@@ -157,3 +157,15 @@ See the [research note](../results/research/2026-09-28-0215-campaign-mapping-ite
 The Studio's random generator is a synthetic preview. Its currency pool comes
 from configuration rows, including legacy entries, and does not enforce their
 actual drop restrictions. Appearance there is not evidence of campaign availability.
+
+## Item tiers and Fated gear (3.30)
+
+`UnidentifiedItemTier` describes roll potential. The new tier/base matrix maps
+it to global pickup priority; game tier 5 does not mean global T5. Useful game
+tier 5/4/3/2 equipment uses global T2/T3/T4/T5 respectively, with a quieter T4
+exception for off-build game-tier-5 gear. Fractured, corruption-implicit and
+veiled variants retain their property border and the matrix's priority.
+Max-rolled armour still takes precedence. Fated gear uses its property border
+below those properties and radiance, above ordinary crafting/link/rarity marks.
+The Fated overlay copies only Show rules, so it does not rescue hidden gear.
+The Studio identifies composed property styles and shows the originating rule.

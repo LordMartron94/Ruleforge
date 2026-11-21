@@ -87,17 +87,8 @@ func TestPoBSnapshotFirstDownloadReuseAndRefresh(t *testing.T) {
 	if err != nil || changed || downloads.Load() != count {
 		t.Fatalf("fresh-cache reuse failed: %v %v", changed, err)
 	}
-	snap.CheckedAt = time.Now().Add(-8 * 24 * time.Hour)
-	bytes, _ := json.Marshal(snap)
-	if err := os.WriteFile(filepath.Join(dir, ".ruleforge-source.json"), bytes, 0644); err != nil {
-		t.Fatal(err)
-	}
-	changed, err = source.ensure(ctx, dir, false)
-	if err != nil || changed || downloads.Load() != count {
-		t.Fatalf("unchanged remote commit redownloaded: %v %v", changed, err)
-	}
 	revision = secondCommit
-	changed, err = source.ensure(ctx, dir, true)
+	changed, err = source.ensure(ctx, dir, false)
 	if err != nil || !changed || downloads.Load() != 2*count {
 		t.Fatalf("changed remote commit not downloaded: %v %v", changed, err)
 	}
@@ -118,11 +109,6 @@ func TestPoBSnapshotOfflineFallbackAndForcedFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	snap, _ := readPoBSnapshot(dir)
-	snap.CheckedAt = time.Now().Add(-8 * 24 * time.Hour)
-	bytes, _ := json.Marshal(snap)
-	if err := os.WriteFile(filepath.Join(dir, ".ruleforge-source.json"), bytes, 0644); err != nil {
-		t.Fatal(err)
-	}
 	broken = true
 	changed, err := source.ensure(context.Background(), dir, false)
 	if changed || err != nil {

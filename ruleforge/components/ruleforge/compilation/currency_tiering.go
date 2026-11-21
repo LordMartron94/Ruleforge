@@ -67,7 +67,47 @@ func (rg *RuleGenerator) handleCurrencyTiering(variables *map[string][]string, p
 	if err != nil {
 		return nil, fmt.Errorf("currency_tiering: %w", err)
 	}
+	if err := rg.stabilizeCurrencyTiers("Currency", numTiers, tiers, rg.currency.Profiles); err != nil {
+		return nil, err
+	}
 	return rg.currencyTierRules(tiers, tierStyles, hiddenStyle, variables), nil
+}
+
+// Singles and stack thresholds keep separate decisions, while larger stacks
+// cannot end up below smaller stacks after their independent confirmations.
+func (rg *RuleGenerator) stabilizeCurrencyTiers(class string, numTiers int, tiers []data_generation.CurrencyTier, profiles []config.CurrencyProfile) error {
+	proposed := map[int][]string{}
+	for _, currency := range tiers {
+		proposed[currency.Tier] = append(proposed[currency.Tier], currency.BaseType+"\x1e1")
+		for _, stack := range currency.Stacks {
+			proposed[stack.Tier] = append(proposed[stack.Tier], currency.BaseType+"\x1e"+strconv.Itoa(stack.MinStack))
+		}
+	}
+	stable, err := rg.stabilizeTiers(class, numTiers, proposed, profiles)
+	if err != nil {
+		return err
+	}
+	byName := map[string]int{}
+	for tier, names := range stable {
+		for _, name := range names {
+			byName[name] = tier
+		}
+	}
+	for i := range tiers {
+		currency := &tiers[i]
+		currency.Tier = byName[currency.BaseType+"\x1e1"]
+		best := currency.Tier
+		var kept []data_generation.StackTier
+		for _, stack := range currency.Stacks {
+			stack.Tier = min(best, byName[currency.BaseType+"\x1e"+strconv.Itoa(stack.MinStack)])
+			if stack.Tier < best {
+				kept = append(kept, stack)
+				best = stack.Tier
+			}
+		}
+		currency.Stacks = kept
+	}
+	return nil
 }
 
 // currencyTierRules turns tiers into rules: stacks before singles, bigger

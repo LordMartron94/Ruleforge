@@ -13,6 +13,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	common_compiler "github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/postprocessor"
@@ -39,18 +40,25 @@ type App struct {
 	studioOpen      bool
 
 	// Core Components
-	log      *log.Logger
-	config   *config.ConfigurationModel
-	styles   []config.StyleDefinition
+	log    *log.Logger
+	config *config.ConfigurationModel
+	styles []config.StyleDefinition
+	// themeIDs lists every theme in StylesDir, enabled or not, so a script's
+	// THEMES can tell a disabled theme from a misspelt one.
+	themeIDs []string
 	exporter *data_generation.PathOfBuildingExporter
 
 	// Loaded Data
-	baseTypes   []string
-	itemBases   []model.ItemBase
-	essences    []model.Essence
-	gems        []model.Gem
-	uniques     []model.Unique
-	economyData map[string][]data_generation.EconomySnapshot
+	baseTypes       []string
+	itemBases       []model.ItemBase
+	essences        []model.Essence
+	gems            []model.Gem
+	uniques         []model.Unique
+	economyData     map[string][]data_generation.EconomySnapshot
+	economyEvidence []data_generation.EconomyEvidence
+	// leagueWeights are the configured league weights restricted to leagues
+	// that have economy data, rescaled to add up to 1.
+	leagueWeights []config.LeagueWeights
 	// currency is reloaded on every compile, so an edited profile table
 	// shows in the next Studio compile.
 	currency compilation.CurrencySettings
@@ -158,8 +166,9 @@ func (a *App) loadStyles() error {
 	if err != nil {
 		return err
 	}
-	a.styles = nil
+	a.styles, a.themeIDs = nil, nil
 	for _, style := range definitions {
+		a.themeIDs = append(a.themeIDs, style.ID)
 		if !style.IsEnabled() {
 			a.log.Printf("Style %q is disabled; skipping it.", style.Name)
 			continue
@@ -228,15 +237,52 @@ func (a *App) fetchData() error {
 // even for leagues with a recent snapshot.
 func (a *App) fetchEconomyData(regenerate bool) error {
 	leagues := a.config.GetLeaguesToRetrieve()
-	if err := a.exporter.RefreshEconomyData(leagues, a.config.GetEconomyHistoryRefreshInterval(), regenerate); err != nil {
-		return fmt.Errorf("RefreshEconomyData: %w", err)
+	version := data_generation.CurrentEconomyVersion
+	if a.config.EconomyMemory != nil {
+		version = a.config.EconomyMemory.GameVersion
+	}
+	if a.config.EconomyHistoryURL != "" {
+		token, err := a.config.EconomyHistoryToken()
+		if err != nil {
+			return err
+		}
+		if err := data_generation.SyncHistory(context.Background(), a.exporter.HistoryStore(), a.config.EconomyHistoryURL, token, leagues); err != nil {
+			if _, cachedErr := a.exporter.LeaguesWithHistory(leagues); cachedErr != nil {
+				return fmt.Errorf("sync economy history: %w", err)
+			}
+			a.log.Printf("WARNING: history sync failed; using local cached observations: %v", err)
+		}
+	} else {
+		if err := data_generation.CollectEconomy(context.Background(), data_generation.NewPoeNinjaClient(), a.exporter.HistoryStore(), leagues, data_generation.DefaultEconomyCategories(), a.config.GetEconomyHistoryRefreshInterval(), regenerate, version); err != nil {
+			return fmt.Errorf("collect economy: %w", err)
+		}
 	}
 
-	history, err := a.exporter.EconomyHistory(leagues)
+	// Leagues that don't exist yet (or have no prices yet) are skipped rather
+	// than failing the run; their weight goes to the leagues that do have data.
+	available, err := a.exporter.LeaguesWithHistory(leagues)
+	if err != nil {
+		return fmt.Errorf("LeaguesWithHistory: %w", err)
+	}
+	weights, err := a.config.GetLeagueWeightsFor(available)
+	if err != nil {
+		return fmt.Errorf("GetLeagueWeightsFor: %w", err)
+	}
+	if len(available) < len(leagues) {
+		for _, weight := range weights {
+			a.log.Printf("Effective league weight: %s = %.3f", weight.League, weight.Weight)
+		}
+	}
+	history, err := a.exporter.EconomyHistory(available)
 	if err != nil {
 		return fmt.Errorf("EconomyHistory: %w", err)
 	}
-	a.economyData = history
+	policy := config.DefaultEconomyMemory()
+	if a.config.EconomyMemory != nil {
+		policy = a.config.EconomyMemory
+	}
+	a.economyData, a.economyEvidence = data_generation.PrepareEconomyHistory(history, *policy, time.Now().UTC())
+	a.leagueWeights = weights
 	return nil
 }
 
@@ -288,8 +334,8 @@ func pricedOnlyBaseTypes(economyData map[string][]data_generation.EconomySnapsho
 	return baseTypes
 }
 
-// compileRules compiles every Ruleforge script with every enabled style and
-// writes the filters.
+// compileRules compiles every Ruleforge script with the enabled styles it
+// selects and writes the filters.
 func (a *App) compileRules() error {
 	filters, err := a.compile(compileOptions{write: true})
 	if err != nil {
@@ -358,7 +404,8 @@ func (a *App) compile(options compileOptions) ([]studio.Filter, error) {
 	return filters, nil
 }
 
-// processRuleforgeScript parses one script and compiles it once per style.
+// processRuleforgeScript parses one script and compiles it once per style it
+// selects with THEMES (every given style when it has no THEMES).
 func (a *App) processRuleforgeScript(path, source string, styles []config.StyleDefinition, write bool) ([]studio.Filter, error) {
 	a.log.Printf("Processing: %s", path)
 
@@ -376,6 +423,16 @@ func (a *App) processRuleforgeScript(path, source string, styles []config.StyleD
 		return nil, err
 	}
 
+	// THEMES narrows the styles to the ones this script is meant for.
+	themes := compilation.NewTreeWalker(tree).ExtractMetadata().Themes
+	styles, err = config.SelectStyles(styles, config.ThemeNames(themes), a.themeIDs)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", filepath.Base(path), err)
+	}
+	if len(styles) == 0 {
+		a.log.Printf("%s asks for themes that are disabled or not in this compile; nothing to compile.", filepath.Base(path))
+	}
+
 	var filters []studio.Filter
 	for _, style := range styles {
 		a.log.Printf("Compiling %s with style %q...", filepath.Base(path), style.Name)
@@ -384,7 +441,7 @@ func (a *App) processRuleforgeScript(path, source string, styles []config.StyleD
 			return nil, fmt.Errorf("style %q: %w", style.Name, err)
 		}
 
-		compiler, lines, name, err := a.compileTree(tree, *baseTypeData, style)
+		compiler, lines, name, err := a.compileTree(tree, *baseTypeData, style, write)
 		if err != nil {
 			return nil, fmt.Errorf("style %q: %w", style.Name, err)
 		}
@@ -536,18 +593,20 @@ func (a *App) compileTree(
 	tree *shared.ParseTree[symbols.LexingTokenType],
 	baseTypeData []config.BaseTypeAutomationEntry,
 	style config.StyleDefinition,
+	persist bool,
 ) (*compilation.Compiler, []string, string, error) {
 	compiler, err := compilation.NewCompiler(
 		tree,
 		compilation.CompilerConfiguration{
 			StylesheetPath: style.Stylesheet,
 			Palette:        style.Palette,
+			EconomyState:   a.tierStateOptions(persist),
 		},
 		a.baseTypes,
 		a.itemBases,
 		a.economyData,
 		*a.config.EconomyWeights,
-		a.config.GetLeagueWeights(),
+		a.leagueWeights,
 		a.config.EconomyNormalizationStrategy,
 		a.config.ChaseVSGeneralPotentialFactor,
 		a.config.EconomyValueHalfLifeDays,
@@ -722,4 +781,15 @@ func writeLines(lines []string, path string) error {
 		return fmt.Errorf("creating output directory %s: %w", filepath.Dir(path), err)
 	}
 	return os.WriteFile(path, []byte(content), 0644)
+}
+
+func (a *App) tierStateOptions(persist bool) *data_generation.TierStateOptions {
+	if a.exporter == nil {
+		return nil
+	}
+	policy := config.DefaultEconomyMemory()
+	if a.config.EconomyMemory != nil {
+		policy = a.config.EconomyMemory
+	}
+	return &data_generation.TierStateOptions{Store: a.exporter.HistoryStore(), Evidence: a.economyEvidence, Policy: *policy, Persist: persist}
 }

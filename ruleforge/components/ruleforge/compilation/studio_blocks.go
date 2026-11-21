@@ -130,6 +130,12 @@ func blockKey(lines []string) string {
 func parseCondition(fields []string) StudioCondition {
 	condition := StudioCondition{Key: fields[0]}
 	rest := fields[1:]
+	if condition.Key == "HasExplicitMod" && len(rest) > 0 {
+		if match := regexp.MustCompile(`^(>=|<=|>|<|=)([0-9]+)$`).FindStringSubmatch(rest[0]); match != nil {
+			condition.Operator = match[1]
+			rest = append([]string{match[2]}, rest[1:]...)
+		}
+	}
 	if len(rest) > 0 && conditionOperators[rest[0]] {
 		condition.Operator = rest[0]
 		rest = rest[1:]

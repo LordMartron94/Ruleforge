@@ -20,10 +20,9 @@ import (
 // Only the Lua data files consumed by Ruleforge are downloaded; a PoB installation
 // and Git are not required. A complete snapshot is installed before it is used.
 const (
-	pobRepository      = "PathOfBuildingCommunity/PathOfBuilding"
-	pobBranch          = "master" // PoB's published/release branch, rather than development HEAD.
-	pobRefreshInterval = 7 * 24 * time.Hour
-	pobMaxFileSize     = 16 << 20
+	pobRepository  = "PathOfBuildingCommunity/PathOfBuilding"
+	pobBranch      = "master" // PoB's published/release branch, rather than development HEAD.
+	pobMaxFileSize = 16 << 20
 )
 
 type pobSnapshot struct {
@@ -238,9 +237,6 @@ func (s pobSource) fetchSnapshot(ctx context.Context, dir, commit string) (pobSn
 func (s pobSource) ensure(ctx context.Context, dir string, force bool) (bool, error) {
 	existing, err := readPoBSnapshot(dir)
 	valid := err == nil && completePoBSnapshot(dir, existing)
-	if valid && !force && time.Since(existing.CheckedAt) >= 0 && time.Since(existing.CheckedAt) < pobRefreshInterval {
-		return false, nil
-	}
 	if !valid && (err != nil || !pobCommitPattern.MatchString(existing.Commit)) {
 		if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
 			return false, fmt.Errorf("%s contains files but is not a complete Ruleforge-managed PoB snapshot; choose a different PathOfBuildingDataPath", dir)
@@ -248,8 +244,7 @@ func (s pobSource) ensure(ctx context.Context, dir string, force bool) (bool, er
 			return false, err
 		}
 	}
-	// Checking the commit is cheap. Do not redownload the full snapshot every
-	// time the refresh interval expires if upstream data has not changed.
+	// Check upstream on every run; only download when the commit changes.
 	commit, err := s.currentCommit(ctx)
 	if err != nil {
 		if valid && !force {

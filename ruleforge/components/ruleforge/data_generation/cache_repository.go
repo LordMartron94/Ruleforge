@@ -33,6 +33,15 @@ type EconomyCacheItem struct {
 	ChaosValue   float64 `json:"chaos_value"`
 	DivineValue  float64 `json:"divine_value"`
 	ExaltedValue float64 `json:"exalted_value"`
+	// Source distinguishes stash listings from exchange turnover. Legacy
+	// snapshots keep their original numbers, but are not liquidity evidence.
+	Source      string  `json:"source,omitempty"`
+	Category    string  `json:"category,omitempty"`
+	ItemID      string  `json:"item_id,omitempty"`
+	Variant     string  `json:"variant,omitempty"`
+	ItemLevel   int     `json:"item_level,omitempty"`
+	VolumeChaos float64 `json:"volume_chaos,omitempty"`
+	TradedUnits float64 `json:"traded_units,omitempty"`
 }
 
 // CacheRepository persists the item base-type cache. Economy data has its own

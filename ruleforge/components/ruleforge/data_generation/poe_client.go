@@ -1,10 +1,13 @@
 package data_generation
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -16,13 +19,22 @@ const poeNinjaEconomyAPI = "https://poe.ninja/poe1/api/economy"
 
 // ResponseLine contains the PoE 1 stash-item pricing fields used by Ruleforge.
 type ResponseLine struct {
-	Name         string  `json:"name"`
-	BaseType     string  `json:"baseType"`
-	ChaosValue   float64 `json:"chaosValue"`
-	DivineValue  float64 `json:"divineValue"`
-	ExaltedValue float64 `json:"exaltedValue"`
-	ListingCount int     `json:"listingCount"`
-	Count        int     `json:"count"`
+	ID            int     `json:"id"`
+	Name          string  `json:"name"`
+	BaseType      string  `json:"baseType"`
+	ChaosValue    float64 `json:"chaosValue"`
+	DivineValue   float64 `json:"divineValue"`
+	ExaltedValue  float64 `json:"exaltedValue"`
+	ListingCount  int     `json:"listingCount"`
+	Count         int     `json:"count"`
+	ItemLevel     int     `json:"itemLevel"`
+	RequiredLevel int     `json:"levelRequired"`
+	Variant       string  `json:"variant"`
+	Links         int     `json:"links"`
+	GemLevel      int     `json:"gemLevel"`
+	GemQuality    int     `json:"gemQuality"`
+	Corrupted     bool    `json:"corrupted"`
+	DetailsID     string  `json:"detailsId"`
 }
 
 type ApiResponse struct {
@@ -64,9 +76,23 @@ type economyLeague struct {
 
 // PoeNinjaClient fetches PoE 1 economy data using poe.ninja's public economy API.
 type PoeNinjaClient struct {
+	ctx          context.Context
 	httpClient   *http.Client
 	baseURL      string
 	requestDelay time.Duration
+}
+
+// EconomyHTTPError preserves the status for optional-category capability
+// reporting. Authentication/rate-limit/server failures are never empty markets.
+type EconomyHTTPError struct {
+	Status  int
+	Address string
+}
+
+func (e *EconomyHTTPError) Error() string { return fmt.Sprintf("GET %s: HTTP %d", e.Address, e.Status) }
+func unsupportedCategory(err error) bool {
+	var status *EconomyHTTPError
+	return errors.As(err, &status) && (status.Status == 400 || status.Status == 404)
 }
 
 func NewPoeNinjaClient() *PoeNinjaClient {
@@ -83,7 +109,11 @@ func (c *PoeNinjaClient) getJSON(path string, params url.Values, out interface{}
 	if len(params) > 0 {
 		address += "?" + params.Encode()
 	}
-	req, err := http.NewRequest(http.MethodGet, address, nil)
+	ctx := c.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
 	if err != nil {
 		return fmt.Errorf("create request %s: %w", address, err)
 	}
@@ -96,9 +126,7 @@ func (c *PoeNinjaClient) getJSON(path string, params url.Values, out interface{}
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		// HTTP failures are not empty price datasets. Fail with the request context.
-		excerpt, _ := io.ReadAll(io.LimitReader(response.Body, 256))
-		return fmt.Errorf("GET %s: HTTP %s: %s", address, response.Status, strings.TrimSpace(string(excerpt)))
+		return &EconomyHTTPError{Status: response.StatusCode, Address: address}
 	}
 	decoder := json.NewDecoder(io.LimitReader(response.Body, 32<<20))
 	if err := decoder.Decode(out); err != nil {
@@ -109,19 +137,22 @@ func (c *PoeNinjaClient) getJSON(path string, params url.Values, out interface{}
 
 // ResolveLeagues resolves the user's configured league name or ID to the actual
 // economy API ID. Preserve configured names as map keys for tiering weights.
-func (c *PoeNinjaClient) ResolveLeagues(configured []string) (map[string]string, error) {
+// A configured league poe.ninja doesn't list (not started yet, already gone, or
+// misspelled) is not an error: it is returned in unavailable so the caller can
+// carry on without it.
+func (c *PoeNinjaClient) ResolveLeagues(configured []string) (resolved map[string]string, unavailable []string, err error) {
 	var available []economyLeague
 	if err := c.getJSON("leagues", nil, &available); err != nil {
-		return nil, fmt.Errorf("retrieve active poe.ninja PoE 1 economy leagues: %w", err)
+		return nil, nil, fmt.Errorf("retrieve active poe.ninja PoE 1 economy leagues: %w", err)
 	}
 	if len(available) == 0 {
-		return nil, fmt.Errorf("poe.ninja returned no active PoE 1 economy leagues")
+		return nil, nil, fmt.Errorf("poe.ninja returned no active PoE 1 economy leagues")
 	}
-	resolved := make(map[string]string, len(configured))
+	resolved = make(map[string]string, len(configured))
 	names := make([]string, 0, len(available))
 	for _, league := range available {
 		if league.ID == "" {
-			return nil, fmt.Errorf("poe.ninja returned a league without an id")
+			return nil, nil, fmt.Errorf("poe.ninja returned a league without an id")
 		}
 		names = append(names, league.Name+" ("+league.ID+")")
 	}
@@ -136,10 +167,11 @@ func (c *PoeNinjaClient) ResolveLeagues(configured []string) (map[string]string,
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("configured league %q is not in the active poe.ninja PoE 1 economy leagues; available: %s", requested, strings.Join(names, ", "))
+			unavailable = append(unavailable, requested)
+			log.Printf("WARNING: league %q is not in the active poe.ninja PoE 1 economy leagues (not started yet, ended, or misspelled); skipping it. Available: %s", requested, strings.Join(names, ", "))
 		}
 	}
-	return resolved, nil
+	return resolved, unavailable, nil
 }
 
 // FetchData retrieves one category from the PoE 1 stash-item API. The league
@@ -156,7 +188,11 @@ func (c *PoeNinjaClient) FetchData(endpoint, itemType, league, itemClass string)
 	if result.Lines == nil {
 		return nil, fmt.Errorf("poe.ninja returned no lines array for league %q, type %q", league, itemType)
 	}
-	return c.transformResponse(result, itemClass), nil
+	items := c.transformResponse(result, itemClass)
+	for i := range items {
+		items[i].Category = itemType
+	}
+	return items, nil
 }
 
 // FetchExchangeData retrieves one category from PoE 1's bulk-exchange
@@ -173,10 +209,14 @@ func (c *PoeNinjaClient) FetchExchangeData(itemType, league, itemClass string) (
 	if result.Lines == nil {
 		return nil, fmt.Errorf("poe.ninja returned no lines array for league %q, type %q", league, itemType)
 	}
-	if result.Core.Primary != "" && result.Core.Primary != "chaos" {
+	if len(result.Lines) > 0 && result.Core.Primary != "chaos" {
 		return nil, fmt.Errorf("poe.ninja exchange overview for league %q, type %q is denominated in %q, not chaos", league, itemType, result.Core.Primary)
 	}
-	return c.transformExchangeResponse(result, itemClass), nil
+	items := c.transformExchangeResponse(result, itemClass)
+	for i := range items {
+		items[i].Category = itemType
+	}
+	return items, nil
 }
 
 func (c *PoeNinjaClient) transformExchangeResponse(response ExchangeResponse, itemClass string) []EconomyCacheItem {
@@ -191,15 +231,19 @@ func (c *PoeNinjaClient) transformExchangeResponse(response ExchangeResponse, it
 		if !ok || name == "" {
 			continue
 		}
-		// No listing count exists for bulk-exchange items; approximate supply
-		// as how many units the total listed value represents.
-		var quantity int
-		if line.PrimaryValue > 0 {
-			quantity = int(line.VolumePrimaryValue / line.PrimaryValue)
+		if !validPrice(line.PrimaryValue) || line.VolumePrimaryValue < 0 || math.IsNaN(line.VolumePrimaryValue) || math.IsInf(line.VolumePrimaryValue, 0) {
+			continue
 		}
+		units := line.VolumePrimaryValue / line.PrimaryValue
+		if math.IsNaN(units) || math.IsInf(units, 0) {
+			continue
+		}
+		// Turnover is not listing supply. Preserve the raw provider measure;
+		// never feed an inferred listing count into the rarity score.
 		items = append(items, EconomyCacheItem{
 			Class: itemClass, Name: name, BaseType: name,
-			ChaosValue: line.PrimaryValue, Count: quantity, ListingCount: quantity,
+			ChaosValue: line.PrimaryValue, Source: "exchange", ItemID: line.ID,
+			VolumeChaos: line.VolumePrimaryValue, TradedUnits: units,
 		})
 	}
 	return items
@@ -208,9 +252,12 @@ func (c *PoeNinjaClient) transformExchangeResponse(response ExchangeResponse, it
 func (c *PoeNinjaClient) transformResponse(response ApiResponse, itemClass string) []EconomyCacheItem {
 	items := make([]EconomyCacheItem, 0, len(response.Lines))
 	for _, line := range response.Lines {
+		if line.Name == "" || !validPrice(line.ChaosValue) || line.ListingCount < 0 {
+			continue
+		}
 		baseType := line.BaseType
 		// Ordinary gem prices supply their base name in name, without baseType.
-		if baseType == "" && itemClass == "Gems" {
+		if baseType == "" && itemClass != "Uniques" {
 			baseType = line.Name
 		}
 		if baseType == "" {
@@ -221,7 +268,41 @@ func (c *PoeNinjaClient) transformResponse(response ApiResponse, itemClass strin
 			ChaosValue: line.ChaosValue, DivineValue: line.DivineValue,
 			ExaltedValue: line.ExaltedValue, Count: line.Count,
 			ListingCount: line.ListingCount,
+			Source:       "stash", ItemID: fmt.Sprint(line.ID), ItemLevel: line.ItemLevel,
+			Variant: stashVariant(line),
 		})
 	}
 	return items
+}
+
+func validPrice(value float64) bool { return value > 0 && !math.IsNaN(value) && !math.IsInf(value, 0) }
+
+func stashVariant(line ResponseLine) string {
+	// Keep every identity dimension even when an unidentified-base policy
+	// deliberately combines them later. Do not pool special rolls on ingest.
+	return fmt.Sprintf("%s|%s|ilvl=%d|required=%d|links=%d|gem=%d/%d|corrupted=%t", line.DetailsID, line.Variant, line.ItemLevel, line.RequiredLevel, line.Links, line.GemLevel, line.GemQuality, line.Corrupted)
+}
+
+// ActiveTradeLeagues follows new leagues without rewriting a server config.
+// SSF and Ruthless markets must not be blended into normal trade estimates.
+func (c *PoeNinjaClient) ActiveTradeLeagues(ctx context.Context) ([]string, error) {
+	scoped := *c
+	scoped.ctx = ctx
+	var available []economyLeague
+	if err := scoped.getJSON("leagues", nil, &available); err != nil {
+		return nil, err
+	}
+	var leagues []string
+	for _, league := range available {
+		name := league.Name
+		upper := strings.ToUpper(name)
+		if name != "" && !strings.Contains(upper, "RUTHLESS") && !strings.Contains(upper, "SSF") && !strings.Contains(upper, "SOLO SELF-FOUND") {
+			leagues = append(leagues, name)
+		}
+	}
+	sort.Strings(leagues)
+	if len(leagues) == 0 {
+		return nil, fmt.Errorf("no active trade leagues returned")
+	}
+	return leagues, nil
 }

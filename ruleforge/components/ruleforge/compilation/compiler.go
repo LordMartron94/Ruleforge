@@ -14,6 +14,7 @@ import (
 
 // Compiler is now a lean orchestrator without prewired build.
 type Compiler struct {
+	economyState *data_generation.TierStateOptions
 	treeWalker   *TreeWalker
 	styleManager *StyleManager
 	ruleFactory  *RuleFactory
@@ -55,11 +56,16 @@ func NewCompiler(
 	}
 
 	armorBases, weaponBases, flaskBases := prepareItemData(itemBases, validBaseTypes)
+	gearBases := map[string]bool{}
+	for _, base := range itemBases {
+		gearBases[base.GetBaseType()] = true
+	}
 
 	return &Compiler{
+		economyState: configuration.EconomyState,
 		treeWalker:   NewTreeWalker(parseTree),
 		styleManager: styleMgr,
-		ruleFactory:  &RuleFactory{},
+		ruleFactory:  &RuleFactory{gearBases: gearBases},
 
 		validBaseTypes:        validBaseTypes,
 		armorBases:            armorBases,
@@ -132,6 +138,8 @@ func (c *Compiler) CompileIntoFilter() ([]string, error, string) {
 		buildInstance,
 		c.currency,
 	)
+
+	ruleGenerator.economyState = c.economyState
 
 	// 5. Generate rules for each section and track final line numbers
 	for _, section := range sections {

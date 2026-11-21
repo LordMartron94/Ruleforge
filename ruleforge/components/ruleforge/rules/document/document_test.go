@@ -244,3 +244,17 @@ func firstDifference(want, got string) string {
 	}
 	return "one is a prefix of the other"
 }
+
+func TestThemesFieldRoundTripsAndChecks(t *testing.T) {
+	src := "METADATA {\n  NAME       => \"X\"\n  VERSION    => \"1\"\n  STRICTNESS => ALL\n  BUILD      => MARAUDER\n  THEMES     => \"aryzel new-theme\"\n}\n"
+	doc, err := Parse(src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if got := Print(doc); got != src {
+		t.Errorf("THEMES did not round-trip:\n%s", got)
+	}
+	if err := Validate(doc); err != nil {
+		t.Errorf("validate: %v", err)
+	}
+}

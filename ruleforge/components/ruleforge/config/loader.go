@@ -21,7 +21,7 @@ func NewConfigurationLoader() *ConfigurationLoader {
 // Keys the model does not know are rejected, so a typo (or a setting from the old
 // JSON configuration) fails loudly instead of being silently ignored.
 func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationModel, error) {
-	cfg := ConfigurationModel{CurrencyTiering: &CurrencyTiering{CraftingWeight: 0.4}}
+	cfg := ConfigurationModel{CurrencyTiering: &CurrencyTiering{CraftingWeight: 0.4}, EconomyMemory: DefaultEconomyMemory(), EconomyHistoryTokenEnv: "RULEFORGE_HISTORY_TOKEN"}
 	metadata, err := toml.DecodeFile(file, &cfg)
 	if err != nil {
 		return nil, err
@@ -46,6 +46,7 @@ func (c *ConfigurationLoader) LoadConfiguration(file string) (*ConfigurationMode
 		cfg.EconomyHistoryDBPath = ".ruleforge-cache/economy_history.db"
 	}
 	cfg.EconomyHistoryDBPath = resolve(cfg.EconomyHistoryDBPath)
+	cfg.EconomyHistoryTokenFile = resolve(cfg.EconomyHistoryTokenFile)
 	if cfg.EconomyHistoryRefreshHours <= 0 {
 		cfg.EconomyHistoryRefreshHours = 24
 	}

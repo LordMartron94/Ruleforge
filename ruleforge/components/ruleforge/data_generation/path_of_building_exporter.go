@@ -1,6 +1,7 @@
 package data_generation
 
 import (
+ "context"
 	"fmt"
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/data_generation/model"
 	lua "github.com/yuin/gopher-lua"
@@ -82,6 +83,12 @@ func (e *PathOfBuildingExporter) LoadItemBases(luaFilePaths []string) ([]model.I
 
 		allBases = append(allBases, bases...)
 		log.Printf("Successfully converted %d item base models from %s\n", len(bases), filepath.Base(luaFile))
+	}
+
+	// Without any bases every build-dependent rule (@class_use, progression)
+	// compiles to empty lists, and the result would be cached for two weeks.
+	if len(allBases) == 0 {
+		return nil, fmt.Errorf("no item bases were read from %d PoB base file(s); the Path of Building data format may have changed", len(luaFilePaths))
 	}
 
 	if err := enrichItemBasesWithDropLevels(allBases, e.dropLevels); err != nil {
@@ -235,94 +242,52 @@ const (
 	exchangeEndpoint economyEndpoint = "exchange"
 )
 
-var economyCategories = []struct {
-	kind     string
-	class    string
-	endpoint economyEndpoint
-}{
-	{"UniqueWeapon", "Uniques", stashEndpoint},
-	{"UniqueArmour", "Uniques", stashEndpoint},
-	{"UniqueAccessory", "Uniques", stashEndpoint},
-	{"UniqueFlask", "Uniques", stashEndpoint},
-	{"UniqueJewel", "Uniques", stashEndpoint},
-	{"SkillGem", "Gems", stashEndpoint},
-	{"DivinationCard", "Divination Cards", exchangeEndpoint},
-	{"Tattoo", "Tattoos", exchangeEndpoint},
-	// Currency feeds currency_tiering, which tiers whatever its profiles list.
-	{"Currency", "Currency", exchangeEndpoint},
-	{"DeliriumOrb", "Currency", exchangeEndpoint},
-	{"Omen", "Currency", exchangeEndpoint},
+var economyCategories = []EconomyCategory{
+ {Kind:"UniqueWeapon",Class:"Uniques",Endpoint:"stash"},
+ {Kind:"UniqueArmour",Class:"Uniques",Endpoint:"stash"},
+ {Kind:"UniqueAccessory",Class:"Uniques",Endpoint:"stash"},
+ {Kind:"UniqueFlask",Class:"Uniques",Endpoint:"stash"},
+ {Kind:"UniqueJewel",Class:"Uniques",Endpoint:"stash"},
+ {Kind:"SkillGem",Class:"Gems",Endpoint:"stash"},
+ {Kind:"DivinationCard",Class:"Divination Cards",Endpoint:"exchange"},
+ {Kind:"Tattoo",Class:"Tattoos",Endpoint:"exchange"},
+ {Kind:"Currency",Class:"Currency",Endpoint:"exchange"},
+ {Kind:"DeliriumOrb",Class:"Currency",Endpoint:"exchange"},
+ {Kind:"Omen",Class:"Currency",Endpoint:"exchange"},
 }
 
 // RefreshEconomyData fetches a fresh poe.ninja snapshot and records it in the
 // economy history database for any configured league whose latest recorded
 // snapshot is older than maxAge (or unconditionally, if forceRegenerate is set).
 // Leagues with a recent-enough snapshot are left untouched.
-func (e *PathOfBuildingExporter) RefreshEconomyData(leaguesToRetrieve []string, maxAge time.Duration, forceRegenerate bool) error {
-	now := time.Now()
+func (e *PathOfBuildingExporter) RefreshEconomyData(leagues []string, maxAge time.Duration, force bool) error {
+ return CollectEconomy(context.Background(), e.economyScraper, e.historyStore, leagues, economyCategories, maxAge, force, CurrentEconomyVersion)
+}
 
-	// Decide which leagues actually need a fetch before resolving anything, so
-	// a fully up-to-date history needs no network access at all.
-	staleLeagues := leaguesToRetrieve
-	if !forceRegenerate {
-		staleLeagues = nil
-		for _, configured := range leaguesToRetrieve {
-			latest, ok, err := e.historyStore.LatestSnapshotAt(configured)
-			if err != nil {
-				return fmt.Errorf("checking latest economy snapshot for league %q: %w", configured, err)
-			}
-			if ok && now.Sub(latest) < maxAge {
-				log.Printf("Economy snapshot for %q is %s old (refresh interval %s); skipping refetch.", configured, now.Sub(latest).Round(time.Minute), maxAge)
-				continue
-			}
-			staleLeagues = append(staleLeagues, configured)
-		}
-	}
-	if len(staleLeagues) == 0 {
-		return nil
-	}
+// HistoryStore is shared by local collection and remote synchronization.
+func (e *PathOfBuildingExporter) HistoryStore() *EconomyHistoryStore { return e.historyStore }
 
-	leagues, err := e.economyScraper.ResolveLeagues(staleLeagues)
-	if err != nil {
-		return err
+// LeaguesWithHistory returns the subset of leagues that have at least one
+// recorded economy snapshot, in the order given, and warns about the rest.
+// Leagues without history (not started yet, ended before ever being recorded,
+// or misspelled) must not be passed to EconomyHistory or weighted in tiering.
+func (e *PathOfBuildingExporter) LeaguesWithHistory(leagues []string) ([]string, error) {
+	available := make([]string, 0, len(leagues))
+	for _, league := range leagues {
+		_, ok, err := e.historyStore.LatestSnapshotAt(league)
+		if err != nil {
+			return nil, fmt.Errorf("checking economy history for league %q: %w", league, err)
+		}
+		if !ok {
+			log.Printf("WARNING: no economy data for league %q; its weight is redistributed to the other leagues.", league)
+			continue
+		}
+		available = append(available, league)
 	}
-
-	requestCount := 0
-	for _, configured := range staleLeagues {
-		leagueID := leagues[configured]
-		var items []EconomyCacheItem
-		for _, category := range economyCategories {
-			// Avoid bursts; no delay before the first request.
-			if requestCount > 0 && e.economyScraper.requestDelay > 0 {
-				time.Sleep(e.economyScraper.requestDelay)
-			}
-			requestCount++
-			var fetched []EconomyCacheItem
-			var fetchErr error
-			switch category.endpoint {
-			case stashEndpoint:
-				fetched, fetchErr = e.economyScraper.FetchData("itemoverview", category.kind, leagueID, category.class)
-			case exchangeEndpoint:
-				fetched, fetchErr = e.economyScraper.FetchExchangeData(category.kind, leagueID, category.class)
-			default:
-				fetchErr = fmt.Errorf("unknown economy endpoint %q", category.endpoint)
-			}
-			if fetchErr != nil {
-				return fmt.Errorf("fetch poe.ninja league %q (id %q), category %q: %w", configured, leagueID, category.kind, fetchErr)
-			}
-			log.Printf("Fetched %d %s records for %s", len(fetched), category.kind, configured)
-			items = append(items, fetched...)
-		}
-		if len(items) == 0 {
-			return fmt.Errorf("no item prices returned for league %q (id %q); refusing to record an empty snapshot", configured, leagueID)
-		}
-
-		if err := e.historyStore.RecordSnapshot(configured, now, items); err != nil {
-			return fmt.Errorf("recording economy snapshot for league %q: %w", configured, err)
-		}
-		log.Printf("Recorded economy snapshot for %q: %d items", configured, len(items))
+	if len(available) == 0 {
+		return nil, fmt.Errorf("no economy data for any configured league (%s); check LeagueWeights in config.toml", strings.Join(leagues, ", "))
 	}
-	return nil
+	return available, nil
 }
 
 // EconomyHistory returns every economy snapshot ever recorded for each

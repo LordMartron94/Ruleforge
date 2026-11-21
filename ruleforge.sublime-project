@@ -16,12 +16,15 @@
 					"name": "Run PoB",
 					"working_dir": "${project_path}/tools/pob",
 					"cmd": [
-						"${project_path}/tools/pob/runtime/Path{space}of{space}Building.exe"
+						"cmd",
+						"/c",
+						"git pull --ff-only --no-rebase origin dev & \"${project_path}/tools/pob/runtime/Path{space}of{space}Building.exe\""
 					],
 					"linux": {
 						"cmd": [
-							"wine",
-							"${project_path}/tools/pob/runtime/Path{space}of{space}Building.exe"
+							"bash",
+							"-c",
+							"git pull --ff-only --no-rebase origin dev || printf '%s\\n' 'Warning: PoB update failed; launching the existing checkout.' >&2; exec wine \"${project_path}/tools/pob/runtime/Path{space}of{space}Building.exe\""
 						]
 					}
 				},

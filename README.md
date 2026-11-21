@@ -57,7 +57,8 @@ go build -o ruleforge-app ./ruleforge/components/ruleforge/entry
 
 On Windows, the built executable is `ruleforge-app.exe`. Launch it with
 `ruleforge-app.exe -config config.toml` (PowerShell: `./ruleforge-app.exe -config config.toml`).
-Every script in `RuleforgeInputDir` is compiled once per enabled style, into
+Every script in `RuleforgeInputDir` is compiled once per enabled style it
+asks for (all of them unless the script sets [`THEMES`](#metadata-block)), into
 `<script NAME> (<style Suffix>).filter` in each output directory.
 `run.sh` builds from the project root and forwards any command-line flags.
 
@@ -109,7 +110,7 @@ together during enrichment, rather than repeatedly during sorting.
 
 On the first run Ruleforge downloads the specific Lua files it uses from
 `PathOfBuildingCommunity/PathOfBuilding` on GitHub, pinned to one commit.
-After seven days it checks for an update, downloading a new full snapshot only
+Every run checks for an update, downloading a new full snapshot only
 when upstream changed. Existing snapshots remain available offline if an
 ordinary refresh check/download fails. `-refresh-pob` forces an update check
 and reports an error if that check or a needed download fails; it does not
@@ -117,10 +118,19 @@ redownload an unchanged revision. `-update-cache-only` downloads/updates data
 without compiling filters. To reset a managed snapshot, delete its cache folder
 while Ruleforge is not running.
 
+The Sublime **Run PoB** build variant launches the separate application in
+`tools/pob`. Before launching, it updates that Git checkout from upstream `dev`
+with a fast-forward-only pull, including its runtime files. A failed pull is
+reported and the existing copy still launches. Local edits are never discarded;
+Git refuses an update that conflicts with them. This checkout uses PoB's developer
+mode, which disables its built-in updater. Its builds and settings stay in
+`tools/pob/src`, separate from Ruleforge's managed release-data cache.
+
 ### 2. Styles
 
-Every `*.toml` file in `StylesDir` is one style, and every enabled style
-produces its own filter for every script. A style file names a stylesheet, the
+Every `*.toml` file in `StylesDir` is one style (also called a theme). Every
+enabled style produces its own filter for every script, unless the script
+narrows that down with `THEMES` in its `METADATA`. A style file names a stylesheet, the
 base type automation CSV that goes with it, and the palette that colours it:
 
 ```toml
@@ -139,6 +149,12 @@ bg-special = "#0A0A11E6"                 # "#RRGGBBAA" for transparency
 Paths in a style file are relative to the style file. Several styles can share
 one stylesheet and differ only in their palette; that is how the four Aryzel
 phases work.
+
+The bundled themes are `aryzel-*` (the Martron Arada arc), `new-theme`, the
+disabled `original`, and `general`: a theme for any character with no story
+attached. Select it with `THEMES => "general"` in a script's `METADATA`. Its
+palette keeps every tier colour and border at the studio's contrast targets and
+every [Studio.Distinct] group apart.
 
 A **stylesheet** is a TOML file where each table is a style, named by its path:
 `[Final.Orbs.T1]` is the style `Final/Orbs/T1`. A colour is either a palette
@@ -304,6 +320,7 @@ METADATA {
   VERSION        => "1.0"
   STRICTNESS     => "STRICT"
   BUILD          => "SHADOW"
+  THEMES         => "aryzel original"
 }
 ```
 - `NAME`: The output filename of the filter (e.g., MyAwesomeFilter → which would compile into MyAwesomeFilter.filter). 
@@ -311,6 +328,11 @@ METADATA {
 - `STRICTNESS`: A user-defined value. Can be `ALL`, `SOFT`, `SEMI-STRICT`, `STRICT`, `SUPER-STRICT`. 
   - Note: These are currently (23 June 2025) not used yet... These are on the to-do list to be implemented.
 - `BUILD`: The character class archetype the filter is designed for. Macros use this to determine the appropriate gear. Valid options: `MARAUDER`, `RANGER`, `WITCH`, `TEMPLAR`, `DUELIST`, `SHADOW`.
+- `THEMES` (optional): The themes this script compiles with, as space-separated names. A name is a style file's name without `.toml`
+  (`original`, `new-theme`, `aryzel-2-first-whisper`), or the start of one up to a hyphen: `aryzel` picks all four `aryzel-*` themes.
+  Names ignore case. A script without `THEMES` compiles with every enabled theme. A name no theme file matches is an error,
+  while a theme that is merely disabled is skipped. Keep it in mind when you delete or rename a theme: a filter already compiled
+  for a theme a script no longer selects stays in the output folder until you delete it.
 
 ### `var` Declarations
 You can declare variables to store and combine styles.
@@ -377,6 +399,7 @@ The standard rule format is a chain of a condition, a style, and an action.
   - Identifiers: `@area_level`, `@stack_size`, `@item_type`, `@item_class`, `@rarity`, `@sockets`, `@socket_group`, `@height`, `@width`. 
     `@corrupted_mods` counts an item's corruption implicits (the game's `CorruptedMods`); `@item_level` and
     `@drop_level` are the game's `ItemLevel` and `DropLevel`.
+    `@unidentified_item_tier` (0-5) is the game's `UnidentifiedItemTier`, the tier 3.30 gives Magic and Rare drops.
     `@class_use` (`"true"` or `"false"`) matches the weapon classes and armour bases the script's `BUILD` uses.
   - Operators: `==`, `!=`, `>=`, `<=`, `>`, `<`. 
   - Value: A quoted string `"value"`, a number, or a variable reference `$var`. 
@@ -515,3 +538,48 @@ no need to delete the PoB cache or force an upstream refresh.
 
 The generator implementation remains in the source tree for future development,
 but the application never invokes it in low-memory mode.
+
+## PoE 3.30 tiers and continuous economy history
+
+Both shipped filters prioritize game item tiers before generic campaign and
+mapping cutoffs. The matrix combines build affinity, base quality and special
+jewellery; tier-5 magic Helical Rings and Simplex Amulets no longer depend on
+old crafting item-level thresholds. Fated items receive a border only where
+another rule shows them, yielding to max-roll, fractured, corruption and veiled
+properties. New map encounter/mod-count highlights precede generic map rules.
+The existing 164 Viscera base classifications remain intact. A build preset can
+set `PreferredViscera = ["Warden's Arm"]` to mark explicitly selected pieces;
+unknown Viscera retain a visible class fallback.
+
+`item_tier_matrix` accepts `$tier_2` through `$tier_5` styles. These are game
+roll-potential tiers, not the global pickup-priority ranks in CHANNELS.md.
+`economy_csv` accepts `$category` and ordered tier styles, uses credible current
+prices when available, and preserves the CSV's curated rules otherwise.
+Threads and map enchantment consumables use it in both scripts. The existing
+currency stack scoring also applies to these categories. `fated_precedence`
+adds a property border to later Show rules without changing their visibility.
+`@fated`, `@identified`, `@has_explicit_mod` and `@explicit_mod_count` are available
+in scripts and editors. Studio recognizes pasted `Unidentified (Tier 5)` text,
+shows item-tier/Fated state and economy evidence, and distinguishes Viscera,
+mechanic Threads and Frayed Thread by their real classes. Simulated tier
+frequencies are illustrative, not measured game probabilities.
+
+Economy snapshots now preserve source, provider ID, known variants and exchange
+turnover independently of listing supply. The `[EconomyMemory]` settings select
+a patch regime and observation time buckets, identify stale data, and gate
+confidence separately for each league. Default policy uses four-hour buckets,
+a 72-hour freshness limit, five stash listings or 20 estimated exchange units
+for a liquid observation, and three liquid buckets for a reliable state.
+These are filtering heuristics, not statistical confidence intervals. Raw
+history is retained even when excluded from current tiering. With fewer than
+20 distinct well-listed time buckets, prices use a recency-weighted median
+rather than the upper percentile. Unknown/exchange supply contributes no
+scarcity bonus. Persistent tier decisions require two new reliable buckets to
+promote and three to demote; repeatedly compiling the same data adds no votes.
+Studio previews do not persist those decisions. A scoring-policy change starts
+a separate decision namespace while keeping raw observations.
+
+For uninterrupted collection and optional automatic container-image updates,
+see [the Docker deployment for server-media](deployment/economy/README.md).
+Set `EconomyHistoryURL` and `EconomyHistoryTokenEnv` to synchronize that service
+instead of doing desktop API polls. Each desktop retains its own offline cache.

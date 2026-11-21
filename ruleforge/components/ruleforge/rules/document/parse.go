@@ -313,7 +313,7 @@ func (p *parser) construct(ctx context) (*Item, error) {
 func isFieldKey(typ symbols.LexingTokenType) bool {
 	switch typ {
 	case symbols.NameKeywordToken, symbols.VersionKeywordToken, symbols.StrictnessKeywordToken,
-		symbols.DescriptionAssignmentKeywordToken, symbols.BuildKeywordToken:
+		symbols.DescriptionAssignmentKeywordToken, symbols.BuildKeywordToken, symbols.ThemesKeywordToken:
 		return true
 	}
 	return false

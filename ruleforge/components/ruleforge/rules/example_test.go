@@ -97,3 +97,42 @@ func TestBuildAndStrictnessListsMatchTheKeywords(t *testing.T) {
 		}
 	}
 }
+
+// validateExampleWith validates examples/basic.rf with its BUILD line replaced.
+func validateExampleWith(t *testing.T, replacement string) error {
+	t.Helper()
+	content, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "examples", "basic.rf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := strings.Replace(string(content), "BUILD      => MARAUDER", replacement, 1)
+	if source == string(content) {
+		t.Fatal("examples/basic.rf has no BUILD line to replace")
+	}
+	handler := compiler.NewFileHandler(strings.NewReader(source), GetLexingRules(), GetParsingRules(), symbols.IgnoreToken)
+	if _, err := handler.Lex(); err != nil {
+		t.Fatalf("lex: %v", err)
+	}
+	tree, err := handler.Parse()
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	pp := postprocessor.PostProcessor[symbols.LexingTokenType]{}
+	tree = pp.FilterOutSymbols([]string{symbols.ParseSymbolWhitespace.String(), symbols.ParseSymbolBlockOperator.String()}, tree)
+	tree = pp.RemoveEmptyNodes(tree)
+	return validation.NewParseTreeValidator(tree).Validate()
+}
+
+func TestThemesIsAnOptionalMetadataField(t *testing.T) {
+	const build = "BUILD      => MARAUDER"
+	if err := validateExampleWith(t, build+"\n  THEMES     => \"aryzel original\""); err != nil {
+		t.Errorf("THEMES after BUILD should validate: %v", err)
+	}
+	if err := validateExampleWith(t, "THEMES     => \"aryzel\"\n  "+build); err != nil {
+		t.Errorf("THEMES before BUILD should validate: %v", err)
+	}
+	err := validateExampleWith(t, build+"\n  THEMES => \"a\"\n  THEMES => \"b\"")
+	if err == nil || !strings.Contains(err.Error(), "duplicate") {
+		t.Errorf("a second THEMES should be a duplicate field error, got %v", err)
+	}
+}

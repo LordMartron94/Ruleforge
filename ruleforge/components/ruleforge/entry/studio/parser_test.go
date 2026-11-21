@@ -152,3 +152,38 @@ func TestCorruptedModsIsUnknownOnlyForPastedCorruptedItems(t *testing.T) {
 		t.Fatalf("uncorrupted, one implicit, none, pasted = %s; want [false,true,false,null]", got)
 	}
 }
+
+func TestTieredUnidentifiedPasteAndExplicitModifierCount(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not installed")
+	}
+	script := strings.Join([]string{
+		`const state={area:80}; const STACKABLE_CLASS={}; const pool={equipment:[{name:'Helical Ring',class:'Rings',drop:1,w:1,h:1}],gems:[],cards:[],tattoos:[],stackables:[],uniques:[]};`,
+		section(t, "// Classes whose base defences roll within a range", "function rollDefences("),
+		section(t, "/* ---------- filter evaluation ---------- */", "/* ---------- pasted Path of Exile items ---------- */"),
+		section(t, "/* ---------- pasted Path of Exile items ---------- */", "/* ---------- rendering: shared ---------- */"),
+		`const item=parseGameItem('Item Class: Rings\nRarity: Magic\nHelical Ring\n--------\nItem Level: 80\n--------\nUnidentified (Tier 5)\nFated');`,
+		`const results=[item.identified,item.itemTier,item.fated,evalCondition(item,{k:'UnidentifiedItemTier',op:'>=',v:['4']})];`,
+		`const map=parseGameItem('Item Class: Maps\nRarity: Rare\nMap\n--------\nItem Level: 83\n--------\n{ Suffix Modifier "of Zarokh" (Tier: 1) }\nEncounter text\nMore text');`,
+		`results.push(evalCondition(map,{k:'HasExplicitMod',op:'==',v:['of Zarokh']}),evalCondition(map,{k:'HasExplicitMod',op:'>=',v:['7','a','e','i','o','u','y']}));`,
+		`console.log(JSON.stringify(results));`,
+	}, "\n")
+	output, err := exec.Command(node, "-e", script).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, output)
+	}
+	if strings.TrimSpace(string(output)) != `[false,5,true,true,true,false]` {
+		t.Fatalf("incorrect tier or explicit-mod semantics: %s", output)
+	}
+}
+
+func TestStackableClassesDistinguishVisceraThreadsAndMapEnchantments(t *testing.T) {
+	cases := map[string]string{"Wickerman|Warden's Arm": "Viscera", "Threads|Abyss Thread": "Map Fragments", "Threads|Frayed Thread": "Stackable Currency", "Map Enchantments|Divine Vessel": "Stackable Currency"}
+	for key, want := range cases {
+		parts := strings.SplitN(key, "|", 2)
+		if got := StackableClass(parts[0], parts[1]); got != want {
+			t.Errorf("%s: %s, wanted %s", key, got, want)
+		}
+	}
+}

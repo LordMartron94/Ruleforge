@@ -114,6 +114,9 @@ BorderColor = "#C763F9"
 [Special.Essences.Types.Hysteria]
 BorderColor = "#C59B27"
 
+[Special.Essences.Types.Desolation]
+BorderColor = "#E8893A"
+
 [Special.Essences.Tiers.Low]
 Combination = ["Templates/Tiers/Mid/T7"]
 
@@ -440,6 +443,9 @@ Combination = ["Special/Essences/Base", "Special/Essences/Types/Delirium", "Spec
 
 [Special.Essences.Final.EssenceOfHysteria]
 Combination = ["Special/Essences/Base", "Special/Essences/Types/Hysteria", "Special/Essences/Tiers/Special", "Templates/Alerts/High/T2"]
+
+[Special.Essences.Final.EssenceOfDesolation]
+Combination = ["Special/Essences/Base", "Special/Essences/Types/Desolation", "Special/Essences/Tiers/Special", "Templates/Alerts/High/T2"]
 
 [Special.Oils.Base]
 Comment = "The single, foundational style for ALL oils. Defines the shared minimap icon."
@@ -1061,6 +1067,11 @@ BackgroundColor = "bg-kalguur"
 BorderColor = "bd-runegraft"
 Minimap = { Shape = "Circle" }
 
+[Templates.Leagues.Wickerman]
+BackgroundColor = "bg-ancestral"
+BorderColor = "bd-runegraft"
+Minimap = { Shape = "Hexagon" }
+
 [Templates.Leagues.Keepers]
 BackgroundColor = "bg-breach"
 BorderColor = "bd-keepers"
@@ -1166,6 +1177,13 @@ Combination = ["Templates/Rarities/Rare", "Templates/Tiers/Low/T8", "Templates/G
 
 [Final.Flasks]
 Combination = ["Templates/Groups/Flasks", "Templates/Tiers/Mid/T6"]
+
+# Tinctures share the flask field and shape; rarity keeps its border.
+[Final.Tinctures.Normal]
+Combination = ["Templates/Rarities/Normal", "Templates/Tiers/Mid/T6", "Templates/Groups/Flasks"]
+
+[Final.Tinctures.Magic]
+Combination = ["Templates/Rarities/Magic", "Templates/Tiers/Mid/T5", "Templates/Groups/Flasks"]
 
 [Final.OldFlasks]
 Combination = ["Templates/Groups/OldFlasks", "Templates/Tiers/Mid/T7"]
@@ -1535,6 +1553,15 @@ Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/Mid/T6"]
 [Final.Leagues.Runegrafts.T8]
 Combination = ["Templates/Leagues/Runegrafts", "Templates/Tiers/Mid/T7"]
 
+[Final.Leagues.Wickerman.T1]
+Combination = ["Templates/Leagues/Wickerman", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
+
+[Final.Leagues.Wickerman.T2]
+Combination = ["Templates/Leagues/Wickerman", "Templates/Tiers/Divine/T1", "Templates/Radiance/T1", "Templates/Alerts/Divine/T1"]
+
+[Final.Leagues.Wickerman.T3]
+Combination = ["Templates/Leagues/Wickerman", "Templates/Tiers/High/T2", "Templates/Alerts/High/T2"]
+
 [Final.Leagues.Keepers.T1]
 Combination = ["Templates/Leagues/Keepers", "Templates/Tiers/Divine/T0", "Templates/Radiance/T0", "Templates/Alerts/Divine/T0"]
 
@@ -1844,3 +1871,50 @@ DropVolume = 300
 [Templates.Alerts.High.T2]
 DropSound = "amazing.mp3"
 DropVolume = 200
+
+# Game tiers describe roll potential; these styles are pickup priority.
+[Final.Equipment.Tier5]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/High/T2"]
+BorderColor = "t2"
+
+[Final.Equipment.Tier4]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/High/T3"]
+BorderColor = "t3"
+
+[Final.Equipment.Tier3]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/High/T4"]
+BorderColor = "t4"
+
+[Final.Equipment.Tier2]
+Combination = ["Templates/Groups/Equipment", "Templates/Tiers/Mid/T5"]
+BorderColor = "t5"
+
+[Final.Equipment.Fated]
+BorderColor = "bd-fated"
+
+[Final.Maps.Exotic]
+Combination = ["Templates/Groups/Maps", "Templates/Tiers/High/T2"]
+BorderColor = "t2"
+
+[Final.Maps.SevenMod]
+Combination = ["Templates/Groups/Maps", "Templates/Tiers/High/T3"]
+BorderColor = "t3"
+
+[Final.Leagues.Wickerman.Unclassified]
+Combination = ["Final/Leagues/Wickerman/T3", "Templates/Tiers/High/T3"]
+BorderColor = "t3"
+
+[Final.MapEnchantments.T1]
+Combination = ["Final/Leagues/AllflameEmbers/T1"]
+
+[Final.MapEnchantments.T2]
+Combination = ["Final/Leagues/AllflameEmbers/T2"]
+
+[Final.MapEnchantments.T3]
+Combination = ["Final/Leagues/AllflameEmbers/T3"]
+
+[Final.MapEnchantments.T4]
+Combination = ["Final/Leagues/AllflameEmbers/T4"]
+
+[Final.Leagues.EssenceOfTrickery]
+Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]

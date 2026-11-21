@@ -1,6 +1,7 @@
 package compilation
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/LordMartron94/Ruleforge/ruleforge/components/ruleforge/common/compiler/parsing/shared"
@@ -47,6 +48,15 @@ var tieringParams = []MacroParam{
 
 // MacroSpecs lists every macro a script can call.
 var MacroSpecs = []MacroSpec{
+	{Name: "economy_csv", Summary: "Economy-tiers a CSV category when credible prices exist; preserves curated CSV rules as fallback.", Tiers: true, Params: []MacroParam{{Key: "$category", Value: "category", Required: true, Summary: "CSV category to tier."}}},
+	{Name: "viscera_preferences", Summary: "Highlights the build preset's explicitly preferred Viscera.", Params: []MacroParam{{Key: "$style", Value: "style", Required: true, Summary: "Preferred Viscera priority."}}},
+	{Name: "item_tier_matrix", Summary: "Prioritizes tiered magic and rare gear by build use, base quality and exotic identity.", Params: []MacroParam{
+		{Key: "$tier_5", Value: "style", Required: true, Summary: "Game tier 5 on useful bases."},
+		{Key: "$tier_4", Value: "style", Required: true, Summary: "Game tier 4 on useful bases."},
+		{Key: "$tier_3", Value: "style", Required: true, Summary: "Game tier 3 on useful bases and tier-5 off-build gear."},
+		{Key: "$tier_2", Value: "style", Required: true, Summary: "Game tier 2 campaign upgrades and selected endgame bases."},
+	}},
+	{Name: "fated_precedence", Summary: "Marks Fated items among later Show rules; never changes visibility.", Params: []MacroParam{{Key: "$style", Value: "style", Required: true, Summary: "Fated border style."}}},
 	{Name: "item_progression-equipment-leveling", Summary: "Shows the build's weapons and armour while they are level-appropriate in the campaign (area levels 1-67) and hides them once outdated.", Params: progressionParams},
 	{Name: "item_progression-equipment-mapping", Summary: "The same progression for maps (area levels 68-84).", Params: progressionParams},
 	{Name: "item_progression-flasks", Summary: "Shows each flask kind while it is the best available and hides it once outdated.", Params: []MacroParam{
@@ -76,6 +86,43 @@ type macroHandler func(rg *RuleGenerator, variables *map[string][]string, parame
 
 // macroHandlers compiles each macro; every MacroSpecs entry has one.
 var macroHandlers = map[string]macroHandler{
+	"economy_csv": func(rg *RuleGenerator, v *map[string][]string, p []*shared.ParseTree[symbols.LexingTokenType], s []model2.Condition) ([][]string, error) {
+		return rg.handleEconomyCSV(v, p, s)
+	},
+	"viscera_preferences": func(rg *RuleGenerator, v *map[string][]string, p []*shared.ParseTree[symbols.LexingTokenType], s []model2.Condition) ([][]string, error) {
+		style, err := rg.extractStyle(p)
+		if err != nil {
+			return nil, err
+		}
+		if len(rg.build.Preset.PreferredViscera) == 0 {
+			return nil, nil
+		}
+		for _, base := range rg.build.Preset.PreferredViscera {
+			found := false
+			for _, row := range rg.baseTypeData {
+				if row.Category == "Wickerman" && row.BaseType == base {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, fmt.Errorf("unknown PreferredViscera base %q", base)
+			}
+		}
+		rule := &model2.ParsedRule{Action: model2.ShowRule, Style: style, Conditions: []model2.Condition{{Identifier: "@item_class", Operator: "==", Value: []string{"Viscera"}}, {Identifier: "@item_type", Operator: "==", Value: rg.build.Preset.PreferredViscera}}, Variables: v, ValidBaseTypes: rg.validBaseTypes}
+		return rg.compileParsedRule(rule, s), nil
+	},
+	"item_tier_matrix": func(rg *RuleGenerator, v *map[string][]string, p []*shared.ParseTree[symbols.LexingTokenType], _ []model2.Condition) ([][]string, error) {
+		return rg.handleItemTierMatrix(v, p)
+	},
+	"fated_precedence": func(rg *RuleGenerator, _ *map[string][]string, p []*shared.ParseTree[symbols.LexingTokenType], _ []model2.Condition) ([][]string, error) {
+		style, err := rg.extractStyle(p)
+		if err != nil {
+			return nil, err
+		}
+		rg.ruleFactory.fated = style
+		return nil, nil
+	},
 	"max_roll_precedence": func(rg *RuleGenerator, _ *map[string][]string, parameters []*shared.ParseTree[symbols.LexingTokenType], _ []model2.Condition) ([][]string, error) {
 		return rg.handleMaxRollPrecedence(parameters)
 	},

@@ -116,13 +116,13 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 		}
 	}
 	divCard := fetched[9]
-	if divCard.Class != "Divination Cards" || divCard.BaseType != "The Doctor" || divCard.ChaosValue != 500 || divCard.ListingCount != 3 {
+	if divCard.Class != "Divination Cards" || divCard.BaseType != "The Doctor" || divCard.ChaosValue != 500 || divCard.ListingCount != 0 || divCard.TradedUnits != 3 || divCard.Source != "exchange" {
 		t.Fatalf("incorrect divination card economy record (name resolved via the exchange items lookup, unpriced/unnamed lines dropped): %#v", divCard)
 	}
-	if tattoo := fetched[10]; tattoo.Class != "Tattoos" || tattoo.BaseType != "Tattoo of the Valako Shieldbearer" || tattoo.ChaosValue != 494 || tattoo.ListingCount != 10 {
+	if tattoo := fetched[10]; tattoo.Class != "Tattoos" || tattoo.BaseType != "Tattoo of the Valako Shieldbearer" || tattoo.ChaosValue != 494 || tattoo.ListingCount != 0 || tattoo.TradedUnits != 10 {
 		t.Fatalf("incorrect tattoo economy record: %#v", tattoo)
 	}
-	if orb := fetched[11]; orb.Class != "Currency" || orb.BaseType != "Ancient Orb" || orb.ChaosValue != 10 || orb.ListingCount != 200 {
+	if orb := fetched[11]; orb.Class != "Currency" || orb.BaseType != "Ancient Orb" || orb.ChaosValue != 10 || orb.ListingCount != 0 || orb.TradedUnits != 200 {
 		t.Fatalf("incorrect currency economy record: %#v", orb)
 	}
 	if err := exporter.RefreshEconomyData([]string{"Allflame"}, time.Hour, false); err != nil {
@@ -133,7 +133,7 @@ func TestPoeNinjaEconomyAPIAndConfiguredLeagueNames(t *testing.T) {
 	}
 }
 
-func TestPoeNinjaUnknownLeagueFailsBeforeItemRequests(t *testing.T) {
+func TestPoeNinjaUnknownLeagueIsSkippedWithoutItemRequests(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
@@ -147,8 +147,37 @@ func TestPoeNinjaUnknownLeagueFailsBeforeItemRequests(t *testing.T) {
 	client.baseURL = server.URL
 	client.requestDelay = 0
 	err := (&PathOfBuildingExporter{economyScraper: client}).RefreshEconomyData([]string{"Expired league"}, time.Hour, true)
-	if err == nil || !strings.Contains(err.Error(), `"Expired league"`) || !strings.Contains(err.Error(), "Standard") || requests != 1 {
-		t.Fatalf("expected clear unavailable-league error and no wasted requests; error=%v requests=%d", err, requests)
+	if err != nil || requests != 1 {
+		t.Fatalf("expected the unavailable league to be skipped without item requests; error=%v requests=%d", err, requests)
+	}
+}
+
+func TestPoeNinjaLeagueWithoutPricesIsSkippedAndLeavesNoHistory(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/leagues":
+			fmt.Fprint(w, `[{"id":"Covens","name":"Covens"}]`)
+		case strings.Contains(r.URL.Path, "exchange"):
+			fmt.Fprint(w, `{"core":{"items":[],"rates":{}},"lines":[],"items":[]}`)
+		default:
+			fmt.Fprint(w, `{"lines":[]}`)
+		}
+	}))
+	defer server.Close()
+	client := NewPoeNinjaClient()
+	client.baseURL = server.URL
+	client.requestDelay = 0
+	store, err := NewEconomyHistoryStore(filepath.Join(t.TempDir(), "economy.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	exporter := &PathOfBuildingExporter{economyScraper: client, historyStore: store}
+	if err := exporter.RefreshEconomyData([]string{"Covens"}, time.Hour, true); err != nil {
+		t.Fatalf("a league without prices yet must not fail the refresh: %v", err)
+	}
+	if _, err := exporter.LeaguesWithHistory([]string{"Covens"}); err == nil {
+		t.Fatal("expected an error when no configured league has any data")
 	}
 }
 
@@ -200,10 +229,10 @@ func TestEconomyHistoryPersistsAcrossSnapshots(t *testing.T) {
 
 	older := time.Now().Add(-48 * time.Hour)
 	newer := time.Now()
-	if err := store.RecordSnapshot("Standard", older, []EconomyCacheItem{{BaseType: "Test", ChaosValue: 3}}); err != nil {
+	if err := store.RecordSnapshot("Standard", older, []EconomyCacheItem{{Name: "Test", BaseType: "Test", ChaosValue: 3}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.RecordSnapshot("Standard", newer, []EconomyCacheItem{{BaseType: "Test", ChaosValue: 5}}); err != nil {
+	if err := store.RecordSnapshot("Standard", newer, []EconomyCacheItem{{Name: "Test", BaseType: "Test", ChaosValue: 5}}); err != nil {
 		t.Fatal(err)
 	}
 
