@@ -1,5 +1,4 @@
 #include <nexus.h>
-#include <echo.h>
 
 #include <logos.h>
 

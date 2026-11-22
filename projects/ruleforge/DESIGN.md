@@ -462,7 +462,55 @@ Theme inheritance is explicit. An inherited theme retains unspecified style defi
 
 The compiler validates that all required schema keys are implemented.
 
-### 5.2 Color syntax
+### 5.2 Theme adapters
+
+A theme implements one `themeSchema`, and a script's rules are written against one: `style godTier;` names a key of the schema the project
+works with. A theme written for a different schema (a downloaded theme, an older project) therefore cannot be used as it is. An **adapter**
+maps one schema onto the styles of a theme that implements another, so the theme can be used without editing it or the rules.
+
+```ruleforge
+themeSchema Legacy {
+    huge;
+    tiny;
+}
+
+theme Old implements Legacy {
+    huge { onShow { Background #FF0000; } }
+    tiny { onShow { Background #00FF00; } }
+}
+
+configuration {
+    default-schema = themes.BaseTiering;        // every theme in use must implement this schema
+
+    adapter OldToBase -> themes.BaseTiering {   // adapter Name -> the schema the rules are written against
+        godTier  = huge;                        // key of BaseTiering = style of the adapted theme
+        poopTier = tiny;                        // keys the adapter does not mention use the style of the same name
+    }
+}
+
+export func main() {
+    include currency.GenerateCurrencyRules() with { theme: Old, adapter: OldToBase };
+}
+```
+
+- `default-schema` is the contract of the project. A theme that implements a different schema is refused wherever it would become the
+  default theme (`default-theme`, or `with { theme: ... }`), with a note naming the way out. A theme that implements no schema has no
+  contract to compare and is checked style by style when its styles are used.
+- An `adapter` is declared in the `configuration` block of the module that uses it and is private to that module, like any declaration
+  not marked `export`. Its target is a `themeSchema`; each mapping reads `schemaKey = themeStyle;`.
+- `with { theme: T, adapter: A }` uses T through A: the included ruleset sees a theme with the keys of A's target schema, each served by
+  the style A maps it to, and nothing else. `with { adapter: A }` alone adapts the current default theme. The adapted theme replaces the
+  default theme for that `include` only, like `theme:` does.
+- The compiler checks the whole mapping before it uses it: every left side is a key of the target schema and is mapped once, every right
+  side is a style the theme has, and every key of the target schema ends up served. The model still names the theme's own styles, so the
+  style of a block says `Old.huge`, the style that was actually used.
+- Adapters rename styles; they do not compute. Merging or deriving a style (a darker `huge`) is an `extends` theme, not an adapter.
+
+**Datasets.** The same need exists for data: a snapshot whose columns are called differently from the schema's fields. That is not
+covered by this version. If it proves valuable it should be a mapping on the `dataset` declaration (`dataset D: Schema from "src" { field = column; }`)
+rather than a second meaning for `adapter`, because a dataset is bound where it is declared and a theme where it is used.
+
+### 5.3 Color syntax
 
 Supported color representations include:
 
@@ -477,7 +525,7 @@ Background #FF8040F0;
 
 HSL/HSV colors are converted to the game's native RGB/RGBA representation during compilation.
 
-### 5.3 Style properties
+### 5.4 Style properties
 
 The styling registry should cover the full supported PoE filter surface, including text and background colors, border colors, font sizes, minimap icons, beams, and sounds.
 

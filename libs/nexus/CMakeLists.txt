@@ -43,6 +43,7 @@ if(BUILD_TESTING AND nexus_test_sources)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/n_network_tests.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/n_mapping_tests.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/n_memory_guard_tests.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/n_filesystem_tests.c"
     )
     add_executable(nexus_tests ${nexus_test_sources})
     target_link_libraries(nexus_tests PRIVATE MergeSource::Options Nexus::Nexus)
@@ -51,6 +52,26 @@ if(BUILD_TESTING AND nexus_test_sources)
     add_executable(nexus_memory_guard_tests tests/n_memory_guard_tests.c)
     target_link_libraries(nexus_memory_guard_tests PRIVATE MergeSource::Options Nexus::Nexus)
     add_test(NAME nexus_memory_guard_tests COMMAND nexus_memory_guard_tests)
+
+    # Filesystem behavior that differs between platforms. The second build runs the matcher Nexus carries for platforms without regex.h
+    # (Windows) on every platform, so its behavior is checked wherever the tests run.
+    add_executable(nexus_filesystem_tests tests/n_filesystem_tests.c)
+    target_link_libraries(nexus_filesystem_tests PRIVATE MergeSource::Options Nexus::Nexus)
+    add_test(NAME nexus_filesystem_tests COMMAND nexus_filesystem_tests)
+
+    add_executable(nexus_filesystem_builtin_regex_tests tests/n_filesystem_tests.c ${nexus_sources})
+    target_include_directories(nexus_filesystem_builtin_regex_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_definitions(nexus_filesystem_builtin_regex_tests PRIVATE
+        NEXUS_FILESYSTEM_BUILTIN_REGEX=1 $<TARGET_PROPERTY:nexus,INTERFACE_COMPILE_DEFINITIONS>)
+    target_link_libraries(nexus_filesystem_builtin_regex_tests PRIVATE
+        MergeSource::Options Threads::Threads ${CMAKE_DL_LIBS} nexus_c89_extensions External::stb External::xxhash)
+    if(UNIX)
+        target_link_libraries(nexus_filesystem_builtin_regex_tests PRIVATE m)
+    endif()
+    if(WIN32)
+        target_link_libraries(nexus_filesystem_builtin_regex_tests PRIVATE bcrypt)
+    endif()
+    add_test(NAME nexus_filesystem_builtin_regex_tests COMMAND nexus_filesystem_builtin_regex_tests)
 
     add_executable(nexus_network_tests tests/n_network_tests.c)
     target_link_libraries(nexus_network_tests PRIVATE MergeSource::Options Nexus::Nexus)

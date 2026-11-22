@@ -72,6 +72,11 @@ if(BUILD_TESTING)
     set_tests_properties(ruleforge_themes_currency PROPERTIES
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/examples/currency"
         PASS_REGULAR_EXPRESSION "\"format\":\"ruleforge-themes\".*\"name\":\"DefaultTheme\".*\"kind\":\"color\"")
+    # A theme that implements another schema serves a script written against this one when an adapter maps its styles.
+    add_test(NAME ruleforge_adapter_theme
+        COMMAND ruleforge_cli compile "${CMAKE_CURRENT_SOURCE_DIR}/tests/adapters/adapter.rf")
+    set_tests_properties(ruleforge_adapter_theme PROPERTIES
+        PASS_REGULAR_EXPRESSION "Exalted Orb\"[^#]*SetBackgroundColor 255 0 0.*Scroll of Wisdom\"[^#]*SetBackgroundColor 0 255 0")
     file(GLOB ruleforge_error_cases CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/errors/*.rf")
     foreach(case IN LISTS ruleforge_error_cases)
         get_filename_component(case_name "${case}" NAME_WE)

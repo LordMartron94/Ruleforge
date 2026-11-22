@@ -9,6 +9,15 @@ conditions all hold wins. For every item it reports the winner, why each earlier
 that failed and the item's actual value) and the later blocks that would also have matched, which shows what a rule shadows.
 */
 
+/* Summary: an ASCII letter in lower case; every other byte as it is. */
+static char r_simulate_lower(char ch) {
+  if (ch >= 'A' && ch <= 'Z') {
+    return (char)(ch + 32);
+  }
+
+  return ch;
+}
+
 static boolean r_simulate_equals_text(const char *left, const char *right) {
   uint_large i;
 
@@ -16,8 +25,8 @@ static boolean r_simulate_equals_text(const char *left, const char *right) {
     char a;
     char b;
 
-    a = left[i] >= 'A' && left[i] <= 'Z' ? (char)(left[i] + 32) : left[i];
-    b = right[i] >= 'A' && right[i] <= 'Z' ? (char)(right[i] + 32) : right[i];
+    a = r_simulate_lower(left[i]);
+    b = r_simulate_lower(right[i]);
 
     if (a != b) {
       return FALSE;
@@ -27,8 +36,8 @@ static boolean r_simulate_equals_text(const char *left, const char *right) {
   return left[i] == right[i];
 }
 
-static boolean r_simulate_compare(int64 actual, RuleforgeOperator op, int64 expected) {
-  switch (op) {
+static boolean r_simulate_compare(int64 actual, RuleforgeOperator operation, int64 expected) {
+  switch (operation) {
   case ROP_EQ:
     return actual == expected;
   case ROP_NE:
@@ -249,9 +258,8 @@ boolean ruleforge_simulate_json_write(const RuleforgeCompilation *compilation, c
       continue;
     }
 
-    (void)nexus_strings_string_builder_append_formatted(out,
-                                                        ",\"matched\":%lu,\"action\":\"%s\",\"default\":false,\"style\":", (unsigned long)matched_id,
-                                                        winner->native != NULL ? "native" : (winner->show ? "show" : "hide"));
+    (void)nexus_strings_string_builder_append_formatted(
+        out, ",\"matched\":%lu,\"action\":\"%s\",\"default\":false,\"style\":", (unsigned long)matched_id, ruleforge_filter_action_name_get(winner));
     ruleforge_filter_style_json_write(winner->style, winner->show, out);
     (void)nexus_strings_string_builder_append(out, ",\"shadowed\":[");
 

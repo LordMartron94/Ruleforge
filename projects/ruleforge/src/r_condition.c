@@ -1,4 +1,5 @@
 #include <nexus.h>
+#include <logos.h>
 #include <rf_bindings.h>
 
 #include "../ruleforge.h"

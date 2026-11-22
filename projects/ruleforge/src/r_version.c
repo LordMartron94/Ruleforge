@@ -1,5 +1,3 @@
-#include <nexus.h>
-
 #include "../ruleforge.h"
 
 #ifndef RULEFORGE_VERSION

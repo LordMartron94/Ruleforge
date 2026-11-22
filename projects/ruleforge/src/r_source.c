@@ -1,5 +1,6 @@
 #include <nexus.h>
 
+#include "../ruleforge.h"
 #include "./r_internal.h"
 
 uint32 ruleforge_source_add(RuleforgeCompilation *compilation, const char *name, const char *module, const byte *text, uint_large size,

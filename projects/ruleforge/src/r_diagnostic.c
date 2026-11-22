@@ -1,5 +1,8 @@
 #include <nexus.h>
 
+#include <stdarg.h>
+
+#include "../ruleforge.h"
 #include "./r_internal.h"
 
 void ruleforge_diagnostic_report(RuleforgeCompilation *compilation, RuleforgeDiagnosticSeverity severity, const char *code, RuleforgeSpan span,
@@ -26,4 +29,16 @@ void ruleforge_diagnostic_report(RuleforgeCompilation *compilation, RuleforgeDia
   if (severity == RDS_ERROR) {
     compilation->error_count++;
   }
+}
+
+const char *ruleforge_diagnostic_severity_name_get(RuleforgeDiagnosticSeverity severity) {
+  if (severity == RDS_ERROR) {
+    return "error";
+  }
+
+  if (severity == RDS_WARNING) {
+    return "warning";
+  }
+
+  return "note";
 }

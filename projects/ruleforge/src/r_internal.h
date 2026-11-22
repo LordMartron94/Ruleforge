@@ -445,27 +445,28 @@ typedef struct RuleforgeNamespace {
 typedef struct RuleforgeEvaluation REval;
 
 struct RuleforgeEvaluation {
-  RuleforgeCompilation      *compilation;
-  const RuleforgeSettings   *settings;
-  RuleforgeModule           *module;
-  NexusDataList             *variables; /* RuleforgeVariable, used as a stack */
-  uint32                     frame_base;
-  uint64                     steps;
-  uint32                     depth;
-  uint32                     emitted;
-  const RuleforgeProvenance *provenance;
-  RuleforgeRuleset          *emit;
-  NexusDataList             *cores; /* RuleforgeCondition * pushed by coreConditions */
-  RuleforgeTheme            *default_theme;
-  uint32                     override_depth;
-  boolean                    enum_fallback;
-  RuleforgeModule           *entry;
-  boolean                    failed;
-  boolean                    returning;
-  RuleforgeValue             result;
-  NexusDataList             *cache_keys;   /* the declaration nodes whose values are cached */
-  NexusDataList             *cache_values; /* RuleforgeValue * */
-  NexusDataList             *datasets;     /* RuleforgeDataset * in load order */
+  RuleforgeCompilation       *compilation;
+  const RuleforgeSettings    *settings;
+  RuleforgeModule            *module;
+  NexusDataList              *variables; /* RuleforgeVariable, used as a stack */
+  uint32                      frame_base;
+  uint64                      steps;
+  uint32                      depth;
+  uint32                      emitted;
+  const RuleforgeProvenance  *provenance;
+  RuleforgeRuleset           *emit;
+  NexusDataList              *cores; /* RuleforgeCondition * pushed by coreConditions */
+  RuleforgeTheme             *default_theme;
+  const RuleforgeDeclaration *default_schema; /* the themeSchema every theme in use must implement, or NULL */
+  uint32                      override_depth;
+  boolean                     enum_fallback;
+  RuleforgeModule            *entry;
+  boolean                     failed;
+  boolean                     returning;
+  RuleforgeValue              result;
+  NexusDataList              *cache_keys;   /* the declaration nodes whose values are cached */
+  NexusDataList              *cache_values; /* RuleforgeValue * */
+  NexusDataList              *datasets;     /* RuleforgeDataset * in load order */
 };
 
 typedef enum RuleforgeTypeKind {
@@ -579,13 +580,17 @@ extern RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt decla
 /* r_theme.c */
 extern RuleforgeTheme *ruleforge_theme_resolve(REval *eval, RfThemeStmt declaration, RuleforgeModule *owner);
 extern RuleforgeStyle *ruleforge_theme_style_get(const RuleforgeTheme *theme, const char *key);
+extern boolean         ruleforge_theme_adapter_find(REval *eval, const RuleforgeModule *module, const char *name, RfAdapterStmt *out_adapter);
+extern RuleforgeTheme *ruleforge_theme_adapt(REval *eval, const RuleforgeTheme *theme, RfAdapterStmt adapter, RuleforgeModule *owner,
+                                             RuleforgeSpan span);
 extern void            ruleforge_theme_declarations_json_write(RuleforgeCompilation *compilation, NexusStringBuilder *out);
 struct RuleforgeTheme {
-  const char      *name;
-  const char      *schema;
-  uint32           count;
-  const char     **keys;
-  RuleforgeStyle **styles;
+  const char                 *name;
+  const char                 *schema;
+  const RuleforgeDeclaration *schema_declaration; /* the themeSchema it implements, or NULL when it implements none */
+  uint32                      count;
+  const char                **keys;
+  RuleforgeStyle            **styles;
 };
 
 /* r_stdlib.c */
@@ -609,6 +614,7 @@ typedef struct RuleforgeFilter {
   RuleforgeBlock **blocks;
 } RuleforgeFilter;
 
+extern const char      *ruleforge_filter_action_name_get(const RuleforgeBlock *block);
 extern RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const RuleforgeRuleset *ruleset);
 extern char            *ruleforge_filter_text_write(RuleforgeCompilation *compilation, RuleforgeFilter *filter, const char *name, uint64 hash);
 extern void             ruleforge_filter_model_write(const RuleforgeCompilation *compilation, NexusStringBuilder *out);
@@ -656,6 +662,8 @@ extern void ruleforge_text_position_get(const RuleforgeFile *file, uint32 offset
 /* r_diagnostic.c */
 extern void ruleforge_diagnostic_report(RuleforgeCompilation *compilation, RuleforgeDiagnosticSeverity severity, const char *code, RuleforgeSpan span,
                                         const char *note, const char *format, ...);
+
+extern const char *ruleforge_diagnostic_severity_name_get(RuleforgeDiagnosticSeverity severity);
 
 /* r_source.c */
 extern uint32         ruleforge_source_add(RuleforgeCompilation *compilation, const char *name, const char *module, const byte *text, uint_large size,

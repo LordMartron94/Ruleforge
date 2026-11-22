@@ -212,10 +212,15 @@ boolean ruleforge_manifest_property_lower(RuleforgeCompilation *compilation, Rul
       return FALSE;
     }
 
-    out_property->keyword = nexus_strings_string_equals(name, "Background") ? "SetBackgroundColor"
-                            : nexus_strings_string_equals(name, "Border")   ? "SetBorderColor"
-                                                                            : "SetTextColor";
-    out_property->text    = text;
+    out_property->keyword = "SetTextColor";
+
+    if (nexus_strings_string_equals(name, "Background")) {
+      out_property->keyword = "SetBackgroundColor";
+    } else if (nexus_strings_string_equals(name, "Border")) {
+      out_property->keyword = "SetBorderColor";
+    }
+
+    out_property->text = text;
 
     return TRUE;
   }
@@ -339,6 +344,21 @@ static const RManifestProperty r_manifest_properties[] = {
     {"DisableSound", "DisableDropSound", "bool", "Silence the drop sound."},
 };
 
+static const char *r_manifest_condition_type_name(RuleforgeConditionType type) {
+  switch (type) {
+  case RCT_INTEGER:
+    return "int";
+  case RCT_STRING:
+    return "string";
+  case RCT_BOOLEAN:
+    return "bool";
+  default:
+    break;
+  }
+
+  return "rarity";
+}
+
 char *ruleforge_manifest_json_write(void) {
   NexusStringBuilder out;
   char              *result;
@@ -357,12 +377,7 @@ char *ruleforge_manifest_json_write(void) {
     }
 
     (void)nexus_strings_string_builder_append_formatted(&out, "{\"name\":\"%s\",\"keyword\":\"%s\",\"type\":\"%s\",\"ordered\":%s}", info->name,
-                                                        info->keyword,
-                                                        info->type == RCT_INTEGER   ? "int"
-                                                        : info->type == RCT_STRING  ? "string"
-                                                        : info->type == RCT_BOOLEAN ? "bool"
-                                                                                    : "rarity",
-                                                        info->ordered ? "true" : "false");
+                                                        info->keyword, r_manifest_condition_type_name(info->type), info->ordered ? "true" : "false");
   }
 
   (void)nexus_strings_string_builder_append(&out, "],\"properties\":[");

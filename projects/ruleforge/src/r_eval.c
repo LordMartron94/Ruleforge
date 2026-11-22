@@ -1,7 +1,8 @@
 #include <nexus.h>
-#include <echo.h>
 
 #include <logos.h>
+
+#include <stdarg.h>
 #include <rf_bindings.h>
 
 #include "../ruleforge.h"
@@ -25,6 +26,8 @@ enum {
 };
 
 static boolean        r_eval_generator(REval *eval, RfGeneratorStmt view);
+static boolean        r_eval_reference_name_get(REval *eval, RfExpr view, char *buffer, uint_large size);
+static boolean        r_eval_theme_check(REval *eval, const RuleforgeTheme *theme, RuleforgeSpan span);
 static RuleforgeValue r_eval_call(REval *eval, RfCall call);
 
 /* ---------------------------------------------------------------------------- */
@@ -2293,9 +2296,15 @@ static boolean r_eval_generator(REval *eval, RfGeneratorStmt view) {
     themes_set  = 0;
 
     if (rf_include_stmt_count_rule_with_clause(include) > 0) {
-      RfWithClause with;
+      RfWithClause    with;
+      RuleforgeTheme *with_theme;
+      boolean         has_adapter;
+      RfWithBinding   adapter_binding;
 
-      with = rf_include_stmt_rule_with_clause(include, 0);
+      with            = rf_include_stmt_rule_with_clause(include, 0);
+      with_theme      = NULL;
+      has_adapter     = FALSE;
+      adapter_binding = rf_with_clause_rule_with_binding(with, 0);
 
       for (i = 0; i < rf_with_clause_count_rule_with_binding(with); i++) {
         RfWithBinding  binding;
@@ -2317,13 +2326,64 @@ static boolean r_eval_generator(REval *eval, RfGeneratorStmt view) {
             return FALSE;
           }
 
-          eval->default_theme = bound.as.theme;
-          eval->override_depth++;
-          themes_set++;
+          with_theme = bound.as.theme;
+        } else if (rf_with_binding_count_token_kw_adapter(binding) > 0) {
+          has_adapter     = TRUE;
+          adapter_binding = binding;
         } else {
           ruleforge_diagnostic_report(eval->compilation, RDS_WARNING, "RF0377", ruleforge_eval_span_get(eval, binding.tree, binding.node),
-                                      "only `theme:` bindings are applied in this version", "this `with` binding has no effect");
+                                      "the bindings are `theme:` and `adapter:`", "this `with` binding has no effect");
         }
+      }
+
+      if (has_adapter) {
+        RuleforgeSpan binding_span;
+        char          adapter_name[256];
+        RfAdapterStmt adapter;
+
+        binding_span = ruleforge_eval_span_get(eval, adapter_binding.tree, adapter_binding.node);
+
+        if (with_theme == NULL) {
+          with_theme = eval->default_theme;
+        }
+
+        if (with_theme == NULL) {
+          ruleforge_eval_fail(eval, "RF0386", binding_span, "write `theme:` beside it, or set `default-theme` in the configuration",
+                              "`adapter:` has no theme to adapt");
+
+          return FALSE;
+        }
+
+        if (!r_eval_reference_name_get(eval, rf_with_binding_rule_expr(adapter_binding, 0), adapter_name, NEXUS_SIZEOF(adapter_name))) {
+          ruleforge_eval_fail(eval, "RF0387", binding_span, "write the name of an adapter declared in `configuration`",
+                              "`adapter:` needs the name of an adapter");
+
+          return FALSE;
+        }
+
+        if (!ruleforge_theme_adapter_find(eval, eval->module, adapter_name, &adapter)) {
+          ruleforge_eval_fail(eval, "RF0388", binding_span,
+                              "adapters are declared in this module's `configuration { adapter Name -> Schema { ... } }`", "there is no adapter `%s`",
+                              adapter_name);
+
+          return FALSE;
+        }
+
+        with_theme = ruleforge_theme_adapt(eval, with_theme, adapter, eval->module, binding_span);
+
+        if (with_theme == NULL) {
+          return FALSE;
+        }
+      }
+
+      if (with_theme != NULL) {
+        if (!r_eval_theme_check(eval, with_theme, span)) {
+          return FALSE;
+        }
+
+        eval->default_theme = with_theme;
+        eval->override_depth++;
+        themes_set++;
       }
     }
 
@@ -2410,6 +2470,136 @@ static void r_eval_configuration_key_write(REval *eval, RfConfigurationKey key, 
   }
 }
 
+/* Summary: writes the dotted name of an expression that is only a plain reference (`Name`, `module.Name`); FALSE for anything else. */
+static boolean r_eval_reference_name_get(REval *eval, RfExpr view, char *buffer, uint_large size) {
+  RfAtom             atom;
+  RfIndexedReference indexed;
+  RfReference        reference;
+  const char        *segments[R_EVAL_SEGMENT_LIMIT];
+  int64              prefix;
+  uint32             count;
+
+  if (rf_expr_operand_count(view) != 0) {
+    return FALSE;
+  }
+
+  atom = rf_expr_atom(view);
+
+  if (rf_atom_count_rule_indexed_reference(atom) == 0) {
+    return FALSE;
+  }
+
+  indexed = rf_atom_rule_indexed_reference(atom, 0);
+
+  if (rf_indexed_reference_count_rule_expr(indexed) != 0) {
+    return FALSE;
+  }
+
+  reference = rf_indexed_reference_rule_reference(indexed, 0);
+  count     = r_eval_reference_segments(eval, reference, segments, &prefix);
+
+  if (prefix != R_REF_PLAIN || count == 0) {
+    return FALSE;
+  }
+
+  (void)r_eval_callee_write(segments, count, buffer, size);
+
+  return TRUE;
+}
+
+/*
+Summary: checks that a theme about to be used implements the project's default-schema.
+Description: a theme that implements no schema has no contract to compare, so it passes; its styles are checked when they are looked up.
+*/
+static boolean r_eval_theme_check(REval *eval, const RuleforgeTheme *theme, RuleforgeSpan span) {
+  if (eval->default_schema == NULL || theme->schema_declaration == NULL || theme->schema_declaration == eval->default_schema) {
+    return TRUE;
+  }
+
+  ruleforge_eval_fail(eval, "RF0385", span,
+                      "declare an adapter into the default schema and write `with { theme: ..., adapter: Name }`, or make the theme implement it",
+                      "theme `%s` implements `%s`, but the project's default-schema is `%s`", theme->name, theme->schema, eval->default_schema->name);
+
+  return FALSE;
+}
+
+/* Summary: runs the entry module's configuration: `default-schema` first, then `default-theme`, which must implement it. */
+static void r_eval_configuration_run(REval *eval, RuleforgeModule *entry) {
+  uint32 pass;
+  uint32 j;
+
+  for (pass = 0; pass < 2; pass++) {
+    for (j = 0; j < rf_script_count_rule_declaration(entry->script) && !eval->failed; j++) {
+      RfDeclaration declaration;
+      uint32        m;
+
+      declaration = rf_script_rule_declaration(entry->script, j);
+
+      if (rf_declaration_count_rule_configuration_stmt(declaration) == 0) {
+        continue;
+      }
+
+      for (m = 0; m < rf_configuration_stmt_count_rule_configuration_item(rf_declaration_rule_configuration_stmt(declaration, 0)) && !eval->failed;
+           m++) {
+        RfConfigurationItem item;
+
+        item = rf_configuration_stmt_rule_configuration_item(rf_declaration_rule_configuration_stmt(declaration, 0), m);
+
+        if (rf_configuration_item_count_rule_configuration_assignment(item) > 0) {
+          RfConfigurationAssignment assignment;
+          NexusStringBuilder        key;
+          RuleforgeSpan             span;
+          boolean                   is_theme;
+          boolean                   is_schema;
+
+          assignment = rf_configuration_item_rule_configuration_assignment(item, 0);
+          span       = ruleforge_eval_span_get(eval, assignment.tree, assignment.node);
+          key        = nexus_strings_string_builder_create_growable(24);
+          r_eval_configuration_key_write(eval, rf_configuration_assignment_rule_configuration_key(assignment, 0), &key);
+          is_theme  = nexus_strings_string_equals(nexus_strings_string_builder_string_get(&key), "default-theme");
+          is_schema = nexus_strings_string_equals(nexus_strings_string_builder_string_get(&key), "default-schema");
+          nexus_strings_string_builder_destroy(&key);
+
+          if (is_schema && pass == 0) {
+            char                        name[512];
+            RuleforgeModule            *owner;
+            const RuleforgeDeclaration *schema;
+
+            if (!r_eval_reference_name_get(eval, rf_configuration_assignment_rule_expr(assignment, 0), name, NEXUS_SIZEOF(name))) {
+              ruleforge_eval_fail(eval, "RF0384", span, "write the name of a themeSchema, e.g. `default-schema = themes.BaseTiering;`",
+                                  "`default-schema` needs the name of a theme schema");
+              continue;
+            }
+
+            schema = ruleforge_eval_symbol_find(eval, entry, name, &owner);
+
+            if (!eval->failed && (schema == NULL || rf_declaration_count_rule_theme_schema_stmt(schema->view) == 0)) {
+              ruleforge_eval_fail(eval, "RF0384", span, NULL, "`default-schema` names `%s`, which is not a theme schema", name);
+              continue;
+            }
+
+            eval->default_schema = schema;
+          }
+
+          if (is_theme && pass == 1) {
+            RuleforgeValue result;
+
+            result = ruleforge_eval_expression(eval, rf_configuration_assignment_rule_expr(assignment, 0));
+
+            if (!eval->failed && result.kind != RVK_THEME) {
+              ruleforge_eval_fail(eval, "RF0382", span, NULL, "`default-theme` needs a theme, got %s", ruleforge_value_type_name_get(result.kind));
+            }
+
+            if (!eval->failed && r_eval_theme_check(eval, result.as.theme, span)) {
+              eval->default_theme = result.as.theme;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 boolean ruleforge_eval_main_run(REval *eval, RuleforgeRuleset **out_ruleset) {
   RuleforgeCompilation       *compilation;
   RuleforgeModule            *entry;
@@ -2418,7 +2608,6 @@ boolean ruleforge_eval_main_run(REval *eval, RuleforgeRuleset **out_ruleset) {
   uint32                      j;
   uint_large                  k;
   RuleforgeModule            *candidate;
-  RuleforgeValue              result;
   boolean                     imported;
   RuleforgeSpan               start_span;
 
@@ -2477,50 +2666,7 @@ boolean ruleforge_eval_main_run(REval *eval, RuleforgeRuleset **out_ruleset) {
   eval->entry  = entry;
   eval->module = entry;
 
-  /* configuration { default-theme = ...; } */
-  for (j = 0; j < rf_script_count_rule_declaration(entry->script) && !eval->failed; j++) {
-    RfDeclaration declaration;
-
-    declaration = rf_script_rule_declaration(entry->script, j);
-
-    if (rf_declaration_count_rule_configuration_stmt(declaration) > 0) {
-      RfConfigurationStmt configuration;
-      uint32              m;
-
-      configuration = rf_declaration_rule_configuration_stmt(declaration, 0);
-
-      for (m = 0; m < rf_configuration_stmt_count_rule_configuration_item(configuration) && !eval->failed; m++) {
-        RfConfigurationItem item;
-
-        item = rf_configuration_stmt_rule_configuration_item(configuration, m);
-
-        if (rf_configuration_item_count_rule_configuration_assignment(item) > 0) {
-          RfConfigurationAssignment assignment;
-          NexusStringBuilder        key;
-          boolean                   is_theme;
-
-          assignment = rf_configuration_item_rule_configuration_assignment(item, 0);
-          key        = nexus_strings_string_builder_create_growable(24);
-          r_eval_configuration_key_write(eval, rf_configuration_assignment_rule_configuration_key(assignment, 0), &key);
-          is_theme = nexus_strings_string_equals(nexus_strings_string_builder_string_get(&key), "default-theme");
-          nexus_strings_string_builder_destroy(&key);
-
-          if (is_theme) {
-            result = ruleforge_eval_expression(eval, rf_configuration_assignment_rule_expr(assignment, 0));
-
-            if (!eval->failed && result.kind != RVK_THEME) {
-              ruleforge_eval_fail(eval, "RF0382", ruleforge_eval_span_get(eval, assignment.tree, assignment.node), NULL,
-                                  "`default-theme` needs a theme, got %s", ruleforge_value_type_name_get(result.kind));
-            }
-
-            if (!eval->failed) {
-              eval->default_theme = result.as.theme;
-            }
-          }
-        }
-      }
-    }
-  }
+  r_eval_configuration_run(eval, entry);
 
   if (eval->failed) {
     return FALSE;

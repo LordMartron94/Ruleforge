@@ -1,5 +1,4 @@
 #include <nexus.h>
-#include <echo.h>
 
 #include <logos.h>
 
@@ -12,16 +11,29 @@
 #include "./r_internal.h"
 
 /* The grammars, embedded by cmake/RuleforgeEmbed.cmake: Ruleforge, and the Logos standard grammars it imports or reads (General, CSV, JSON, TOML). */
-extern const unsigned char ruleforge_data_General[];
-extern const unsigned long ruleforge_data_General_size;
+extern const unsigned char ruleforge_data_general[];
+extern const unsigned long ruleforge_data_general_size;
 extern const unsigned char ruleforge_data_ruleforge[];
 extern const unsigned long ruleforge_data_ruleforge_size;
-extern const unsigned char ruleforge_data_CSVRelaxed[];
-extern const unsigned long ruleforge_data_CSVRelaxed_size;
-extern const unsigned char ruleforge_data_JSON[];
-extern const unsigned long ruleforge_data_JSON_size;
-extern const unsigned char ruleforge_data_TOML[];
-extern const unsigned long ruleforge_data_TOML_size;
+extern const unsigned char ruleforge_data_csvrelaxed[];
+extern const unsigned long ruleforge_data_csvrelaxed_size;
+extern const unsigned char ruleforge_data_json[];
+extern const unsigned long ruleforge_data_json_size;
+extern const unsigned char ruleforge_data_toml[];
+extern const unsigned long ruleforge_data_toml_size;
+
+/* Summary: the label of a token in the lexer's JSON: its grammar name, or "error" for text the lexer could not take. */
+static const char *r_syntax_token_label(LLexerStatus status, LLexerTokenKind kind) {
+  const char *name;
+
+  if (status == LLS_ERROR) {
+    return "error";
+  }
+
+  name = rf_token_name(kind);
+
+  return name == NULL ? "token" : name;
+}
 
 /* ---------------------------------------------------------------------------- */
 /* GRAMMARS                                                                     */
@@ -46,8 +58,8 @@ static LGenesisEngine *r_syntax_engine_get(RuleforgeRuntime *runtime, RuleforgeS
 
   if (runtime->grammar_compiler == NULL) {
     runtime->grammar_compiler = logos_languages_genesis_compiler_create(runtime->logos);
-    library                   = logos_languages_genesis_compiler_compile_string(runtime->grammar_compiler, "General.gen", ruleforge_data_General,
-                                                                                (uint_large)ruleforge_data_General_size);
+    library                   = logos_languages_genesis_compiler_compile_string(runtime->grammar_compiler, "General.gen", ruleforge_data_general,
+                                                                                (uint_large)ruleforge_data_general_size);
 
     if (library == NULL) {
       rendered = logos_languages_genesis_compiler_diagnostics_render(runtime->grammar_compiler, FALSE);
@@ -60,18 +72,18 @@ static LGenesisEngine *r_syntax_engine_get(RuleforgeRuntime *runtime, RuleforgeS
 
   switch (kind) {
   case RSK_JSON:
-    text = ruleforge_data_JSON;
-    size = (uint_large)ruleforge_data_JSON_size;
+    text = ruleforge_data_json;
+    size = (uint_large)ruleforge_data_json_size;
     name = "JSON.gen";
     break;
   case RSK_CSV:
-    text = ruleforge_data_CSVRelaxed;
-    size = (uint_large)ruleforge_data_CSVRelaxed_size;
+    text = ruleforge_data_csvrelaxed;
+    size = (uint_large)ruleforge_data_csvrelaxed_size;
     name = "CSVRelaxed.gen";
     break;
   case RSK_TOML:
-    text = ruleforge_data_TOML;
-    size = (uint_large)ruleforge_data_TOML_size;
+    text = ruleforge_data_toml;
+    size = (uint_large)ruleforge_data_toml_size;
     name = "TOML.gen";
     break;
   default:
@@ -251,9 +263,9 @@ char *ruleforge_syntax_tokens_json_write(RuleforgeRuntime *runtime, const char *
       continue;
     }
 
-    (void)nexus_strings_string_builder_append_formatted(
-        &out, "%s[%lu,%lu,\"%s\"]", first ? "" : ",", (unsigned long)token.lexeme_offset, (unsigned long)(token.lexeme_offset + token.lexeme_width),
-        status == LLS_ERROR ? "error" : (rf_token_name(token.kind) == NULL ? "token" : rf_token_name(token.kind)));
+    (void)nexus_strings_string_builder_append_formatted(&out, "%s[%lu,%lu,\"%s\"]", first ? "" : ",", (unsigned long)token.lexeme_offset,
+                                                        (unsigned long)(token.lexeme_offset + token.lexeme_width),
+                                                        r_syntax_token_label(status, token.kind));
     first = FALSE;
   }
 

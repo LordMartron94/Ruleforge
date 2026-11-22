@@ -1,5 +1,4 @@
 #include <nexus.h>
-#include <echo.h>
 
 #include <logos.h>
 #include <rf_bindings.h>
@@ -411,11 +410,8 @@ char *ruleforge_compilation_diagnostics_json_write(const RuleforgeCompilation *c
       (void)nexus_strings_string_builder_append(&out, ",");
     }
 
-    (void)nexus_strings_string_builder_append_formatted(&out, "{\"severity\":\"%s\",\"code\":\"%s\",\"message\":",
-                                                        diagnostic->severity == RDS_ERROR     ? "error"
-                                                        : diagnostic->severity == RDS_WARNING ? "warning"
-                                                                                              : "note",
-                                                        diagnostic->code);
+    (void)nexus_strings_string_builder_append_formatted(
+        &out, "{\"severity\":\"%s\",\"code\":\"%s\",\"message\":", ruleforge_diagnostic_severity_name_get(diagnostic->severity), diagnostic->code);
     (void)nexus_json_quote_append(&out, diagnostic->message);
     (void)nexus_strings_string_builder_append(&out, ",\"file\":");
     (void)nexus_json_quote_append(&out, file != NULL ? file->name : "");
@@ -463,10 +459,7 @@ char *ruleforge_compilation_diagnostics_text_write(const RuleforgeCompilation *c
     diagnostic = (const RuleforgeDiagnostic *)nexus_data_list_pointer_at(compilation->diagnostics, i);
     file       = nexus_data_list_length_get(compilation->files) > 0 ? ruleforge_source_get(compilation, diagnostic->span.file) : NULL;
 
-    (void)nexus_strings_string_builder_append_formatted(&out, "%s[%s]: %s\n",
-                                                        diagnostic->severity == RDS_ERROR     ? "error"
-                                                        : diagnostic->severity == RDS_WARNING ? "warning"
-                                                                                              : "note",
+    (void)nexus_strings_string_builder_append_formatted(&out, "%s[%s]: %s\n", ruleforge_diagnostic_severity_name_get(diagnostic->severity),
                                                         diagnostic->code, diagnostic->message);
 
     if (file != NULL) {
@@ -578,6 +571,18 @@ static uint64 r_compilation_hash_bytes(uint64 hash, const byte *bytes, uint_larg
   return hash;
 }
 
+/* Summary: hashes a NUL-terminated string. */
+static uint64 r_compilation_hash_string(uint64 hash, const char *text) {
+  uint_large i;
+
+  for (i = 0; text[i] != '\0'; i++) {
+    hash ^= (uint64)(byte)text[i];
+    hash *= 1099511628211ULL;
+  }
+
+  return hash;
+}
+
 /* Summary: hashes source text with CRLF read as LF, so a checkout with Windows line endings yields the same filter hash. */
 static uint64 r_compilation_hash_text(uint64 hash, const byte *bytes, uint_large size) {
   uint_large i;
@@ -626,8 +631,7 @@ uint64 ruleforge_compilation_hash_get(const RuleforgeCompilation *compilation) {
       text  = nexus_strings_string_builder_create_growable(16);
       (void)nexus_strings_string_builder_append_formatted(&text, "%s=", entry->key);
       ruleforge_value_json_write(&entry->value, &text);
-      hash = r_compilation_hash_bytes(hash, (const byte *)nexus_strings_string_builder_string_get(&text),
-                                      nexus_strings_string_builder_length_get(&text));
+      hash = r_compilation_hash_string(hash, nexus_strings_string_builder_string_get(&text));
       nexus_strings_string_builder_destroy(&text);
     }
   }

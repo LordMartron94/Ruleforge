@@ -25,6 +25,10 @@ jobs:
         run: cmake --build build --target ruleforge_cli -- -k 0
       - name: Test the engine
         run: ctest --test-dir build -R ruleforge --output-on-failure
+      - name: Test the platform layer (links, replacing rename, pattern matching)
+        run: |
+          cmake --build build --target nexus_filesystem_tests nexus_filesystem_builtin_regex_tests -- -k 0
+          ctest --test-dir build -R nexus_filesystem --output-on-failure
       - name: Test the studio
         working-directory: projects/ruleforge/studio
         run: go vet ./... && go test ./...
@@ -50,6 +54,10 @@ jobs:
         run: cmake --build build --target ruleforge_cli -- -k 0
       - name: Test the engine
         run: ctest --test-dir build -R ruleforge --output-on-failure
+      - name: Test the platform layer (links, replacing rename, pattern matching)
+        run: |
+          cmake --build build --target nexus_filesystem_tests nexus_filesystem_builtin_regex_tests -- -k 0
+          ctest --test-dir build -R nexus_filesystem --output-on-failure
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'

@@ -65,11 +65,11 @@ static void r_stdlib_sort_indices(uint32 *indices, uint32 *scratch, const f_real
   uint32  right_end;
   uint32  out;
   uint32 *from;
-  uint32 *to;
+  uint32 *destination;
   uint32 *swap;
 
-  from = indices;
-  to   = scratch;
+  from        = indices;
+  destination = scratch;
 
   for (width = 1; width < count; width *= 2) {
     for (start = 0; start < count; start += 2 * width) {
@@ -81,24 +81,24 @@ static void r_stdlib_sort_indices(uint32 *indices, uint32 *scratch, const f_real
 
       while (left < left_end && right < right_end) {
         if (keys[from[right]] < keys[from[left]]) {
-          to[out++] = from[right++];
+          destination[out++] = from[right++];
         } else {
-          to[out++] = from[left++];
+          destination[out++] = from[left++];
         }
       }
 
       while (left < left_end) {
-        to[out++] = from[left++];
+        destination[out++] = from[left++];
       }
 
       while (right < right_end) {
-        to[out++] = from[right++];
+        destination[out++] = from[right++];
       }
     }
 
-    swap = from;
-    from = to;
-    to   = swap;
+    swap        = from;
+    from        = destination;
+    destination = swap;
   }
 
   if (from != indices) {
@@ -426,7 +426,7 @@ static RuleforgeValue r_collections_contains(REval *eval, RuleforgeSpan span, co
 static RuleforgeValue r_collections_range(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
   RuleforgeList *list;
   int64          from;
-  int64          to;
+  int64          upper;
   int64          i;
 
   (void)count;
@@ -437,19 +437,19 @@ static RuleforgeValue r_collections_range(REval *eval, RuleforgeSpan span, const
     return ruleforge_value_none();
   }
 
-  from = arguments[0].as.integer;
-  to   = arguments[1].as.integer;
+  from  = arguments[0].as.integer;
+  upper = arguments[1].as.integer;
 
-  if (to < from || to - from > 100000) {
-    ruleforge_eval_fail(eval, "RF0506", span, "ranges are bounded to 100000 elements", "collections.Range(%lld, %lld) is empty or too large",
-                        (long long)from, (long long)to);
+  if (upper < from || upper - from > 100000) {
+    ruleforge_eval_fail(eval, "RF0506", span, "ranges are bounded upper 100000 elements", "collections.Range(%lld, %lld) is empty or too large",
+                        (long long)from, (long long)upper);
 
     return ruleforge_value_none();
   }
 
-  list = ruleforge_value_list_create(eval->compilation, (uint32)(to - from));
+  list = ruleforge_value_list_create(eval->compilation, (uint32)(upper - from));
 
-  for (i = from; i < to; i++) {
+  for (i = from; i < upper; i++) {
     list->items[i - from] = ruleforge_value_integer(i);
   }
 
@@ -834,22 +834,22 @@ static RuleforgeValue r_economy_assign_tiers(REval *eval, RuleforgeSpan span, co
     uint32 *rank_indices;
     uint32 *rank_scratch;
     f_real *rank_keys;
-    uint32  r;
+    uint32  rank;
 
     rank_indices = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(uint32));
     rank_scratch = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(uint32));
     rank_keys    = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(f_real));
 
-    for (r = 0; r < priced; r++) {
-      rank_indices[r] = r;
-      rank_keys[r]    = keys[r];
+    for (rank = 0; rank < priced; rank++) {
+      rank_indices[rank] = rank;
+      rank_keys[rank]    = keys[rank];
     }
 
     r_stdlib_sort_indices(rank_indices, rank_scratch, rank_keys, priced);
 
     if (nexus_strings_string_equals(strategy, "quantile")) {
-      for (r = 0; r < priced; r++) {
-        assigned[indices[rank_indices[r]]] = 1 + (int64)(((uint64)r * (uint64)tiers) / (uint64)priced);
+      for (rank = 0; rank < priced; rank++) {
+        assigned[indices[rank_indices[rank]]] = 1 + (int64)(((uint64)rank * (uint64)tiers) / (uint64)priced);
       }
     } else if (nexus_strings_string_equals(strategy, "threshold")) {
       uint32          threshold_count;
@@ -865,23 +865,23 @@ static RuleforgeValue r_economy_assign_tiers(REval *eval, RuleforgeSpan span, co
       threshold_count = arguments[4].as.list->count;
       thresholds      = arguments[4].as.list->items;
 
-      for (r = 0; r < priced; r++) {
+      for (rank = 0; rank < priced; rank++) {
         uint32 index;
-        uint32 t;
+        uint32 level;
         f_real bound;
 
-        index           = indices[rank_indices[r]];
+        index           = indices[rank_indices[rank]];
         assigned[index] = tiers;
 
-        for (t = 0; t < threshold_count; t++) {
-          if (!ruleforge_value_number_get(&thresholds[t], &bound)) {
+        for (level = 0; level < threshold_count; level++) {
+          if (!ruleforge_value_number_get(&thresholds[level], &bound)) {
             ruleforge_eval_fail(eval, "RF0512", span, NULL, "the thresholds must be numbers");
 
             return ruleforge_value_none();
           }
 
           if (scores[index] >= bound) {
-            assigned[index] = (int64)t + 1;
+            assigned[index] = (int64)level + 1;
 
             break;
           }
@@ -892,18 +892,23 @@ static RuleforgeValue r_economy_assign_tiers(REval *eval, RuleforgeSpan span, co
       uint32 *cut_scratch;
       f_real *gaps;
       uint32  cuts;
-      uint32  g;
+      uint32  gap_index;
 
       /* Cut after the (tiers - 1) widest gaps between neighbouring ranked values. */
-      cuts        = priced > (uint32)tiers ? (uint32)tiers - 1 : (priced > 0 ? priced - 1 : 0);
+      cuts = priced > 0 ? priced - 1 : 0;
+
+      if (priced > (uint32)tiers) {
+        cuts = (uint32)tiers - 1;
+      }
+
       gaps        = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(f_real));
       cut_indices = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(uint32));
       cut_scratch = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(uint32));
 
-      for (g = 0; g + 1 < priced; g++) {
+      for (gap_index = 0; gap_index + 1 < priced; gap_index++) {
         /* A larger gap sorts first: the key is the negated gap. */
-        gaps[g]        = -(scores[indices[rank_indices[g]]] - scores[indices[rank_indices[g + 1]]]);
-        cut_indices[g] = g;
+        gaps[gap_index]        = -(scores[indices[rank_indices[gap_index]]] - scores[indices[rank_indices[gap_index + 1]]]);
+        cut_indices[gap_index] = gap_index;
       }
 
       r_stdlib_sort_indices(cut_indices, cut_scratch, gaps, priced > 0 ? priced - 1 : 0);
@@ -914,16 +919,16 @@ static RuleforgeValue r_economy_assign_tiers(REval *eval, RuleforgeSpan span, co
 
         cut_after = (boolean *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(boolean));
 
-        for (g = 0; g < cuts; g++) {
-          cut_after[cut_indices[g]] = TRUE;
+        for (gap_index = 0; gap_index < cuts; gap_index++) {
+          cut_after[cut_indices[gap_index]] = TRUE;
         }
 
         tier = 1;
 
-        for (r = 0; r < priced; r++) {
-          assigned[indices[rank_indices[r]]] = tier;
+        for (rank = 0; rank < priced; rank++) {
+          assigned[indices[rank_indices[rank]]] = tier;
 
-          if (cut_after[r]) {
+          if (cut_after[rank]) {
             tier++;
           }
         }

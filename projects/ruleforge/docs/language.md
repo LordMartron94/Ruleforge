@@ -85,7 +85,15 @@ precedence as ordinary rulesets.
 `Score`, `StackValue`, `PersistTiers`) and `std.rules` are native, pure and bounded. `ruleforge manifest` lists them with their
 parameters. Game item classification data (`std.items`, `std.progression`) comes from datasets, not from code.
 
+## Theme adapters
+
+`configuration { default-schema = themes.Base; adapter A -> themes.Base { baseKey = themeStyle; } }` declares which schema the project's
+rules are written against and how a theme that implements another schema serves it. `include X with { theme: T, adapter: A }` uses T
+through A (`adapter: A` alone adapts the current default theme). Keys the adapter does not mention use the style of the same name.
+A theme whose schema is not the `default-schema` is refused (RF0385) unless it is adapted; a bad mapping is RF0446-RF0450, an unknown
+adapter RF0388. Adapters rename styles; they do not compute, and they do not apply to datasets. See DESIGN.md § 5.2.
+
 ## Not in this version
 
-`with { adapter: ... }` is parsed and reported as having no effect; the filter's multiline native syntax is a single string;
+The filter's multiline native syntax is a single string;
 `std.items` and `std.progression` have no bundled data; SQLite and the official GGG character API are provider work for the studio.

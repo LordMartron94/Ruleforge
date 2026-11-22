@@ -174,9 +174,9 @@ void ruleforge_filter_model_write(const RuleforgeCompilation *compilation, Nexus
       (void)nexus_strings_string_builder_append(out, ",");
     }
 
-    (void)nexus_strings_string_builder_append_formatted(out, "{\"id\":%lu,\"action\":\"%s\",\"role\":\"%s\",\"lines\":[%lu,%lu],\"rule\":{\"name\":",
-                                                        (unsigned long)block->id, block->native != NULL ? "native" : (block->show ? "show" : "hide"),
-                                                        block->role, (unsigned long)block->first_line, (unsigned long)block->last_line);
+    (void)nexus_strings_string_builder_append_formatted(
+        out, "{\"id\":%lu,\"action\":\"%s\",\"role\":\"%s\",\"lines\":[%lu,%lu],\"rule\":{\"name\":", (unsigned long)block->id,
+        ruleforge_filter_action_name_get(block), block->role, (unsigned long)block->first_line, (unsigned long)block->last_line);
     (void)nexus_json_quote_append(out, block->rule->name == NULL ? "" : block->rule->name);
     (void)nexus_strings_string_builder_append(out, ",");
     r_filter_model_span_write(compilation, block->rule->span, out);
@@ -212,6 +212,7 @@ void ruleforge_filter_model_write(const RuleforgeCompilation *compilation, Nexus
 
     for (j = chain_count; j > 0; j--) {
       const RuleforgeProvenance *entry;
+      const char                *label;
 
       entry = chain[j - 1];
 
@@ -220,11 +221,14 @@ void ruleforge_filter_model_write(const RuleforgeCompilation *compilation, Nexus
       }
 
       (void)nexus_strings_string_builder_append_formatted(out, "{\"kind\":\"%s\",\"label\":", r_filter_model_kind_name(entry->kind));
-      (void)nexus_json_quote_append(out,
-                                    entry->record != NULL && entry->record->dataset < nexus_data_list_length_get(compilation->datasets) &&
-                                            (entry->label == NULL || entry->label[0] == '\0')
-                                        ? ((const RuleforgeDataset *)nexus_data_list_pointer_at(compilation->datasets, entry->record->dataset))->name
-                                        : (entry->label == NULL ? "" : entry->label));
+      label = entry->label == NULL ? "" : entry->label;
+
+      /* A row of a dataset is named by its dataset when the step has no label of its own. */
+      if (entry->record != NULL && entry->record->dataset < nexus_data_list_length_get(compilation->datasets) && label[0] == '\0') {
+        label = ((const RuleforgeDataset *)nexus_data_list_pointer_at(compilation->datasets, entry->record->dataset))->name;
+      }
+
+      (void)nexus_json_quote_append(out, label);
       (void)nexus_strings_string_builder_append(out, ",");
       r_filter_model_span_write(compilation, entry->span, out);
 

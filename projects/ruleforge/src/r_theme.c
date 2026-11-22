@@ -1,4 +1,5 @@
 #include <nexus.h>
+#include <logos.h>
 #include <rf_bindings.h>
 
 #include "../ruleforge.h"
@@ -146,30 +147,32 @@ static void r_theme_properties_merge(REval *eval, const RuleforgeStyleProperty *
 }
 
 RuleforgeTheme *ruleforge_theme_resolve(REval *eval, RfThemeStmt declaration, RuleforgeModule *owner) {
-  RuleforgeTheme  *theme;
-  RuleforgeTheme  *parent;
-  RuleforgeModule *saved_module;
-  NexusDataList   *keys;
-  NexusDataList   *styles;
-  const char      *schema_name;
-  const char      *theme_name;
-  RuleforgeSpan    theme_span;
-  uint32           i;
-  uint32           j;
-  uint32           name_index;
-  uint_large       k;
+  RuleforgeTheme             *theme;
+  RuleforgeTheme             *parent;
+  RuleforgeModule            *saved_module;
+  NexusDataList              *keys;
+  NexusDataList              *styles;
+  const char                 *schema_name;
+  const char                 *theme_name;
+  const RuleforgeDeclaration *schema_declaration;
+  RuleforgeSpan               theme_span;
+  uint32                      i;
+  uint32                      j;
+  uint32                      name_index;
+  uint_large                  k;
 
-  theme_name   = ruleforge_eval_text_get(eval, declaration.tree, rf_theme_stmt_token_identifier(declaration, 0));
-  theme_span   = ruleforge_syntax_span_get(owner, declaration.tree, declaration.node);
-  theme        = (RuleforgeTheme *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*theme));
-  theme->name  = theme_name;
-  parent       = NULL;
-  schema_name  = NULL;
-  keys         = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 8);
-  styles       = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 8);
-  saved_module = eval->module;
-  eval->module = owner;
-  name_index   = 0;
+  theme_name         = ruleforge_eval_text_get(eval, declaration.tree, rf_theme_stmt_token_identifier(declaration, 0));
+  theme_span         = ruleforge_syntax_span_get(owner, declaration.tree, declaration.node);
+  theme              = (RuleforgeTheme *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*theme));
+  theme->name        = theme_name;
+  parent             = NULL;
+  schema_name        = NULL;
+  schema_declaration = NULL;
+  keys               = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 8);
+  styles             = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 8);
+  saved_module       = eval->module;
+  eval->module       = owner;
+  name_index         = 0;
 
   /* The qualified names after the name are the parent (when `extends` is written) and then the schema. */
   if (rf_theme_stmt_count_token_kw_extends(declaration) > 0) {
@@ -187,7 +190,8 @@ RuleforgeTheme *ruleforge_theme_resolve(REval *eval, RfThemeStmt declaration, Ru
       parent = ruleforge_theme_resolve(eval, rf_declaration_rule_theme_stmt(parent_declaration->view, 0), parent_owner);
 
       if (parent != NULL) {
-        schema_name = parent->schema;
+        schema_name        = parent->schema;
+        schema_declaration = parent->schema_declaration;
 
         for (j = 0; j < parent->count; j++) {
           (void)nexus_data_list_append_pointer(keys, parent->keys[j]);
@@ -197,8 +201,11 @@ RuleforgeTheme *ruleforge_theme_resolve(REval *eval, RfThemeStmt declaration, Ru
     }
   }
 
-  if (rf_theme_stmt_count_token_kw_implements(declaration) > 0) {
-    schema_name = ruleforge_syntax_name_get(eval->compilation, rf_theme_stmt_rule_qualified_name(declaration, name_index));
+  if (rf_theme_stmt_count_token_kw_implements(declaration) > 0 && !eval->failed) {
+    RuleforgeModule *schema_owner;
+
+    schema_name        = ruleforge_syntax_name_get(eval->compilation, rf_theme_stmt_rule_qualified_name(declaration, name_index));
+    schema_declaration = ruleforge_eval_symbol_find(eval, owner, schema_name, &schema_owner);
   }
 
   for (i = 0; i < rf_theme_stmt_count_rule_theme_style_stmt(declaration) && !eval->failed; i++) {
@@ -269,10 +276,9 @@ RuleforgeTheme *ruleforge_theme_resolve(REval *eval, RfThemeStmt declaration, Ru
 
   /* The contract: every key of the theme schema, and no other. */
   if (!eval->failed && schema_name != NULL) {
-    RuleforgeModule            *schema_owner;
     const RuleforgeDeclaration *schema;
 
-    schema = ruleforge_eval_symbol_find(eval, owner, schema_name, &schema_owner);
+    schema = schema_declaration;
 
     if (schema == NULL || rf_declaration_count_rule_theme_schema_stmt(schema->view) == 0) {
       ruleforge_eval_fail(eval, "RF0443", theme_span, NULL, "theme `%s` implements `%s`, which is not a theme schema", theme_name, schema_name);
@@ -337,9 +343,10 @@ RuleforgeTheme *ruleforge_theme_resolve(REval *eval, RfThemeStmt declaration, Ru
     return NULL;
   }
 
-  theme->schema = schema_name;
-  theme->count  = (uint32)nexus_data_list_length_get(keys);
-  theme->keys   = (const char **)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)theme->count + 1U) * NEXUS_SIZEOF(const char *));
+  theme->schema             = schema_name;
+  theme->schema_declaration = schema_declaration;
+  theme->count              = (uint32)nexus_data_list_length_get(keys);
+  theme->keys = (const char **)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)theme->count + 1U) * NEXUS_SIZEOF(const char *));
   theme->styles =
       (RuleforgeStyle **)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)theme->count + 1U) * NEXUS_SIZEOF(RuleforgeStyle *));
 
@@ -352,6 +359,168 @@ RuleforgeTheme *ruleforge_theme_resolve(REval *eval, RfThemeStmt declaration, Ru
   nexus_data_list_destroy(styles);
 
   return theme;
+}
+
+/* ---------------------------------------------------------------------------- */
+/* ADAPTERS                                                                     */
+/* ---------------------------------------------------------------------------- */
+
+boolean ruleforge_theme_adapter_find(REval *eval, const RuleforgeModule *module, const char *name, RfAdapterStmt *out_adapter) {
+  uint32 i;
+  uint32 j;
+
+  for (i = 0; i < rf_script_count_rule_declaration(module->script); i++) {
+    RfDeclaration declaration;
+
+    declaration = rf_script_rule_declaration(module->script, i);
+
+    if (rf_declaration_count_rule_configuration_stmt(declaration) == 0) {
+      continue;
+    }
+
+    for (j = 0; j < rf_configuration_stmt_count_rule_configuration_item(rf_declaration_rule_configuration_stmt(declaration, 0)); j++) {
+      RfConfigurationItem item;
+
+      item = rf_configuration_stmt_rule_configuration_item(rf_declaration_rule_configuration_stmt(declaration, 0), j);
+
+      if (rf_configuration_item_count_rule_adapter_stmt(item) > 0) {
+        RfAdapterStmt adapter;
+
+        adapter = rf_configuration_item_rule_adapter_stmt(item, 0);
+
+        if (nexus_strings_string_equals(ruleforge_eval_text_get(eval, adapter.tree, rf_adapter_stmt_token_identifier(adapter, 0)), name)) {
+          *out_adapter = adapter;
+
+          return TRUE;
+        }
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+/* Summary: the position of a key in the contract of a theme schema, or -1. */
+static int64 r_theme_contract_index(REval *eval, RfThemeSchemaStmt contract, const char *key) {
+  uint32 i;
+
+  for (i = 0; i < rf_theme_schema_stmt_count_rule_theme_schema_key(contract); i++) {
+    RfThemeSchemaKey schema_key;
+
+    schema_key = rf_theme_schema_stmt_rule_theme_schema_key(contract, i);
+
+    if (nexus_strings_string_equals(ruleforge_eval_text_get(eval, schema_key.tree, rf_theme_schema_key_token_identifier(schema_key, 0)), key)) {
+      return (int64)i;
+    }
+  }
+
+  return -1;
+}
+
+/*
+Summary: a theme seen through an adapter: the keys of the adapter's target schema, each served by the theme's style the adapter maps it to.
+Description: a key the adapter does not mention is served by the style of the same name. Every mapping and every key of the schema is checked,
+  and the first problem is reported at the mapping that causes it.
+*/
+RuleforgeTheme *ruleforge_theme_adapt(REval *eval, const RuleforgeTheme *theme, RfAdapterStmt adapter, RuleforgeModule *owner, RuleforgeSpan span) {
+  const char                 *adapter_name;
+  const char                 *target_name;
+  const RuleforgeDeclaration *target;
+  RuleforgeModule            *target_owner;
+  RfThemeSchemaStmt           contract;
+  RuleforgeTheme             *adapted;
+  const char                **mapped;
+  uint32                      key_count;
+  uint32                      i;
+  uint32                      j;
+
+  adapter_name = ruleforge_eval_text_get(eval, adapter.tree, rf_adapter_stmt_token_identifier(adapter, 0));
+  target_name  = ruleforge_syntax_name_get(eval->compilation, rf_adapter_stmt_rule_qualified_name(adapter, 0));
+  target       = ruleforge_eval_symbol_find(eval, owner, target_name, &target_owner);
+
+  if (target == NULL || rf_declaration_count_rule_theme_schema_stmt(target->view) == 0) {
+    ruleforge_eval_fail(eval, "RF0446", ruleforge_syntax_span_get(owner, adapter.tree, adapter.node), NULL,
+                        "adapter `%s` targets `%s`, which is not a theme schema", adapter_name, target_name);
+
+    return NULL;
+  }
+
+  contract  = rf_declaration_rule_theme_schema_stmt(target->view, 0);
+  key_count = rf_theme_schema_stmt_count_rule_theme_schema_key(contract);
+  mapped    = (const char **)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)key_count + 1U) * NEXUS_SIZEOF(const char *));
+
+  for (i = 0; i < key_count; i++) {
+    mapped[i] = NULL;
+  }
+
+  for (i = 0; i < rf_adapter_stmt_count_rule_adapter_mapping(adapter); i++) {
+    RfAdapterMapping mapping;
+    const char      *schema_key;
+    const char      *theme_key;
+    RuleforgeSpan    mapping_span;
+    int64            index;
+
+    mapping      = rf_adapter_stmt_rule_adapter_mapping(adapter, i);
+    schema_key   = ruleforge_eval_text_get(eval, mapping.tree, rf_adapter_mapping_token_identifier(mapping, 0));
+    theme_key    = ruleforge_eval_text_get(eval, mapping.tree, rf_adapter_mapping_token_identifier(mapping, 1));
+    mapping_span = ruleforge_syntax_span_get(owner, mapping.tree, mapping.node);
+    index        = r_theme_contract_index(eval, contract, schema_key);
+
+    if (index < 0) {
+      ruleforge_eval_fail(eval, "RF0447", mapping_span,
+                          "the left side of a mapping is a key of the target schema, the right side a style of the theme",
+                          "adapter `%s` maps `%s`, which schema `%s` does not declare", adapter_name, schema_key, target_name);
+
+      return NULL;
+    }
+
+    if (mapped[index] != NULL) {
+      ruleforge_eval_fail(eval, "RF0448", mapping_span, NULL, "adapter `%s` maps `%s` twice", adapter_name, schema_key);
+
+      return NULL;
+    }
+
+    if (ruleforge_theme_style_get(theme, theme_key) == NULL) {
+      ruleforge_eval_fail(eval, "RF0449", mapping_span, NULL, "theme `%s` has no style `%s`, which adapter `%s` maps to `%s`", theme->name, theme_key,
+                          adapter_name, schema_key);
+
+      return NULL;
+    }
+
+    mapped[index] = theme_key;
+  }
+
+  adapted                     = (RuleforgeTheme *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*adapted));
+  adapted->name               = theme->name;
+  adapted->schema             = target_name;
+  adapted->schema_declaration = target;
+  adapted->count              = key_count;
+  adapted->keys = (const char **)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)key_count + 1U) * NEXUS_SIZEOF(const char *));
+  adapted->styles =
+      (RuleforgeStyle **)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)key_count + 1U) * NEXUS_SIZEOF(RuleforgeStyle *));
+
+  for (j = 0; j < key_count; j++) {
+    RfThemeSchemaKey schema_key;
+    const char      *key;
+    const char      *source;
+
+    schema_key = rf_theme_schema_stmt_rule_theme_schema_key(contract, j);
+    key        = ruleforge_eval_text_get(eval, schema_key.tree, rf_theme_schema_key_token_identifier(schema_key, 0));
+    source     = mapped[j] != NULL ? mapped[j] : key;
+
+    adapted->keys[j]   = key;
+    adapted->styles[j] = ruleforge_theme_style_get(theme, source);
+
+    if (adapted->styles[j] == NULL) {
+      ruleforge_eval_fail(eval, "RF0450", span, "map the key in the adapter (`key = style;`) or add the style to the theme",
+                          "theme `%s` has no style `%s` for the key `%s` of schema `%s` (adapter `%s`)", theme->name, source, key, target_name,
+                          adapter_name);
+
+      return NULL;
+    }
+  }
+
+  return adapted;
 }
 
 /* ---------------------------------------------------------------------------- */

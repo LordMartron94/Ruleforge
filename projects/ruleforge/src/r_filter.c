@@ -9,7 +9,6 @@ a variant whose game-time condition is an `or` becomes one block per alternative
 compile-time condition was true and nothing is left for the game to decide) ends its rule: nothing after it can be reached.
 */
 
-
 /* ---------------------------------------------------------------------------- */
 /* LOWERING                                                                     */
 /* ---------------------------------------------------------------------------- */
@@ -66,7 +65,7 @@ RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const
         char role[32];
 
         block = r_filter_block_create(compilation, blocks);
-        (void)stbsp_snprintf(role, (int)NEXUS_SIZEOF(role), "variant %lu", (unsigned long)(j + 1));
+        (void)stbsp_snprintf(role, (int)NEXUS_SIZEOF(role), "variant %lu", (unsigned long)j + 1UL);
         block->role            = nexus_data_arena_text_copy(&compilation->arena, role, nexus_strings_string_length_get(role));
         block->rule            = rule;
         block->show            = variant->has_action ? variant->show : rule->show;
@@ -224,4 +223,12 @@ char *ruleforge_filter_text_write(RuleforgeCompilation *compilation, RuleforgeFi
   nexus_strings_string_builder_destroy(&out);
 
   return result;
+}
+
+const char *ruleforge_filter_action_name_get(const RuleforgeBlock *block) {
+  if (block->native != NULL) {
+    return "native";
+  }
+
+  return block->show ? "show" : "hide";
 }

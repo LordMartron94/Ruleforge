@@ -6782,12 +6782,17 @@ extern NEXUS_NODISCARD uint_large nexus_time_datetime_format(char *string, uint_
 #endif
 
 #if defined(__MINGW32__)
-/* The Windows C runtime has no lstat (it has no symbolic links Nexus follows), a one-argument mkdir, and no S_ISLNK/S_ISSOCK. */
-#  define lstat(path, info) stat(path, info)
+/*
+The Windows C runtime has no lstat, a one-argument mkdir, and no S_ISLNK/S_ISSOCK. Nexus supplies an lstat that reports symbolic links and
+junctions as links (mode bits 0120000, the POSIX value of S_IFLNK) so that a walk or a recursive delete never follows them, and a rename that
+replaces an existing destination like POSIX rename does (both are defined in n_filesystem.c).
+*/
+extern int _nexus_filesystem_lstat(const char *path, struct stat *info);
+extern int _nexus_filesystem_rename_replace(const char *old_path, const char *new_path);
+#  define lstat(path, info) _nexus_filesystem_lstat(path, info)
 #  define mkdir(path, mode) _mkdir(path)
-#  ifndef S_ISLNK
-#    define S_ISLNK(mode) 0
-#  endif
+#  undef S_ISLNK
+#  define S_ISLNK(mode) (((mode) & 0170000) == 0120000)
 #  ifndef S_ISSOCK
 #    define S_ISSOCK(mode) 0
 #  endif
@@ -7257,7 +7262,11 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_rena
   NexusError *error;
 
   NEXUS_PROGRAM_CONTEXT_PUSH("nexus_filesystem_path_rename");
+#  if defined(__MINGW32__)
+  if (_nexus_filesystem_rename_replace(old_path->buffer, new_path->buffer) == 0) {
+#  else
   if (rename(old_path->buffer, new_path->buffer) == 0) {
+#  endif
     NEXUS_PROGRAM_CONTEXT_POP();
     return &nexus_program_errors_success;
   }
@@ -7306,6 +7315,20 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_file_dele
     NEXUS_PROGRAM_CONTEXT_POP();
     return &nexus_program_errors_success;
   }
+
+#  if defined(__MINGW32__)
+  {
+    int remove_errno;
+
+    /* remove() cannot delete a directory link or junction on Windows; rmdir removes the link itself and never its target. */
+    remove_errno = errno;
+    if (rmdir(file_path->buffer) == 0) {
+      NEXUS_PROGRAM_CONTEXT_POP();
+      return &nexus_program_errors_success;
+    }
+    errno = remove_errno;
+  }
+#  endif
 
   error = NEXUS_PROGRAM_ERROR_FROM_ERRNO("failed to delete '%s'", file_path->buffer);
   NEXUS_PROGRAM_CONTEXT_POP();

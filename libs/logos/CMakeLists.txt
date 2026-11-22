@@ -108,6 +108,20 @@ foreach(stdlib_language IN ITEMS "JSON;json" "TOML;toml" "SQL;sql" "INI;ini" "CS
         GRAMMAR "${CMAKE_CURRENT_SOURCE_DIR}/stdlib/${stdlib_name}.gen" INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/stdlib")
 endforeach()
 
+# CSVRelaxed reads real snapshots: LF or CR endings and any UTF-8 in a field (CSV.gen, the strict RFC 4180, refuses both), but it keeps
+# the quoting rules, so the quoting mistakes are still rejected.
+add_test(NAME stdlib_csvrelaxed_parses_sample
+    COMMAND genesis check "${CMAKE_CURRENT_SOURCE_DIR}/stdlib/CSVRelaxed.gen" "${CMAKE_CURRENT_SOURCE_DIR}/stdlib/samples/relaxed.csv"
+            -I "${CMAKE_CURRENT_SOURCE_DIR}/stdlib" -q)
+foreach(stdlib_relaxed_invalid IN ITEMS quote-in-field text-after-quote unterminated)
+    add_test(NAME stdlib_csvrelaxed_rejects_${stdlib_relaxed_invalid}
+        COMMAND genesis check "${CMAKE_CURRENT_SOURCE_DIR}/stdlib/CSVRelaxed.gen"
+                "${CMAKE_CURRENT_SOURCE_DIR}/stdlib/samples/invalid/${stdlib_relaxed_invalid}.csv" -I "${CMAKE_CURRENT_SOURCE_DIR}/stdlib" -q)
+    set_tests_properties(stdlib_csvrelaxed_rejects_${stdlib_relaxed_invalid} PROPERTIES WILL_FAIL TRUE)
+endforeach()
+logos_genesis_sublime(stdlib_csvrelaxed_sublime
+    GRAMMAR "${CMAKE_CURRENT_SOURCE_DIR}/stdlib/CSVRelaxed.gen" INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/stdlib")
+
 # The language server on Genesis sources and mapping files: names across the file, an import and a mapping.
 add_test(NAME genesis_lsp_genesis_sources
     COMMAND sh "${CMAKE_CURRENT_SOURCE_DIR}/apps/genesis/tests/lsp_genesis_test.sh" $<TARGET_FILE:genesis>)

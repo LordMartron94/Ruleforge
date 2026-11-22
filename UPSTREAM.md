@@ -8,5 +8,5 @@ Ruleforge is developed in the MergeSource monorepo; this repository is its publi
 | `libs/nexus` | `53be3c5a185d (+ uncommitted changes)` |
 | `libs/echo` | `4d5961b7034d` |
 | `libs/pharos` | `d6185f35c3bd` |
-| `libs/logos` | `6258d684165e (+ uncommitted changes)` |
+| `libs/logos` | `63af9097d4ba (+ uncommitted changes)` |
 | `projects/ruleforge` | `538c58759512 (+ uncommitted changes)` |
