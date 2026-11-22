@@ -1,5 +1,6 @@
 version 1.0.0;
 module t;
+import std.conditions;
 export themeSchema S { a; }
 export theme T implements S { a { onShow { Background #FF0000; } } }
 export func main() {

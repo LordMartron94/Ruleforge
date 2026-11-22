@@ -115,9 +115,16 @@ typedef struct RuleforgeValue {
   } as;
 } RuleforgeValue;
 
+/*
+A list is immutable, but collections.Concat can append to it in amortized constant time: lists made by Concat share one buffer with spare
+room, `used` counts what any version has written, and a list whose count equals `used` is the newest version, so it may extend the buffer in
+place; older versions still see exactly their own prefix. A script building a list in a loop therefore does not copy it at every step.
+*/
 struct RuleforgeList {
   uint32          count;
   RuleforgeValue *items;
+  uint32          capacity; /* the room in the buffer behind items (0 when the list cannot be extended in place) */
+  uint32         *used;     /* the shared count of items written to the buffer, or NULL */
 };
 
 /* A record: a schema instance from a dataset, or a computed row from a standard library function. */
@@ -172,16 +179,21 @@ typedef enum RuleforgeConditionType {
   RCT_INTEGER,
   RCT_STRING,
   RCT_BOOLEAN,
-  RCT_RARITY,
+  RCT_ENUM,
   RCT_COUNT
 } RuleforgeConditionType;
 
-/* A game-time condition the manifest knows: a filter keyword with a value type. */
+/* A game-time condition declared in the language (`condition name { ... }`): a filter keyword with a value type. */
 typedef struct RuleforgeConditionInfo {
-  const char            *name;    /* Ruleforge name, camelCase */
-  const char            *keyword; /* filter keyword */
+  const char            *name;    /* the name scripts write */
+  const char            *keyword; /* the filter keyword */
   RuleforgeConditionType type;
-  boolean                ordered; /* supports < <= > >= */
+  boolean                ordered;     /* supports < <= > >= */
+  int64                  order;       /* where the condition stands in an emitted block; lower first */
+  uint32                 value_count; /* RCT_ENUM: the named values; their position is their number */
+  const char           **values;
+  const char            *module;      /* the module that declares it */
+  uint32                 declaration; /* its position among all declared conditions: ties in `order` keep it */
 } RuleforgeConditionInfo;
 
 /* One condition of a block: keyword operator values. Integer and rarity values are in `numbers`, strings in `strings`. */
@@ -272,15 +284,10 @@ typedef struct RuleforgeBlock {
 /* MANIFEST (r_manifest.c)                                                      */
 /* ---------------------------------------------------------------------------- */
 
-extern const RuleforgeConditionInfo *ruleforge_manifest_condition_find(const char *name);
-extern uint32                        ruleforge_manifest_condition_count_get(void);
-extern const RuleforgeConditionInfo *ruleforge_manifest_condition_at(uint32 index);
-extern int32                         ruleforge_manifest_rarity_parse(const char *text);
-extern const char                   *ruleforge_manifest_rarity_name_get(int64 rarity);
-extern const char                   *ruleforge_manifest_operator_text_get(RuleforgeOperator operation);
-extern boolean                       ruleforge_manifest_property_lower(RuleforgeCompilation *compilation, RuleforgeSpan span, const char *name,
-                                                                       const RuleforgeValue *arguments, uint32 count, int32 alpha_override,
-                                                                       RuleforgeStyleProperty *out_property);
+extern const char *ruleforge_manifest_operator_text_get(RuleforgeOperator operation);
+extern boolean     ruleforge_manifest_property_lower(RuleforgeCompilation *compilation, RuleforgeSpan span, const char *name,
+                                                     const RuleforgeValue *arguments, uint32 count, int32 alpha_override,
+                                                     RuleforgeStyleProperty *out_property);
 
 /* ---------------------------------------------------------------------------- */
 /* VALUE HELPERS                                                                */
@@ -407,9 +414,10 @@ struct RuleforgeSettings {
 
 /* A module declaration, found once when the module is loaded. */
 typedef struct RuleforgeDeclaration {
-  const char   *name;
-  RfDeclaration view;
-  boolean       exported;
+  const char                   *name;
+  RfDeclaration                 view;
+  boolean                       exported;
+  const RuleforgeConditionInfo *condition; /* set for a `condition` declaration */
 } RuleforgeDeclaration;
 
 /* A parsed module: its source file and syntax tree, read only through the generated views. */
@@ -462,6 +470,8 @@ struct RuleforgeEvaluation {
   boolean                     enum_fallback;
   RuleforgeModule            *entry;
   boolean                     failed;
+  boolean                     has_user_call;  /* a call written in a script (not in an embedded library module) is running */
+  RuleforgeSpan               user_call_span; /* ... and this is where it is written: library errors are reported there */
   boolean                     returning;
   RuleforgeValue              result;
   NexusDataList              *cache_keys;   /* the declaration nodes whose values are cached */
@@ -480,7 +490,10 @@ typedef enum RuleforgeTypeKind {
   RTK_RULESET,
   RTK_LIST,
   RTK_DATASET,
-  RTK_NAMED
+  RTK_NAMED,
+  RTK_NUMBER,
+  RTK_RECORD,
+  RTK_ANY
 } RuleforgeTypeKind;
 
 /* r_eval.c */
@@ -515,6 +528,12 @@ typedef struct RuleforgeDnf {
   RuleforgeClause *clauses;
 } RuleforgeDnf;
 
+/* The name of the value of an enum condition that has this number. */
+extern const char *ruleforge_condition_value_name_get(const RuleforgeConditionInfo *info, int64 value);
+/* The condition a name stands for in a module: its own declarations, then the exports of its imports. NULL (silently) when there is none. */
+extern const RuleforgeConditionInfo *ruleforge_condition_find(REval *eval, const RuleforgeModule *module, const char *name);
+/* The names of the conditions a module can use, for "did you mean"; returns how many were written, at most `limit`. */
+extern uint32              ruleforge_condition_names_get(const REval *eval, const RuleforgeModule *module, const char **names, uint32 limit);
 extern boolean             ruleforge_condition_evaluate(REval *eval, RfExpr view, boolean negate, RuleforgeDnf *out);
 extern boolean             ruleforge_condition_scope_build(REval *eval, RfScopeAssignment assignment, RuleforgeCondition **out_condition);
 extern RuleforgeCondition *ruleforge_condition_value_make(REval *eval, RuleforgeSpan span, const RuleforgeConditionInfo *info,
@@ -594,19 +613,21 @@ struct RuleforgeTheme {
 };
 
 /* r_stdlib.c */
-extern void ruleforge_stdlib_json_write(NexusStringBuilder *out);
 typedef RuleforgeValue(RuleforgeNativeFunction)(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count);
 
+/* The native code behind an `intrinsic func` of an embedded standard-library module; the parameters are those the module declares. */
 typedef struct RuleforgeNative {
   const char              *module;
   const char              *name;
-  const char              *parameters; /* space-separated parameter names, e.g. "data field count" */
-  uint32                   minimum;    /* the number of required parameters */
   RuleforgeNativeFunction *function;
 } RuleforgeNative;
 
 extern const RuleforgeNative *ruleforge_stdlib_native_find(const char *module, const char *name);
-extern boolean                ruleforge_stdlib_module_exists(const char *module);
+
+/* The standard-library modules embedded in the engine, in the order of ruleforge_stdlib_module_count_get. */
+extern uint32      ruleforge_stdlib_module_count_get(void);
+extern const char *ruleforge_stdlib_module_name_get(uint32 index);
+extern boolean     ruleforge_stdlib_module_source_get(const char *module, const byte **out_text, uint_large *out_size);
 
 /* r_filter.c: lowering, text emission and the model. */
 typedef struct RuleforgeFilter {
@@ -647,7 +668,8 @@ struct RuleforgeCompilation {
   RuleforgeRuleset        *result;
   RuleforgeFilter         *filter;
   char                    *filter_text;
-  NexusDataList           *datasets; /* RuleforgeDataset * */
+  NexusDataList           *datasets;         /* RuleforgeDataset * */
+  uint32                   condition_serial; /* the number the next declared condition gets */
   const RuleforgeSettings *settings;
   uint64                   filter_hash; /* of the sources, snapshots and settings the filter came from */
 };
@@ -685,9 +707,17 @@ extern LParserTree  *ruleforge_syntax_text_parse(RuleforgeRuntime *runtime, Rule
                                                  uint_large error_size);
 extern RuleforgeSpan ruleforge_syntax_span_get(const RuleforgeModule *module, const LParserTree *tree, const LParserGreenNode *node);
 extern const char   *ruleforge_syntax_text_get(RuleforgeCompilation *compilation, const LParserTree *tree, const LParserGreenNode *token);
-extern void          ruleforge_syntax_tree_json_write(const LParserTree *tree, NexusStringBuilder *out);
-extern const char   *ruleforge_syntax_name_get(RuleforgeCompilation *compilation, RfQualifiedName name);
+/* The source text a node covers, a copy owned by the compilation. */
+extern const char *ruleforge_syntax_source_get(RuleforgeCompilation *compilation, const RuleforgeModule *module, const LParserTree *tree,
+                                               const LParserGreenNode *node);
+extern void        ruleforge_syntax_tree_json_write(const LParserTree *tree, NexusStringBuilder *out);
+extern const char *ruleforge_syntax_name_get(RuleforgeCompilation *compilation, RfQualifiedName name);
 
 /* r_compilation.c */
+/* Loads every module of the embedded standard library, as if a script imported them all (the manifest lists them). */
+extern boolean ruleforge_compilation_library_load(RuleforgeCompilation *compilation);
+/* The documentation comment written directly above a declaration of a module, or "" when there is none. */
+extern const char                 *ruleforge_compilation_documentation_get(RuleforgeCompilation *compilation, const RuleforgeModule *module,
+                                                                           const RuleforgeDeclaration *declaration);
 extern RuleforgeModule            *ruleforge_compilation_module_find(const RuleforgeCompilation *compilation, const char *name);
 extern const RuleforgeDeclaration *ruleforge_compilation_declaration_find(const RuleforgeModule *module, const char *name);

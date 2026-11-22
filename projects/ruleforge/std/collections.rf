@@ -1,0 +1,121 @@
+version 1.0.0;
+module std.collections;
+
+import std.core;
+
+/*
+Lists and records. A list is an ordered sequence of values; a record is a row of named fields, like a row of a dataset. Both are
+immutable: every function here returns a new value and the arguments stay as they were.
+
+Almost everything is an intrinsic, because a script has no way to make a list or a record of a size it learns while running. Where a
+function says `items`, it takes a list or a dataset (a dataset is read as the list of its rows).
+*/
+
+/*
+Summary: how many items there are.
+Params: items  a list or a dataset
+*/
+export intrinsic func Count(items any) -> int;
+
+/*
+Summary: a list made of the items of the first followed by those of the second.
+Description: appending to the end of a list in a loop is cheap: `result = std.collections.Concat(result, [item]);` does not copy
+  the list at every step.
+Params: left, right  lists or datasets
+*/
+export intrinsic func Concat(left any, right any) -> list<any>;
+
+/*
+Summary: a part of a list.
+Params: items  a list or a dataset; count  how many items to take; skip  how many to leave out first (default 0)
+Returns: fewer items than asked when the list ends first
+Errors: RF0505 for a negative count or skip
+*/
+export intrinsic func Take(items any, count int, skip int?) -> list<any>;
+
+/*
+Summary: the items in the opposite order.
+*/
+export intrinsic func Reverse(items any) -> list<any>;
+
+/*
+Summary: the ints from start up to, not including, end.
+Params: start, end  the bounds; end may equal start for an empty list
+Errors: RF0506 when end is below start or the list would hold more than 100000 items
+*/
+export intrinsic func Range(start int, end int) -> list<int>;
+
+/*
+Summary: the value of one field of every record.
+Params: items  a list or dataset of records; field  the name of the field
+Errors: RF0312 when a record has no such field
+*/
+export intrinsic func Pluck(items any, field string) -> list<any>;
+
+/*
+Summary: the items in order of a number, lowest first (highest first when `descending` is true).
+Description: stable: items with equal numbers keep their order. An item without a number (none) comes last in either direction.
+Params: items  a list or dataset; field  the field holding the number, or none to sort a list of numbers themselves; descending  default false
+Errors: RF0312 when a record has no such field
+*/
+export intrinsic func Sort(items any, field string?, descending bool?) -> list<any>;
+
+/*
+Summary: the numbers among the items, in their order.
+Description: an item that is not a number (none, for instance, an unpriced item) is left out, never counted as zero.
+Params: items  a list or dataset; field  the field holding the number when the items are records
+Errors: RF0507 when the items are records and no field is named; RF0312 when a record lacks the field
+*/
+export intrinsic func Values(items any, field string?) -> list<number>;
+
+/*
+Summary: where each item stands when the items are ranked by a number: 0 is first.
+Description: the result has one entry per item, in the order of the items: the rank, or none for an item without a number in the field.
+  The first rank belongs to the highest number when `descending` is true, to the lowest otherwise; equal numbers keep their order.
+Params: items  a list or dataset of records; field  the field holding the number; descending  default false
+Errors: RF0511 when an item is not a record; RF0312 when a record lacks the field
+*/
+export intrinsic func Ranks(items any, field string, descending bool?) -> list<int?>;
+
+/*
+Summary: the value of a field of a record.
+Errors: RF0312 when the record has no such field; use Has first, or Get for none instead of an error
+*/
+export intrinsic func Field(item record, name string) -> any;
+
+/*
+Summary: the value of a field of a record, or none when the record does not have it.
+*/
+export intrinsic func Get(item record, name string) -> any;
+
+/*
+Summary: whether a record has a field.
+*/
+export intrinsic func Has(item record, name string) -> bool;
+
+/*
+Summary: a copy of a record with one field set.
+Description: a field the record has is replaced where it stands; a new field is added at the end.
+Params: item  the record; name  the field; value  its value, which may be none
+*/
+export intrinsic func WithField(item record, name string, value any) -> record;
+
+/*
+Summary: a record made of a list of field names and a list of values of the same length.
+Errors: RF0505 when the lists differ in length or a name is not a string
+*/
+export intrinsic func MakeRecord(names list<string>, values list<any>) -> record;
+
+/*
+Summary: whether a value is one of the items.
+Params: items  a list or dataset; value  compared with == against each item
+*/
+export func Contains(items any, value any) -> bool {
+    for item in $items {
+        if item == $value {
+            return true;
+        }
+    }
+
+    return false;
+}

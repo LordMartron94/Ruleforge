@@ -211,9 +211,11 @@ RuleforgeList *ruleforge_value_list_create(RuleforgeCompilation *compilation, ui
 
   NEXUS_PROGRAM_PRECONDITION(compilation != NULL, "ruleforge_value_list_create: NULL compilation");
 
-  list        = (RuleforgeList *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*list));
-  list->count = count;
-  list->items = (RuleforgeValue *)nexus_data_arena_allocate(&compilation->arena, ((uint_large)count + 1U) * NEXUS_SIZEOF(RuleforgeValue));
+  list           = (RuleforgeList *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*list));
+  list->count    = count;
+  list->capacity = 0;
+  list->used     = NULL;
+  list->items    = (RuleforgeValue *)nexus_data_arena_allocate(&compilation->arena, ((uint_large)count + 1U) * NEXUS_SIZEOF(RuleforgeValue));
 
   return list;
 }

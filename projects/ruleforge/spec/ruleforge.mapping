@@ -33,6 +33,9 @@ $kw_color = storage.type
 $kw_style = storage.type
 $kw_list = storage.type
 $kw_void = storage.type
+$kw_number = storage.type
+$kw_record = storage.type
+$kw_any = storage.type
 
 // Compile-time statements
 $kw_func = keyword.declaration.function
@@ -79,6 +82,13 @@ $kw_adapter = keyword.declaration
 $kw_include = keyword.control.import
 $kw_with = keyword.control
 $kw_native = keyword.other
+$kw_condition = keyword.declaration
+$kw_keyword = keyword.other
+$kw_accepts = keyword.other
+$kw_ordered = keyword.other
+$kw_order = keyword.other
+$kw_enum = storage.type
+$kw_intrinsic = storage.modifier
 
 // Color constructors
 $kw_rgb = support.function.color
@@ -152,9 +162,33 @@ rule #rule_stmt = meta.rule
 rule #configuration_stmt = meta.configuration
 rule #adapter_stmt = meta.adapter
 rule #function_stmt = meta.function
+rule #condition_stmt = meta.condition
 rule #if_stmt = meta.conditional
 rule #for_stmt = meta.loop
 rule #with_clause = meta.with-clause
 rule #call = meta.function-call
+rule #call_stmt = meta.function-call
 rule #list_literal = meta.sequence
 rule #native_stmt = meta.native-filter
+
+// What the language server knows. A declaration names the symbol it makes; every identifier is a reference to a name. Names are shared
+// by all the files of a project, so definitions, references and rename work across modules without further configuration.
+symbol #schema_stmt name=$identifier kind=struct
+symbol #schema_field name=$identifier kind=field
+symbol #dataset_stmt name=$identifier kind=variable
+symbol #theme_schema_stmt name=$identifier kind=interface
+symbol #theme_schema_key name=$identifier kind=field
+symbol #color_set_stmt name=$identifier kind=enum
+symbol #color_definition name=$identifier kind=enummember
+symbol #theme_stmt name=$identifier kind=class
+symbol #theme_style_stmt name=$identifier kind=property
+symbol #template_stmt name=$identifier kind=function
+symbol #function_stmt name=$identifier kind=function
+symbol #ruleset_stmt name=$identifier kind=object
+symbol #rule_stmt name=$identifier kind=method
+symbol #condition_stmt name=$identifier kind=property
+symbol #adapter_stmt name=$identifier kind=function
+symbol #parameter name=$identifier kind=variable
+symbol #variable_stmt name=$identifier kind=variable
+symbol #for_stmt name=$identifier kind=variable
+reference $identifier

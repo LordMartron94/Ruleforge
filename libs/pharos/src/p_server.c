@@ -341,6 +341,12 @@ static void p_hover(PharosServer *server, PharosDocument *document, uint_large o
     collect.first_document = NULL;
     collect.first_name     = NULL;
     pharos_names_occurrences_visit(server, name, FALSE, p_collect_first, &collect);
+
+    /* The declaration may be in a file that nothing has opened: look through the workspace before saying there is none. */
+    if (collect.first_name == NULL) {
+      pharos_names_occurrences_visit(server, name, TRUE, p_collect_first, &collect);
+    }
+
     markup = nexus_strings_string_builder_create_growable(128);
 
     if (collect.first_name != NULL) {
@@ -559,6 +565,14 @@ static void p_handle(PharosServer *server, const NexusJson *message) {
       collect.skip_declarations = !definition && !highlight && include != NULL && include->kind == NJK_BOOLEAN && !include->boolean_value;
       collect.only              = highlight ? document : NULL;
       pharos_names_occurrences_visit(server, name, !definition && !highlight, p_collect_location, &collect);
+
+      /*
+      A declaration in a file nothing has opened yet is found by looking through the workspace: a name that is not tied to one file (a
+      language described by a grammar, whose names are shared by all its files) does not say where to look.
+      */
+      if (definition && collect.count == 0) {
+        pharos_names_occurrences_visit(server, name, TRUE, p_collect_location, &collect);
+      }
 
       /* A name no declaration anchors: go where the grammar mentions it. */
       if (definition && collect.count == 0) {

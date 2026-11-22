@@ -1,0 +1,176 @@
+version 1.0.0;
+module std.math;
+
+import std.collections;
+import std.core;
+
+/*
+Numbers. Almost everything here is written in Ruleforge; the one thing a function cannot do is cut the fraction off a number, which is
+the single intrinsic. Every function is deterministic and uses only the four arithmetic operations, so a filter compiles to the same
+bytes on every platform: the library does not call the C library's floating-point functions, whose last digits differ between systems.
+
+Numbers are int or float. `number` in a signature accepts either; a function says in its documentation what it returns for each.
+*/
+
+/*
+Summary: the whole part of a number, toward zero.
+Params: value  an int or a float
+Returns: an int; 3.9 gives 3 and -3.9 gives -3
+Errors: RF0503 when the number is too large to be an int
+*/
+export intrinsic func Truncate(value number) -> int;
+
+/*
+Summary: the distance of a number from zero.
+Params: value  an int or a float
+Returns: a number of the same kind
+*/
+export func Abs(value number) -> number {
+    if $value < 0 {
+        return -$value;
+    }
+
+    return $value;
+}
+
+/*
+Summary: the smaller of two numbers.
+Returns: the argument itself, so an int stays an int
+*/
+export func Min(a number, b number) -> number {
+    if $a <= $b {
+        return $a;
+    }
+
+    return $b;
+}
+
+/*
+Summary: the larger of two numbers.
+Returns: the argument itself, so an int stays an int
+*/
+export func Max(a number, b number) -> number {
+    if $a >= $b {
+        return $a;
+    }
+
+    return $b;
+}
+
+/*
+Summary: a number held between a lower and an upper bound.
+Params: value  the number; low  the lowest result; high  the highest result
+Returns: low when value is below it, high when above it, otherwise value
+Errors: RF0599 when low is above high
+*/
+export func Clamp(value number, low number, high number) -> number {
+    if $low > $high {
+        core.Fail("math.Clamp: the lower bound is above the upper bound");
+    }
+
+    if $value < $low {
+        return $low;
+    }
+
+    if $value > $high {
+        return $high;
+    }
+
+    return $value;
+}
+
+/*
+Summary: the largest int that is not above the number.
+Returns: an int; 3.9 gives 3 and -3.1 gives -4
+*/
+export func Floor(value number) -> int {
+    let whole = Truncate($value);
+
+    if whole > $value {
+        return whole - 1;
+    }
+
+    return whole;
+}
+
+/*
+Summary: the smallest int that is not below the number.
+Returns: an int; 3.1 gives 4 and -3.9 gives -3
+*/
+export func Ceil(value number) -> int {
+    let whole = Truncate($value);
+
+    if whole < $value {
+        return whole + 1;
+    }
+
+    return whole;
+}
+
+/*
+Summary: the nearest int, halves away from zero.
+Returns: an int; 2.5 gives 3 and -2.5 gives -3
+*/
+export func Round(value number) -> int {
+    if $value < 0 {
+        return Truncate($value - 0.5);
+    }
+
+    return Truncate($value + 0.5);
+}
+
+/*
+Summary: the square root of a number.
+Description: Newton's method with a fixed 64 iterations, so the result is bounded work and identical on every platform.
+Returns: a float
+Errors: RF0599 for a negative number
+*/
+export func Sqrt(value number) -> float {
+    if $value < 0 {
+        core.Fail("math.Sqrt of a negative number");
+    }
+
+    if $value == 0 {
+        return 0.0;
+    }
+
+    var guess = 1.0;
+
+    if $value > 1 {
+        guess = $value * 1.0;
+    }
+
+    for step in collections.Range(0, 64) {
+        guess = 0.5 * (guess + ($value / guess));
+    }
+
+    return guess;
+}
+
+/*
+Summary: a number raised to a whole power.
+Params: base  the number; exponent  an int from -1024 to 1024
+Returns: a float; a negative exponent is the reciprocal
+Errors: RF0599 for an exponent outside the range, or a zero base with a negative exponent
+*/
+export func Pow(base number, exponent int) -> float {
+    if $exponent < -1024 or $exponent > 1024 {
+        core.Fail("math.Pow needs a small integer exponent, from -1024 to 1024");
+    }
+
+    var result = 1.0;
+
+    for step in collections.Range(0, Abs($exponent)) {
+        result = result * $base;
+    }
+
+    if $exponent < 0 {
+        if result == 0 {
+            core.Fail("math.Pow: division by zero");
+        }
+
+        result = 1.0 / result;
+    }
+
+    return result;
+}

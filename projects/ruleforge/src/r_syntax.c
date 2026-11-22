@@ -346,3 +346,13 @@ const char *ruleforge_syntax_name_get(RuleforgeCompilation *compilation, RfQuali
 
   return result;
 }
+
+const char *ruleforge_syntax_source_get(RuleforgeCompilation *compilation, const RuleforgeModule *module, const LParserTree *tree,
+                                        const LParserGreenNode *node) {
+  RuleforgeSpan span;
+
+  span = ruleforge_syntax_span_get(module, tree, node);
+
+  return nexus_data_arena_text_copy(&compilation->arena, (const char *)ruleforge_source_get(compilation, module->file)->text + span.start,
+                                    span.end - span.start);
+}

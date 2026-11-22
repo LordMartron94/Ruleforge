@@ -73,22 +73,29 @@ static boolean r_simulate_condition_holds(const RuleforgeCondition *condition, c
     return (flag ? 1 : 0) == condition->numbers[0];
   }
 
-  if (condition->info->type == RCT_INTEGER || condition->info->type == RCT_RARITY) {
+  if (condition->info->type == RCT_INTEGER || condition->info->type == RCT_ENUM) {
     int64 number;
 
-    if (condition->info->type == RCT_RARITY) {
-      int32 rarity;
+    if (condition->info->type == RCT_ENUM) {
+      int32  named;
+      uint32 position;
 
-      rarity = value != NULL && value->kind == RJK_STRING ? ruleforge_manifest_rarity_parse(value->text) : -1;
+      named = -1;
 
-      if (rarity < 0) {
+      for (position = 0; value != NULL && value->kind == RJK_STRING && position < condition->info->value_count; position++) {
+        if (nexus_strings_string_equals(condition->info->values[position], value->text)) {
+          named = (int32)position;
+        }
+      }
+
+      if (named < 0) {
         (void)nexus_strings_string_builder_append(actual, "null");
 
         return FALSE;
       }
 
-      number = rarity;
-      (void)nexus_json_quote_append(actual, ruleforge_manifest_rarity_name_get(number));
+      number = named;
+      (void)nexus_json_quote_append(actual, ruleforge_condition_value_name_get(condition->info, number));
     } else if (value != NULL && value->kind == RJK_NUMBER) {
       number = value->integer;
       (void)nexus_strings_string_builder_append_formatted(actual, "%lld", (long long)number);

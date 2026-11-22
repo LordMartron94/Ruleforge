@@ -1,0 +1,4 @@
+version 1.0.0;
+module t;
+export func Empty(value int) -> int;
+export func main() { }

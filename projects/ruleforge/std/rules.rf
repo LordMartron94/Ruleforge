@@ -1,0 +1,46 @@
+version 1.0.0;
+module std.rules;
+
+/*
+Rulesets as values. A ruleset is an ordered collection of rules; these functions build new rulesets from existing ones, which is how
+precedence overlays (such as showing max-rolled armour first) are written as ordinary Ruleforge. The originals are never changed: every
+function returns copies of the rules, and the copies record the transformation in their trace.
+
+All of them are intrinsics: a rule is not something a script can take apart, only transform through these.
+*/
+
+/*
+Summary: the rules of the first ruleset followed by those of the second.
+*/
+export intrinsic func Concat(left ruleset, right ruleset) -> ruleset;
+
+/*
+Summary: how many rules the ruleset holds.
+*/
+export intrinsic func Count(rules ruleset) -> int;
+
+/*
+Summary: the rules in the opposite order.
+*/
+export intrinsic func Reverse(rules ruleset) -> ruleset;
+
+/*
+Summary: the rules with their action replaced.
+Params: rules  the ruleset; decision  "show" or "hide"
+Errors: RF0521 for any other decision
+*/
+export intrinsic func WithAction(rules ruleset, decision string) -> ruleset;
+
+/*
+Summary: the rules with their style replaced.
+Params: rules  the ruleset; value  the style to use, such as a style of a theme
+*/
+export intrinsic func WithStyle(rules ruleset, value style) -> ruleset;
+
+/*
+Summary: the rules with one more condition each: the named game condition equal to the value.
+Description: for example, restricting every rule to items of one rarity or to a base type. A native filter block is left as it is.
+Params: rules  the ruleset; name  the name of a game condition; value  a string, an int or a bool the condition accepts
+Errors: RF0357 when the name is not a game condition; RF0523 for a value of another kind
+*/
+export intrinsic func WithScope(rules ruleset, name string, value any) -> ruleset;

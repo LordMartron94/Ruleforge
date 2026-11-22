@@ -1,6 +1,7 @@
 version 1.0.0;
 module filters.currency;
 
+import std.conditions;
 import std.economy;
 import data.currency;
 import filters.themes;

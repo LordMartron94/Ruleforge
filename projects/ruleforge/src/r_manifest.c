@@ -4,115 +4,15 @@
 #include "./r_internal.h"
 
 /*
-The target-game manifest: the Path of Exile 1 filter conditions and style properties Ruleforge can express. Scripts are
-validated against this table, so an unknown condition or a malformed style argument is an error at its source location
-instead of a filter line the game ignores.
+The target-game manifest: the style properties of Path of Exile 1 filters and what the engine can express. The conditions are not here:
+they are declared in Ruleforge (std.conditions, or a module of the project), and the manifest lists them from there. Scripts are
+validated against these tables, so a malformed style argument is an error at its source location instead of a filter line the game
+ignores.
 */
 
 /* ---------------------------------------------------------------------------- */
-/* CONDITIONS                                                                   */
+/* OPERATORS                                                                   */
 /* ---------------------------------------------------------------------------- */
-
-#define R_MANIFEST_CONDITION(name, keyword, type, ordered) {name, keyword, type, ordered}
-
-static const RuleforgeConditionInfo r_manifest_conditions[] = {
-    R_MANIFEST_CONDITION("areaLevel", "AreaLevel", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("itemLevel", "ItemLevel", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("dropLevel", "DropLevel", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("quality", "Quality", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("stackSize", "StackSize", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("gemLevel", "GemLevel", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("mapTier", "MapTier", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("height", "Height", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("width", "Width", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("sockets", "Sockets", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("linkedSockets", "LinkedSockets", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("socketGroup", "SocketGroup", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("rarity", "Rarity", RCT_RARITY, TRUE),
-    R_MANIFEST_CONDITION("class", "Class", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("baseType", "BaseType", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("hasExplicitMod", "HasExplicitMod", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("hasImplicitMod", "HasImplicitMod", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("hasEnchantment", "HasEnchantment", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("hasInfluence", "HasInfluence", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("enchantmentPassiveNode", "EnchantmentPassiveNode", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("enchantmentPassiveNum", "EnchantmentPassiveNum", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("corruptedMods", "CorruptedMods", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("gemQualityType", "GemQualityType", RCT_STRING, FALSE),
-    R_MANIFEST_CONDITION("baseDefencePercentile", "BaseDefencePercentile", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("baseArmour", "BaseArmour", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("baseEvasion", "BaseEvasion", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("baseEnergyShield", "BaseEnergyShield", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("baseWard", "BaseWard", RCT_INTEGER, TRUE),
-    R_MANIFEST_CONDITION("replica", "Replica", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("identified", "Identified", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("corrupted", "Corrupted", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("mirrored", "Mirrored", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("fractured", "FracturedItem", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("synthesised", "SynthesisedItem", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("shaperItem", "ShaperItem", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("elderItem", "ElderItem", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("shapedMap", "ShapedMap", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("elderMap", "ElderMap", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("blightedMap", "BlightedMap", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("uberBlightedMap", "UberBlightedMap", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("anyEnchantment", "AnyEnchantment", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("scourged", "ScourgedItem", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("zanaMemory", "ZanaMemory", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("transfigured", "TransfiguredGem", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("alternateQuality", "AlternateQuality", RCT_BOOLEAN, FALSE),
-    R_MANIFEST_CONDITION("hasCruciblePassiveTree", "HasCruciblePassiveTree", RCT_BOOLEAN, FALSE),
-};
-
-const RuleforgeConditionInfo *ruleforge_manifest_condition_find(const char *name) {
-  uint32 i;
-
-  NEXUS_PROGRAM_PRECONDITION(name != NULL, "ruleforge_manifest_condition_find: NULL name");
-
-  for (i = 0; i < (uint32)(NEXUS_SIZEOF(r_manifest_conditions) / NEXUS_SIZEOF(r_manifest_conditions[0])); i++) {
-    if (nexus_strings_string_equals(r_manifest_conditions[i].name, name)) {
-      return &r_manifest_conditions[i];
-    }
-  }
-
-  return NULL;
-}
-
-uint32 ruleforge_manifest_condition_count_get(void) {
-  return (uint32)(NEXUS_SIZEOF(r_manifest_conditions) / NEXUS_SIZEOF(r_manifest_conditions[0]));
-}
-
-const RuleforgeConditionInfo *ruleforge_manifest_condition_at(uint32 index) {
-  NEXUS_PROGRAM_PRECONDITION(index < ruleforge_manifest_condition_count_get(), "ruleforge_manifest_condition_at: index out of range");
-
-  return &r_manifest_conditions[index];
-}
-
-/* ---------------------------------------------------------------------------- */
-/* RARITIES AND OPERATORS                                                       */
-/* ---------------------------------------------------------------------------- */
-
-static const char *const r_manifest_rarities[] = {"Normal", "Magic", "Rare", "Unique"};
-
-int32 ruleforge_manifest_rarity_parse(const char *text) {
-  int32 i;
-
-  NEXUS_PROGRAM_PRECONDITION(text != NULL, "ruleforge_manifest_rarity_parse: NULL text");
-
-  for (i = 0; i < 4; i++) {
-    if (nexus_strings_string_equals(r_manifest_rarities[i], text)) {
-      return i;
-    }
-  }
-
-  return -1;
-}
-
-const char *ruleforge_manifest_rarity_name_get(int64 rarity) {
-  NEXUS_PROGRAM_PRECONDITION(rarity >= 0 && rarity < 4, "ruleforge_manifest_rarity_name_get: rarity out of range");
-
-  return r_manifest_rarities[rarity];
-}
 
 const char *ruleforge_manifest_operator_text_get(RuleforgeOperator operation) {
   switch (operation) {
@@ -356,30 +256,136 @@ static const char *r_manifest_condition_type_name(RuleforgeConditionType type) {
     break;
   }
 
-  return "rarity";
+  return "enum";
 }
 
-char *ruleforge_manifest_json_write(void) {
-  NexusStringBuilder out;
-  char              *result;
-  uint32             i;
+/* Summary: appends the declared conditions of every loaded module as JSON objects. */
+static void r_manifest_conditions_write(RuleforgeCompilation *compilation, NexusStringBuilder *out) {
+  uint_large m;
+  uint32     i;
+  boolean    first;
 
-  out = nexus_strings_string_builder_create_growable(4096);
-  (void)nexus_strings_string_builder_append(&out, "{\"format\":\"ruleforge-manifest\",\"version\":1,\"conditions\":[");
+  first = TRUE;
 
-  for (i = 0; i < ruleforge_manifest_condition_count_get(); i++) {
-    const RuleforgeConditionInfo *info;
+  for (m = 0; m < nexus_data_list_length_get(compilation->modules); m++) {
+    const RuleforgeModule *module;
 
-    info = ruleforge_manifest_condition_at(i);
+    module = (const RuleforgeModule *)nexus_data_list_pointer_at(compilation->modules, m);
 
-    if (i > 0) {
-      (void)nexus_strings_string_builder_append(&out, ",");
+    for (i = 0; i < module->declaration_count; i++) {
+      const RuleforgeDeclaration   *declaration;
+      const RuleforgeConditionInfo *info;
+      uint32                        value;
+
+      declaration = &module->declarations[i];
+      info        = declaration->condition;
+
+      if (info == NULL || !declaration->exported) {
+        continue;
+      }
+
+      (void)nexus_strings_string_builder_append_formatted(
+          out, "%s{\"name\":\"%s\",\"module\":\"%s\",\"keyword\":\"%s\",\"type\":\"%s\",\"ordered\":%s,\"order\":%lld", first ? "" : ",", info->name,
+          module->name, info->keyword == NULL ? "" : info->keyword, r_manifest_condition_type_name(info->type), info->ordered ? "true" : "false",
+          (long long)info->order);
+
+      if (info->type == RCT_ENUM) {
+        (void)nexus_strings_string_builder_append(out, ",\"values\":[");
+
+        for (value = 0; value < info->value_count; value++) {
+          (void)nexus_strings_string_builder_append_formatted(out, "%s\"%s\"", value > 0 ? "," : "", info->values[value]);
+        }
+
+        (void)nexus_strings_string_builder_append(out, "]");
+      }
+
+      (void)nexus_strings_string_builder_append(out, ",\"documentation\":");
+      (void)nexus_json_quote_append(out, ruleforge_compilation_documentation_get(compilation, module, declaration));
+      (void)nexus_strings_string_builder_append(out, "}");
+      first = FALSE;
+    }
+  }
+}
+
+/* Summary: appends the exported functions of the loaded standard-library modules: parameters, result, documentation, and whether native. */
+static void r_manifest_functions_write(RuleforgeCompilation *compilation, NexusStringBuilder *out) {
+  uint_large m;
+  uint32     i;
+  boolean    first;
+
+  first = TRUE;
+
+  for (m = 0; m < nexus_data_list_length_get(compilation->modules); m++) {
+    const RuleforgeModule *module;
+
+    module = (const RuleforgeModule *)nexus_data_list_pointer_at(compilation->modules, m);
+
+    if (!ruleforge_source_get(compilation, module->file)->embedded) {
+      continue;
     }
 
-    (void)nexus_strings_string_builder_append_formatted(&out, "{\"name\":\"%s\",\"keyword\":\"%s\",\"type\":\"%s\",\"ordered\":%s}", info->name,
-                                                        info->keyword, r_manifest_condition_type_name(info->type), info->ordered ? "true" : "false");
-  }
+    for (i = 0; i < module->declaration_count; i++) {
+      const RuleforgeDeclaration *declaration;
+      RfFunctionStmt              function;
+      RfParameters                parameters;
+      uint32                      p;
 
+      declaration = &module->declarations[i];
+
+      if (!declaration->exported || rf_declaration_count_rule_function_stmt(declaration->view) == 0) {
+        continue;
+      }
+
+      function   = rf_declaration_rule_function_stmt(declaration->view, 0);
+      parameters = rf_function_stmt_rule_parameters(function, 0);
+      (void)nexus_strings_string_builder_append_formatted(out, "%s{\"module\":\"%s\",\"name\":\"%s\",\"intrinsic\":%s,\"parameters\":[",
+                                                          first ? "" : ",", module->name, declaration->name,
+                                                          rf_function_stmt_count_token_kw_intrinsic(function) > 0 ? "true" : "false");
+
+      for (p = 0; p < rf_parameters_count_rule_parameter(parameters); p++) {
+        RfParameter parameter;
+
+        parameter = rf_parameters_rule_parameter(parameters, p);
+        (void)nexus_strings_string_builder_append_formatted(out, "%s{\"name\":", p > 0 ? "," : "");
+        (void)nexus_json_quote_append(out, ruleforge_syntax_text_get(compilation, parameter.tree, rf_parameter_token_identifier(parameter, 0)));
+        (void)nexus_strings_string_builder_append(out, ",\"type\":");
+        (void)nexus_json_quote_append(out,
+                                      ruleforge_syntax_source_get(compilation, module, parameter.tree, rf_parameter_rule_type(parameter, 0).node));
+        (void)nexus_strings_string_builder_append(out, "}");
+      }
+
+      (void)nexus_strings_string_builder_append(out, "],\"returns\":");
+
+      if (rf_function_stmt_count_rule_type(function) > 0) {
+        (void)nexus_json_quote_append(out,
+                                      ruleforge_syntax_source_get(compilation, module, function.tree, rf_function_stmt_rule_type(function, 0).node));
+      } else {
+        (void)nexus_strings_string_builder_append(out, "null");
+      }
+
+      (void)nexus_strings_string_builder_append(out, ",\"documentation\":");
+      (void)nexus_json_quote_append(out, ruleforge_compilation_documentation_get(compilation, module, declaration));
+      (void)nexus_strings_string_builder_append(out, "}");
+      first = FALSE;
+    }
+  }
+}
+
+char *ruleforge_manifest_json_write(RuleforgeRuntime *runtime) {
+  NexusStringBuilder    out;
+  char                 *result;
+  uint32                i;
+  RuleforgeCompilation *compilation;
+
+  NEXUS_PROGRAM_PRECONDITION(runtime != NULL, "ruleforge_manifest_json_write: NULL runtime");
+
+  /* The conditions and the library are Ruleforge: load the embedded modules and read what they declare. */
+  compilation = ruleforge_compilation_create(runtime);
+  (void)ruleforge_compilation_library_load(compilation);
+
+  out = nexus_strings_string_builder_create_growable(4096);
+  (void)nexus_strings_string_builder_append(&out, "{\"format\":\"ruleforge-manifest\",\"version\":2,\"conditions\":[");
+  r_manifest_conditions_write(compilation, &out);
   (void)nexus_strings_string_builder_append(&out, "],\"properties\":[");
 
   for (i = 0; i < (uint32)(NEXUS_SIZEOF(r_manifest_properties) / NEXUS_SIZEOF(r_manifest_properties[0])); i++) {
@@ -395,12 +401,6 @@ char *ruleforge_manifest_json_write(void) {
     (void)nexus_strings_string_builder_append(&out, "}");
   }
 
-  (void)nexus_strings_string_builder_append(&out, "],\"rarities\":[");
-
-  for (i = 0; i < 4; i++) {
-    (void)nexus_strings_string_builder_append_formatted(&out, "%s\"%s\"", i > 0 ? "," : "", r_manifest_rarities[i]);
-  }
-
   (void)nexus_strings_string_builder_append(&out, "],\"colors\":[");
 
   for (i = 0; i < 11; i++) {
@@ -414,8 +414,10 @@ char *ruleforge_manifest_json_write(void) {
   }
 
   (void)nexus_strings_string_builder_append(&out, "],");
-  ruleforge_stdlib_json_write(&out);
-  (void)nexus_strings_string_builder_append(&out, "}");
+  (void)nexus_strings_string_builder_append(&out, "\"functions\":[");
+  r_manifest_functions_write(compilation, &out);
+  (void)nexus_strings_string_builder_append(&out, "]}");
+  ruleforge_compilation_destroy(compilation);
 
   result = (char *)nexus_memory_allocate(nexus_strings_string_builder_length_get(&out) + 1);
   nexus_memory_bytes_copy(nexus_strings_string_builder_string_get(&out), result, nexus_strings_string_builder_length_get(&out) + 1);

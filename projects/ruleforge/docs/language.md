@@ -22,7 +22,7 @@ the tests hold the implementation to.
 ## Names and modules
 
 - A module is one `.rf` file. `import a.b.c;` looks for `a/b/c.rf` next to the importing entry file, then in every `-I` folder.
-  `std.*` imports are the native standard library.
+  `std.*` imports are the standard library: Ruleforge files embedded in the engine (see Standard library below).
 - An imported module's exports are reachable as `c.Name` (its last segment) or the full dotted name, and unqualified when no other
   import exports the same name. Only `export`ed declarations are visible outside their module.
 - `$name` is a parameter, `@name` a compile-time setting, anything else a local, a declaration, a field or a style key. A local
@@ -32,14 +32,32 @@ the tests hold the implementation to.
 
 ## Game-time conditions
 
-`when`, `coreConditions` and `scope` mix compile-time values and game conditions (the manifest: areaLevel, itemLevel, rarity,
-class, baseType, ...). The engine folds every compile-time part and lowers the rest:
+`when`, `coreConditions` and `scope` mix compile-time values and game conditions (areaLevel, itemLevel, rarity, class, baseType, ...).
+The engine folds every compile-time part and lowers the rest:
 
 - a block is a conjunction, so `or` becomes several blocks (at most 256 alternatives per condition);
 - `not` is pushed into the comparison (`!(areaLevel < 5)` is `areaLevel >= 5`);
 - a variant whose compile-time condition is true and leaves nothing for the game is *terminal*: nothing after it, including the
   baseline, can be reached, and the rule records how many variants it shadowed;
 - `scope { key = value; }` is `key == value` (a list value matches any of its entries); ranges use `when` or `coreConditions`.
+
+### Conditions are declared, not built in
+
+The engine knows no condition by name. The Path of Exile ones are declared in `std.conditions`; a project imports it
+(`import std.conditions;`) and writes the names. A condition is declared like this, in any module:
+
+```ruleforge
+export condition delveDepth {
+    keyword "DelveDepth";   // the filter keyword it is written as
+    accepts int;            // int, string (one text or a list), bool, or enum { A, B, C }
+    ordered;                // may be compared with < <= > >= (int and enum only)
+    order 5;                // where it stands in an emitted block, lower first; equal orders keep declaration order
+}
+```
+
+So when a new filter condition appears, declare it in your project and use it: no engine update. `accepts enum { Normal, Magic }` gives
+named values that compare in the order listed. Errors: RF0130 (no `keyword`), RF0131 (no `accepts`), RF0132 (an item given twice),
+RF0133 (`ordered` on text or true/false). A condition that is not imported is an unknown name (RF0357 in `scope`, RF0319 elsewhere).
 
 ## Rules and rulesets
 
@@ -79,11 +97,32 @@ precedence as ordinary rulesets.
   records where a value came from in its manifest.
 - Atlas completion data has no built-in provider; supply `atlas.highestCompletedTier` as a setting.
 
-## Standard library (1.0)
+## Standard library
 
-`std.math`, `std.collections`, `std.stats`, `std.economy` (`AssignTiers` with the quantile, threshold and cluster strategies,
-`Score`, `StackValue`, `PersistTiers`) and `std.rules` are native, pure and bounded. `ruleforge manifest` lists them with their
-parameters. Game item classification data (`std.items`, `std.progression`) comes from datasets, not from code.
+The standard library is Ruleforge: `std/<name>.rf` in the engine's source is the module `std.<name>`, embedded in the binary, and the
+modules are the examples of how functions are written in the language. Every function is documented where it is declared, in the
+comment above it; `ruleforge manifest` lists them all with those comments.
+
+| module | contents |
+|---|---|
+| `std.core` | `Fail`, `Warn`, `TypeOf` |
+| `std.math` | `Abs`, `Min`, `Max`, `Clamp`, `Floor`, `Ceil`, `Round`, `Sqrt`, `Pow`, `Truncate` (deterministic: only the four arithmetic operations) |
+| `std.collections` | `Count`, `Concat`, `Take`, `Reverse`, `Range`, `Pluck`, `Sort`, `Values`, `Ranks`, `Field`, `Get`, `Has`, `WithField`, `MakeRecord`, `Contains` |
+| `std.stats` | `Mean`, `Median`, `Quantile`, `WidestGaps` |
+| `std.economy` | `StackValue`, `Score`, `AssignTiers` (quantile, threshold and cluster strategies), `PersistTiers` |
+| `std.rules` | `Concat`, `Count`, `Reverse`, `WithAction`, `WithStyle`, `WithScope` |
+| `std.conditions` | the Path of Exile filter conditions |
+
+What a function cannot be written from is declared in the module as `export intrinsic func Name(...) -> T;`: a signature and its
+documentation, with the implementation in the engine, bound by module and name. Only the embedded library may declare an `intrinsic`
+(RF0120), a function without a body must be one (RF0121), and module names starting with `std.` are reserved (RF0123). The types
+`number` (an int or a float), `record` and `any` exist for such signatures. An error raised with `std.core.Fail` is reported at the
+place in your script where the call is written, not inside the library. Appending to the end of a list in a loop is cheap:
+`result = collections.Concat(result, [item]);` does not copy the list at every step.
+
+`ruleforge eval [--import MODULE]... [project.rf] -e EXPRESSION...` evaluates expressions the way a script would and prints their values
+as JSON, one per line; it is how the library is tested and how a host asks the engine for an answer. Game item classification data
+(`std.items`, `std.progression`) comes from datasets, not from code.
 
 ## Theme adapters
 

@@ -29,6 +29,8 @@ static boolean        r_eval_generator(REval *eval, RfGeneratorStmt view);
 static boolean        r_eval_reference_name_get(REval *eval, RfExpr view, char *buffer, uint_large size);
 static boolean        r_eval_theme_check(REval *eval, const RuleforgeTheme *theme, RuleforgeSpan span);
 static RuleforgeValue r_eval_call(REval *eval, RfCall call);
+static RuleforgeValue r_eval_intrinsic_run(REval *eval, RfFunctionStmt function, const RuleforgeModule *owner, const RuleforgeValue *bound,
+                                           uint32 parameter_count, RuleforgeSpan call_span);
 
 /* ---------------------------------------------------------------------------- */
 /* LIFECYCLE AND ERRORS                                                         */
@@ -311,6 +313,18 @@ RuleforgeTypeKind ruleforge_eval_type_kind_get(RfType type) {
     return RTK_RULESET;
   }
 
+  if (rf_scalar_type_count_token_kw_number(scalar) > 0) {
+    return RTK_NUMBER;
+  }
+
+  if (rf_scalar_type_count_token_kw_record(scalar) > 0) {
+    return RTK_RECORD;
+  }
+
+  if (rf_scalar_type_count_token_kw_any(scalar) > 0) {
+    return RTK_ANY;
+  }
+
   return RTK_VOID;
 }
 
@@ -332,6 +346,12 @@ const char *ruleforge_eval_type_name_get(REval *eval, RfType type) {
     return "void";
   case RTK_RULESET:
     return "ruleset";
+  case RTK_NUMBER:
+    return "number";
+  case RTK_RECORD:
+    return "record";
+  case RTK_ANY:
+    return "any";
   case RTK_LIST:
     return "list";
   case RTK_DATASET:
@@ -354,7 +374,8 @@ boolean ruleforge_eval_type_check(REval *eval, RuleforgeValue *value, RfType typ
   boolean           ok;
 
   if (value->kind == RVK_NONE) {
-    if (rf_type_count_token_question(type) > 0) {
+    /* `any` includes none: it says nothing about the value. */
+    if (rf_type_count_token_question(type) > 0 || ruleforge_eval_type_kind_get(type) == RTK_ANY) {
       return TRUE;
     }
 
@@ -393,6 +414,15 @@ boolean ruleforge_eval_type_check(REval *eval, RuleforgeValue *value, RfType typ
     ok = value->kind == RVK_RULESET;
     break;
   case RTK_VOID:
+    ok = TRUE;
+    break;
+  case RTK_NUMBER:
+    ok = value->kind == RVK_INT || value->kind == RVK_FLOAT;
+    break;
+  case RTK_RECORD:
+    ok = value->kind == RVK_RECORD;
+    break;
+  case RTK_ANY:
     ok = TRUE;
     break;
   case RTK_LIST:
@@ -556,6 +586,13 @@ static RuleforgeValue r_eval_ruleset_run(REval *eval, RfRulesetStmt declaration,
 
 static RuleforgeValue r_eval_declaration_value(REval *eval, const RuleforgeDeclaration *declaration, RuleforgeModule *owner, RuleforgeSpan span) {
   RuleforgeValue value;
+
+  if (declaration->condition != NULL) {
+    ruleforge_eval_fail(eval, "RF0319", span, "game conditions such as this one can only be used in `when`, `coreConditions` and `scope`",
+                        "`%s` is a game condition, not a value", declaration->name);
+
+    return ruleforge_value_none();
+  }
 
   if (rf_declaration_count_rule_theme_stmt(declaration->view) > 0) {
     if (!r_eval_cache_get(eval, declaration, &value)) {
@@ -814,12 +851,7 @@ static boolean r_eval_reference_resolve(REval *eval, RfReference view, Ruleforge
         value               = ruleforge_value_string(segments[0]);
         value.is_identifier = TRUE;
       } else {
-        const char *note;
-
-        note = ruleforge_manifest_condition_find(segments[0]) != NULL
-                   ? "game conditions such as this one can only be used in `when`, `coreConditions` and `scope`"
-                   : NULL;
-        ruleforge_eval_fail(eval, "RF0319", span, note, "unknown name `%s`", segments[0]);
+        ruleforge_eval_fail(eval, "RF0319", span, NULL, "unknown name `%s`", segments[0]);
 
         return FALSE;
       }
@@ -1516,21 +1548,15 @@ static RuleforgeValue r_eval_call(REval *eval, RfCall call) {
   uint32                      segment_count;
   int64                       prefix;
   char                        callee[512];
-  const RuleforgeNative      *native;
   const RuleforgeDeclaration *declaration;
   RuleforgeModule            *owner;
   RCallArguments              arguments;
   RuleforgeValue             *bound;
   boolean                    *given;
   RuleforgeSpan               span;
-  uint_large                  length;
-  const char                 *dot;
-  char                        module_name[256];
 
   span          = ruleforge_eval_span_get(eval, call.tree, call.node);
   segment_count = r_eval_reference_segments(eval, rf_call_rule_reference(call, 0), segments, &prefix);
-  native        = NULL;
-  declaration   = NULL;
   owner         = NULL;
   (void)r_eval_callee_write(segments, segment_count, callee, NEXUS_SIZEOF(callee));
 
@@ -1538,66 +1564,10 @@ static RuleforgeValue r_eval_call(REval *eval, RfCall call) {
     return ruleforge_value_none();
   }
 
-  dot = nexus_strings_string_find_last(callee, ".");
-
-  if (dot != NULL) {
-    const char *import;
-
-    length = (uint_large)(dot - callee);
-
-    if (length < NEXUS_SIZEOF(module_name)) {
-      nexus_memory_bytes_copy(callee, module_name, length);
-      module_name[length] = '\0';
-      import              = r_eval_import_find(eval->module, module_name);
-
-      if (import != NULL) {
-        native = ruleforge_stdlib_native_find(import, dot + 1);
-      } else if (ruleforge_stdlib_module_exists(module_name)) {
-        native = ruleforge_stdlib_native_find(module_name, dot + 1);
-      }
-    }
-  }
-
-  if (native == NULL) {
-    declaration = ruleforge_eval_symbol_find(eval, eval->module, callee, &owner);
-  }
+  declaration = ruleforge_eval_symbol_find(eval, eval->module, callee, &owner);
 
   if (eval->failed) {
     return ruleforge_value_none();
-  }
-
-  if (native != NULL) {
-    uint32      parameter_count;
-    const char *names[16];
-    char       *copy;
-    char       *cursor;
-
-    /* The native's parameter names are space separated in one string; split a copy into the array. */
-    copy            = nexus_data_arena_text_copy(&eval->compilation->arena, native->parameters, nexus_strings_string_length_get(native->parameters));
-    parameter_count = 0;
-    cursor          = copy;
-
-    while (*cursor != '\0' && parameter_count < 16) {
-      names[parameter_count++] = cursor;
-
-      while (*cursor != '\0' && *cursor != ' ') {
-        cursor++;
-      }
-
-      if (*cursor == ' ') {
-        *cursor = '\0';
-        cursor++;
-      }
-    }
-
-    bound = (RuleforgeValue *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)parameter_count + 1U) * NEXUS_SIZEOF(RuleforgeValue));
-    given = (boolean *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)parameter_count + 1U) * NEXUS_SIZEOF(boolean));
-
-    if (!r_eval_arguments_bind(eval, span, callee, names, NULL, parameter_count, native->minimum, &arguments, bound, given)) {
-      return ruleforge_value_none();
-    }
-
-    return native->function(eval, span, bound, parameter_count);
   }
 
   if (declaration == NULL || rf_declaration_count_rule_function_stmt(declaration->view) == 0) {
@@ -1625,8 +1595,63 @@ static RuleforgeValue r_eval_call(REval *eval, RfCall call) {
       return ruleforge_value_none();
     }
 
-    return r_eval_function_run(eval, function, owner, bound, names, parameter_count, span);
+    {
+      RuleforgeValue result;
+      boolean        saved_has_user_call;
+      RuleforgeSpan  saved_user_call_span;
+
+      /* An error raised inside the library is reported where the script called it, not somewhere in a file the user never wrote. */
+      saved_has_user_call  = eval->has_user_call;
+      saved_user_call_span = eval->user_call_span;
+
+      if (!ruleforge_source_get(eval->compilation, eval->module->file)->embedded) {
+        eval->has_user_call  = TRUE;
+        eval->user_call_span = span;
+      }
+
+      if (rf_function_stmt_count_token_kw_intrinsic(function) > 0) {
+        result = r_eval_intrinsic_run(eval, function, owner, bound, parameter_count, span);
+      } else {
+        result = r_eval_function_run(eval, function, owner, bound, names, parameter_count, span);
+      }
+
+      eval->has_user_call  = saved_has_user_call;
+      eval->user_call_span = saved_user_call_span;
+
+      return result;
+    }
   }
+}
+
+/*
+Summary: runs the native code an `intrinsic func` of an embedded standard-library module is bound to, and checks what it returns.
+Description: the binding is by module and function name (`std.math` `Truncate`); a declaration without native code behind it is an error of the
+  engine build, reported as such. The arguments are already bound and type-checked against the declaration, so the native code can rely on them.
+*/
+static RuleforgeValue r_eval_intrinsic_run(REval *eval, RfFunctionStmt function, const RuleforgeModule *owner, const RuleforgeValue *bound,
+                                           uint32 parameter_count, RuleforgeSpan call_span) {
+  const char            *name;
+  const RuleforgeNative *native;
+  RuleforgeValue         result;
+
+  name   = ruleforge_eval_text_get(eval, function.tree, rf_function_stmt_token_identifier(function, 0));
+  native = ruleforge_stdlib_native_find(owner->name, name);
+
+  if (native == NULL) {
+    ruleforge_eval_fail(eval, "RF0393", call_span, "this is a bug of the engine build: the standard library declares a function it has no code for",
+                        "intrinsic `%s.%s` has no native implementation", owner->name, name);
+
+    return ruleforge_value_none();
+  }
+
+  result = native->function(eval, call_span, bound, parameter_count);
+
+  if (!eval->failed && rf_function_stmt_count_rule_type(function) > 0 &&
+      ruleforge_eval_type_kind_get(rf_function_stmt_rule_type(function, 0)) != RTK_VOID) {
+    (void)ruleforge_eval_type_check(eval, &result, rf_function_stmt_rule_type(function, 0), call_span, "the returned value");
+  }
+
+  return result;
 }
 
 /* ---------------------------------------------------------------------------- */
@@ -2174,6 +2199,12 @@ static boolean r_eval_generator(REval *eval, RfGeneratorStmt view) {
     ruleforge_eval_fail(eval, "RF0338", span, NULL, "`%s` is not a variable", name);
 
     return FALSE;
+  }
+
+  if (rf_generator_stmt_count_rule_call_stmt(view) > 0) {
+    (void)r_eval_call(eval, rf_call_stmt_rule_call(rf_generator_stmt_rule_call_stmt(view, 0), 0));
+
+    return !eval->failed;
   }
 
   if (rf_generator_stmt_count_rule_if_stmt(view) > 0) {

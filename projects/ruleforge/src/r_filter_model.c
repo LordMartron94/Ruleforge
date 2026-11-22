@@ -47,8 +47,8 @@ void ruleforge_filter_condition_json_write(const RuleforgeCondition *condition, 
       (void)nexus_strings_string_builder_append_formatted(out, "%lld", (long long)condition->numbers[i]);
     } else if (condition->info->type == RCT_BOOLEAN) {
       (void)nexus_strings_string_builder_append(out, condition->numbers[i] != 0 ? "true" : "false");
-    } else if (condition->info->type == RCT_RARITY) {
-      (void)nexus_json_quote_append(out, ruleforge_manifest_rarity_name_get(condition->numbers[i]));
+    } else if (condition->info->type == RCT_ENUM) {
+      (void)nexus_json_quote_append(out, ruleforge_condition_value_name_get(condition->info, condition->numbers[i]));
     } else {
       (void)nexus_json_quote_append(out, condition->strings[i]);
     }

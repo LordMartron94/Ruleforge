@@ -1,0 +1,364 @@
+version 1.0.0;
+module std.conditions;
+
+/*
+The conditions of Path of Exile item filters that Ruleforge knows: the filter keyword each is written as, what it accepts, whether it can be
+compared with < and >, and where it stands among the conditions of an emitted block (lower first).
+
+A project imports this module to use the conditions (`import std.conditions;`) and writes them by name in `when`, `scope` and
+`coreConditions`. Nothing here is built into the engine: the engine reads these declarations like any others, so when a new filter
+condition appears you declare it in your own module, the same way, without waiting for an engine update:
+
+    module mine;
+    export condition delveDepth {
+        keyword "DelveDepth";
+        accepts int;
+        ordered;
+        order 90;
+    }
+
+`accepts` is int, string (one text or a list of texts), bool, or `enum { A, B, C }` for named values that compare in the order listed.
+Conditions of equal `order` keep the order they were written in.
+*/
+
+
+/* The class of the item, such as "Stackable Currency" or "Body Armours". Several classes may be given as a list. */
+export condition class {
+    keyword "Class";
+    accepts string;
+    order 10;
+}
+
+/* The base type of the item, its name without modifiers, such as "Exalted Orb". Several base types may be given as a list. */
+export condition baseType {
+    keyword "BaseType";
+    accepts string;
+    order 20;
+}
+
+/* The rarity of the item. Rarities compare in the order Normal, Magic, Rare, Unique. */
+export condition rarity {
+    keyword "Rarity";
+    accepts enum { Normal, Magic, Rare, Unique };
+    ordered;
+    order 30;
+}
+
+/* The item level of the dropped item. */
+export condition itemLevel {
+    keyword "ItemLevel";
+    accepts int;
+    ordered;
+    order 40;
+}
+
+/* The area level an item base starts to drop at (its Drop Level), a property of the base type. */
+export condition dropLevel {
+    keyword "DropLevel";
+    accepts int;
+    ordered;
+    order 41;
+}
+
+/* The level of the area the item dropped in. */
+export condition areaLevel {
+    keyword "AreaLevel";
+    accepts int;
+    ordered;
+    order 42;
+}
+
+/* The level of a skill gem. */
+export condition gemLevel {
+    keyword "GemLevel";
+    accepts int;
+    ordered;
+    order 43;
+}
+
+/* The tier of a map. */
+export condition mapTier {
+    keyword "MapTier";
+    accepts int;
+    ordered;
+    order 44;
+}
+
+/* The quality of the item, in percent. */
+export condition quality {
+    keyword "Quality";
+    accepts int;
+    ordered;
+    order 45;
+}
+
+/* The number of items in a stack of stackable items. */
+export condition stackSize {
+    keyword "StackSize";
+    accepts int;
+    ordered;
+    order 46;
+}
+
+/* The height of the item, in inventory slots. */
+export condition height {
+    keyword "Height";
+    accepts int;
+    ordered;
+    order 50;
+}
+
+/* The width of the item, in inventory slots. */
+export condition width {
+    keyword "Width";
+    accepts int;
+    ordered;
+    order 51;
+}
+
+/* The number of sockets of the item. */
+export condition sockets {
+    keyword "Sockets";
+    accepts int;
+    ordered;
+    order 60;
+}
+
+/* The number of sockets in the largest group of linked sockets. */
+export condition linkedSockets {
+    keyword "LinkedSockets";
+    accepts int;
+    ordered;
+    order 61;
+}
+
+/* A group of linked sockets written by colour letters, such as "RGB". */
+export condition socketGroup {
+    keyword "SocketGroup";
+    accepts string;
+    order 62;
+}
+
+/* The name of an explicit modifier the item has. */
+export condition hasExplicitMod {
+    keyword "HasExplicitMod";
+    accepts string;
+    order 70;
+}
+
+/* The name of an implicit modifier the item has. */
+export condition hasImplicitMod {
+    keyword "HasImplicitMod";
+    accepts string;
+    order 71;
+}
+
+/* The name of an enchantment the item has. */
+export condition hasEnchantment {
+    keyword "HasEnchantment";
+    accepts string;
+    order 72;
+}
+
+/* The influence of the item: Shaper, Elder, Crusader, Hunter, Redeemer, Warlord or None. */
+export condition hasInfluence {
+    keyword "HasInfluence";
+    accepts string;
+    order 73;
+}
+
+/* The name of the passive skill a Forbidden-style enchantment allocates. */
+export condition enchantmentPassiveNode {
+    keyword "EnchantmentPassiveNode";
+    accepts string;
+    order 74;
+}
+
+/* The number of passive skills the item's enchantment allocates. */
+export condition enchantmentPassiveNum {
+    keyword "EnchantmentPassiveNum";
+    accepts int;
+    ordered;
+    order 75;
+}
+
+/* The number of implicit modifiers the corruption of the item added. */
+export condition corruptedMods {
+    keyword "CorruptedMods";
+    accepts int;
+    ordered;
+    order 76;
+}
+
+/* The kind of quality a gem has: Superior, Divergent, Anomalous or Phantasmal. */
+export condition gemQualityType {
+    keyword "GemQualityType";
+    accepts string;
+    order 77;
+}
+
+/* How high the base defences of armour rolled, from 0 to 100; 100 is the best possible roll. */
+export condition baseDefencePercentile {
+    keyword "BaseDefencePercentile";
+    accepts int;
+    ordered;
+    order 80;
+}
+
+/* The armour of the item before modifiers. */
+export condition baseArmour {
+    keyword "BaseArmour";
+    accepts int;
+    ordered;
+    order 81;
+}
+
+/* The evasion of the item before modifiers. */
+export condition baseEvasion {
+    keyword "BaseEvasion";
+    accepts int;
+    ordered;
+    order 82;
+}
+
+/* The energy shield of the item before modifiers. */
+export condition baseEnergyShield {
+    keyword "BaseEnergyShield";
+    accepts int;
+    ordered;
+    order 83;
+}
+
+/* The ward of the item before modifiers. */
+export condition baseWard {
+    keyword "BaseWard";
+    accepts int;
+    ordered;
+    order 84;
+}
+
+/* Whether the item is a replica unique. */
+export condition replica {
+    keyword "Replica";
+    accepts bool;
+    order 100;
+}
+
+/* Whether the item is identified. */
+export condition identified {
+    keyword "Identified";
+    accepts bool;
+    order 101;
+}
+
+/* Whether the item is corrupted. */
+export condition corrupted {
+    keyword "Corrupted";
+    accepts bool;
+    order 102;
+}
+
+/* Whether the item is a mirrored copy. */
+export condition mirrored {
+    keyword "Mirrored";
+    accepts bool;
+    order 103;
+}
+
+/* Whether the item has a fractured modifier. */
+export condition fractured {
+    keyword "FracturedItem";
+    accepts bool;
+    order 104;
+}
+
+/* Whether the item is synthesised. */
+export condition synthesised {
+    keyword "SynthesisedItem";
+    accepts bool;
+    order 105;
+}
+
+/* Whether the item has Shaper influence. */
+export condition shaperItem {
+    keyword "ShaperItem";
+    accepts bool;
+    order 106;
+}
+
+/* Whether the item has Elder influence. */
+export condition elderItem {
+    keyword "ElderItem";
+    accepts bool;
+    order 107;
+}
+
+/* Whether the map is a Shaped map. */
+export condition shapedMap {
+    keyword "ShapedMap";
+    accepts bool;
+    order 108;
+}
+
+/* Whether the map is an Elder map. */
+export condition elderMap {
+    keyword "ElderMap";
+    accepts bool;
+    order 109;
+}
+
+/* Whether the map is blighted. */
+export condition blightedMap {
+    keyword "BlightedMap";
+    accepts bool;
+    order 110;
+}
+
+/* Whether the map is uber blighted. */
+export condition uberBlightedMap {
+    keyword "UberBlightedMap";
+    accepts bool;
+    order 111;
+}
+
+/* Whether the item has any enchantment. */
+export condition anyEnchantment {
+    keyword "AnyEnchantment";
+    accepts bool;
+    order 112;
+}
+
+/* Whether the item is scourged. */
+export condition scourged {
+    keyword "ScourgedItem";
+    accepts bool;
+    order 113;
+}
+
+/* Whether the item is a Zana memory. */
+export condition zanaMemory {
+    keyword "ZanaMemory";
+    accepts bool;
+    order 114;
+}
+
+/* Whether the gem is a transfigured gem. */
+export condition transfigured {
+    keyword "TransfiguredGem";
+    accepts bool;
+    order 115;
+}
+
+/* Whether the gem has alternate quality. */
+export condition alternateQuality {
+    keyword "AlternateQuality";
+    accepts bool;
+    order 116;
+}
+
+/* Whether the item has a Crucible passive tree. */
+export condition hasCruciblePassiveTree {
+    keyword "HasCruciblePassiveTree";
+    accepts bool;
+    order 117;
+}

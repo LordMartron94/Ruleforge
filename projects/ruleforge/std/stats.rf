@@ -1,0 +1,81 @@
+version 1.0.0;
+module std.stats;
+
+import std.collections;
+import std.core;
+import std.math;
+
+/*
+Statistics over the numbers of a list, or of one field of its records. A missing value (none, an unpriced item) is left out of every
+statistic: it is not counted as zero.
+*/
+
+/*
+Summary: the places of the widest gaps between neighbouring numbers of a list ordered from high to low.
+Description: gap g lies between item g and item g + 1. The result holds the places of the `cuts` widest gaps in ascending order; of equal
+  gaps the earlier comes first. Cutting a ranked list there splits it into `cuts + 1` groups whose members lie close together, a bounded
+  one-dimensional natural-breaks method. Asking for more cuts than there are gaps gives every gap.
+Params: values  numbers, highest first; cuts  how many gaps to find, from 0
+Errors: RF0515 for a count of cuts outside 0 to 1000000
+*/
+export intrinsic func WidestGaps(values list<number>, cuts int) -> list<int>;
+
+/*
+Summary: the average of the numbers.
+Params: items  a list or dataset; field  the field holding the number when the items are records
+Returns: a float, or none when there is no number at all
+*/
+export func Mean(items any, field string?) -> float? {
+    let numbers = collections.Values($items, $field);
+    let kept = collections.Count(numbers);
+
+    if kept == 0 {
+        return none;
+    }
+
+    var sum = 0.0;
+
+    for term in numbers {
+        sum = sum + term;
+    }
+
+    return sum / kept;
+}
+
+/*
+Summary: the value below which a fraction q of the numbers lie, interpolating between the two nearest.
+Params: items  a list or dataset; q  from 0 (the lowest) to 1 (the highest); field  the field holding the number when the items are records
+Returns: a float, or none when there is no number at all
+Errors: RF0599 when q is outside 0 to 1
+*/
+export func Quantile(items any, q number, field string?) -> float? {
+    if $q < 0 or $q > 1 {
+        core.Fail("stats.Quantile needs q between 0 and 1");
+    }
+
+    let numbers = collections.Sort(collections.Values($items, $field), none, false);
+    let kept = collections.Count(numbers);
+
+    if kept == 0 {
+        return none;
+    }
+
+    let position = $q * (kept - 1);
+    let lower = math.Truncate(position);
+    let fraction = position - lower;
+
+    if lower + 1 >= kept {
+        return numbers[kept - 1];
+    }
+
+    return numbers[lower] + (fraction * (numbers[lower + 1] - numbers[lower]));
+}
+
+/*
+Summary: the middle number: the quantile at 0.5.
+Params: items  a list or dataset; field  the field holding the number when the items are records
+Returns: a float, or none when there is no number at all
+*/
+export func Median(items any, field string?) -> float? {
+    return Quantile($items, 0.5, $field);
+}

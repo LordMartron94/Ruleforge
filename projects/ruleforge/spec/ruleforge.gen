@@ -39,6 +39,9 @@ CONTEXT <ROOT> {
     $keyword(name: $kw_style, text: "style", priority: 10)
     $keyword(name: $kw_list, text: "list", priority: 10)
     $keyword(name: $kw_void, text: "void", priority: 10)
+    $keyword(name: $kw_number, text: "number", priority: 10)
+    $keyword(name: $kw_record, text: "record", priority: 10)
+    $keyword(name: $kw_any, text: "any", priority: 10)
 
     // Compile-time execution
     $keyword(name: $kw_func, text: "func", priority: 10)
@@ -85,6 +88,15 @@ CONTEXT <ROOT> {
     $keyword(name: $kw_include, text: "include", priority: 10)
     $keyword(name: $kw_with, text: "with", priority: 10)
     $keyword(name: $kw_native, text: "native", priority: 10)
+
+    // Declared conditions and intrinsic functions
+    $keyword(name: $kw_condition, text: "condition", priority: 10)
+    $keyword(name: $kw_keyword, text: "keyword", priority: 10)
+    $keyword(name: $kw_accepts, text: "accepts", priority: 10)
+    $keyword(name: $kw_ordered, text: "ordered", priority: 10)
+    $keyword(name: $kw_order, text: "order", priority: 10)
+    $keyword(name: $kw_enum, text: "enum", priority: 10)
+    $keyword(name: $kw_intrinsic, text: "intrinsic", priority: 10)
 
     // Color constructors
     $keyword(name: $kw_rgb, text: "rgb", priority: 10)
@@ -188,7 +200,8 @@ CONTEXT <BLOCK_COMMENT> {
 #scalar_type =
     $kw_int || $kw_float || $kw_bool ||
     $kw_string || $kw_color || $kw_style ||
-    $kw_void || $kw_ruleset
+    $kw_void || $kw_ruleset ||
+    $kw_number || $kw_record || $kw_any
 
 #base_type =
     #scalar_type
@@ -435,9 +448,13 @@ PRATT <#expr> {
     ($kw_where #expr)?
     $lbrace #generator_stmt* $rbrace
 
+// A call whose result is not used, written as a statement: `std.core.Fail("...");`.
+#call_stmt = #call $semicolon
+
 #generator_stmt =
     #variable_stmt ||
     #assignment_stmt ||
+    #call_stmt ||
     #if_stmt ||
     #for_stmt ||
     #return_stmt ||
@@ -470,11 +487,39 @@ PRATT <#expr> {
 // Functions
 // ------------------------------------------------------------
 
+// An intrinsic function has no body: the engine binds it by name to native code. Only the modules embedded in the engine may declare one.
 #function_stmt =
-    $kw_export? $kw_func $identifier
+    $kw_export? $kw_intrinsic? $kw_func $identifier
     $lparen #parameters $rparen
     ($arrow #type)?
-    $lbrace #generator_stmt* $rbrace
+    ($lbrace #generator_stmt* $rbrace || $semicolon)
+
+// ------------------------------------------------------------
+// Declared conditions
+// ------------------------------------------------------------
+
+// What a condition's value is: a number, text (a single value or a list), true/false, or one of named values ordered as listed.
+#condition_accepts =
+    $kw_int || $kw_string || $kw_bool ||
+    $kw_enum $lbrace $identifier ($comma $identifier)* $rbrace
+
+#condition_keyword_item = $kw_keyword $string_literal $semicolon
+
+#condition_accepts_item = $kw_accepts #condition_accepts $semicolon
+
+#condition_ordered_item = $kw_ordered $semicolon
+
+#condition_order_item = $kw_order $integer_literal $semicolon
+
+#condition_item =
+    #condition_keyword_item || #condition_accepts_item ||
+    #condition_ordered_item || #condition_order_item
+
+// A game condition the filter language knows: the filter keyword it is written as, what it accepts, whether it can be compared with
+// < and >, and where it is placed among the conditions of an emitted block (lower first).
+#condition_stmt =
+    $kw_export? $kw_condition $identifier
+    $lbrace #condition_item* $rbrace
 
 // ------------------------------------------------------------
 // Configuration and adapters
@@ -526,6 +571,7 @@ PRATT <#expr> {
     #template_stmt ||
     #ruleset_stmt ||
     #function_stmt ||
+    #condition_stmt ||
     #configuration_stmt
 
 #script =

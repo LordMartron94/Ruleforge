@@ -1,5 +1,6 @@
 version 1.0.0;
 module adapting;
+import std.conditions;
 
 // The rules are written against Base. The theme only knows Legacy; the adapter says which of its styles serves which Base key.
 themeSchema Base { big; small; }

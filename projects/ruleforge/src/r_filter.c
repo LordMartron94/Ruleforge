@@ -23,6 +23,37 @@ static RuleforgeBlock *r_filter_block_create(RuleforgeCompilation *compilation, 
   return block;
 }
 
+/*
+Summary: puts the conditions of a block in the order their declarations ask for: by `order`, and by where they were declared when equal.
+Description: stable, and short lists only, so an insertion sort. The same filter written with the conditions in another order is the same filter.
+*/
+static void r_filter_conditions_sort(RuleforgeCondition **conditions, uint32 count) {
+  uint32 i;
+  uint32 j;
+
+  for (i = 1; i < count; i++) {
+    RuleforgeCondition *moving;
+
+    moving = conditions[i];
+
+    for (j = i; j > 0; j--) {
+      const RuleforgeConditionInfo *before;
+      const RuleforgeConditionInfo *after;
+
+      before = conditions[j - 1]->info;
+      after  = moving->info;
+
+      if (before->order < after->order || (before->order == after->order && before->declaration <= after->declaration)) {
+        break;
+      }
+
+      conditions[j] = conditions[j - 1];
+    }
+
+    conditions[j] = moving;
+  }
+}
+
 RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const RuleforgeRuleset *ruleset) {
   RuleforgeFilter *filter;
   NexusDataList   *blocks;
@@ -81,6 +112,8 @@ RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const
         for (m = 0; !variant->terminal && m < variant->clauses[k].count; m++) {
           block->conditions[rule->scope.count + m] = variant->clauses[k].conditions[m];
         }
+
+        r_filter_conditions_sort(block->conditions, block->condition_count);
       }
 
       if (variant->terminal) {
@@ -98,6 +131,8 @@ RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const
       block->style           = rule->style;
       block->condition_count = rule->scope.count;
       block->conditions      = rule->scope.conditions;
+
+      r_filter_conditions_sort(block->conditions, block->condition_count);
     }
   }
 
@@ -136,8 +171,8 @@ static void r_filter_condition_write(const RuleforgeCondition *condition, NexusS
   for (i = 0; i < condition->count; i++) {
     if (condition->info->type == RCT_INTEGER) {
       (void)nexus_strings_string_builder_append_formatted(out, " %lld", (long long)condition->numbers[i]);
-    } else if (condition->info->type == RCT_RARITY) {
-      (void)nexus_strings_string_builder_append_formatted(out, " %s", ruleforge_manifest_rarity_name_get(condition->numbers[i]));
+    } else if (condition->info->type == RCT_ENUM) {
+      (void)nexus_strings_string_builder_append_formatted(out, " %s", ruleforge_condition_value_name_get(condition->info, condition->numbers[i]));
     } else {
       (void)nexus_strings_string_builder_append_formatted(out, " \"%s\"", condition->strings[i]);
     }

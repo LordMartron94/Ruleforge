@@ -1,3 +1,4 @@
 version 1.0.0;
 module t;
+import std.conditions;
 export func main() { let x = areaLevel + 1; }

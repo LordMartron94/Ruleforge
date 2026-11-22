@@ -16,6 +16,8 @@ static void c_main_usage(void) {
   (void)nexus_stdio_stderr_write_cstring("  check      parse the file and its imports; report diagnostics only\n");
   (void)nexus_stdio_stderr_write_cstring("  compile    run main and write the item filter (and with --model the structured model)\n");
   (void)nexus_stdio_stderr_write_cstring("  simulate   compile, then run the items of --items through the filter and explain each result\n");
+  (void)nexus_stdio_stderr_write_cstring(
+      "  eval       evaluate expressions (-e) after importing modules (--import), optionally in the context of a project file\n");
   (void)nexus_stdio_stderr_write_cstring("  tokens     write the lexical tokens of the file as JSON (for editors)\n");
   (void)nexus_stdio_stderr_write_cstring("  manifest   write everything the engine can express as JSON (conditions, properties, standard library)\n");
   (void)nexus_stdio_stderr_write_cstring("  version    print the engine version\n\noptions:\n");
@@ -111,6 +113,10 @@ int main(int argument_count, char **arguments) {
   const char              *output;
   const char              *model;
   const char              *items;
+  const char              *expressions[512];
+  const char              *imports[64];
+  uint32                   expression_count;
+  uint32                   import_count;
   boolean                  json_diagnostics;
   boolean                  ok;
   char                    *text;
@@ -124,18 +130,7 @@ int main(int argument_count, char **arguments) {
     return 0;
   }
 
-  if (argument_count >= 2 && nexus_strings_string_equals(arguments[1], "manifest")) {
-    char *manifest;
-
-    manifest = ruleforge_manifest_json_write();
-    (void)nexus_stdio_stdout_write_cstring(manifest);
-    (void)nexus_stdio_stdout_write_cstring("\n");
-    nexus_memory_deallocate(manifest);
-
-    return 0;
-  }
-
-  if (argument_count < 3) {
+  if (argument_count < 3 && !(argument_count == 2 && nexus_strings_string_equals(arguments[1], "manifest"))) {
     c_main_usage();
 
     return 2;
@@ -167,6 +162,8 @@ int main(int argument_count, char **arguments) {
   output           = NULL;
   model            = NULL;
   items            = NULL;
+  expression_count = 0;
+  import_count     = 0;
   json_diagnostics = FALSE;
   result           = 0;
 
@@ -218,6 +215,11 @@ int main(int argument_count, char **arguments) {
       model = arguments[++i];
     } else if (nexus_strings_string_equals(arguments[i], "--items") && i + 1 < argument_count) {
       items = arguments[++i];
+    } else if ((nexus_strings_string_equals(arguments[i], "-e") || nexus_strings_string_equals(arguments[i], "--expr")) && i + 1 < argument_count &&
+               expression_count < 512) {
+      expressions[expression_count++] = arguments[++i];
+    } else if (nexus_strings_string_equals(arguments[i], "--import") && i + 1 < argument_count && import_count < 64) {
+      imports[import_count++] = arguments[++i];
     } else if (arguments[i][0] == '-') {
       (void)nexus_stdio_stderr_write_formatted("ruleforge: unknown option %s\n", arguments[i]);
       result = 2;
@@ -226,14 +228,15 @@ int main(int argument_count, char **arguments) {
     }
   }
 
-  if (result == 0 && file == NULL) {
+  if (result == 0 && file == NULL && !nexus_strings_string_equals(command, "eval") && !nexus_strings_string_equals(command, "manifest")) {
     c_main_usage();
     result = 2;
   }
 
   if (result == 0 && !nexus_strings_string_equals(command, "ast") && !nexus_strings_string_equals(command, "themes") &&
       !nexus_strings_string_equals(command, "check") && !nexus_strings_string_equals(command, "compile") &&
-      !nexus_strings_string_equals(command, "simulate") && !nexus_strings_string_equals(command, "tokens")) {
+      !nexus_strings_string_equals(command, "simulate") && !nexus_strings_string_equals(command, "tokens") &&
+      !nexus_strings_string_equals(command, "eval") && !nexus_strings_string_equals(command, "manifest")) {
     (void)nexus_stdio_stderr_write_formatted("ruleforge: unknown command %s\n", command);
     result = 2;
   }
@@ -243,7 +246,48 @@ int main(int argument_count, char **arguments) {
     result = 2;
   }
 
-  if (result == 0 && nexus_strings_string_equals(command, "tokens")) {
+  if (result == 0 && nexus_strings_string_equals(command, "manifest")) {
+    text = ruleforge_manifest_json_write(runtime);
+    (void)nexus_stdio_stdout_write_cstring(text);
+    (void)nexus_stdio_stdout_write_cstring("\n");
+    nexus_memory_deallocate(text);
+  } else if (result == 0 && nexus_strings_string_equals(command, "eval")) {
+    uint32 index;
+
+    if (expression_count == 0) {
+      (void)nexus_stdio_stderr_write_cstring("ruleforge: eval needs at least one -e EXPRESSION\n");
+      result = 2;
+    }
+
+    ok = TRUE;
+
+    if (result == 0 && file != NULL) {
+      ok = ruleforge_compilation_file_add(compilation, file);
+    }
+
+    /* One JSON value per line, in order; an expression that fails prints null and is reported in the diagnostics. */
+    for (index = 0; result == 0 && ok && index < expression_count; index++) {
+      char *json;
+
+      if (ruleforge_compilation_expression_evaluate(compilation, settings, imports, import_count, expressions[index], &json)) {
+        (void)nexus_stdio_stdout_write_cstring(json);
+        (void)nexus_stdio_stdout_write_cstring("\n");
+        nexus_memory_deallocate(json);
+      } else {
+        ok = FALSE;
+      }
+    }
+
+    if (result == 0 && ruleforge_compilation_diagnostic_count_get(compilation) > 0) {
+      text = json_diagnostics ? ruleforge_compilation_diagnostics_json_write(compilation) : ruleforge_compilation_diagnostics_text_write(compilation);
+      (void)(json_diagnostics ? nexus_stdio_stdout_write_cstring(text) : nexus_stdio_stderr_write_cstring(text));
+      nexus_memory_deallocate(text);
+    }
+
+    if (result == 0 && !ok) {
+      result = 1;
+    }
+  } else if (result == 0 && nexus_strings_string_equals(command, "tokens")) {
     char *source;
 
     source = c_main_file_read(file);

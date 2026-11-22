@@ -185,16 +185,87 @@ static boolean r_condition_or(REval *eval, const RuleforgeDnf *left, const Rulef
 /* ---------------------------------------------------------------------------- */
 
 /*
-Summary: the name of the game condition an expression is, or NULL.
-Description: a game name is a bare reference to a manifest condition such as `rarity`, not `rarity.x`. Locals and declarations shadow it.
+Summary: the conditions a module can use, found by name: its own declarations first, then the exports of its imports.
+Description: a name exported by two imports is ambiguous and is reported once, where it is used.
 */
-static const char *r_condition_game_name_get(REval *eval, RfExpr view) {
-  RfAtom             atom;
-  RfIndexedReference indexed;
-  RfReference        reference;
-  const char        *name;
-  RuleforgeValue     value;
-  RuleforgeModule   *owner;
+const char *ruleforge_condition_value_name_get(const RuleforgeConditionInfo *info, int64 value) {
+  NEXUS_PROGRAM_PRECONDITION(info != NULL && value >= 0 && value < (int64)info->value_count,
+                             "ruleforge_condition_value_name_get: value out of range");
+
+  return info->values[value];
+}
+
+const RuleforgeConditionInfo *ruleforge_condition_find(REval *eval, const RuleforgeModule *module, const char *name) {
+  const RuleforgeDeclaration   *declaration;
+  const RuleforgeConditionInfo *found;
+  uint32                        i;
+
+  declaration = ruleforge_compilation_declaration_find(module, name);
+
+  if (declaration != NULL && declaration->condition != NULL) {
+    return declaration->condition;
+  }
+
+  found = NULL;
+
+  for (i = 0; i < module->import_count; i++) {
+    const RuleforgeModule *imported;
+
+    imported    = ruleforge_compilation_module_find(eval->compilation, module->imports[i]);
+    declaration = imported == NULL ? NULL : ruleforge_compilation_declaration_find(imported, name);
+
+    if (declaration != NULL && declaration->condition != NULL && declaration->exported) {
+      if (found != NULL && found != declaration->condition) {
+        ruleforge_eval_fail(eval, "RF0310", ruleforge_span_make(module->file, 0, 0),
+                            "import only one of the modules, or rename one of the conditions",
+                            "the condition `%s` is declared by more than one import", name);
+
+        return NULL;
+      }
+
+      found = declaration->condition;
+    }
+  }
+
+  return found;
+}
+
+uint32 ruleforge_condition_names_get(const REval *eval, const RuleforgeModule *module, const char **names, uint32 limit) {
+  uint32 count;
+  uint32 i;
+  uint32 j;
+
+  count = 0;
+
+  for (i = 0; i <= module->import_count; i++) {
+    const RuleforgeModule *source;
+
+    source = i == 0 ? module : ruleforge_compilation_module_find(eval->compilation, module->imports[i - 1]);
+
+    for (j = 0; source != NULL && j < source->declaration_count && count < limit; j++) {
+      if (source->declarations[j].condition != NULL && (i == 0 || source->declarations[j].exported)) {
+        names[count++] = source->declarations[j].name;
+      }
+    }
+  }
+
+  return count;
+}
+
+/*
+Summary: the condition an expression is, or NULL.
+Description: a game condition is a bare reference to a declared condition such as `rarity`, not `rarity.x`. Locals shadow it, and so do
+  declarations other than conditions.
+*/
+static const RuleforgeConditionInfo *r_condition_game_info_get(REval *eval, RfExpr view) {
+  RfAtom                        atom;
+  RfIndexedReference            indexed;
+  RfReference                   reference;
+  const char                   *name;
+  RuleforgeValue                value;
+  RuleforgeModule              *owner;
+  const RuleforgeDeclaration   *declaration;
+  const RuleforgeConditionInfo *info;
 
   if (rf_expr_operand_count(view) != 0) {
     return NULL;
@@ -220,16 +291,19 @@ static const char *r_condition_game_name_get(REval *eval, RfExpr view) {
   }
 
   name = ruleforge_eval_text_get(eval, reference.tree, rf_reference_token_identifier(reference, 0));
+  info = ruleforge_condition_find(eval, eval->module, name);
 
-  if (ruleforge_manifest_condition_find(name) == NULL) {
+  if (info == NULL || ruleforge_eval_variable_find(eval, name, FALSE, &value)) {
     return NULL;
   }
 
-  if (ruleforge_eval_variable_find(eval, name, FALSE, &value) || ruleforge_eval_symbol_find(eval, eval->module, name, &owner) != NULL) {
+  declaration = ruleforge_eval_symbol_find(eval, eval->module, name, &owner);
+
+  if (declaration != NULL && declaration->condition == NULL) {
     return NULL;
   }
 
-  return name;
+  return info;
 }
 
 /* Summary: builds the condition `info operation value`; reports a value of the wrong type or an operator the condition lacks. */
@@ -291,18 +365,38 @@ static RuleforgeCondition *r_condition_make(REval *eval, RuleforgeSpan span, con
       }
 
       condition->numbers[i] = single.as.flag ? 1 : 0;
-    } else if (info->type == RCT_RARITY) {
-      int32 rarity;
+    } else if (info->type == RCT_ENUM) {
+      int32 named;
+      int32 position;
 
-      rarity = single.kind == RVK_STRING ? ruleforge_manifest_rarity_parse(single.as.string) : -1;
+      named = -1;
 
-      if (rarity < 0) {
-        ruleforge_eval_fail(eval, "RF0356", span, "rarities: Normal, Magic, Rare, Unique", "`%s` needs a rarity name", info->name);
+      for (position = 0; single.kind == RVK_STRING && position < (int32)info->value_count; position++) {
+        if (nexus_strings_string_equals(info->values[position], single.as.string)) {
+          named = position;
+        }
+      }
+
+      if (named < 0) {
+        NexusStringBuilder known;
+        const char        *note;
+
+        known = nexus_strings_string_builder_create_growable(64);
+        (void)nexus_strings_string_builder_append(&known, "the values are");
+
+        for (position = 0; position < (int32)info->value_count; position++) {
+          (void)nexus_strings_string_builder_append_formatted(&known, "%s %s", position > 0 ? "," : "", info->values[position]);
+        }
+
+        note = nexus_data_arena_text_copy(&eval->compilation->arena, nexus_strings_string_builder_string_get(&known),
+                                          nexus_strings_string_builder_length_get(&known));
+        nexus_strings_string_builder_destroy(&known);
+        ruleforge_eval_fail(eval, "RF0356", span, note, "`%s` needs one of its named values", info->name);
 
         return NULL;
       }
 
-      condition->numbers[i] = rarity;
+      condition->numbers[i] = named;
     } else {
       if (single.kind != RVK_STRING) {
         ruleforge_eval_fail(eval, "RF0355", span, NULL, "`%s` is compared with a %s, but needs a string", info->name,
@@ -333,20 +427,15 @@ boolean ruleforge_condition_scope_build(REval *eval, RfScopeAssignment assignmen
   *out_condition = NULL;
   key            = ruleforge_syntax_name_get(eval->compilation, rf_scope_assignment_rule_qualified_name(assignment, 0));
   span           = ruleforge_eval_span_get(eval, assignment.tree, assignment.node);
-  info           = ruleforge_manifest_condition_find(key);
+  info           = ruleforge_condition_find(eval, eval->module, key);
 
   if (info == NULL) {
     const char *closest;
     char        note[200];
-    uint32      i;
     const char *names[128];
     uint32      count;
 
-    count = ruleforge_manifest_condition_count_get();
-
-    for (i = 0; i < count && i < 128; i++) {
-      names[i] = ruleforge_manifest_condition_at(i)->name;
-    }
+    count = ruleforge_condition_names_get(eval, eval->module, names, 128);
 
     closest = nexus_strings_string_closest(key, names, count);
 
@@ -355,7 +444,7 @@ boolean ruleforge_condition_scope_build(REval *eval, RfScopeAssignment assignmen
     }
 
     ruleforge_eval_fail(eval, "RF0357", span,
-                        closest == NULL ? "see docs/manifest.md for the conditions"
+                        closest == NULL ? "import the module that declares it, such as `import std.conditions;`, or declare it with `condition`"
                                         : nexus_data_arena_text_copy(&eval->compilation->arena, note, nexus_strings_string_length_get(note)),
                         "`%s` is not a game condition", key);
 
@@ -404,13 +493,13 @@ static boolean r_condition_operator_get(LLexerTokenKind kind, RuleforgeOperator 
 }
 
 boolean ruleforge_condition_evaluate(REval *eval, RfExpr view, boolean negate, RuleforgeDnf *out) {
-  RuleforgeDnf      left;
-  RuleforgeDnf      right;
-  uint32            operands;
-  LLexerTokenKind   kind;
-  RuleforgeSpan     span;
-  const char       *game_name;
-  RuleforgeOperator operator_value;
+  RuleforgeDnf                  left;
+  RuleforgeDnf                  right;
+  uint32                        operands;
+  LLexerTokenKind               kind;
+  RuleforgeSpan                 span;
+  const RuleforgeConditionInfo *game_info;
+  RuleforgeOperator             operator_value;
 
   span     = ruleforge_eval_span_get(eval, view.tree, view.node);
   operands = rf_expr_operand_count(view);
@@ -449,23 +538,23 @@ boolean ruleforge_condition_evaluate(REval *eval, RfExpr view, boolean negate, R
   }
 
   if (operands == 2 && r_condition_operator_get(kind, &operator_value)) {
-    const char *left_name;
-    const char *right_name;
+    const RuleforgeConditionInfo *left_info;
+    const RuleforgeConditionInfo *right_info;
 
-    left_name  = r_condition_game_name_get(eval, rf_expr_operand(view, 0));
-    right_name = r_condition_game_name_get(eval, rf_expr_operand(view, 1));
+    left_info  = r_condition_game_info_get(eval, rf_expr_operand(view, 0));
+    right_info = r_condition_game_info_get(eval, rf_expr_operand(view, 1));
 
-    if (left_name != NULL && right_name != NULL) {
+    if (left_info != NULL && right_info != NULL) {
       ruleforge_eval_fail(eval, "RF0358", span, NULL, "a condition cannot compare two game values");
 
       return FALSE;
     }
 
-    if (left_name != NULL || right_name != NULL) {
+    if (left_info != NULL || right_info != NULL) {
       RuleforgeValue      value;
       RuleforgeCondition *condition;
 
-      if (right_name != NULL) {
+      if (right_info != NULL) {
         operator_value = r_condition_operator_flip(operator_value);
       }
 
@@ -473,13 +562,13 @@ boolean ruleforge_condition_evaluate(REval *eval, RfExpr view, boolean negate, R
         operator_value = r_condition_operator_negate(operator_value);
       }
 
-      value = ruleforge_eval_expression(eval, rf_expr_operand(view, left_name != NULL ? 1 : 0));
+      value = ruleforge_eval_expression(eval, rf_expr_operand(view, left_info != NULL ? 1 : 0));
 
       if (eval->failed) {
         return FALSE;
       }
 
-      condition = r_condition_make(eval, span, ruleforge_manifest_condition_find(left_name != NULL ? left_name : right_name), operator_value, &value);
+      condition = r_condition_make(eval, span, left_info != NULL ? left_info : right_info, operator_value, &value);
 
       if (condition == NULL) {
         return FALSE;
@@ -491,14 +580,14 @@ boolean ruleforge_condition_evaluate(REval *eval, RfExpr view, boolean negate, R
     }
   }
 
-  game_name = r_condition_game_name_get(eval, view);
+  game_info = r_condition_game_info_get(eval, view);
 
-  if (game_name != NULL) {
+  if (game_info != NULL) {
     const RuleforgeConditionInfo *info;
     RuleforgeValue                truth;
     RuleforgeCondition           *condition;
 
-    info = ruleforge_manifest_condition_find(game_name);
+    info = game_info;
 
     if (info->type != RCT_BOOLEAN) {
       ruleforge_eval_fail(eval, "RF0359", span, "compare it with a value, e.g. `rarity == \"Rare\"`", "`%s` is not a true/false condition",

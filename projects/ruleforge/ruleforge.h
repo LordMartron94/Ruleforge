@@ -207,6 +207,18 @@ Errors: NULL compilation asserts.
 extern boolean ruleforge_compilation_compile(RuleforgeCompilation *compilation, const RuleforgeSettings *settings);
 
 /*
+Summary: evaluates one expression, as a script would write it, and writes its value as JSON.
+Description: the expression is evaluated in a module of its own that imports the given modules (the standard library as `std.math`, or
+  modules of the loaded project), so `math.Floor(3.9)` works after importing std.math. It runs under the same limits as a compile.
+  Evaluating is how the host asks the engine for the answer of a library function, so the answer cannot differ from the script's.
+Params: imports  module names to import, or NULL; settings  the limits and compile-time values, or NULL for the defaults;
+        out_json  the value as JSON, owned by the caller (release with nexus_memory_deallocate); NULL when the evaluation failed
+Returns: FALSE after reporting diagnostics when the expression does not parse or fails
+*/
+extern boolean ruleforge_compilation_expression_evaluate(RuleforgeCompilation *compilation, const RuleforgeSettings *settings, const char *const *imports,
+                                                         uint32 import_count, const char *expression, char **out_json);
+
+/*
 Summary: the filter text produced by ruleforge_compilation_compile.
 Returns: a string borrowed from the compilation, or NULL when no filter was produced.
 */
@@ -252,4 +264,4 @@ Summary: everything the engine can express, as JSON: game conditions, style prop
 Description: the editor builds completion and hover help from this, so it can never list something the compiler rejects.
 Returns: a NUL-terminated string owned by the caller; release with nexus_memory_deallocate.
 */
-extern char *ruleforge_manifest_json_write(void);
+extern char *ruleforge_manifest_json_write(RuleforgeRuntime *runtime);

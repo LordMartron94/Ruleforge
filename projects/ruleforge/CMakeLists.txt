@@ -14,6 +14,12 @@ set(ruleforge_grammars
 ruleforge_embed("${ruleforge_embedded_grammar}" "ruleforge_data" ${ruleforge_grammars})
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${ruleforge_grammars})
 
+# The standard library is Ruleforge: std/<name>.rf is the module std.<name>, embedded so the engine needs no files at run time.
+file(GLOB ruleforge_std_modules CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/std/*.rf")
+set(ruleforge_embedded_std "${CMAKE_CURRENT_BINARY_DIR}/r_std_data.c")
+ruleforge_embed_modules("${ruleforge_embedded_std}" "ruleforge_std" ${ruleforge_std_modules})
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${ruleforge_std_modules})
+
 # The typed syntax bindings are generated from the grammar by `genesis bind`, never written by hand.
 include("${PROJECT_SOURCE_DIR}/libs/logos/cmake/LogosGenesis.cmake")
 # Ruleforge's own syntax, and the formats its datasets and settings are written in, all read through generated views.
@@ -37,13 +43,30 @@ logos_genesis_bindings(ruleforge_csv_bindings
     OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
 set(ruleforge_bindings_directory "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
 
+# The Sublime Text syntax of Ruleforge, generated from the same grammar and mapping, so it cannot differ from the language. It is rebuilt
+# whenever spec/ruleforge.gen, spec/ruleforge.mapping or a grammar it imports changes, and written to LOGOS_SUBLIME_PACKAGE_DIRECTORY
+# (for example ~/.config/sublime-text/Packages/User) when that is set, so a build keeps the editor current.
+logos_genesis_sublime(ruleforge_sublime
+    GRAMMAR "${CMAKE_CURRENT_SOURCE_DIR}/spec/ruleforge.gen"
+    INCLUDE "${ruleforge_logos_stdlib}"
+    INSTALL_DIRECTORY "${LOGOS_SUBLIME_PACKAGE_DIRECTORY}")
+# Genesis writes the syntax; the comment shortcuts of the editor (Ctrl+/) are this file next to the grammar, kept current the same way.
+if(LOGOS_SUBLIME_PACKAGE_DIRECTORY)
+    set(ruleforge_comments_source "${CMAKE_CURRENT_SOURCE_DIR}/spec/Comments (Ruleforge).tmPreferences")
+    add_custom_target(ruleforge_sublime_comments ALL
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${ruleforge_comments_source}" "${LOGOS_SUBLIME_PACKAGE_DIRECTORY}/Comments (Ruleforge).tmPreferences"
+        DEPENDS "${ruleforge_comments_source}"
+        COMMENT "Installing the Ruleforge comment settings for Sublime Text"
+        VERBATIM)
+endif()
+
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" ruleforge_version LIMIT_COUNT 1)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION")
 
 file(GLOB_RECURSE ruleforge_sources CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
-add_library(ruleforge STATIC ${ruleforge_sources} "${ruleforge_embedded_grammar}")
+add_library(ruleforge STATIC ${ruleforge_sources} "${ruleforge_embedded_grammar}" "${ruleforge_embedded_std}")
 add_library(Ruleforge::Ruleforge ALIAS ruleforge)
 add_dependencies(ruleforge ruleforge_syntax_bindings ruleforge_json_bindings ruleforge_toml_bindings ruleforge_csv_bindings)
 target_compile_definitions(ruleforge PRIVATE RULEFORGE_VERSION="${ruleforge_version}")
@@ -77,6 +100,16 @@ if(BUILD_TESTING)
         COMMAND ruleforge_cli compile "${CMAKE_CURRENT_SOURCE_DIR}/tests/adapters/adapter.rf")
     set_tests_properties(ruleforge_adapter_theme PROPERTIES
         PASS_REGULAR_EXPRESSION "Exalted Orb\"[^#]*SetBackgroundColor 255 0 0.*Scroll of Wisdom\"[^#]*SetBackgroundColor 0 255 0")
+    # The standard library is Ruleforge; each function of it is checked through `ruleforge eval` against known results.
+    add_test(NAME ruleforge_std_cases
+        COMMAND "${CMAKE_COMMAND}" -DRULEFORGE=$<TARGET_FILE:ruleforge_cli>
+            -DDIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/tests/std
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/run_std_cases.cmake")
+    # A condition declared in a project is a condition like the built-in ones, and is placed in a block by its declared `order`.
+    add_test(NAME ruleforge_condition_custom
+        COMMAND ruleforge_cli compile "${CMAKE_CURRENT_SOURCE_DIR}/tests/conditions/custom.rf")
+    set_tests_properties(ruleforge_condition_custom PROPERTIES
+        PASS_REGULAR_EXPRESSION "DelveDepth >= 3[^#]*League == Settlers[^#]*BaseType == \"Exalted Orb\"")
     file(GLOB ruleforge_error_cases CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/errors/*.rf")
     foreach(case IN LISTS ruleforge_error_cases)
         get_filename_component(case_name "${case}" NAME_WE)
