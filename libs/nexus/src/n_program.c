@@ -1,20 +1,13 @@
-/* On Windows the C runtime headers pull in memcpy/memset, which nexus.h poisons, so they come first there. */
-#ifdef _WIN32
-#  include <setjmp.h>
-#  include <stdio.h>
-#  include <stdlib.h>
-#endif
+/* The C runtime headers (on Windows <strings.h> and <stdlib.h> include <string.h>) declare memcpy/memset, which nexus.h poisons,
+   so they come first. */
+#include <setjmp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
 
 #include "../nexus.h"
 
 #include <stb_sprintf.h>
-
-#ifndef _WIN32
-#  include <setjmp.h>
-#  include <stdlib.h>
-#  include <stdio.h>
-#endif
-#include <strings.h>
 
 /* <string.h> declares memcpy/memset, which nexus.h poisons outside n_memory.c (its one
    permitted implementation file) -- forward-declared alone here instead of pulling in the
