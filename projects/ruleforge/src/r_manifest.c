@@ -114,8 +114,8 @@ const char *ruleforge_manifest_rarity_name_get(int64 rarity) {
   return r_manifest_rarities[rarity];
 }
 
-const char *ruleforge_manifest_operator_text_get(RuleforgeOperator op) {
-  switch (op) {
+const char *ruleforge_manifest_operator_text_get(RuleforgeOperator operation) {
+  switch (operation) {
   case ROP_EQ:
     return "==";
   case ROP_NE:
@@ -356,8 +356,12 @@ char *ruleforge_manifest_json_write(void) {
       (void)nexus_strings_string_builder_append(&out, ",");
     }
 
-    (void)nexus_strings_string_builder_append_formatted(&out, "{\"name\":\"%s\",\"keyword\":\"%s\",\"type\":\"%s\",\"ordered\":%s}", info->name, info->keyword,
-                                                        info->type == RCT_INTEGER ? "int" : info->type == RCT_STRING ? "string" : info->type == RCT_BOOLEAN ? "bool" : "rarity",
+    (void)nexus_strings_string_builder_append_formatted(&out, "{\"name\":\"%s\",\"keyword\":\"%s\",\"type\":\"%s\",\"ordered\":%s}", info->name,
+                                                        info->keyword,
+                                                        info->type == RCT_INTEGER   ? "int"
+                                                        : info->type == RCT_STRING  ? "string"
+                                                        : info->type == RCT_BOOLEAN ? "bool"
+                                                                                    : "rarity",
                                                         info->ordered ? "true" : "false");
   }
 
@@ -368,7 +372,8 @@ char *ruleforge_manifest_json_write(void) {
       (void)nexus_strings_string_builder_append(&out, ",");
     }
 
-    (void)nexus_strings_string_builder_append_formatted(&out, "{\"name\":\"%s\",\"keyword\":\"%s\",\"signature\":", r_manifest_properties[i].name, r_manifest_properties[i].keyword);
+    (void)nexus_strings_string_builder_append_formatted(&out, "{\"name\":\"%s\",\"keyword\":\"%s\",\"signature\":", r_manifest_properties[i].name,
+                                                        r_manifest_properties[i].keyword);
     (void)nexus_json_quote_append(&out, r_manifest_properties[i].signature);
     (void)nexus_strings_string_builder_append(&out, ",\"summary\":");
     (void)nexus_json_quote_append(&out, r_manifest_properties[i].summary);

@@ -198,7 +198,24 @@ func (e Engine) AST(ctx context.Context, req Request) (json.RawMessage, []Diagno
 	}
 	trimmed := bytes.TrimSpace(stdout)
 	// Diagnostics (warnings) precede the document when both are present.
-	if index := bytes.Index(trimmed, []byte("{\"format\":\"ruleforge-ast\"")); index >= 0 {
+	if index := bytes.Index(trimmed, []byte("{\"format\":\"ruleforge-syntax\"")); index >= 0 {
+		return json.RawMessage(trimmed[index:]), parseDiagnostics(trimmed[:index]), nil
+	}
+	return nil, parseDiagnostics(stdout), nil
+}
+
+// Themes returns the themes and color sets of the entry and its imports, interpreted by the engine, with the byte span of every color.
+func (e Engine) Themes(ctx context.Context, req Request) (json.RawMessage, []Diagnostic, error) {
+	args := append([]string{"themes", req.Entry, "--json"}, req.arguments()...)
+	stdout, _, status, err := e.run(ctx, req.Dir, args...)
+	if err != nil {
+		return nil, nil, err
+	}
+	if status != 0 {
+		return nil, parseDiagnostics(stdout), nil
+	}
+	trimmed := bytes.TrimSpace(stdout)
+	if index := bytes.Index(trimmed, []byte("{\"format\":\"ruleforge-themes\"")); index >= 0 {
 		return json.RawMessage(trimmed[index:]), parseDiagnostics(trimmed[:index]), nil
 	}
 	return nil, parseDiagnostics(stdout), nil

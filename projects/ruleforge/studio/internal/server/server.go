@@ -65,6 +65,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/compile", s.handleCompile)
 	mux.HandleFunc("POST /api/simulate", s.handleSimulate)
 	mux.HandleFunc("GET /api/ast", s.handleAST)
+	mux.HandleFunc("GET /api/themes", s.handleThemes)
 	mux.HandleFunc("POST /api/tokens", s.handleTokens)
 	mux.HandleFunc("GET /api/manifest", s.handleManifest)
 	mux.HandleFunc("GET /api/update/check", s.handleUpdateCheck)
@@ -378,6 +379,17 @@ func (s *Server) handleAST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": ast != nil, "ast": ast, "diagnostics": diagnostics})
+}
+
+func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+	themes, diagnostics, err := s.Engine.Themes(ctx, s.request())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": themes != nil, "themes": themes, "diagnostics": diagnostics})
 }
 
 func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {

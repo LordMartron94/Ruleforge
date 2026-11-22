@@ -2,6 +2,7 @@
 #include <echo.h>
 
 #include <logos.h>
+#include <rf_bindings.h>
 
 #include "../ruleforge.h"
 #include "./r_internal.h"
@@ -22,6 +23,25 @@ RuleforgeCompilation *ruleforge_compilation_create(RuleforgeRuntime *runtime) {
   compilation->diagnostics = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 16);
   compilation->search      = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 4);
   compilation->modules     = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 16);
+
+  {
+    NexusDataHashMapConfig configuration;
+    NexusError            *error;
+
+    nexus_data_hashmap_config_initialize(&configuration, NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, NEXUS_EFFECTIVE_POINTER_SIZE_BYTES);
+    error = nexus_data_hashmap_create(&configuration, &compilation->interned);
+
+    if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+      NEXUS_PROGRAM_PANIC_ERROR(error);
+    }
+
+    error = nexus_data_hashmap_create(&configuration, &compilation->strings);
+
+    if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+      NEXUS_PROGRAM_PANIC_ERROR(error);
+    }
+  }
+
   compilation->error_count = 0;
   compilation->datasets    = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 8);
 
@@ -29,8 +49,16 @@ RuleforgeCompilation *ruleforge_compilation_create(RuleforgeRuntime *runtime) {
 }
 
 void ruleforge_compilation_destroy(RuleforgeCompilation *compilation) {
+  uint_large i;
+
   NEXUS_PROGRAM_PRECONDITION(compilation != NULL, "ruleforge_compilation_destroy: NULL compilation");
 
+  for (i = 0; i < nexus_data_list_length_get(compilation->modules); i++) {
+    logos_language_tooling_parsing_syntax_tree_destroy(((RuleforgeModule *)nexus_data_list_pointer_at(compilation->modules, i))->tree);
+  }
+
+  nexus_data_hashmap_destroy(compilation->interned);
+  nexus_data_hashmap_destroy(compilation->strings);
   nexus_data_list_destroy(compilation->files);
   nexus_data_list_destroy(compilation->diagnostics);
   nexus_data_list_destroy(compilation->search);
@@ -54,8 +82,22 @@ RuleforgeModule *ruleforge_compilation_module_find(const RuleforgeCompilation *c
   for (i = 0; i < nexus_data_list_length_get(compilation->modules); i++) {
     module = (RuleforgeModule *)nexus_data_list_pointer_at(compilation->modules, i);
 
-    if (module->ast != NULL && module->ast->text != NULL && nexus_strings_string_equals(module->ast->text, name)) {
+    if (module->name != NULL && nexus_strings_string_equals(module->name, name)) {
       return module;
+    }
+  }
+
+  return NULL;
+}
+
+const RuleforgeDeclaration *ruleforge_compilation_declaration_find(const RuleforgeModule *module, const char *name) {
+  uint32 i;
+
+  NEXUS_PROGRAM_PRECONDITION(module != NULL && name != NULL, "ruleforge_compilation_declaration_find: NULL argument");
+
+  for (i = 0; i < module->declaration_count; i++) {
+    if (nexus_strings_string_equals(module->declarations[i].name, name)) {
+      return &module->declarations[i];
     }
   }
 
@@ -67,12 +109,106 @@ RuleforgeModule *ruleforge_compilation_module_find(const RuleforgeCompilation *c
 /* ---------------------------------------------------------------------------- */
 
 /*
+Summary: reads the name and the declarations of a parsed module through the generated views.
+Description: the declarations are listed once, with the name and the export flag of each, so a name is found without reading the tree again.
+*/
+static void r_compilation_module_describe(RuleforgeCompilation *compilation, RuleforgeModule *module) {
+  uint32 i;
+
+  module->script = rf_root(module->tree);
+
+  if (rf_script_count_rule_module_stmt(module->script) > 0) {
+    module->name = ruleforge_syntax_name_get(compilation, rf_module_stmt_rule_qualified_name(rf_script_rule_module_stmt(module->script, 0), 0));
+  }
+
+  module->import_count = rf_script_count_rule_import_stmt(module->script);
+  module->imports =
+      (const char **)nexus_data_arena_allocate(&compilation->arena, ((uint_large)module->import_count + 1U) * NEXUS_SIZEOF(const char *));
+
+  for (i = 0; i < module->import_count; i++) {
+    module->imports[i] = ruleforge_syntax_name_get(compilation, rf_import_stmt_rule_qualified_name(rf_script_rule_import_stmt(module->script, i), 0));
+  }
+
+  module->declaration_count = 0;
+  module->declarations      = (RuleforgeDeclaration *)nexus_data_arena_allocate(
+      &compilation->arena, ((uint_large)rf_script_count_rule_declaration(module->script) + 1U) * NEXUS_SIZEOF(RuleforgeDeclaration));
+
+  for (i = 0; i < rf_script_count_rule_declaration(module->script); i++) {
+    RfDeclaration           view;
+    RuleforgeDeclaration   *entry;
+    const LParserGreenNode *name;
+    boolean                 exported;
+
+    view     = rf_script_rule_declaration(module->script, i);
+    name     = NULL;
+    exported = FALSE;
+
+    if (rf_declaration_count_rule_schema_stmt(view) > 0) {
+      RfSchemaStmt schema;
+
+      schema   = rf_declaration_rule_schema_stmt(view, 0);
+      name     = rf_schema_stmt_token_identifier(schema, 0);
+      exported = rf_schema_stmt_count_token_kw_export(schema) > 0;
+    } else if (rf_declaration_count_rule_dataset_stmt(view) > 0) {
+      RfDatasetStmt dataset;
+
+      dataset  = rf_declaration_rule_dataset_stmt(view, 0);
+      name     = rf_dataset_stmt_token_identifier(dataset, 0);
+      exported = rf_dataset_stmt_count_token_kw_export(dataset) > 0;
+    } else if (rf_declaration_count_rule_theme_schema_stmt(view) > 0) {
+      RfThemeSchemaStmt schema;
+
+      schema   = rf_declaration_rule_theme_schema_stmt(view, 0);
+      name     = rf_theme_schema_stmt_token_identifier(schema, 0);
+      exported = rf_theme_schema_stmt_count_token_kw_export(schema) > 0;
+    } else if (rf_declaration_count_rule_color_set_stmt(view) > 0) {
+      RfColorSetStmt set;
+
+      set      = rf_declaration_rule_color_set_stmt(view, 0);
+      name     = rf_color_set_stmt_token_identifier(set, 0);
+      exported = rf_color_set_stmt_count_token_kw_export(set) > 0;
+    } else if (rf_declaration_count_rule_theme_stmt(view) > 0) {
+      RfThemeStmt theme;
+
+      theme    = rf_declaration_rule_theme_stmt(view, 0);
+      name     = rf_theme_stmt_token_identifier(theme, 0);
+      exported = rf_theme_stmt_count_token_kw_export(theme) > 0;
+    } else if (rf_declaration_count_rule_template_stmt(view) > 0) {
+      RfTemplateStmt template_stmt;
+
+      template_stmt = rf_declaration_rule_template_stmt(view, 0);
+      name          = rf_template_stmt_token_identifier(template_stmt, 0);
+      exported      = rf_template_stmt_count_token_kw_export(template_stmt) > 0;
+    } else if (rf_declaration_count_rule_function_stmt(view) > 0) {
+      RfFunctionStmt function;
+
+      function = rf_declaration_rule_function_stmt(view, 0);
+      name     = rf_function_stmt_token_identifier(function, 0);
+      exported = rf_function_stmt_count_token_kw_export(function) > 0;
+    } else if (rf_declaration_count_rule_ruleset_stmt(view) > 0) {
+      RfRulesetStmt ruleset;
+
+      ruleset  = rf_declaration_rule_ruleset_stmt(view, 0);
+      name     = rf_ruleset_stmt_token_identifier(ruleset, 0);
+      exported = rf_ruleset_stmt_count_token_kw_export(ruleset) > 0;
+    }
+
+    /* The configuration block has no name; the entry module's run reads it from the tree. */
+    if (name != NULL) {
+      entry           = &module->declarations[module->declaration_count++];
+      entry->name     = ruleforge_syntax_text_get(compilation, module->tree, name);
+      entry->view     = view;
+      entry->exported = exported;
+    }
+  }
+}
+
+/*
 Summary: parses one added source and every module it imports, depth first, so a module precedes its importers.
 Description: a module already loaded (by declared name) is not parsed again; a cycle of imports is an error.
 */
 static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint32 file, const char *folder, uint32 depth) {
   LParserTree     *tree;
-  RuleforgeNode   *ast;
   RuleforgeModule *module;
   uint32           i;
   boolean          ok;
@@ -84,33 +220,32 @@ static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint
     return FALSE;
   }
 
-  ast = ruleforge_ast_build(compilation, file, tree);
-  logos_language_tooling_parsing_syntax_tree_destroy(tree);
-
-  ruleforge_source_get(compilation, file)->module = ast->text;
+  module       = (RuleforgeModule *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*module));
+  module->file = file;
+  module->tree = tree;
+  r_compilation_module_describe(compilation, module);
+  ruleforge_source_get(compilation, file)->module = module->name;
 
   /* Imports first. A module is registered only after its imports so the list is a valid compile order. */
-  for (i = 0; i < ast->child_count; i++) {
-    const RuleforgeNode *import;
-    char                *path;
-    uint_large           j;
-    byte                *bytes;
-    uint_large           size;
-    boolean              found;
+  for (i = 0; i < module->import_count; i++) {
+    const char   *import;
+    char         *path;
+    uint_large    j;
+    byte         *bytes;
+    uint_large    size;
+    boolean       found;
+    RuleforgeSpan span;
 
-    import = ast->children[i];
+    import = module->imports[i];
+    span   = ruleforge_syntax_span_get(module, tree, rf_import_stmt_rule_qualified_name(rf_script_rule_import_stmt(module->script, i), 0).node);
 
-    if (import->kind != RNK_IMPORT) {
-      continue;
-    }
-
-    if (ruleforge_compilation_module_find(compilation, import->text) != NULL || ruleforge_stdlib_module_exists(import->text)) {
+    if (ruleforge_compilation_module_find(compilation, import) != NULL || ruleforge_stdlib_module_exists(import)) {
       continue;
     }
 
     if (depth > 64) {
-      ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0103", import->span, "imports are nested too deeply",
-                                  "import chain of `%s` exceeds 64 modules", import->text);
+      ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0103", span, "imports are nested too deeply", "import chain of `%s` exceeds 64 modules",
+                                  import);
       ok = FALSE;
 
       continue;
@@ -132,7 +267,7 @@ static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint
         (void)nexus_strings_string_builder_append(&candidate, "/");
       }
 
-      for (cursor = import->text; *cursor != '\0'; cursor++) {
+      for (cursor = import; *cursor != '\0'; cursor++) {
         if (*cursor == '.') {
           (void)nexus_strings_string_builder_append(&candidate, "/");
         } else {
@@ -163,15 +298,12 @@ static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint
     }
 
     if (!found) {
-      ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0101", import->span, "add the folder that holds it with a search folder",
-                                  "cannot find module `%s`", import->text);
+      ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0101", span, "add the folder that holds it with a search folder",
+                                  "cannot find module `%s`", import);
       ok = FALSE;
     }
   }
 
-  module       = (RuleforgeModule *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*module));
-  module->file = file;
-  module->ast  = ast;
   (void)nexus_data_list_append_pointer(compilation->modules, module);
 
   return ok && compilation->error_count == 0;
@@ -385,7 +517,7 @@ char *ruleforge_compilation_ast_json_write(const RuleforgeCompilation *compilati
   NEXUS_PROGRAM_PRECONDITION(compilation != NULL, "ruleforge_compilation_ast_json_write: NULL compilation");
 
   out = nexus_strings_string_builder_create_growable(1024);
-  (void)nexus_strings_string_builder_append(&out, "{\"format\":\"ruleforge-ast\",\"version\":1,\"files\":[");
+  (void)nexus_strings_string_builder_append(&out, "{\"format\":\"ruleforge-syntax\",\"version\":1,\"files\":[");
 
   for (i = 0; i < nexus_data_list_length_get(compilation->modules); i++) {
     const RuleforgeModule *module;
@@ -401,14 +533,29 @@ char *ruleforge_compilation_ast_json_write(const RuleforgeCompilation *compilati
     (void)nexus_strings_string_builder_append(&out, "{\"name\":");
     (void)nexus_json_quote_append(&out, file->name);
     (void)nexus_strings_string_builder_append(&out, ",\"module\":");
-    (void)nexus_json_quote_append(&out, module->ast->text == NULL ? "" : module->ast->text);
-    (void)nexus_strings_string_builder_append_formatted(&out, ",\"embedded\":%s,\"ast\":", file->embedded ? "true" : "false");
-    ruleforge_ast_json_write(compilation, module->ast, &out);
+    (void)nexus_json_quote_append(&out, module->name == NULL ? "" : module->name);
+    (void)nexus_strings_string_builder_append_formatted(&out, ",\"embedded\":%s,\"tree\":", file->embedded ? "true" : "false");
+    ruleforge_syntax_tree_json_write(module->tree, &out);
     (void)nexus_strings_string_builder_append(&out, "}");
   }
 
   (void)nexus_strings_string_builder_append(&out, "]}");
 
+  result = (char *)nexus_memory_allocate(nexus_strings_string_builder_length_get(&out) + 1);
+  nexus_memory_bytes_copy(nexus_strings_string_builder_string_get(&out), result, nexus_strings_string_builder_length_get(&out) + 1);
+  nexus_strings_string_builder_destroy(&out);
+
+  return result;
+}
+
+char *ruleforge_compilation_themes_json_write(RuleforgeCompilation *compilation) {
+  NexusStringBuilder out;
+  char              *result;
+
+  NEXUS_PROGRAM_PRECONDITION(compilation != NULL, "ruleforge_compilation_themes_json_write: NULL compilation");
+
+  out = nexus_strings_string_builder_create_growable(1024);
+  ruleforge_theme_declarations_json_write(compilation, &out);
   result = (char *)nexus_memory_allocate(nexus_strings_string_builder_length_get(&out) + 1);
   nexus_memory_bytes_copy(nexus_strings_string_builder_string_get(&out), result, nexus_strings_string_builder_length_get(&out) + 1);
   nexus_strings_string_builder_destroy(&out);

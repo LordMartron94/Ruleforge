@@ -4,28 +4,40 @@
 interchange form of the parser: read it from any language and nothing needs to parse `.rf` again.
 
 ```json
-{"format":"ruleforge-ast","version":1,"files":[{"name":"entry.rf","module":"entry","embedded":false,"ast":{...}}]}
+{"format":"ruleforge-syntax","version":1,"files":[{"name":"entry.rf","module":"entry","embedded":false,"tree":{...}}]}
 ```
 
-Every node: `kind`, `start`/`end` (byte offsets), `line`/`column`/`endLine`/`endColumn` (1-based), and where they apply `text`,
-`text2`, `value`, `ref` (`parameter`, `compiler` or `plain`), the flags `export`, `override`, `optional`, `mutable`, `alpha`, and
-`children`. The kinds and their children:
+The tree is written by the bindings that `genesis bind` generates from `spec/ruleforge.gen`, so it has no hand-made node kinds:
 
-| kind | text | children |
-|---|---|---|
-| Module | module name | Version, Import*, declarations |
-| Schema | name | Field(text, Type)* |
-| Dataset | name | Type (schema), String (source) |
-| ThemeSchema | name | Key* |
-| ColorSet | name | ColorDef(text, expression)* |
-| Theme | name | [Extends], [Implements], ThemeStyle* |
-| ThemeStyle | key | ThemeState("show"/"hide")(StyleProperty(text, expressions, [AlphaOverride])*)* |
-| Template | name | Params, rule-body items |
-| Function | name | Params, [Type], Block |
-| Ruleset | name | Description, CoreConditions, statements |
-| Configuration | | ConfigAssign(text, expression)*, Adapter(text, Type, AdapterMap*)* |
-| Let / Assign / If / For / Return / Include / Emit / Rule / Native | | statements |
-| Scope(ScopeAssign*), Baseline, Variants(When*) | | rule-body items |
-| Int / Float / String / Bool / None / Color / List / Call / Arg / Ref / Index / Unary / Binary | | expressions |
+- a rule node is `{"rule":"<rule name>","start":N,"end":N,"children":[...]}`;
+- a token is `{"token":"<token name>","start":N,"end":N,"text":"..."}`.
 
-A Color node's `value` is `0xRRGGBBAA` as an integer and `text` its source form, so an editor can rewrite it by span.
+Rule and token names are the grammar's own (`theme_stmt`, `kw_theme`, `identifier`, ...), `start`/`end` are byte offsets into the
+file, and comments and whitespace are not part of the tree. Because the grammar is the only place a name is written, the tree and the
+engine cannot drift apart.
+
+## Interpretations
+
+What the syntax *means* is the engine's job, not the reader's. A consumer that needs an interpretation asks the engine for it
+instead of walking the tree by hand:
+
+| command | document |
+|---|---|
+| `ruleforge themes entry.rf --json` | `{"format":"ruleforge-themes",...}`: every theme with its styles, states, properties and arguments; every color set |
+| `ruleforge compile ... --model out.json` | the structured filter model with provenance and traces |
+| `ruleforge manifest` | everything the engine can express |
+
+### Themes
+
+```json
+{"format":"ruleforge-themes","version":1,
+ "themes":[{"name":"DefaultTheme","module":"filters.themes","file":"./filters/themes.rf","extends":null,
+   "styles":[{"override":false,"key":"godTier","states":[{"state":"show","properties":[
+     {"name":"Background","arguments":[{"kind":"reference","start":332,"end":344,"text":"Palette.GOLD"}]},
+     {"name":"Border","arguments":[{"kind":"color","value":4293949695,"alpha":false,"start":365,"end":379,"text":"r255 g240 b120"}]}]}]}]}],
+ "colorSets":[{"name":"Palette","file":"./filters/themes.rf","colors":[{"name":"GOLD","value":{"kind":"color",...}}]}]}
+```
+
+An argument's `kind` is `color` (a color literal; `value` is `0xRRGGBBAA` and `alpha` says whether the source wrote an alpha),
+`reference` (a name such as `Palette.GOLD`) or `expression` (anything else). `start`/`end` are byte offsets in `file`, so an editor can
+rewrite a color in place without parsing anything.

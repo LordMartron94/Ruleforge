@@ -66,6 +66,12 @@ if(BUILD_TESTING)
             -DGOLDEN=${ruleforge_golden_directory}
             -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/golden
             -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/run_golden_case.cmake")
+    # The themes the editor draws come from the engine's typed interpretation, not from walking the syntax tree.
+    add_test(NAME ruleforge_themes_currency
+        COMMAND ruleforge_cli themes entry.rf)
+    set_tests_properties(ruleforge_themes_currency PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/examples/currency"
+        PASS_REGULAR_EXPRESSION "\"format\":\"ruleforge-themes\".*\"name\":\"DefaultTheme\".*\"kind\":\"color\"")
     file(GLOB ruleforge_error_cases CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/errors/*.rf")
     foreach(case IN LISTS ruleforge_error_cases)
         get_filename_component(case_name "${case}" NAME_WE)

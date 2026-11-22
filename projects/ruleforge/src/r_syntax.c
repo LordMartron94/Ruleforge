@@ -225,12 +225,12 @@ LParserTree *ruleforge_syntax_parse(RuleforgeCompilation *compilation, uint32 fi
 /* ---------------------------------------------------------------------------- */
 
 char *ruleforge_syntax_tokens_json_write(RuleforgeRuntime *runtime, const char *text, uint_large size) {
-  LLexerProcess      *process;
-  LLexerToken         token;
-  LLexerStatus        status;
-  NexusStringBuilder  out;
-  char               *result;
-  boolean             first;
+  LLexerProcess     *process;
+  LLexerToken        token;
+  LLexerStatus       status;
+  NexusStringBuilder out;
+  char              *result;
+  boolean            first;
 
   NEXUS_PROGRAM_PRECONDITION(runtime != NULL && text != NULL, "ruleforge_syntax_tokens_json_write: NULL argument");
 
@@ -251,9 +251,9 @@ char *ruleforge_syntax_tokens_json_write(RuleforgeRuntime *runtime, const char *
       continue;
     }
 
-    (void)nexus_strings_string_builder_append_formatted(&out, "%s[%lu,%lu,\"%s\"]", first ? "" : ",", (unsigned long)token.lexeme_offset,
-                                                        (unsigned long)(token.lexeme_offset + token.lexeme_width),
-                                                        status == LLS_ERROR ? "error" : (rf_token_name(token.kind) == NULL ? "token" : rf_token_name(token.kind)));
+    (void)nexus_strings_string_builder_append_formatted(
+        &out, "%s[%lu,%lu,\"%s\"]", first ? "" : ",", (unsigned long)token.lexeme_offset, (unsigned long)(token.lexeme_offset + token.lexeme_width),
+        status == LLS_ERROR ? "error" : (rf_token_name(token.kind) == NULL ? "token" : rf_token_name(token.kind)));
     first = FALSE;
   }
 
@@ -262,6 +262,75 @@ char *ruleforge_syntax_tokens_json_write(RuleforgeRuntime *runtime, const char *
   result = (char *)nexus_memory_allocate(nexus_strings_string_builder_length_get(&out) + 1);
   nexus_memory_bytes_copy(nexus_strings_string_builder_string_get(&out), result, nexus_strings_string_builder_length_get(&out) + 1);
   nexus_strings_string_builder_destroy(&out);
+
+  return result;
+}
+
+/* ---------------------------------------------------------------------------- */
+/* READING THE TREE                                                             */
+/* ---------------------------------------------------------------------------- */
+
+RuleforgeSpan ruleforge_syntax_span_get(const RuleforgeModule *module, const LParserTree *tree, const LParserGreenNode *node) {
+  uint_large start;
+  uint_large end;
+
+  NEXUS_PROGRAM_PRECONDITION(module != NULL && tree != NULL, "ruleforge_syntax_span_get: NULL argument");
+
+  start = 0;
+  end   = 0;
+
+  if (node == NULL || !rf_node_range(tree, node, &start, &end)) {
+    return ruleforge_span_make(module->file, 0, 0);
+  }
+
+  return ruleforge_span_make(module->file, (uint32)start, (uint32)end);
+}
+
+const char *ruleforge_syntax_text_get(RuleforgeCompilation *compilation, const LParserTree *tree, const LParserGreenNode *token) {
+  void       *found;
+  const char *text;
+  uint_large  size;
+  char       *copy;
+
+  NEXUS_PROGRAM_PRECONDITION(compilation != NULL && tree != NULL && token != NULL, "ruleforge_syntax_text_get: NULL argument");
+
+  /* Every token is copied out of the tree once: scripts run loops, and an arena copy per evaluation would grow with the steps. */
+  found = nexus_data_hashmap_get_pointer(compilation->interned, (const void *)&token);
+
+  if (found != NULL) {
+    return (const char *)found;
+  }
+
+  text = rf_token_text(tree, token, &size);
+  copy = nexus_data_arena_text_copy(&compilation->arena, text, size);
+  nexus_data_hashmap_put_pointer(compilation->interned, (const void *)&token, copy);
+
+  return copy;
+}
+
+void ruleforge_syntax_tree_json_write(const LParserTree *tree, NexusStringBuilder *out) {
+  NEXUS_PROGRAM_PRECONDITION(tree != NULL && out != NULL, "ruleforge_syntax_tree_json_write: NULL argument");
+
+  rf_tree_json_write(tree, out);
+}
+
+const char *ruleforge_syntax_name_get(RuleforgeCompilation *compilation, RfQualifiedName name) {
+  NexusStringBuilder joined;
+  const char        *result;
+  uint32             i;
+
+  NEXUS_PROGRAM_PRECONDITION(compilation != NULL, "ruleforge_syntax_name_get: NULL compilation");
+
+  joined = nexus_strings_string_builder_create_growable(32);
+
+  for (i = 0; i < rf_qualified_name_count_token_identifier(name); i++) {
+    (void)nexus_strings_string_builder_append_formatted(
+        &joined, "%s%s", i > 0 ? "." : "", ruleforge_syntax_text_get(compilation, name.tree, rf_qualified_name_token_identifier(name, i)));
+  }
+
+  result = nexus_data_arena_text_copy(&compilation->arena, nexus_strings_string_builder_string_get(&joined),
+                                      nexus_strings_string_builder_length_get(&joined));
+  nexus_strings_string_builder_destroy(&joined);
 
   return result;
 }

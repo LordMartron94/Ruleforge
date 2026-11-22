@@ -171,7 +171,6 @@ static void l_tool_bind_helpers(LToolBind *bind) {
   l_tool_bind_emit(bind, lines);
 }
 
-
 /* Summary: the generated helpers every grammar gets: which rules are global (trivia), the byte range of a node, rule names and a JSON dump. */
 static void l_tool_bind_generic(LToolBind *bind) {
   LToolText             *out;
@@ -268,8 +267,9 @@ static void l_tool_bind_generic(LToolBind *bind) {
     l_tool_bind_emit(bind, lines);
   }
 
-  logos_tool_text_format(out, "/* The name of a rule of the grammar, or NULL. */\nstatic NEXUS_MAYBE_UNUSED const char *%s_rule_name(int32 rule) {\n  switch (rule) {\n",
-                         bind->prefix);
+  logos_tool_text_format(
+      out, "/* The name of a rule of the grammar, or NULL. */\nstatic NEXUS_MAYBE_UNUSED const char *%s_rule_name(int32 rule) {\n  switch (rule) {\n",
+      bind->prefix);
 
   for (i = 0; i < logos_languages_genesis_grammar_rule_count_get(grammar); i++) {
     const LGenesisGrammarRule *rule;
@@ -292,11 +292,13 @@ static void l_tool_bind_generic(LToolBind *bind) {
     static const char *const lines[] = {
         "/*",
         "Summary: writes a syntax tree as JSON with the names the grammar gives its rules and tokens.",
-        "Description: a rule is {\"rule\":name,\"start\":byte,\"end\":byte,\"children\":[...]} and a token {\"token\":name,\"start\":byte,\"end\":byte,\"text\":string},",
+        "Description: a rule is {\"rule\":name,\"start\":byte,\"end\":byte,\"children\":[...]} and a token "
+        "{\"token\":name,\"start\":byte,\"end\":byte,\"text\":string},",
         "  in source order. The global rules (trivia) are left out and the grammar's private helper rules are flattened into their parent.",
         "  The names come from the grammar, so the JSON cannot drift from it. The text of a token is its exact source.",
         "*/",
-        "static NEXUS_MAYBE_UNUSED void @P@_node_json_write(const LParserTree *tree, const LParserGreenNode *node, NexusStringBuilder *out, boolean *first) {",
+        "static NEXUS_MAYBE_UNUSED void @P@_node_json_write(const LParserTree *tree, const LParserGreenNode *node, NexusStringBuilder *out, boolean "
+        "*first) {",
         "  const LParserGreenAlternative *alternative;",
         "  LParserGreenKind               kind;",
         "  uint_large                     start;",
@@ -320,7 +322,8 @@ static void l_tool_bind_generic(LToolBind *bind) {
         "    copy  = (char *)nexus_memory_allocate(size + 1);",
         "    nexus_memory_bytes_copy(text, copy, size);",
         "    copy[size] = '\\0';",
-        "    (void)nexus_strings_string_builder_append_formatted(out, \"%s{\\\"token\\\":\\\"%s\\\",\\\"start\\\":%lu,\\\"end\\\":%lu,\\\"text\\\":\", *first ? \"\" : \",\",",
+        "    (void)nexus_strings_string_builder_append_formatted(out, "
+        "\"%s{\\\"token\\\":\\\"%s\\\",\\\"start\\\":%lu,\\\"end\\\":%lu,\\\"text\\\":\", *first ? \"\" : \",\",",
         "                                                        label == NULL ? \"\" : label, (unsigned long)start, (unsigned long)end);",
         "    (void)nexus_json_quote_append(out, copy);",
         "    (void)nexus_strings_string_builder_append(out, \"}\");",
@@ -355,7 +358,8 @@ static void l_tool_bind_generic(LToolBind *bind) {
         "    return;",
         "  }",
         "",
-        "  (void)nexus_strings_string_builder_append_formatted(out, \"%s{\\\"rule\\\":\\\"%s\\\",\\\"start\\\":%lu,\\\"end\\\":%lu,\\\"children\\\":[\", *first ? \"\" : \",\", label,",
+        "  (void)nexus_strings_string_builder_append_formatted(out, "
+        "\"%s{\\\"rule\\\":\\\"%s\\\",\\\"start\\\":%lu,\\\"end\\\":%lu,\\\"children\\\":[\", *first ? \"\" : \",\", label,",
         "                                                      (unsigned long)start, (unsigned long)end);",
         "  children_first = TRUE;",
         "",
@@ -469,6 +473,237 @@ static void l_tool_bind_view(LToolBind *bind, const LGenesisGrammarRule *rule) {
   nexus_memory_deallocate(rule_lower);
 }
 
+/*
+Summary: the operator structure of a binding-power (PRATT) rule.
+Description: the views of a rule cannot say which operator applies to which
+operands, because operators are not rules, so this is generated from the PRATT
+block itself. For every PRATT rule R whose block names its atom rule A (`atom =
+#A`): operand_count  0 when the node is an atom, 1 for a prefix operation, 2 for
+an infix one operator_kind  the lexer token kind of the operator, or
+L_LEXER_TOKEN_KIND_ERROR for an atom operator_token the operator's token node
+  operand        a view of an operand, itself an operation or an atom
+  atom           the atom, when operand_count is 0
+*/
+static void l_tool_bind_pratt(LToolBind *bind, const LGenesisGrammarRule *rule) {
+  LToolText  *out;
+  char       *rule_camel;
+  char       *rule_lower;
+  char       *atom_camel;
+  char       *atom_name;
+  const char *marker;
+  uint_large  length;
+
+  marker = nexus_strings_string_find(rule->definition, "atom = #");
+
+  if (marker == NULL) {
+    return;
+  }
+
+  marker += 8;
+  length = 0;
+
+  while ((marker[length] >= 'a' && marker[length] <= 'z') || (marker[length] >= '0' && marker[length] <= '9') || marker[length] == '_') {
+    length++;
+  }
+
+  atom_name = (char *)nexus_memory_allocate(length + 1);
+  nexus_memory_bytes_copy(marker, atom_name, length);
+  atom_name[length] = '\0';
+
+  out        = &bind->out;
+  rule_camel = logos_tool_identifier_camel(rule->name);
+  rule_lower = logos_tool_identifier_lower(rule->name);
+  atom_camel = logos_tool_identifier_camel(atom_name);
+
+  /* The spine: the significant children of the node, looking through sequences and leaving out the global rules. */
+  logos_tool_text_format(out,
+                         "/* The significant children of a node of the binding-power rule #%s: for an operation the operator and its operands. */\n"
+                         "static NEXUS_MAYBE_UNUSED uint32 %s_%s_spine(%s%s view, const LParserGreenNode *spine[4]) {\n"
+                         "  const LParserGreenNode        *node;\n"
+                         "  const LParserGreenAlternative *alternative;\n"
+                         "  uint32                         count;\n"
+                         "  uint32                         i;\n"
+                         "  uint32                         k;\n\n"
+                         "  node  = view.node;\n"
+                         "  count = 0;\n\n",
+                         rule->name, bind->prefix, rule_lower, bind->camel, rule_camel);
+  logos_tool_text_format(out,
+                         "  /* The rule node itself holds one child: an atom or an operation. */\n"
+                         "  while (node != NULL && logos_language_tooling_parsing_syntax_green_node_kind_get(node) == LPGK_RULE &&\n"
+                         "         %s_node_is_rule(view.tree, node, \"%s\")) {\n"
+                         "    const LParserGreenNode *next;\n\n"
+                         "    alternative = logos_language_tooling_parsing_syntax_green_node_alternative_first_get(view.tree, node);\n"
+                         "    next        = NULL;\n\n",
+                         bind->prefix, rule->name);
+  logos_tool_text_add(out, "    for (i = 0; next == NULL && alternative != NULL &&\n"
+                           "                i < logos_language_tooling_parsing_syntax_alternative_child_count_get(alternative);\n"
+                           "         i++) {\n"
+                           "      const LParserGreenNode *child;\n\n"
+                           "      child = logos_language_tooling_parsing_syntax_alternative_child_get(view.tree, alternative, i);\n\n");
+  logos_tool_text_add(out, "      if (logos_language_tooling_parsing_syntax_green_node_kind_get(child) == LPGK_SEQUENCE) {\n"
+                           "        const LParserGreenAlternative *inner;\n\n"
+                           "        inner = logos_language_tooling_parsing_syntax_green_node_alternative_first_get(view.tree, child);\n\n");
+  logos_tool_text_format(out,
+                         "        for (k = 0; next == NULL && inner != NULL &&\n"
+                         "                    k < logos_language_tooling_parsing_syntax_alternative_child_count_get(inner);\n"
+                         "             k++) {\n"
+                         "          const LParserGreenNode *part;\n\n"
+                         "          part = logos_language_tooling_parsing_syntax_alternative_child_get(view.tree, inner, k);\n\n"
+                         "          if (!%s_node_is_global(view.tree, part)) {\n"
+                         "            next = part;\n"
+                         "          }\n"
+                         "        }\n",
+                         bind->prefix);
+  logos_tool_text_format(out,
+                         "      } else if (!%s_node_is_global(view.tree, child)) {\n"
+                         "        next = child;\n"
+                         "      }\n"
+                         "    }\n\n"
+                         "    node = next;\n"
+                         "  }\n\n",
+                         bind->prefix);
+  logos_tool_text_add(out, "  if (node == NULL) {\n"
+                           "    return 0;\n"
+                           "  }\n\n"
+                           "  spine[0] = node;\n\n"
+                           "  if (logos_language_tooling_parsing_syntax_green_node_kind_get(node) != LPGK_EXPRESSION) {\n"
+                           "    return 1;\n"
+                           "  }\n\n"
+                           "  alternative = logos_language_tooling_parsing_syntax_green_node_alternative_first_get(view.tree, node);\n\n");
+  logos_tool_text_add(out, "  for (i = 0; alternative != NULL &&\n"
+                           "              i < logos_language_tooling_parsing_syntax_alternative_child_count_get(alternative);\n"
+                           "       i++) {\n"
+                           "    const LParserGreenNode *child;\n\n"
+                           "    child = logos_language_tooling_parsing_syntax_alternative_child_get(view.tree, alternative, i);\n\n");
+  logos_tool_text_add(out, "    if (logos_language_tooling_parsing_syntax_green_node_kind_get(child) == LPGK_SEQUENCE) {\n"
+                           "      const LParserGreenAlternative *inner;\n\n"
+                           "      inner = logos_language_tooling_parsing_syntax_green_node_alternative_first_get(view.tree, child);\n\n");
+  logos_tool_text_format(out,
+                         "      for (k = 0; inner != NULL &&\n"
+                         "                  k < logos_language_tooling_parsing_syntax_alternative_child_count_get(inner);\n"
+                         "           k++) {\n"
+                         "        const LParserGreenNode *part;\n\n"
+                         "        part = logos_language_tooling_parsing_syntax_alternative_child_get(view.tree, inner, k);\n\n"
+                         "        if (!%s_node_is_global(view.tree, part) && count < 4) {\n"
+                         "          spine[count++] = part;\n"
+                         "        }\n"
+                         "      }\n",
+                         bind->prefix);
+  logos_tool_text_format(out,
+                         "    } else if (!%s_node_is_global(view.tree, child) && count < 4) {\n"
+                         "      spine[count++] = child;\n"
+                         "    }\n"
+                         "  }\n\n"
+                         "  return count;\n"
+                         "}\n\n",
+                         bind->prefix);
+
+  logos_tool_text_format(out,
+                         "/* How many operands the node of the rule #%s has: 0 for an atom, 1 for "
+                         "a prefix operation, 2 for an infix one. */\n"
+                         "static NEXUS_MAYBE_UNUSED uint32 %s_%s_operand_count(%s%s view) {\n"
+                         "  const LParserGreenNode *spine[4];\n"
+                         "  uint32                  count;\n\n"
+                         "  count = view.node == NULL ? 0 : %s_%s_spine(view, spine);\n\n"
+                         "  return count < 2 ? 0 : count - 1;\n"
+                         "}\n\n",
+                         rule->name, bind->prefix, rule_lower, bind->camel, rule_camel, bind->prefix, rule_lower);
+  logos_tool_text_format(out,
+                         "/* The operator of an operation: its token node, whose kind says which "
+                         "operator it is. */\n"
+                         "static NEXUS_MAYBE_UNUSED const LParserGreenNode "
+                         "*%s_%s_operator_token(%s%s view) {\n"
+                         "  const LParserGreenNode *spine[4];\n"
+                         "  const LParserGreenNode *token;\n"
+                         "  uint32                  count;\n\n"
+                         "  count = view.node == NULL ? 0 : %s_%s_spine(view, spine);\n\n"
+                         "  if (count < 2) {\n"
+                         "    return NULL;\n"
+                         "  }\n\n"
+                         "  token = count == 2 ? spine[0] : spine[1];\n\n",
+                         bind->prefix, rule_lower, bind->camel, rule_camel, bind->prefix, rule_lower);
+  /* An operator may be wrapped in a sequence with the global rules around
+   * it. */
+  logos_tool_text_format(out, "  while (token != NULL &&\n"
+                              "         logos_language_tooling_parsing_syntax_green_node_kind_get("
+                              "token) == LPGK_SEQUENCE) {\n"
+                              "    const LParserGreenAlternative *inner;\n"
+                              "    const LParserGreenNode        *next;\n"
+                              "    uint32                         i;\n\n"
+                              "    inner = "
+                              "logos_language_tooling_parsing_syntax_green_node_alternative_first_get("
+                              "view.tree, token);\n"
+                              "    next  = NULL;\n\n");
+  logos_tool_text_format(out,
+                         "    for (i = 0; next == NULL && inner != NULL && i < "
+                         "logos_language_tooling_parsing_syntax_alternative_child_count_get("
+                         "inner); i++) {\n"
+                         "      const LParserGreenNode *part;\n\n"
+                         "      part = "
+                         "logos_language_tooling_parsing_syntax_alternative_child_get(view.tree, "
+                         "inner, i);\n\n"
+                         "      if (!%s_node_is_global(view.tree, part)) {\n"
+                         "        next = part;\n"
+                         "      }\n"
+                         "    }\n\n"
+                         "    token = next;\n"
+                         "  }\n\n"
+                         "  return token;\n"
+                         "}\n\n",
+                         bind->prefix);
+  logos_tool_text_format(out,
+                         "/* The lexer token kind of the operator of an operation. */\n"
+                         "static NEXUS_MAYBE_UNUSED LLexerTokenKind %s_%s_operator_kind(%s%s "
+                         "view) {\n"
+                         "  const LParserGreenNode *token;\n\n"
+                         "  token = %s_%s_operator_token(view);\n\n"
+                         "  return token == NULL ? (LLexerTokenKind)L_LEXER_TOKEN_KIND_ERROR\n"
+                         "                       : "
+                         "logos_language_tooling_parsing_syntax_green_node_token_kind_get(view."
+                         "tree, token);\n"
+                         "}\n\n",
+                         bind->prefix, rule_lower, bind->camel, rule_camel, bind->prefix, rule_lower);
+  logos_tool_text_format(out,
+                         "/* A view of an operand of an operation: itself an operation or an "
+                         "atom. */\n"
+                         "static NEXUS_MAYBE_UNUSED %s%s %s_%s_operand(%s%s view, uint32 index) "
+                         "{\n"
+                         "  const LParserGreenNode *spine[4];\n"
+                         "  uint32                  count;\n"
+                         "  %s%s operand;\n\n",
+                         bind->camel, rule_camel, bind->prefix, rule_lower, bind->camel, rule_camel, bind->camel, rule_camel);
+  logos_tool_text_format(out,
+                         "  count        = view.node == NULL ? 0 : %s_%s_spine(view, spine);\n"
+                         "  operand.tree = view.tree;\n"
+                         "  operand.node = NULL;\n\n"
+                         "  if (count == 2 && index == 0) {\n"
+                         "    operand.node = spine[1];\n"
+                         "  } else if (count == 3 && index < 2) {\n"
+                         "    operand.node = index == 0 ? spine[0] : spine[2];\n"
+                         "  }\n\n"
+                         "  return operand;\n"
+                         "}\n\n",
+                         bind->prefix, rule_lower);
+  logos_tool_text_format(out,
+                         "/* The atom of a node that is not an operation. */\n"
+                         "static NEXUS_MAYBE_UNUSED %s%s %s_%s_atom(%s%s view) {\n"
+                         "  const LParserGreenNode *spine[4];\n"
+                         "  uint32                  count;\n"
+                         "  %s%s atom;\n\n"
+                         "  count     = view.node == NULL ? 0 : %s_%s_spine(view, spine);\n"
+                         "  atom.tree = view.tree;\n"
+                         "  atom.node = count == 1 && %s_node_is_rule(view.tree, spine[0], "
+                         "\"%s\") ? spine[0] : NULL;\n\n"
+                         "  return atom;\n"
+                         "}\n\n",
+                         bind->camel, atom_camel, bind->prefix, rule_lower, bind->camel, rule_camel, bind->camel, atom_camel, bind->prefix,
+                         rule_lower, bind->prefix, atom_name);
+
+  nexus_memory_deallocate(atom_name);
+  nexus_memory_deallocate(atom_camel);
+  nexus_memory_deallocate(rule_camel);
+  nexus_memory_deallocate(rule_lower);
+}
 static void l_tool_bind_generate(LToolBind *bind, const LGenesisEngine *engine, const char *guard) {
   const LGenesisGrammar *grammar;
   LToolText             *out;
@@ -661,6 +896,10 @@ static void l_tool_bind_generate(LToolBind *bind, const LGenesisEngine *engine, 
 
     if (!l_tool_bind_private(rule->name)) {
       l_tool_bind_view(bind, rule);
+
+      if (rule->kind == LGRK_PRATT) {
+        l_tool_bind_pratt(bind, rule);
+      }
     }
   }
 

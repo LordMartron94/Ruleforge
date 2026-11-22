@@ -125,11 +125,23 @@ extern char *ruleforge_compilation_diagnostics_text_write(const RuleforgeCompila
 
 /*
 Summary: the syntax trees of every parsed module as one JSON document, the interchange form of the parser.
-Description: {"format":"ruleforge-ast","version":1,"files":[{"name","module","embedded","ast":{kind,start,end,line,column,...}}]}.
-  Node kinds, fields and child order are documented in docs/ast.md. Any consumer reads this without parsing .rf again.
+Description: {"format":"ruleforge-syntax","version":1,"files":[{"name","module","embedded","tree"}]}. The tree is written by the generated
+  bindings of spec/ruleforge.gen: every node is {"rule":<name>,"start","end","children"} or {"token":<name>,"start","end","text"}, and the
+  rule and token names are the grammar's own. Any consumer reads this without parsing .rf again; for interpretations (themes, styles) use
+  ruleforge_compilation_themes_json_write instead of walking the tree by hand.
 Returns: a NUL-terminated string owned by the caller; release with nexus_memory_deallocate.
 */
 extern char *ruleforge_compilation_ast_json_write(const RuleforgeCompilation *compilation);
+
+/*
+Summary: the themes and color sets of the parsed modules (not the standard library), as the editor needs them.
+Description: {"format":"ruleforge-themes","version":1,"themes":[{"name","module","file","extends","styles":[{"override","key","states":[{"state",
+  "properties":[{"name","arguments":[{"kind":"color"|"reference"|"expression","start","end","text",["value","alpha"]}],["alphaOverride"]}]}]}]}],
+  "colorSets":[{"name","file","colors":[{"name","value":<argument>}]}]}. A color's value is 0xRRGGBBAA; start/end are byte offsets in file, so an
+  editor can rewrite the color in place.
+Returns: a NUL-terminated string owned by the caller; release with nexus_memory_deallocate.
+*/
+extern char *ruleforge_compilation_themes_json_write(RuleforgeCompilation *compilation);
 
 /* ---------------------------------------------------------------------------- */
 /* SETTINGS                                                                     */

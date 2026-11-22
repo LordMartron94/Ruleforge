@@ -1,7 +1,7 @@
 // Ruleforge Studio: a web editor and inspector over the Ruleforge engine.
 //
 // Everything that means something comes from the engine: syntax highlighting (its lexer tokens), diagnostics, the filter, the
-// block model with traces, simulation, and the theme colors' source positions (its AST). This file only draws it and moves text.
+// block model with traces, simulation, and the theme colors' source positions. This file only draws it and moves text.
 
 const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -355,43 +355,37 @@ function renderDiagnostics(body) {
 
 const hexOf = (rgba) => '#' + [24, 16, 8].map((shift) => ((rgba >>> shift) & 255).toString(16).padStart(2, '0')).join('');
 
-/** Theme colors, edited in place: each color is a source span from the engine's AST, replaced by exact position. */
+/** Theme colors, edited in place: the engine interprets the themes and reports each color's byte span; the editor replaces it by position. */
 async function renderThemes(body) {
   body.append(h('div', { class: 'pad muted' }, 'Loading themes…'));
   let response;
-  try { response = await api('/api/ast'); } catch (error) { body.replaceChildren(h('div', { class: 'pad sev-error' }, error.message)); return; }
+  try { response = await api('/api/themes'); } catch (error) { body.replaceChildren(h('div', { class: 'pad sev-error' }, error.message)); return; }
   if (!response.ok) { body.replaceChildren(h('div', { class: 'pad' }, 'The sources do not parse yet; see Diagnostics.')); return; }
-  state.ast = response.ast;
   body.replaceChildren();
   const pad = h('div', { class: 'pad' });
-  // Color sets: "Palette.GOLD" -> the color node (and its file), so a theme color that names a palette entry edits the palette.
+  // Color sets: "Palette.GOLD" -> the color (and its file), so a theme color that names a palette entry edits the palette.
   const palette = new Map();
-  for (const file of response.ast.files) for (const node of file.ast.children || []) if (node.kind === 'ColorSet') {
-    for (const def of node.children || []) { const color = (def.children || [])[0]; if (color && color.kind === 'Color') palette.set(`${node.text}.${def.text}`, { color, file: file.name }); }
+  for (const set of response.themes.colorSets) for (const entry of set.colors) {
+    if (entry.value.kind === 'color') palette.set(`${set.name}.${entry.name}`, { color: entry.value, file: set.file });
   }
-  const literalText = (n) => n.kind === 'Int' || n.kind === 'Float' ? String(n.value) : n.kind === 'String' ? JSON.stringify(n.text) : n.kind === 'Ref' ? n.text : n.kind === 'Bool' ? String(!!n.value) : n.kind === 'Color' ? n.text : '…';
-  for (const file of response.ast.files) {
-    for (const node of file.ast.children || []) {
-      if (node.kind !== 'Theme') continue;
-      const card = h('div', { class: 'card' }, h('h4', {}, node.text, node.children?.some((c) => c.kind === 'Extends') ? h('span', { class: 'muted' }, ' extends ' + node.children.find((c) => c.kind === 'Extends').text) : ''));
-      for (const style of (node.children || []).filter((c) => c.kind === 'ThemeStyle')) {
-        card.append(h('div', {}, h('strong', {}, (style.override ? 'override ' : '') + style.text)));
-        for (const stateNode of style.children || []) {
-          const line = h('div', { style: 'margin-left:12px' }, h('span', { class: 'muted' }, stateNode.text + ': '));
-          for (const property of stateNode.children || []) {
-            const args = (property.children || []).filter((c) => c.kind !== 'AlphaOverride');
-            const parts = args.map((arg) => {
-              const target = arg.kind === 'Color' ? { color: arg, file: file.name } : arg.kind === 'Ref' ? palette.get(arg.text) : null;
-              if (!target) return h('code', {}, literalText(arg));
-              return h('span', {}, h('input', { type: 'color', value: hexOf(target.color.value), title: arg.kind === 'Ref' ? 'Edits ' + arg.text : 'Edit this color', 'aria-label': `${node.text}.${style.text} ${property.text}`, onchange: (event) => replaceColor(target.file, target.color, event.target.value) }), arg.kind === 'Ref' ? h('span', { class: 'muted' }, ' ' + arg.text) : '');
-            });
-            line.append(h('span', { style: 'margin-right:12px' }, property.text, ' ', ...parts.flatMap((part, i) => (i ? [', ', part] : [part]))));
-          }
-          card.append(line);
+  for (const theme of response.themes.themes) {
+    const card = h('div', { class: 'card' }, h('h4', {}, theme.name, theme.extends ? h('span', { class: 'muted' }, ' extends ' + theme.extends) : ''));
+    for (const style of theme.styles) {
+      card.append(h('div', {}, h('strong', {}, (style.override ? 'override ' : '') + style.key)));
+      for (const state of style.states) {
+        const line = h('div', { style: 'margin-left:12px' }, h('span', { class: 'muted' }, state.state + ': '));
+        for (const property of state.properties) {
+          const parts = property.arguments.map((arg) => {
+            const target = arg.kind === 'color' ? { color: arg, file: theme.file } : arg.kind === 'reference' ? palette.get(arg.text) : null;
+            if (!target) return h('code', {}, arg.text);
+            return h('span', {}, h('input', { type: 'color', value: hexOf(target.color.value), title: arg.kind === 'reference' ? 'Edits ' + arg.text : 'Edit this color', 'aria-label': `${theme.name}.${style.key} ${property.name}`, onchange: (event) => replaceColor(target.file, target.color, event.target.value) }), arg.kind === 'reference' ? h('span', { class: 'muted' }, ' ' + arg.text) : '');
+          });
+          line.append(h('span', { style: 'margin-right:12px' }, property.name, ' ', ...parts.flatMap((part, i) => (i ? [', ', part] : [part]))));
         }
+        card.append(line);
       }
-      pad.append(card);
     }
+    pad.append(card);
   }
   if (!pad.children.length) pad.append(h('div', { class: 'muted' }, 'No themes declared.'));
   body.append(pad);

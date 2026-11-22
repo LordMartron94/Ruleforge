@@ -135,7 +135,7 @@ void ruleforge_filter_model_write(const RuleforgeCompilation *compilation, Nexus
     }
 
     (void)nexus_strings_string_builder_append(out, "{\"name\":");
-    (void)nexus_json_quote_append(out, module->ast->text == NULL ? "" : module->ast->text);
+    (void)nexus_json_quote_append(out, module->name == NULL ? "" : module->name);
     (void)nexus_strings_string_builder_append(out, ",\"file\":");
     (void)nexus_json_quote_append(out, file->name);
     (void)nexus_strings_string_builder_append(out, "}");

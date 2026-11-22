@@ -12,6 +12,7 @@ have errors and 2 for a usage problem.
 static void c_main_usage(void) {
   (void)nexus_stdio_stderr_write_cstring("usage: ruleforge <command> [options] <entry.rf>\n\ncommands:\n");
   (void)nexus_stdio_stderr_write_cstring("  ast        parse the file and its imports; write the syntax trees as JSON\n");
+  (void)nexus_stdio_stderr_write_cstring("  themes     parse the file and its imports; write their themes and color sets as JSON (for editors)\n");
   (void)nexus_stdio_stderr_write_cstring("  check      parse the file and its imports; report diagnostics only\n");
   (void)nexus_stdio_stderr_write_cstring("  compile    run main and write the item filter (and with --model the structured model)\n");
   (void)nexus_stdio_stderr_write_cstring("  simulate   compile, then run the items of --items through the filter and explain each result\n");
@@ -230,9 +231,9 @@ int main(int argument_count, char **arguments) {
     result = 2;
   }
 
-  if (result == 0 && !nexus_strings_string_equals(command, "ast") && !nexus_strings_string_equals(command, "check") &&
-      !nexus_strings_string_equals(command, "compile") && !nexus_strings_string_equals(command, "simulate") &&
-      !nexus_strings_string_equals(command, "tokens")) {
+  if (result == 0 && !nexus_strings_string_equals(command, "ast") && !nexus_strings_string_equals(command, "themes") &&
+      !nexus_strings_string_equals(command, "check") && !nexus_strings_string_equals(command, "compile") &&
+      !nexus_strings_string_equals(command, "simulate") && !nexus_strings_string_equals(command, "tokens")) {
     (void)nexus_stdio_stderr_write_formatted("ruleforge: unknown command %s\n", command);
     result = 2;
   }
@@ -272,6 +273,13 @@ int main(int argument_count, char **arguments) {
 
     if (ok && nexus_strings_string_equals(command, "ast")) {
       text = ruleforge_compilation_ast_json_write(compilation);
+      (void)nexus_stdio_stdout_write_cstring(text);
+      (void)nexus_stdio_stdout_write_cstring("\n");
+      nexus_memory_deallocate(text);
+    }
+
+    if (ok && nexus_strings_string_equals(command, "themes")) {
+      text = ruleforge_compilation_themes_json_write(compilation);
       (void)nexus_stdio_stdout_write_cstring(text);
       (void)nexus_stdio_stdout_write_cstring("\n");
       nexus_memory_deallocate(text);

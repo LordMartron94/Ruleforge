@@ -771,7 +771,6 @@ static RuleforgeValue r_economy_assign_tiers(REval *eval, RuleforgeSpan span, co
   int64           tiers;
   uint32          i;
   uint32         *indices;
-  uint32         *scratch;
   f_real         *keys;
   uint32          priced;
   int64          *assigned;
@@ -796,7 +795,6 @@ static RuleforgeValue r_economy_assign_tiers(REval *eval, RuleforgeSpan span, co
   strategy = arguments[3].kind == RVK_STRING ? arguments[3].as.string : "quantile";
 
   indices  = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(uint32));
-  scratch  = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(uint32));
   keys     = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(f_real));
   scores   = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(f_real));
   assigned = (int64 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(int64));
@@ -1255,41 +1253,19 @@ static RuleforgeValue r_rules_with_scope(REval *eval, RuleforgeSpan span, const 
     RuleforgeCondition  *condition;
     RuleforgeCondition **grown;
     uint32               k;
-    RuleforgeNode        assign;
-    RuleforgeNode       *children[1];
 
     rule = r_rules_copy(eval, span, arguments[0].as.ruleset->rules[i], "rules.WithScope");
 
     if (rule->native == NULL) {
-      /* Reuse the scope builder through a synthetic assignment whose value is the given constant. */
-      RuleforgeNode literal;
-
-      nexus_memory_bytes_set(&literal, NEXUS_SIZEOF(literal), 0);
-      nexus_memory_bytes_set(&assign, NEXUS_SIZEOF(assign), 0);
-      literal.span       = span;
-      assign.kind        = RNK_SCOPE_ASSIGN;
-      assign.span        = span;
-      assign.text        = arguments[1].as.string;
-      assign.child_count = 1;
-      assign.children    = children;
-      children[0]        = &literal;
-
-      if (holder.kind == RVK_STRING) {
-        literal.kind = RNK_STRING;
-        literal.text = holder.as.string;
-      } else if (holder.kind == RVK_INT) {
-        literal.kind    = RNK_INT;
-        literal.integer = holder.as.integer;
-      } else if (holder.kind == RVK_BOOL) {
-        literal.kind    = RNK_BOOL;
-        literal.integer = holder.as.flag ? 1 : 0;
-      } else {
+      if (holder.kind != RVK_STRING && holder.kind != RVK_INT && holder.kind != RVK_BOOL) {
         ruleforge_eval_fail(eval, "RF0523", span, NULL, "rules.WithScope: the value must be a string, int or bool");
 
         return ruleforge_value_none();
       }
 
-      if (!ruleforge_condition_scope_build(eval, &assign, &condition)) {
+      condition = ruleforge_condition_value_make(eval, span, info, ROP_EQ, &holder);
+
+      if (condition == NULL) {
         return ruleforge_value_none();
       }
 
@@ -1384,8 +1360,9 @@ void ruleforge_stdlib_json_write(NexusStringBuilder *out) {
   (void)nexus_strings_string_builder_append(out, "\"functions\":[");
 
   for (i = 0; i < (uint32)(NEXUS_SIZEOF(r_stdlib_natives) / NEXUS_SIZEOF(r_stdlib_natives[0])); i++) {
-    (void)nexus_strings_string_builder_append_formatted(out, "%s{\"module\":\"%s\",\"name\":\"%s\",\"minimum\":%lu,\"parameters\":[", i > 0 ? "," : "",
-                                                        r_stdlib_natives[i].module, r_stdlib_natives[i].name, (unsigned long)r_stdlib_natives[i].minimum);
+    (void)nexus_strings_string_builder_append_formatted(out, "%s{\"module\":\"%s\",\"name\":\"%s\",\"minimum\":%lu,\"parameters\":[",
+                                                        i > 0 ? "," : "", r_stdlib_natives[i].module, r_stdlib_natives[i].name,
+                                                        (unsigned long)r_stdlib_natives[i].minimum);
 
     {
       const char *cursor;

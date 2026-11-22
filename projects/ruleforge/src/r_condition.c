@@ -1,4 +1,5 @@
 #include <nexus.h>
+#include <rf_bindings.h>
 
 #include "../ruleforge.h"
 #include "./r_internal.h"
@@ -16,8 +17,8 @@ residual game conditions in disjunctive normal form, because a filter block is a
 /* CLAUSES                                                                      */
 /* ---------------------------------------------------------------------------- */
 
-static RuleforgeOperator r_condition_operator_negate(RuleforgeOperator op) {
-  switch (op) {
+static RuleforgeOperator r_condition_operator_negate(RuleforgeOperator operation) {
+  switch (operation) {
   case ROP_EQ:
     return ROP_NE;
   case ROP_NE:
@@ -35,8 +36,8 @@ static RuleforgeOperator r_condition_operator_negate(RuleforgeOperator op) {
   return ROP_NE;
 }
 
-static RuleforgeOperator r_condition_operator_flip(RuleforgeOperator op) {
-  switch (op) {
+static RuleforgeOperator r_condition_operator_flip(RuleforgeOperator operation) {
+  switch (operation) {
   case ROP_LT:
     return ROP_GT;
   case ROP_LE:
@@ -46,7 +47,7 @@ static RuleforgeOperator r_condition_operator_flip(RuleforgeOperator op) {
   case ROP_GE:
     return ROP_LE;
   default:
-    return op;
+    return operation;
   }
 }
 
@@ -182,37 +183,65 @@ static boolean r_condition_or(REval *eval, const RuleforgeDnf *left, const Rulef
 /* VALUES TO CONDITIONS                                                         */
 /* ---------------------------------------------------------------------------- */
 
-boolean ruleforge_condition_game_name_is(REval *eval, const RuleforgeNode *node) {
-  RuleforgeValue   value;
-  RuleforgeModule *owner;
+/*
+Summary: the name of the game condition an expression is, or NULL.
+Description: a game name is a bare reference to a manifest condition such as `rarity`, not `rarity.x`. Locals and declarations shadow it.
+*/
+static const char *r_condition_game_name_get(REval *eval, RfExpr view) {
+  RfAtom             atom;
+  RfIndexedReference indexed;
+  RfReference        reference;
+  const char        *name;
+  RuleforgeValue     value;
+  RuleforgeModule   *owner;
 
-  if (node->kind != RNK_REF || node->integer != RNK_REF_PLAIN) {
-    return FALSE;
+  if (rf_expr_operand_count(view) != 0) {
+    return NULL;
   }
 
-  /* The game name may be followed by nothing: `rarity`, not `rarity.x`. Locals and declarations shadow it. */
-  if (nexus_strings_string_find(node->text, ".") != NULL || ruleforge_manifest_condition_find(node->text) == NULL) {
-    return FALSE;
+  atom = rf_expr_atom(view);
+
+  if (rf_atom_count_rule_indexed_reference(atom) == 0) {
+    return NULL;
   }
 
-  if (ruleforge_eval_variable_find(eval, node->text, FALSE, &value) || ruleforge_eval_symbol_find(eval, eval->module, node->text, &owner) != NULL) {
-    return FALSE;
+  indexed = rf_atom_rule_indexed_reference(atom, 0);
+
+  if (rf_indexed_reference_count_rule_expr(indexed) != 0) {
+    return NULL;
   }
 
-  return TRUE;
+  reference = rf_indexed_reference_rule_reference(indexed, 0);
+
+  if (rf_reference_count_token_identifier(reference) != 1 || rf_reference_count_token_parameter_reference(reference) != 0 ||
+      rf_reference_count_token_compiler_reference(reference) != 0) {
+    return NULL;
+  }
+
+  name = ruleforge_eval_text_get(eval, reference.tree, rf_reference_token_identifier(reference, 0));
+
+  if (ruleforge_manifest_condition_find(name) == NULL) {
+    return NULL;
+  }
+
+  if (ruleforge_eval_variable_find(eval, name, FALSE, &value) || ruleforge_eval_symbol_find(eval, eval->module, name, &owner) != NULL) {
+    return NULL;
+  }
+
+  return name;
 }
 
-/* Summary: builds the condition `info op value`; reports a value of the wrong type or an operator the condition lacks. */
-static RuleforgeCondition *r_condition_make(REval *eval, RuleforgeSpan span, const RuleforgeConditionInfo *info, RuleforgeOperator op,
+/* Summary: builds the condition `info operation value`; reports a value of the wrong type or an operator the condition lacks. */
+static RuleforgeCondition *r_condition_make(REval *eval, RuleforgeSpan span, const RuleforgeConditionInfo *info, RuleforgeOperator operation,
                                             const RuleforgeValue *value) {
   RuleforgeCondition *condition;
   uint32              count;
   uint32              i;
   RuleforgeValue      single;
 
-  if (op != ROP_EQ && op != ROP_NE && !info->ordered) {
+  if (operation != ROP_EQ && operation != ROP_NE && !info->ordered) {
     ruleforge_eval_fail(eval, "RF0351", span, "this condition can only be compared with == or !=", "`%s` cannot be compared with `%s`", info->name,
-                        ruleforge_manifest_operator_text_get(op));
+                        ruleforge_manifest_operator_text_get(operation));
 
     return NULL;
   }
@@ -238,7 +267,7 @@ static RuleforgeCondition *r_condition_make(REval *eval, RuleforgeSpan span, con
     return NULL;
   }
 
-  condition = ruleforge_eval_condition_create(eval, info, op, count);
+  condition = ruleforge_eval_condition_create(eval, info, operation, count);
 
   for (i = 0; i < count; i++) {
     single = value->kind == RVK_LIST ? value->as.list->items[i] : *value;
@@ -286,7 +315,7 @@ static RuleforgeCondition *r_condition_make(REval *eval, RuleforgeSpan span, con
   }
 
   /* A boolean condition is always written == value: `!= true` is `== false`. */
-  if (info->type == RCT_BOOLEAN && op == ROP_NE) {
+  if (info->type == RCT_BOOLEAN && operation == ROP_NE) {
     condition->op         = ROP_EQ;
     condition->numbers[0] = condition->numbers[0] == 0 ? 1 : 0;
   }
@@ -294,12 +323,16 @@ static RuleforgeCondition *r_condition_make(REval *eval, RuleforgeSpan span, con
   return condition;
 }
 
-boolean ruleforge_condition_scope_build(REval *eval, const RuleforgeNode *assign, RuleforgeCondition **out_condition) {
+boolean ruleforge_condition_scope_build(REval *eval, RfScopeAssignment assignment, RuleforgeCondition **out_condition) {
   const RuleforgeConditionInfo *info;
   RuleforgeValue                value;
+  const char                   *key;
+  RuleforgeSpan                 span;
 
   *out_condition = NULL;
-  info           = ruleforge_manifest_condition_find(assign->text);
+  key            = ruleforge_syntax_name_get(eval->compilation, rf_scope_assignment_rule_qualified_name(assignment, 0));
+  span           = ruleforge_eval_span_get(eval, assignment.tree, assignment.node);
+  info           = ruleforge_manifest_condition_find(key);
 
   if (info == NULL) {
     const char *closest;
@@ -314,57 +347,89 @@ boolean ruleforge_condition_scope_build(REval *eval, const RuleforgeNode *assign
       names[i] = ruleforge_manifest_condition_at(i)->name;
     }
 
-    closest = nexus_strings_string_closest(assign->text, names, count);
-    (void)stbsp_snprintf(note, (int)NEXUS_SIZEOF(note), "%s%s", closest == NULL ? "see docs/manifest.md for the conditions" : "did you mean `",
-                         closest == NULL ? "" : closest);
+    closest = nexus_strings_string_closest(key, names, count);
 
     if (closest != NULL) {
       (void)stbsp_snprintf(note, (int)NEXUS_SIZEOF(note), "did you mean `%s`?", closest);
     }
 
-    ruleforge_eval_fail(eval, "RF0357", assign->span,
+    ruleforge_eval_fail(eval, "RF0357", span,
                         closest == NULL ? "see docs/manifest.md for the conditions"
                                         : nexus_data_arena_text_copy(&eval->compilation->arena, note, nexus_strings_string_length_get(note)),
-                        "`%s` is not a game condition", assign->text);
+                        "`%s` is not a game condition", key);
 
     return FALSE;
   }
 
-  value = ruleforge_eval_expression(eval, assign->children[0]);
+  value = ruleforge_eval_expression(eval, rf_scope_assignment_rule_expr(assignment, 0));
 
   if (eval->failed) {
     return FALSE;
   }
 
-  *out_condition = r_condition_make(eval, assign->span, info, ROP_EQ, &value);
+  *out_condition = r_condition_make(eval, span, info, ROP_EQ, &value);
 
   return *out_condition != NULL;
+}
+
+RuleforgeCondition *ruleforge_condition_value_make(REval *eval, RuleforgeSpan span, const RuleforgeConditionInfo *info, RuleforgeOperator operation,
+                                                   const RuleforgeValue *value) {
+  return r_condition_make(eval, span, info, operation, value);
 }
 
 /* ---------------------------------------------------------------------------- */
 /* EXPRESSIONS                                                                  */
 /* ---------------------------------------------------------------------------- */
 
-boolean ruleforge_condition_evaluate(REval *eval, const RuleforgeNode *node, boolean negate, RuleforgeDnf *out) {
-  RuleforgeDnf left;
-  RuleforgeDnf right;
-  const char  *op;
-
-  if (node->kind == RNK_UNARY && nexus_strings_string_equals(node->text, "not")) {
-    return ruleforge_condition_evaluate(eval, node->children[0], !negate, out);
+/* Summary: the comparison operator a lexer token stands for; FALSE when the token is not a comparison. */
+static boolean r_condition_operator_get(LLexerTokenKind kind, RuleforgeOperator *out) {
+  if (kind == RF_TOKEN_EQUALS_EQUALS) {
+    *out = ROP_EQ;
+  } else if (kind == RF_TOKEN_NOT_EQUALS) {
+    *out = ROP_NE;
+  } else if (kind == RF_TOKEN_LESS) {
+    *out = ROP_LT;
+  } else if (kind == RF_TOKEN_LESS_EQUAL) {
+    *out = ROP_LE;
+  } else if (kind == RF_TOKEN_GREATER) {
+    *out = ROP_GT;
+  } else if (kind == RF_TOKEN_GREATER_EQUAL) {
+    *out = ROP_GE;
+  } else {
+    return FALSE;
   }
 
-  if (node->kind == RNK_BINARY && (nexus_strings_string_equals(node->text, "and") || nexus_strings_string_equals(node->text, "or"))) {
+  return TRUE;
+}
+
+boolean ruleforge_condition_evaluate(REval *eval, RfExpr view, boolean negate, RuleforgeDnf *out) {
+  RuleforgeDnf      left;
+  RuleforgeDnf      right;
+  uint32            operands;
+  LLexerTokenKind   kind;
+  RuleforgeSpan     span;
+  const char       *game_name;
+  RuleforgeOperator operator_value;
+
+  span     = ruleforge_eval_span_get(eval, view.tree, view.node);
+  operands = rf_expr_operand_count(view);
+  kind     = operands == 0 ? (LLexerTokenKind)L_LEXER_TOKEN_KIND_ERROR : rf_expr_operator_kind(view);
+
+  if (operands == 1 && kind == RF_TOKEN_KW_NOT) {
+    return ruleforge_condition_evaluate(eval, rf_expr_operand(view, 0), !negate, out);
+  }
+
+  if (operands == 2 && (kind == RF_TOKEN_KW_AND || kind == RF_TOKEN_KW_OR)) {
     boolean is_and;
 
     /* De Morgan: under a negation `and` becomes `or` and the other way round. */
-    is_and = nexus_strings_string_equals(node->text, "and");
+    is_and = kind == RF_TOKEN_KW_AND;
 
     if (negate) {
       is_and = !is_and;
     }
 
-    if (!ruleforge_condition_evaluate(eval, node->children[0], negate, &left)) {
+    if (!ruleforge_condition_evaluate(eval, rf_expr_operand(view, 0), negate, &left)) {
       return FALSE;
     }
 
@@ -375,85 +440,74 @@ boolean ruleforge_condition_evaluate(REval *eval, const RuleforgeNode *node, boo
       return TRUE;
     }
 
-    if (!ruleforge_condition_evaluate(eval, node->children[1], negate, &right)) {
+    if (!ruleforge_condition_evaluate(eval, rf_expr_operand(view, 1), negate, &right)) {
       return FALSE;
     }
 
-    return is_and ? r_condition_and(eval, &left, &right, node->span, out) : r_condition_or(eval, &left, &right, node->span, out);
+    return is_and ? r_condition_and(eval, &left, &right, span, out) : r_condition_or(eval, &left, &right, span, out);
   }
 
-  if (node->kind == RNK_BINARY) {
-    op = node->text;
+  if (operands == 2 && r_condition_operator_get(kind, &operator_value)) {
+    const char *left_name;
+    const char *right_name;
 
-    if (nexus_strings_string_equals(op, "==") || nexus_strings_string_equals(op, "!=") || nexus_strings_string_equals(op, "<") ||
-        nexus_strings_string_equals(op, "<=") || nexus_strings_string_equals(op, ">") || nexus_strings_string_equals(op, ">=")) {
-      boolean             left_game;
-      boolean             right_game;
-      RuleforgeOperator   operator_value;
+    left_name  = r_condition_game_name_get(eval, rf_expr_operand(view, 0));
+    right_name = r_condition_game_name_get(eval, rf_expr_operand(view, 1));
+
+    if (left_name != NULL && right_name != NULL) {
+      ruleforge_eval_fail(eval, "RF0358", span, NULL, "a condition cannot compare two game values");
+
+      return FALSE;
+    }
+
+    if (left_name != NULL || right_name != NULL) {
       RuleforgeValue      value;
       RuleforgeCondition *condition;
 
-      left_game  = ruleforge_condition_game_name_is(eval, node->children[0]);
-      right_game = ruleforge_condition_game_name_is(eval, node->children[1]);
+      if (right_name != NULL) {
+        operator_value = r_condition_operator_flip(operator_value);
+      }
 
-      if (left_game && right_game) {
-        ruleforge_eval_fail(eval, "RF0358", node->span, NULL, "a condition cannot compare two game values");
+      if (negate) {
+        operator_value = r_condition_operator_negate(operator_value);
+      }
 
+      value = ruleforge_eval_expression(eval, rf_expr_operand(view, left_name != NULL ? 1 : 0));
+
+      if (eval->failed) {
         return FALSE;
       }
 
-      if (left_game || right_game) {
-        operator_value = nexus_strings_string_equals(op, "==")   ? ROP_EQ
-                         : nexus_strings_string_equals(op, "!=") ? ROP_NE
-                         : nexus_strings_string_equals(op, "<")  ? ROP_LT
-                         : nexus_strings_string_equals(op, "<=") ? ROP_LE
-                         : nexus_strings_string_equals(op, ">")  ? ROP_GT
-                                                                 : ROP_GE;
+      condition = r_condition_make(eval, span, ruleforge_manifest_condition_find(left_name != NULL ? left_name : right_name), operator_value, &value);
 
-        if (right_game) {
-          operator_value = r_condition_operator_flip(operator_value);
-        }
-
-        if (negate) {
-          operator_value = r_condition_operator_negate(operator_value);
-        }
-
-        value = ruleforge_eval_expression(eval, node->children[left_game ? 1 : 0]);
-
-        if (eval->failed) {
-          return FALSE;
-        }
-
-        condition =
-            r_condition_make(eval, node->span, ruleforge_manifest_condition_find(node->children[left_game ? 0 : 1]->text), operator_value, &value);
-
-        if (condition == NULL) {
-          return FALSE;
-        }
-
-        r_condition_single(eval, out, condition);
-
-        return TRUE;
+      if (condition == NULL) {
+        return FALSE;
       }
+
+      r_condition_single(eval, out, condition);
+
+      return TRUE;
     }
   }
 
-  if (ruleforge_condition_game_name_is(eval, node)) {
+  game_name = r_condition_game_name_get(eval, view);
+
+  if (game_name != NULL) {
     const RuleforgeConditionInfo *info;
     RuleforgeValue                truth;
     RuleforgeCondition           *condition;
 
-    info = ruleforge_manifest_condition_find(node->text);
+    info = ruleforge_manifest_condition_find(game_name);
 
     if (info->type != RCT_BOOLEAN) {
-      ruleforge_eval_fail(eval, "RF0359", node->span, "compare it with a value, e.g. `rarity == \"Rare\"`", "`%s` is not a true/false condition",
+      ruleforge_eval_fail(eval, "RF0359", span, "compare it with a value, e.g. `rarity == \"Rare\"`", "`%s` is not a true/false condition",
                           info->name);
 
       return FALSE;
     }
 
     truth     = ruleforge_value_flag(!negate);
-    condition = r_condition_make(eval, node->span, info, ROP_EQ, &truth);
+    condition = r_condition_make(eval, span, info, ROP_EQ, &truth);
 
     if (condition == NULL) {
       return FALSE;
@@ -468,7 +522,7 @@ boolean ruleforge_condition_evaluate(REval *eval, const RuleforgeNode *node, boo
   {
     boolean flag;
 
-    if (!ruleforge_eval_boolean_get(eval, node, &flag)) {
+    if (!ruleforge_eval_boolean_get(eval, view, &flag)) {
       return FALSE;
     }
 

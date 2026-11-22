@@ -5,6 +5,8 @@
 
 #include <logos.h>
 
+#include <rf_bindings.h>
+
 #include "../ruleforge.h"
 
 /* ---------------------------------------------------------------------------- */
@@ -26,15 +28,17 @@ struct RuleforgeRuntime {
 /* DIAGNOSTICS                                                                  */
 /* ---------------------------------------------------------------------------- */
 
+typedef struct RuleforgeModule RuleforgeModule;
+
 /* A source file of one compilation; the index in RuleforgeCompilation.files is its id in every span. */
 typedef struct RuleforgeFile {
-  char      *name;   /* path or logical name shown in diagnostics */
-  char      *module; /* declared module name, or NULL when the header did not parse */
-  byte      *text;   /* NUL-terminated copy */
-  uint_large size;
-  uint32     line_count;
-  uint32    *line_starts; /* byte offset of every line */
-  boolean    embedded;    /* part of the standard library */
+  char       *name;   /* path or logical name shown in diagnostics */
+  const char *module; /* declared module name, or NULL when the header did not parse */
+  byte       *text;   /* NUL-terminated copy */
+  uint_large  size;
+  uint32      line_count;
+  uint32     *line_starts; /* byte offset of every line */
+  boolean     embedded;    /* part of the standard library */
 } RuleforgeFile;
 
 typedef struct RuleforgeSpan {
@@ -61,107 +65,6 @@ typedef struct RuleforgeDiagnostic {
   RuleforgeSpan               span;
   char                       *note; /* optional extra line, or NULL */
 } RuleforgeDiagnostic;
-
-/* ---------------------------------------------------------------------------- */
-/* ABSTRACT SYNTAX TREE                                                         */
-/* ---------------------------------------------------------------------------- */
-
-/*
-The abstract syntax tree is one node type with a kind, so the JSON interchange form, the checker and the evaluator all
-walk the same structure. The child layout of every kind is documented next to its enumerator.
-*/
-typedef enum RuleforgeNodeKind {
-  RNK_MODULE,          /* text = module name; children: RNK_VERSION, RNK_IMPORT*, declarations */
-  RNK_VERSION,         /* text = "1.0.0" */
-  RNK_IMPORT,          /* text = qualified module name */
-  RNK_SCHEMA,          /* text = name; flag EXPORT; children: RNK_FIELD* */
-  RNK_FIELD,           /* text = name; child: RNK_TYPE */
-  RNK_DATASET,         /* text = name; flag EXPORT; children: RNK_TYPE (the schema), RNK_STRING (the logical source) */
-  RNK_THEME_SCHEMA,    /* text = name; flag EXPORT; children: RNK_KEY* */
-  RNK_KEY,             /* text = style key */
-  RNK_COLOR_SET,       /* text = name; flag EXPORT; children: RNK_COLOR_DEF* */
-  RNK_COLOR_DEF,       /* text = name; child: expression */
-  RNK_THEME,           /* text = name; flag EXPORT; children: [RNK_EXTENDS] [RNK_IMPLEMENTS] RNK_THEME_STYLE* */
-  RNK_EXTENDS,         /* text = qualified name */
-  RNK_IMPLEMENTS,      /* text = qualified name */
-  RNK_THEME_STYLE,     /* text = key; flag OVERRIDE; children: RNK_THEME_STATE* */
-  RNK_THEME_STATE,     /* text = "show" or "hide"; children: RNK_STYLE_PROPERTY* */
-  RNK_STYLE_PROPERTY,  /* text = property; children: expression+ [RNK_ALPHA_OVERRIDE] */
-  RNK_ALPHA_OVERRIDE,  /* integer = alpha 0..255 */
-  RNK_TEMPLATE,        /* text = name; flag EXPORT; children: RNK_PARAMS, rule body items */
-  RNK_FUNCTION,        /* text = name; flag EXPORT; children: RNK_PARAMS, [RNK_TYPE return], RNK_BLOCK */
-  RNK_RULESET,         /* text = name; flag EXPORT; children: [RNK_DESCRIPTION], [RNK_CORE_CONDITIONS], statements */
-  RNK_DESCRIPTION,     /* text = description */
-  RNK_CORE_CONDITIONS, /* children: expression* (game conditions added to every rule of the ruleset) */
-  RNK_CONFIGURATION,   /* children: RNK_CONFIG_ASSIGN*, RNK_ADAPTER* */
-  RNK_CONFIG_ASSIGN,   /* text = key; child: expression */
-  RNK_ADAPTER,         /* text = name; child[0]: RNK_TYPE (target schema), then RNK_ADAPTER_MAP* */
-  RNK_ADAPTER_MAP,     /* text = target field; text2 = source field */
-  RNK_PARAMS,          /* children: RNK_PARAM* */
-  RNK_PARAM,           /* text = name; child: RNK_TYPE */
-  RNK_TYPE,            /* text = base name ("int", "list", "dataset", "a.b"); flag OPTIONAL; child: element RNK_TYPE for list/dataset */
-  RNK_BLOCK,           /* children: statements */
-  RNK_LET,             /* text = name; flag MUTABLE for var; children: [RNK_TYPE], expression */
-  RNK_ASSIGN,          /* text = name; child: expression */
-  RNK_IF,              /* children: condition, RNK_BLOCK, [RNK_BLOCK or RNK_IF] */
-  RNK_FOR,             /* text = variable; children: iterable, [RNK_WHERE], RNK_BLOCK */
-  RNK_WHERE,           /* child: expression */
-  RNK_RETURN,          /* child: [expression] */
-  RNK_INCLUDE,         /* children: target (RNK_CALL or RNK_REF), [RNK_WITH] */
-  RNK_WITH,            /* children: RNK_WITH_BINDING* */
-  RNK_WITH_BINDING,    /* text = name; child: expression */
-  RNK_EMIT,            /* child: RNK_RULE */
-  RNK_RULE,            /* text = name or NULL; either one RNK_CALL child (template use) or rule body items */
-  RNK_NATIVE,          /* text = native filter text */
-  RNK_SCOPE,           /* children: RNK_SCOPE_ASSIGN* */
-  RNK_SCOPE_ASSIGN,    /* text = condition name; child: expression */
-  RNK_BASELINE,        /* children: commands */
-  RNK_VARIANTS,        /* children: RNK_WHEN* */
-  RNK_WHEN,            /* children: condition expression, commands */
-  RNK_ACTION,          /* text = "show" or "hide" */
-  RNK_STYLE,           /* child: expression */
-  RNK_INHERIT,         /* text = "action" */
-  RNK_INT,             /* integer */
-  RNK_FLOAT,           /* real */
-  RNK_STRING,          /* text = unescaped value */
-  RNK_BOOL,            /* integer = 0 or 1 */
-  RNK_NONE,
-  RNK_COLOR,  /* integer = 0xRRGGBBAA, flag ALPHA when an alpha was written */
-  RNK_LIST,   /* children: RNK_ARG* */
-  RNK_CALL,   /* children: RNK_REF (the callee), RNK_ARG* */
-  RNK_ARG,    /* text = argument name or NULL; child: expression */
-  RNK_REF,    /* text = dotted name; integer = RNK_REF_PARAMETER / RNK_REF_COMPILER / RNK_REF_PLAIN */
-  RNK_INDEX,  /* children: base, index */
-  RNK_UNARY,  /* text = "not" or "-"; child: operand */
-  RNK_BINARY, /* text = operator; children: left, right */
-  RNK_COUNT
-} RuleforgeNodeKind;
-
-#define RNF_EXPORT   1U
-#define RNF_OVERRIDE 2U
-#define RNF_OPTIONAL 4U
-#define RNF_MUTABLE  8U
-#define RNF_ALPHA    16U
-
-#define RNK_REF_PLAIN     0
-#define RNK_REF_PARAMETER 1
-#define RNK_REF_COMPILER  2
-
-typedef struct RuleforgeNode RuleforgeNode;
-
-struct RuleforgeNode {
-  RuleforgeNodeKind kind;
-  RuleforgeSpan     span;
-  uint32            flags;
-  const char       *text;
-  const char       *text2;
-  int64             integer;
-  f_real            real;
-  uint32            child_count;
-  RuleforgeNode   **children;
-};
-
-typedef struct RuleforgeModule RuleforgeModule;
 
 /* ---------------------------------------------------------------------------- */
 /* VALUES                                                                       */
@@ -374,7 +277,7 @@ extern uint32                        ruleforge_manifest_condition_count_get(void
 extern const RuleforgeConditionInfo *ruleforge_manifest_condition_at(uint32 index);
 extern int32                         ruleforge_manifest_rarity_parse(const char *text);
 extern const char                   *ruleforge_manifest_rarity_name_get(int64 rarity);
-extern const char                   *ruleforge_manifest_operator_text_get(RuleforgeOperator op);
+extern const char                   *ruleforge_manifest_operator_text_get(RuleforgeOperator operation);
 extern boolean                       ruleforge_manifest_property_lower(RuleforgeCompilation *compilation, RuleforgeSpan span, const char *name,
                                                                        const RuleforgeValue *arguments, uint32 count, int32 alpha_override,
                                                                        RuleforgeStyleProperty *out_property);
@@ -502,6 +405,25 @@ struct RuleforgeSettings {
   uint32         depth_limit;
 };
 
+/* A module declaration, found once when the module is loaded. */
+typedef struct RuleforgeDeclaration {
+  const char   *name;
+  RfDeclaration view;
+  boolean       exported;
+} RuleforgeDeclaration;
+
+/* A parsed module: its source file and syntax tree, read only through the generated views. */
+struct RuleforgeModule {
+  uint32                file;
+  const char           *name;   /* the declared module name, e.g. filters.currency */
+  LParserTree          *tree;   /* owned; destroyed with the compilation */
+  RfScript              script; /* the root view of tree */
+  uint32                import_count;
+  const char          **imports; /* module names, in source order */
+  uint32                declaration_count;
+  RuleforgeDeclaration *declarations;
+};
+
 /* ---------------------------------------------------------------------------- */
 /* EVALUATION                                                                   */
 /* ---------------------------------------------------------------------------- */
@@ -514,9 +436,10 @@ typedef struct RuleforgeVariable {
 } RuleforgeVariable;
 
 typedef struct RuleforgeNamespace {
-  RuleforgeModule     *module; /* a module's exports, or NULL */
-  const RuleforgeNode *node;   /* a color set, or NULL */
-  RuleforgeModule     *owner;  /* the module that declares node */
+  RuleforgeModule *module;       /* a module's exports, or NULL */
+  boolean          is_color_set; /* a color set's colors instead */
+  RfColorSetStmt   color_set;
+  RuleforgeModule *owner; /* the module that declares the color set */
 } RuleforgeNamespace;
 
 typedef struct RuleforgeEvaluation REval;
@@ -540,25 +463,48 @@ struct RuleforgeEvaluation {
   boolean                    failed;
   boolean                    returning;
   RuleforgeValue             result;
-  NexusDataList             *cache_keys;   /* const RuleforgeNode * */
+  NexusDataList             *cache_keys;   /* the declaration nodes whose values are cached */
   NexusDataList             *cache_values; /* RuleforgeValue * */
   NexusDataList             *datasets;     /* RuleforgeDataset * in load order */
 };
 
+typedef enum RuleforgeTypeKind {
+  RTK_INT,
+  RTK_FLOAT,
+  RTK_BOOL,
+  RTK_STRING,
+  RTK_COLOR,
+  RTK_STYLE,
+  RTK_VOID,
+  RTK_RULESET,
+  RTK_LIST,
+  RTK_DATASET,
+  RTK_NAMED
+} RuleforgeTypeKind;
+
 /* r_eval.c */
-extern void                       ruleforge_eval_initialize(REval *eval, RuleforgeCompilation *compilation, const RuleforgeSettings *settings);
-extern void                       ruleforge_eval_release(REval *eval);
-extern RuleforgeValue             ruleforge_eval_expression(REval *eval, const RuleforgeNode *node);
-extern boolean                    ruleforge_eval_main_run(REval *eval, RuleforgeRuleset **out_ruleset);
-extern void                       ruleforge_eval_fail(REval *eval, const char *code, RuleforgeSpan span, const char *note, const char *format, ...);
-extern const RuleforgeNode       *ruleforge_eval_symbol_find(REval *eval, RuleforgeModule *module, const char *name, RuleforgeModule **out_owner);
-extern boolean                    ruleforge_eval_reference_resolve(REval *eval, const RuleforgeNode *node, RuleforgeValue *out_value);
-extern boolean                    ruleforge_eval_boolean_get(REval *eval, const RuleforgeNode *node, boolean *out_flag);
-extern RuleforgeStyle            *ruleforge_eval_style_get(REval *eval, const RuleforgeNode *node);
-extern const RuleforgeProvenance *ruleforge_eval_provenance_push(REval *eval, RuleforgeProvenanceKind kind, RuleforgeSpan span, const char *label,
-                                                                 RuleforgeRecord *record);
-extern boolean                    ruleforge_eval_variable_find(REval *eval, const char *name, boolean parameter, RuleforgeValue *out_value);
-extern RuleforgeCondition *ruleforge_eval_condition_create(REval *eval, const RuleforgeConditionInfo *info, RuleforgeOperator op, uint32 count);
+extern RuleforgeTypeKind           ruleforge_eval_type_kind_get(RfType type);
+extern void                        ruleforge_eval_initialize(REval *eval, RuleforgeCompilation *compilation, const RuleforgeSettings *settings);
+extern void                        ruleforge_eval_release(REval *eval);
+extern RuleforgeValue              ruleforge_eval_expression(REval *eval, RfExpr view);
+extern boolean                     ruleforge_eval_main_run(REval *eval, RuleforgeRuleset **out_ruleset);
+extern void                        ruleforge_eval_fail(REval *eval, const char *code, RuleforgeSpan span, const char *note, const char *format, ...);
+extern RuleforgeSpan               ruleforge_eval_span_get(const REval *eval, const LParserTree *tree, const LParserGreenNode *node);
+extern const char                 *ruleforge_eval_text_get(REval *eval, const LParserTree *tree, const LParserGreenNode *token);
+extern const RuleforgeDeclaration *ruleforge_eval_symbol_find(REval *eval, RuleforgeModule *module, const char *name, RuleforgeModule **out_owner);
+extern boolean                     ruleforge_eval_boolean_get(REval *eval, RfExpr view, boolean *out_flag);
+extern RuleforgeStyle             *ruleforge_eval_style_get(REval *eval, RfExpr view);
+extern const RuleforgeProvenance  *ruleforge_eval_provenance_push(REval *eval, RuleforgeProvenanceKind kind, RuleforgeSpan span, const char *label,
+                                                                  RuleforgeRecord *record);
+extern boolean                     ruleforge_eval_variable_find(REval *eval, const char *name, boolean parameter, RuleforgeValue *out_value);
+extern RuleforgeCondition         *ruleforge_eval_condition_create(REval *eval, const RuleforgeConditionInfo *info, RuleforgeOperator operation,
+                                                                   uint32 count);
+extern boolean                     ruleforge_eval_type_check(REval *eval, RuleforgeValue *value, RfType type, RuleforgeSpan span, const char *what);
+extern const char                 *ruleforge_eval_type_name_get(REval *eval, RfType type);
+
+/* r_color.c */
+extern uint32 ruleforge_color_value_get(RfColorLiteral view, boolean *out_has_alpha);
+extern uint32 ruleforge_color_alpha_override_get(RfColorOverride view);
 
 /* r_condition.c */
 typedef struct RuleforgeDnf {
@@ -568,9 +514,10 @@ typedef struct RuleforgeDnf {
   RuleforgeClause *clauses;
 } RuleforgeDnf;
 
-extern boolean ruleforge_condition_evaluate(REval *eval, const RuleforgeNode *node, boolean negate, RuleforgeDnf *out);
-extern boolean ruleforge_condition_scope_build(REval *eval, const RuleforgeNode *assign, RuleforgeCondition **out_condition);
-extern boolean ruleforge_condition_game_name_is(REval *eval, const RuleforgeNode *node);
+extern boolean             ruleforge_condition_evaluate(REval *eval, RfExpr view, boolean negate, RuleforgeDnf *out);
+extern boolean             ruleforge_condition_scope_build(REval *eval, RfScopeAssignment assignment, RuleforgeCondition **out_condition);
+extern RuleforgeCondition *ruleforge_condition_value_make(REval *eval, RuleforgeSpan span, const RuleforgeConditionInfo *info,
+                                                          RuleforgeOperator operation, const RuleforgeValue *value);
 
 /* r_json.c: a JSON reader that keeps fractions, which Nexus's does not. */
 typedef enum RuleforgeJsonKind {
@@ -627,11 +574,12 @@ extern RuleforgeToml *ruleforge_toml_parse(RuleforgeRuntime *runtime, NexusDataA
                                            uint_large error_size);
 
 /* r_dataset.c */
-extern RuleforgeDataset *ruleforge_dataset_load(REval *eval, const RuleforgeNode *declaration, RuleforgeModule *owner);
+extern RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration, RuleforgeModule *owner);
 
 /* r_theme.c */
-extern RuleforgeTheme *ruleforge_theme_resolve(REval *eval, const RuleforgeNode *declaration, RuleforgeModule *owner);
+extern RuleforgeTheme *ruleforge_theme_resolve(REval *eval, RfThemeStmt declaration, RuleforgeModule *owner);
 extern RuleforgeStyle *ruleforge_theme_style_get(const RuleforgeTheme *theme, const char *key);
+extern void            ruleforge_theme_declarations_json_write(RuleforgeCompilation *compilation, NexusStringBuilder *out);
 struct RuleforgeTheme {
   const char      *name;
   const char      *schema;
@@ -676,22 +624,18 @@ extern uint64 ruleforge_compilation_hash_get(const RuleforgeCompilation *compila
 /* COMPILATION                                                                  */
 /* ---------------------------------------------------------------------------- */
 
-/* A parsed module: its source file and syntax tree. */
-struct RuleforgeModule {
-  uint32         file;
-  RuleforgeNode *ast;
-};
-
 /* One compilation: everything allocated while compiling lives in the arena and is released together. */
 struct RuleforgeCompilation {
   RuleforgeRuntime *runtime;
   NexusDataArena    arena;
 
-  NexusDataList *files;       /* RuleforgeFile * */
-  NexusDataList *diagnostics; /* RuleforgeDiagnostic * */
-  NexusDataList *search;      /* const char * source folders */
-  NexusDataList *modules;     /* RuleforgeModule * in load order: imports before their importers */
-  uint32         error_count;
+  NexusDataList    *files;       /* RuleforgeFile * */
+  NexusDataList    *diagnostics; /* RuleforgeDiagnostic * */
+  NexusDataList    *search;      /* const char * source folders */
+  NexusDataList    *modules;     /* RuleforgeModule * in load order: imports before their importers */
+  NexusDataHashMap *interned;    /* syntax token -> its NUL-terminated text, made once per token */
+  NexusDataHashMap *strings;     /* string literal token -> its unescaped value, made once per token */
+  uint32            error_count;
 
   /* Products of compile (r_compilation.c). */
   RuleforgeRuleset        *result;
@@ -728,18 +672,14 @@ typedef enum RuleforgeSyntaxKind {
   RSK_COUNT
 } RuleforgeSyntaxKind;
 
-extern LParserTree *ruleforge_syntax_parse(RuleforgeCompilation *compilation, uint32 file);
-extern LParserTree *ruleforge_syntax_text_parse(RuleforgeRuntime *runtime, RuleforgeSyntaxKind kind, const byte *text, uint_large size, char *error,
-                                                uint_large error_size);
-
-/* r_ast.c */
-extern RuleforgeNode *ruleforge_ast_build(RuleforgeCompilation *compilation, uint32 file, const LParserTree *tree);
-extern const char    *ruleforge_ast_kind_name_get(RuleforgeNodeKind kind);
-extern RuleforgeNode *ruleforge_ast_node_create(RuleforgeCompilation *compilation, RuleforgeNodeKind kind, RuleforgeSpan span);
-extern void           ruleforge_ast_child_add(RuleforgeCompilation *compilation, RuleforgeNode *parent, RuleforgeNode *child);
+extern LParserTree  *ruleforge_syntax_parse(RuleforgeCompilation *compilation, uint32 file);
+extern LParserTree  *ruleforge_syntax_text_parse(RuleforgeRuntime *runtime, RuleforgeSyntaxKind kind, const byte *text, uint_large size, char *error,
+                                                 uint_large error_size);
+extern RuleforgeSpan ruleforge_syntax_span_get(const RuleforgeModule *module, const LParserTree *tree, const LParserGreenNode *node);
+extern const char   *ruleforge_syntax_text_get(RuleforgeCompilation *compilation, const LParserTree *tree, const LParserGreenNode *token);
+extern void          ruleforge_syntax_tree_json_write(const LParserTree *tree, NexusStringBuilder *out);
+extern const char   *ruleforge_syntax_name_get(RuleforgeCompilation *compilation, RfQualifiedName name);
 
 /* r_compilation.c */
-extern RuleforgeModule *ruleforge_compilation_module_find(const RuleforgeCompilation *compilation, const char *name);
-
-/* r_ast_json.c */
-extern void ruleforge_ast_json_write(const RuleforgeCompilation *compilation, const RuleforgeNode *root, NexusStringBuilder *out);
+extern RuleforgeModule            *ruleforge_compilation_module_find(const RuleforgeCompilation *compilation, const char *name);
+extern const RuleforgeDeclaration *ruleforge_compilation_declaration_find(const RuleforgeModule *module, const char *name);
