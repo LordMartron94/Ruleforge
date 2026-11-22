@@ -1,0 +1,65 @@
+Language: ABNF
+Version: 1.0.0
+
+// Augmented BNF as RFC 5234 defines it, with the case-sensitive and case-insensitive strings of RFC 7405: the notation the
+// Internet standards write their grammars in.
+//
+//   rulelist       = 1*( rule / (*c-wsp c-nl) )
+//   rule           = rulename defined-as elements c-nl
+//   defined-as     = *c-wsp ("=" / "=/") *c-wsp
+//   alternation    = concatenation *(*c-wsp "/" *c-wsp concatenation)
+//   concatenation  = repetition *(1*c-wsp repetition)
+//   repetition     = [repeat] element
+//   element        = rulename / group / option / char-val / num-val / prose-val
+//
+// A line feed alone ends a line as well as CRLF (the RFC says CRLF; files in the wild do not), and the comment text may hold any
+// character but a line end. Nothing else is looser than the RFC.
+
+PARSER {
+	entry = #rulelist
+}
+
+CONTEXT <ROOT> {
+	$wsp = (' ' || '\t')+
+	$newline = '\r\n' || '\n'
+	$comment = ';' ('\t' || ' '..'\u{D7FF}' || '\u{E000}'..'\u{10FFFF}')*
+
+	// rulename = ALPHA *(ALPHA / DIGIT / "-")
+	$rulename = ('a'..'z' || 'A'..'Z') ('a'..'z' || 'A'..'Z' || '0'..'9' || '-')*
+	$equals_slash = '=/'
+	$equals = '='
+	$slash = '/'
+	$lparen = '('
+	$rparen = ')'
+	$lbracket = '['
+	$rbracket = ']'
+	$star = '*'
+	$number = '0'..'9'+
+
+	// char-val = DQUOTE *(%x20-21 / %x23-7E) DQUOTE ; RFC 7405: %s"..." is case-sensitive and %i"..." case-insensitive
+	$string = '"' (' '..'!' || '#'..'~')* '"'
+	$string_sensitive = '%s"' (' '..'!' || '#'..'~')* '"'
+	$string_insensitive = '%i"' (' '..'!' || '#'..'~')* '"'
+
+	// num-val = "%" (bin-val / dec-val / hex-val)
+	$bin = '%b' ('0' || '1')+ (('.' ('0' || '1')+)+ || ('-' ('0' || '1')+))?
+	$dec = '%d' '0'..'9'+ (('.' '0'..'9'+)+ || ('-' '0'..'9'+))?
+	$hex = '%x' ('0'..'9' || 'a'..'f' || 'A'..'F')+ (('.' ('0'..'9' || 'a'..'f' || 'A'..'F')+)+ || ('-' ('0'..'9' || 'a'..'f' || 'A'..'F')+))?
+
+	// prose-val = "<" *(%x20-3D / %x3F-7E) ">"
+	$prose = '<' (' '..'=' || '?'..'~')* '>'
+}
+
+#rulelist = (#rule || #blank_line)*
+#blank_line = $wsp? $comment? $newline
+#rule = $rulename #c_wsp* #defined_as #c_wsp* #alternation $wsp? $comment? $newline?
+#defined_as = $equals_slash || $equals
+#c_wsp = $wsp || ($comment? $newline $wsp)
+
+#alternation = #concatenation (#c_wsp* $slash #c_wsp* #concatenation)*
+#concatenation = #repetition (#c_wsp+ #repetition)*
+#repetition = #repeat? #element
+#repeat = ($number? $star $number?) || $number
+#element = $rulename || #group || #option || $string || $string_sensitive || $string_insensitive || $bin || $dec || $hex || $prose
+#group = $lparen #c_wsp* #alternation #c_wsp* $rparen
+#option = $lbracket #c_wsp* #alternation #c_wsp* $rbracket

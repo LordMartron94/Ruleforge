@@ -1,0 +1,64 @@
+Language: YAML
+Version: 0.1.0
+
+// A line-oriented YAML: documents, comments, "key: value" pairs, "- item" entries, flow collections, quoted and plain
+// scalars, anchors, aliases, tags and block scalars. Indentation is not interpreted (the one thing a context-free
+// grammar cannot see), so nesting is for the editor to infer; every line is recognised. After a key or a dash the rest of
+// the line is read in its own lexical context, where the characters mean values.
+
+PARSER {
+	entry = #stream
+	global = #blank
+}
+
+CONTEXT <ROOT> {
+	$_first = 'a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '.' || '/' || '$' || '%' || '(' || ')' || '+' || '=' || '@' || '\\' || '~' || '^' || ';' || '<' || '?' || '\u{80}'..'\u{10FFFF}'
+	$_cont = $_first || '-' || ' ' || '\t' || '!' || '&' || '*' || '|' || '>' || '\'' || '"'
+
+	$blank = (' ' || '\t' || '\r')+
+	$newline = '\n'
+	$comment = '#' ('\t' || ' '..'\u{10FFFF}')*
+	$document_start = '---'
+	$document_end = '...'
+	$dash = '-' -> push(VALUE)
+	$key = $_first $_cont* ':' -> push(VALUE)
+	$quoted_key = ('"' ('\t' || ' '..'!' || '#'..'\u{10FFFF}')* '"' || '\'' ('\t' || ' '..'&' || '('..'\u{10FFFF}')* '\'') ':' -> push(VALUE)
+}
+
+CONTEXT <VALUE> {
+	$_first = 'a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '.' || '/' || '$' || '%' || '(' || ')' || '+' || '=' || '@' || '\\' || '~' || '^' || ';' || '<' || '?' || '\u{80}'..'\u{10FFFF}' || '-'
+	$_cont = $_first || ' ' || '\t' || '!' || '&' || '*' || '|' || '>' || '\'' || '"'
+
+	$blank = (' ' || '\t' || '\r')+
+	$comment = '#' ('\t' || ' '..'\u{10FFFF}')*
+	$anchor = '&' ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '-')+
+	$alias = '*' ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '-')+
+	$tag = '!' ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '-' || '!' || '<' || '>' || ':' || '/' || '.')*
+	$block_indicator = ('|' || '>') ('+' || '-')? ('0'..'9')? -> set(BLOCK)
+	$double_quoted = '"' ('\t' || ' '..'!' || '#'..'[' || ']'..'\u{10FFFF}' || '\\' ' '..'\u{10FFFF}')* '"'
+	$single_quoted = '\'' ('\t' || ' '..'&' || '('..'\u{10FFFF}' || '\'\'')* '\''
+	$flow_open = '[' || '{'
+	$flow_close = ']' || '}'
+	$flow_comma = ','
+	$colon_in_value = ':'
+	$inline_key = $_first $_cont* ':'
+	$plain = $_first $_cont*
+	$line_end = '\n' -> pop(1)
+}
+
+// The lines of a block scalar, which are whatever is indented below it.
+CONTEXT <BLOCK> {
+	$block_line = '\n' (' ' || '\t')+ ('\t' || ' '..'\u{10FFFF}')*
+	$block_end = '\n' -> pop(1)
+}
+
+#blank = $blank
+#stream = #line*
+#line = $comment || $document_start || $document_end || $newline || #pair || #item
+#pair = ($key || $quoted_key) #value
+#item = $dash #value
+#value = #node* $line_end?
+#node = #scalar || #flow || $inline_key || $colon_in_value || $anchor || $tag || $alias || $comment || #block
+#scalar = $plain || $double_quoted || $single_quoted
+#flow = $flow_open (#scalar || #flow || $flow_comma || $anchor || $tag || $alias || $inline_key || $colon_in_value)* $flow_close
+#block = $block_indicator ($block_line)* $block_end?

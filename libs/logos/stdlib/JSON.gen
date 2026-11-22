@@ -1,0 +1,189 @@
+Language: JSON // For debugging.
+Version: 1.0.0 // For debugging and client compatibility, not used internally by Genesis.
+
+// Lexical tokens are prefixed with a $.
+// Grammatical rules are prefixed with a #.
+//
+// Lexical tokens prefixed with $_ are non-emitting fragments.
+// They can be referenced by other lexical definitions, but cannot
+// produce tokens themselves. Instead, their matching languages are
+// incorporated into the definitions that reference them.
+//
+// Non-emitting fragments cannot specify context actions or priorities.
+// They belong to their declared lexical context.
+//
+// Lexical tokens can optionally specify a matching priority:
+// $token = 'example' @priority(10)
+//
+// The default priority is 0. Priorities are signed integers.
+//
+// When multiple tokens match at the current input position:
+// 1. The token matching the longest lexeme wins.
+// 2. If lengths are equal, the highest priority wins.
+// 3. If priorities are equal, the earliest registered token wins.
+//
+// Priority never overrides a longer match.
+// Only the winning token produces output or executes a context action.
+//
+// ROOT is the obligatory initial lexical context.
+// Context actions are executed when their token matches.
+//
+// Available context actions:
+// - push(CONTEXT): push a new lexical context.
+// - pop(N): pop N lexical contexts.
+// - set(CONTEXT): set the current lexical context.
+// - replace(CONTEXT): pop one context and push another.
+//
+// The parser is configured using the PARSER block.
+//
+// entry specifies the obligatory grammatical entry rule.
+// Parsing starts at this rule and must consume the entire input.
+//
+// global specifies grammatical rules that are automatically applied
+// at eligible boundaries throughout the grammar.
+//
+// Global rules are optional at each boundary, but if matched, their
+// tokens and grammatical structure are preserved in the syntax tree.
+// Nothing is discarded, ensuring lossless parsing.
+//
+// Global rules are applicable in every lexical context, provided
+// their referenced tokens are valid in the active context.
+//
+// A grammatical rule may exclude global rules using @exclude(...).
+// Exclusions apply throughout that rule's expansion, including
+// referenced subrules, but not to its surrounding caller.
+//
+// Global rules are not recursively injected into themselves.
+// They must consume at least one token when successfully matched.
+//
+// Assumptions:
+// - Character ranges operate on Unicode scalar values.
+// - \u{XXXX} denotes a Unicode code point in lexical definitions.
+// - The parser requires complete input consumption.
+// - Whitespace is handled explicitly by the grammar.
+
+PARSER {
+	entry = #document
+	global = #trivia
+}
+
+CONTEXT <ROOT> {
+	// Non-emitting lexical fragments.
+	$_digit = '0'..'9'
+	$_nonzero_digit = '1'..'9'
+	$_sign = '+' || '-'
+
+	$whitespace = (' ' || '\t' || '\n' || '\r')+
+
+	$brace_open = '{'
+	$brace_close = '}'
+	$bracket_open = '['
+	$bracket_close = ']'
+	$colon = ':'
+	$comma = ','
+
+	// JSON numbers:
+	// - Optional negative sign.
+	// - No leading zeros except for zero itself.
+	// - Optional fraction with at least one digit.
+	// - Optional exponent with an optional sign.
+	$number = '-'? ('0' || $_nonzero_digit $_digit*)
+	          ('.' $_digit+)?
+	          (('e' || 'E') $_sign? $_digit+)?
+
+	// Explicit priority example.
+	// This is unnecessary for JSON itself, but demonstrates the syntax.
+	$true = 'true' @priority(10)
+	$false = 'false'
+	$null = 'null'
+
+	$string_open = '"' -> push(STRING)
+}
+
+CONTEXT <STRING> {
+	// Strings terminate only on an unescaped quotation mark.
+	$string_close = '"' -> pop(1)
+
+	// All Unicode scalar values except:
+	// - Control characters U+0000 through U+001F.
+	// - Quotation marks.
+	// - Backslashes.
+	$string_content = (!('\u{0}'..'\u{1F}' || '"' || '\\'))+
+
+	$escape_start = '\\' -> push(STRING_ESCAPE)
+}
+
+CONTEXT <STRING_ESCAPE> {
+	// Non-emitting fragment for hexadecimal digits.
+	$_hex_digit = '0'..'9' || 'a'..'f' || 'A'..'F'
+
+	// Standard JSON single-character escapes.
+	// Return to STRING after consuming the escape.
+	$escape_simple = ('"' || '\\' || '/' || 'b' || 'f' ||
+	                  'n' || 'r' || 't') -> pop(1)
+
+	// Unicode escape: exactly four hexadecimal digits.
+	$escape_unicode = 'u' $_hex_digit{4} -> pop(1)
+}
+
+// GRAMMAR
+
+// Global grammatical rules.
+//
+// #trivia is automatically applied by the parser at eligible
+// grammatical boundaries, as configured in PARSER.
+//
+// Unlike ignored lexer tokens, matched global rules remain
+// represented in the syntax tree.
+//
+// For languages supporting comments, #trivia can also include
+// comment rules, without modifying every other grammatical rule.
+//
+// Strict JSON only permits whitespace as trivia.
+#trivia = #whitespace
+
+// Optional whitespace wherever JSON permits it.
+// Optionality is provided by the parser's global-rule mechanism;
+// the rule itself must consume input when matched.
+#whitespace = $whitespace
+
+// Entry point: JSON permits any value at the root.
+// Global trivia is accepted before and after the root value.
+#document = #element
+
+// The six JSON value types.
+#element = #object || #array || #string || #number ||
+           $true || $false || $null
+
+// Primitive values.
+#number = $number
+
+// Strings.
+// Global trivia is excluded because whitespace inside strings is
+// actual string content, not grammatical whitespace.
+//
+// The exclusion is inherited by #string_part and #string_escape.
+// Global trivia remains applicable outside this rule.
+#string @exclude(#trivia) = $string_open #string_part* $string_close
+#string_part = $string_content || #string_escape
+#string_escape = $escape_start ($escape_simple || $escape_unicode)
+
+// Objects.
+// Keys must be strings.
+// Commas separate members; trailing commas are forbidden.
+//
+// Global trivia automatically permits whitespace around members,
+// delimiters, and values without explicitly referencing #whitespace.
+#key_value_pair = #string $colon #element
+
+#object = $brace_open
+          (#key_value_pair ($comma #key_value_pair)*)?
+          $brace_close
+
+// Arrays.
+// Commas separate values; trailing commas are forbidden.
+//
+// Global trivia automatically permits whitespace between elements.
+#array = $bracket_open
+         (#element ($comma #element)*)?
+         $bracket_close

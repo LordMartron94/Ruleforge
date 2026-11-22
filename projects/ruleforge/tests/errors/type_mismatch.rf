@@ -1,0 +1,4 @@
+version 1.0.0;
+module t;
+func F(x int) -> int { return $x; }
+export func main() { let y = F("a"); }

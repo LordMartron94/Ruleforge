@@ -1,0 +1,13 @@
+{
+  "entry": "entry.rf",
+  "context": { "strictness": "3" },
+  "character": { "source": "manual", "name": "Demo", "level": 80 },
+  "datasets": [
+    { "source": "economy.currency", "provider": "csv", "path": "data/currency.csv" }
+  ],
+  "outputs": [
+    { "name": "Currency demo (strict)", "path": "out/currency-strict.filter", "set": { "strictness": "3" } },
+    { "name": "Currency demo (normal)", "path": "out/currency-normal.filter", "set": { "strictness": "1" } }
+  ],
+  "regeneration": { "enabled": false, "preserveLastValid": true }
+}

@@ -1,0 +1,2 @@
+name = "a \" quote";
+flag = TRUE; other = Yes; off = false;

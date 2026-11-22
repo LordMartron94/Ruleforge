@@ -1,0 +1,20 @@
+entity pharos {
+    kind = "lib"
+    use c_shared_library {
+        params {
+            SOURCE_FILES = [
+                glob("src", include="**/*.c", recursive=true),
+            ]
+            OUT_NAME = "pharos"
+            CPPFLAGS = [ "-I.", "-Isrc" ]
+            COMPILER_FLAGS = LIBRARY_COMPILER_FLAGS
+        }
+    }
+
+    interface {
+        INCLUDE_PATHS = [ rel(".") ]
+        LDFLAGS = [ "-lpharos" ]
+    }
+
+    deps = [ "//libs/nexus:nexus", "//libs/echo:echo" ]
+}

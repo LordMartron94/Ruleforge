@@ -1,0 +1,4 @@
+version 1.0.0;
+module t;
+func Loop(n int) -> int { return Loop($n + 1); }
+export func main() { let x = Loop(0); }

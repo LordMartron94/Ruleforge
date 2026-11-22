@@ -1,0 +1,29 @@
+// Editor mapping for Calculator.gen.
+extensions = calc
+scope = source.calc
+test.comment = //
+
+$open = punctuation.section.group.begin
+$close = punctuation.section.group.end
+$bracket_open = punctuation.section.sequence.begin
+$bracket_close = punctuation.section.sequence.end
+$comma = punctuation.separator
+$equals = keyword.operator.assignment
+$minus = keyword.operator.arithmetic
+$plus = keyword.operator.arithmetic
+$multiply = keyword.operator.arithmetic
+$power = keyword.operator.arithmetic
+$factorial = keyword.operator.arithmetic
+$integer = constant.numeric
+$identifier = variable.other
+$let = keyword.declaration
+
+// Syntactic nodes: a delimited rule or group is scoped with its rule's scope; a rule that is not delimited scopes the
+// tokens that only it leads to. rule #parent > #child = scope scopes what #parent reaches through #child only.
+rule #atom = meta.group
+rule #delimited = meta.sequence
+rule #expression = meta.expression
+
+// What the language server knows: a let declares a variable; an identifier refers to one.
+symbol #assignment name=$identifier kind=variable
+reference $identifier

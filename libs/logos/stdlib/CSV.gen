@@ -1,0 +1,44 @@
+Language: CSV
+Version: 1.0.0
+
+// Comma-separated values as RFC 4180 (Common Format and MIME Type for Comma-Separated Values (CSV) Files, October 2005)
+// defines them, rule for rule:
+//
+//   file        = [header CRLF] record *(CRLF record) [CRLF]
+//   record      = field *(COMMA field)
+//   field       = (escaped / non-escaped)
+//   escaped     = DQUOTE *(TEXTDATA / COMMA / CR / LF / 2DQUOTE) DQUOTE
+//   non-escaped = *TEXTDATA
+//   TEXTDATA    =  %x20-21 / %x23-2B / %x2D-7E
+//
+// So lines end in CRLF (a lone LF or CR outside a quoted field is not a line end), and an unquoted field holds printable
+// ASCII only, without a quote or a comma; anything else needs a quoted field, where a quote is written twice. The header
+// has the same syntax as a record (the RFC tells them apart by the MIME header parameter, not by syntax).
+
+PARSER {
+	entry = #file
+}
+
+CONTEXT <ROOT> {
+	// TEXTDATA ::= %x20-21 / %x23-2B / %x2D-7E
+	$text = (' '..'!' || '#'..'+' || '-'..'~')+
+	$comma = ','
+	$line_end = '\r\n'
+	$quote_open = '"' -> push(QUOTED)
+}
+
+CONTEXT <QUOTED> {
+	$quoted_text = (' '..'!' || '#'..'~')+
+	$quoted_comma = ','
+	$quoted_cr = '\r'
+	$quoted_lf = '\n'
+	$escaped_quote = '""'
+	$quote_close = '"' -> pop(1)
+}
+
+// file = [header CRLF] record *(CRLF record) [CRLF]
+#file = #record ($line_end #record)* $line_end?
+#record = #field ($comma #field)*
+#field = #escaped || $text?
+// escaped = DQUOTE *(TEXTDATA / COMMA / CR / LF / 2DQUOTE) DQUOTE
+#escaped = $quote_open ($quoted_text || $quoted_comma || $quoted_cr || $quoted_lf || $escaped_quote)* $quote_close

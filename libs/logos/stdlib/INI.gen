@@ -1,0 +1,31 @@
+Language: INI
+Version: 0.1.0
+
+// INI files as Windows defines them (GetPrivateProfileString and its relatives, the de facto standard: INI has no formal
+// specification): [sections], key=value pairs and ";" comments, one per line. Variants add "#" comments and ":" as the
+// separator; both are accepted here. A value is the rest of its line, so it may hold anything.
+
+PARSER {
+	entry = #ini
+	global = #blank
+}
+
+CONTEXT <ROOT> {
+	$blank = (' ' || '\t' || '\r')+
+	$newline = '\n'
+	$comment = (';' || '#') ('\t' || ' '..'\u{10FFFF}')*
+	$section = '[' ('\t' || ' '..'\\' || '^'..'\u{10FFFF}')* ']'
+	$key = ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '.' || '-' || '/' || '$')+
+	$equals = ('=' || ':') -> push(VALUE)
+}
+
+CONTEXT <VALUE> {
+	$blank = (' ' || '\t' || '\r')+
+	$value = ('\t' || ' '..'\u{10FFFF}')+
+	$value_end = '\n' -> pop(1)
+}
+
+#blank = $blank
+#ini = (#line || $newline)*
+#line = $section || $comment || #pair
+#pair = $key $equals $value? $value_end?

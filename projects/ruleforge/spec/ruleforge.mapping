@@ -1,0 +1,160 @@
+
+// Editor mapping for Ruleforge sources.
+extensions = rf
+scope = source.ruleforge
+test.comment = //
+sublime.package = User
+
+// Comments
+$line_comment = comment.line.double-slash
+$block_comment_open = comment.block
+$block_comment_close = comment.block
+$block_comment_text = comment.block
+$block_comment_star = comment.block
+context BLOCK_COMMENT = comment.block
+
+// Module declarations
+$kw_version = keyword.declaration.module
+$kw_module = keyword.declaration.module
+$kw_import = keyword.declaration.namespace
+$kw_export = storage.modifier
+
+// Datasets and schemas
+$kw_schema = keyword.declaration.type
+$kw_dataset = keyword.declaration.type
+$kw_from = keyword.other
+
+// Types
+$kw_int = storage.type
+$kw_float = storage.type
+$kw_bool = storage.type
+$kw_string = storage.type
+$kw_color = storage.type
+$kw_style = storage.type
+$kw_list = storage.type
+$kw_void = storage.type
+
+// Compile-time statements
+$kw_func = keyword.declaration.function
+$kw_let = storage.type
+$kw_var = storage.type
+$kw_if = keyword.control.conditional
+$kw_else = keyword.control.conditional
+$kw_for = keyword.control.loop
+$kw_in = keyword.control.loop
+$kw_where = keyword.control.conditional
+$kw_return = keyword.control.flow
+$kw_emit = keyword.control
+$kw_and = keyword.operator.logical
+$kw_or = keyword.operator.logical
+$kw_not = keyword.operator.logical
+$kw_true = constant.language.boolean
+$kw_false = constant.language.boolean
+$kw_none = constant.language
+
+// Themes and composition
+$kw_theme_schema = keyword.declaration.type
+$kw_color_set = keyword.declaration.type
+$kw_theme = keyword.declaration.type
+$kw_implements = keyword.other.inheritance
+$kw_extends = keyword.other.inheritance
+$kw_override = storage.modifier
+$kw_on_show = keyword.other
+$kw_on_hide = keyword.other
+$kw_template = keyword.declaration.function
+$kw_scope = keyword.other
+$kw_baseline = keyword.other
+$kw_variants = keyword.other
+$kw_when = keyword.control.conditional
+$kw_inherit = keyword.control
+$kw_action = keyword.other
+$kw_show = constant.language
+$kw_hide = constant.language
+$kw_ruleset = keyword.declaration.type
+$kw_description = keyword.other
+$kw_core_conditions = keyword.other
+$kw_rule = keyword.declaration
+$kw_configuration = keyword.declaration
+$kw_adapter = keyword.declaration
+$kw_include = keyword.control.import
+$kw_with = keyword.control
+$kw_native = keyword.other
+
+// Color constructors
+$kw_rgb = support.function.color
+$kw_hsl = support.function.color
+$kw_hsv = support.function.color
+
+// Literals and identifiers
+$version = constant.other.version
+$integer_literal = constant.numeric.integer
+$float_literal = constant.numeric.float
+$string_literal = string.quoted.double
+$parameter_reference = variable.parameter
+$compiler_reference = variable.language
+$identifier = variable.other
+
+// Colors
+$color_red = constant.numeric.color
+$color_green = constant.numeric.color
+$color_blue = constant.numeric.color
+$color_alpha = constant.numeric.color
+$color_hue = constant.numeric.color
+$color_saturation = constant.numeric.color
+$color_lightness = constant.numeric.color
+$color_value_channel = constant.numeric.color
+$hex_color = constant.numeric.color.hex
+
+// Operators
+$arrow = keyword.operator.arrow
+$greater_equal = keyword.operator.comparison
+$less_equal = keyword.operator.comparison
+$equals_equals = keyword.operator.comparison
+$not_equals = keyword.operator.comparison
+$greater = keyword.operator.comparison
+$less = keyword.operator.comparison
+$equals = keyword.operator.assignment
+$plus = keyword.operator.arithmetic
+$minus = keyword.operator.arithmetic
+$star = keyword.operator.arithmetic
+$slash = keyword.operator.arithmetic
+$question = keyword.operator.optional
+
+// Punctuation
+$lbrace = punctuation.section.braces.begin
+$rbrace = punctuation.section.braces.end
+$lparen = punctuation.section.parens.begin
+$rparen = punctuation.section.parens.end
+$lbracket = punctuation.section.brackets.begin
+$rbracket = punctuation.section.brackets.end
+$semicolon = punctuation.terminator.statement
+$comma = punctuation.separator
+$colon = punctuation.separator
+$dot = punctuation.accessor
+
+// Structural frames
+rule #schema_stmt = meta.schema
+rule #dataset_stmt = meta.dataset
+rule #theme_schema_stmt = meta.theme-schema
+rule #color_set_stmt = meta.color-set
+rule #rgb_color = meta.color.rgb
+rule #rgb_color_call = meta.color.rgb
+rule #hsl_color = meta.color.hsl
+rule #hsv_color = meta.color.hsv
+rule #theme_stmt = meta.theme
+rule #theme_style_stmt = meta.theme.style
+rule #template_stmt = meta.template
+rule #baseline_stmt = meta.baseline
+rule #variants_stmt = meta.variants
+rule #when_stmt = meta.conditional
+rule #ruleset_stmt = meta.ruleset
+rule #rule_stmt = meta.rule
+rule #configuration_stmt = meta.configuration
+rule #adapter_stmt = meta.adapter
+rule #function_stmt = meta.function
+rule #if_stmt = meta.conditional
+rule #for_stmt = meta.loop
+rule #with_clause = meta.with-clause
+rule #call = meta.function-call
+rule #list_literal = meta.sequence
+rule #native_stmt = meta.native-filter

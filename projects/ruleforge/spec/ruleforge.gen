@@ -1,0 +1,535 @@
+
+Language: Ruleforge
+Version: 1.0.0
+
+IMPORT General {
+    $keyword,
+    $_semver,
+    $_digit,
+    $_letter,
+    $_hex_digit
+}
+
+PARSER {
+    entry = #script
+    global = #trivia
+}
+
+CONTEXT <ROOT> {
+    // Trivia
+    $whitespace = ('\t'..'\n' || '\r' || ' ')+
+    $line_comment = '//' ('\t' || ' '..'\u{10FFFF}')*
+    $block_comment_open = '/*' -> push(BLOCK_COMMENT)
+
+    // Module and declaration keywords
+    $keyword(name: $kw_version, text: "version", priority: 10)
+    $keyword(name: $kw_module, text: "module", priority: 10)
+    $keyword(name: $kw_import, text: "import", priority: 10)
+    $keyword(name: $kw_export, text: "export", priority: 10)
+    $keyword(name: $kw_schema, text: "schema", priority: 10)
+    $keyword(name: $kw_dataset, text: "dataset", priority: 10)
+    $keyword(name: $kw_from, text: "from", priority: 10)
+
+    // Types
+    $keyword(name: $kw_int, text: "int", priority: 10)
+    $keyword(name: $kw_float, text: "float", priority: 10)
+    $keyword(name: $kw_bool, text: "bool", priority: 10)
+    $keyword(name: $kw_string, text: "string", priority: 10)
+    $keyword(name: $kw_color, text: "color", priority: 10)
+    $keyword(name: $kw_style, text: "style", priority: 10)
+    $keyword(name: $kw_list, text: "list", priority: 10)
+    $keyword(name: $kw_void, text: "void", priority: 10)
+
+    // Compile-time execution
+    $keyword(name: $kw_func, text: "func", priority: 10)
+    $keyword(name: $kw_let, text: "let", priority: 10)
+    $keyword(name: $kw_var, text: "var", priority: 10)
+    $keyword(name: $kw_if, text: "if", priority: 10)
+    $keyword(name: $kw_else, text: "else", priority: 10)
+    $keyword(name: $kw_for, text: "for", priority: 10)
+    $keyword(name: $kw_in, text: "in", priority: 10)
+    $keyword(name: $kw_where, text: "where", priority: 10)
+    $keyword(name: $kw_return, text: "return", priority: 10)
+    $keyword(name: $kw_emit, text: "emit", priority: 10)
+    $keyword(name: $kw_and, text: "and", priority: 10)
+    $keyword(name: $kw_or, text: "or", priority: 10)
+    $keyword(name: $kw_not, text: "not", priority: 10)
+    $keyword(name: $kw_true, text: "true", priority: 10)
+    $keyword(name: $kw_false, text: "false", priority: 10)
+    $keyword(name: $kw_none, text: "none", priority: 10)
+
+    // Styling and composition
+    $keyword(name: $kw_theme_schema, text: "themeSchema", priority: 10)
+    $keyword(name: $kw_color_set, text: "colorSet", priority: 10)
+    $keyword(name: $kw_theme, text: "theme", priority: 10)
+    $keyword(name: $kw_implements, text: "implements", priority: 10)
+    $keyword(name: $kw_extends, text: "extends", priority: 10)
+    $keyword(name: $kw_override, text: "override", priority: 10)
+    $keyword(name: $kw_on_show, text: "onShow", priority: 10)
+    $keyword(name: $kw_on_hide, text: "onHide", priority: 10)
+    $keyword(name: $kw_template, text: "template", priority: 10)
+    $keyword(name: $kw_scope, text: "scope", priority: 10)
+    $keyword(name: $kw_baseline, text: "baseline", priority: 10)
+    $keyword(name: $kw_variants, text: "variants", priority: 10)
+    $keyword(name: $kw_when, text: "when", priority: 10)
+    $keyword(name: $kw_inherit, text: "inherit", priority: 10)
+    $keyword(name: $kw_action, text: "action", priority: 10)
+    $keyword(name: $kw_show, text: "show", priority: 10)
+    $keyword(name: $kw_hide, text: "hide", priority: 10)
+    $keyword(name: $kw_ruleset, text: "ruleset", priority: 10)
+    $keyword(name: $kw_description, text: "description", priority: 10)
+    $keyword(name: $kw_core_conditions, text: "coreConditions", priority: 10)
+    $keyword(name: $kw_rule, text: "rule", priority: 10)
+    $keyword(name: $kw_configuration, text: "configuration", priority: 10)
+    $keyword(name: $kw_adapter, text: "adapter", priority: 10)
+    $keyword(name: $kw_include, text: "include", priority: 10)
+    $keyword(name: $kw_with, text: "with", priority: 10)
+    $keyword(name: $kw_native, text: "native", priority: 10)
+
+    // Color constructors
+    $keyword(name: $kw_rgb, text: "rgb", priority: 10)
+    $keyword(name: $kw_hsl, text: "hsl", priority: 10)
+    $keyword(name: $kw_hsv, text: "hsv", priority: 10)
+
+    // Literals
+    $version = $_semver()
+    $integer_literal = $_digit()+
+    $float_literal = $_digit()+ '.' $_digit()+
+    $string_literal = '"'
+        ('\t' || ' '..'!' || '#'..'[' ||
+         ']'..'\u{10FFFF}' ||
+         '\\' (' '..'\u{10FFFF}'))*
+        '"'
+
+    // References
+    $parameter_reference =
+        '$' ($_letter() || '_')
+        ($_letter() || $_digit() || '_')*
+
+    $compiler_reference =
+        '@' ($_letter() || '_')
+        ($_letter() || $_digit() || '_')*
+
+    $identifier =
+        ($_letter() || '_')
+        ($_letter() || $_digit() || '_')*
+
+    // RGB and RGBA
+    $color_red = 'r' $_digit()+ @priority(10)
+    $color_green = 'g' $_digit()+ @priority(10)
+    $color_blue = 'b' $_digit()+ @priority(10)
+    $color_alpha = 'a' $_digit()+ @priority(10)
+
+    // HSL and HSV
+    $color_hue = 'h' $_digit()+ ('.' $_digit()+)? @priority(10)
+    $color_saturation = 's' $_digit()+ ('.' $_digit()+)? @priority(10)
+    $color_lightness = 'l' $_digit()+ ('.' $_digit()+)? @priority(10)
+    $color_value_channel = 'v' $_digit()+ ('.' $_digit()+)? @priority(10)
+
+    // Hex RGB / RGBA
+    $hex_color = '#'
+        $_hex_digit() $_hex_digit()
+        $_hex_digit() $_hex_digit()
+        $_hex_digit() $_hex_digit()
+        ($_hex_digit() $_hex_digit())?
+
+    // Operators
+    $arrow = '->'
+    $greater_equal = '>='
+    $less_equal = '<='
+    $equals_equals = '=='
+    $not_equals = '!='
+    $greater = '>'
+    $less = '<'
+    $equals = '='
+    $plus = '+'
+    $minus = '-'
+    $star = '*'
+    $slash = '/'
+    $question = '?'
+
+    // Delimiters
+    $lbrace = '{'
+    $rbrace = '}'
+    $lparen = '('
+    $rparen = ')'
+    $lbracket = '['
+    $rbracket = ']'
+    $semicolon = ';'
+    $comma = ','
+    $colon = ':'
+    $dot = '.'
+}
+
+CONTEXT <BLOCK_COMMENT> {
+    $block_comment_close = '*/' -> pop(1)
+    $block_comment_text =
+        ('\u{0}'..')' || '+'..'\u{10FFFF}')+
+    $block_comment_star = '*'
+}
+
+// ------------------------------------------------------------
+// Trivia
+// ------------------------------------------------------------
+
+#trivia = $whitespace || $line_comment || #block_comment
+
+#block_comment =
+    $block_comment_open
+    ($block_comment_text || $block_comment_star)*
+    $block_comment_close
+
+// ------------------------------------------------------------
+// Types
+// ------------------------------------------------------------
+
+#qualified_name = $identifier ($dot $identifier)*
+
+#scalar_type =
+    $kw_int || $kw_float || $kw_bool ||
+    $kw_string || $kw_color || $kw_style ||
+    $kw_void || $kw_ruleset
+
+#base_type =
+    #scalar_type
+    || $kw_list $less #type $greater
+    || $kw_dataset $less #type $greater
+    || #qualified_name
+
+#type = #base_type $question?
+
+#parameter = $identifier #type
+#parameters = (#parameter ($comma #parameter)*)?
+
+// ------------------------------------------------------------
+// Expressions
+// ------------------------------------------------------------
+
+// Prefixes have distinct meanings:
+// $value  = function/template parameter
+// @value  = compilation snapshot
+// value   = local, field, symbol or manifest reference
+
+#reference =
+    ($parameter_reference ||
+     $compiler_reference ||
+     $identifier)
+    ($dot $identifier)*
+
+#indexed_reference =
+    #reference ($lbracket #expr $rbracket)*
+
+#argument = ($identifier $colon)? #expr
+
+#arguments = (#argument ($comma #argument)*)?
+
+#call = #reference $lparen #arguments $rparen
+
+#list_literal = $lbracket #arguments $rbracket
+
+#rgb_color = $color_red $color_green $color_blue $color_alpha?
+#rgb_color_call = $kw_rgb $lparen #rgb_color $rparen
+
+#hsl_color =
+    $kw_hsl $lparen
+    $color_hue $color_saturation $color_lightness
+    $color_alpha? $rparen
+
+#hsv_color =
+    $kw_hsv $lparen
+    $color_hue $color_saturation $color_value_channel
+    $color_alpha? $rparen
+
+#color_literal =
+    #rgb_color_call || #hsl_color || #hsv_color ||
+    #rgb_color || $hex_color
+
+#atom =
+    #color_literal
+    || $float_literal
+    || $integer_literal
+    || $string_literal
+    || $kw_true
+    || $kw_false
+    || $kw_none
+    || #list_literal
+    || #call
+    || #indexed_reference
+    || $lparen #expr $rparen
+
+// Expressions execute during compilation.
+// Game predicates are lowered separately by the semantic analyzer.
+PRATT <#expr> {
+    atom = #atom
+
+    prefix $kw_not (right_bp: 70)
+    prefix $minus (right_bp: 70)
+
+    infix $star (left_bp: 60, right_bp: 61)
+    infix $slash (left_bp: 60, right_bp: 61)
+
+    infix $plus (left_bp: 50, right_bp: 51)
+    infix $minus (left_bp: 50, right_bp: 51)
+
+    infix $greater (left_bp: 40, right_bp: 41)
+    infix $less (left_bp: 40, right_bp: 41)
+    infix $greater_equal (left_bp: 40, right_bp: 41)
+    infix $less_equal (left_bp: 40, right_bp: 41)
+
+    infix $equals_equals (left_bp: 35, right_bp: 36)
+    infix $not_equals (left_bp: 35, right_bp: 36)
+
+    infix $kw_and (left_bp: 20, right_bp: 21)
+    infix $kw_or (left_bp: 10, right_bp: 11)
+}
+
+// ------------------------------------------------------------
+// Module header
+// ------------------------------------------------------------
+
+#version_stmt = $kw_version $version $semicolon
+#module_stmt = $kw_module #qualified_name $semicolon
+#import_stmt = $kw_import #qualified_name $semicolon
+
+// ------------------------------------------------------------
+// Typed datasets
+// ------------------------------------------------------------
+
+#schema_field = $identifier #type $semicolon
+
+#schema_stmt =
+    $kw_export? $kw_schema $identifier
+    $lbrace #schema_field* $rbrace
+
+#dataset_stmt =
+    $kw_export? $kw_dataset $identifier
+    $colon #qualified_name
+    $kw_from $string_literal $semicolon
+
+// ------------------------------------------------------------
+// Theme schemas and palettes
+// ------------------------------------------------------------
+
+#theme_schema_key = $identifier $semicolon
+
+#theme_schema_stmt =
+    $kw_export? $kw_theme_schema $identifier
+    $lbrace #theme_schema_key* $rbrace
+
+#color_definition =
+    $identifier $equals #expr $semicolon
+
+#color_set_stmt =
+    $kw_export? $kw_color_set $identifier
+    $lbrace #color_definition* $rbrace
+
+// ------------------------------------------------------------
+// Themes
+// ------------------------------------------------------------
+
+#color_override = $kw_override $color_alpha
+
+#style_property_stmt =
+    $identifier #expr ($comma #expr)*
+    #color_override? $semicolon
+
+#theme_state_stmt =
+    ($kw_on_show || $kw_on_hide)
+    $lbrace #style_property_stmt* $rbrace
+
+#theme_style_stmt =
+    $kw_override? $identifier
+    $lbrace #theme_state_stmt* $rbrace
+
+#theme_stmt =
+    $kw_export? $kw_theme $identifier
+    ($kw_extends #qualified_name)?
+    ($kw_implements #qualified_name)?
+    $lbrace #theme_style_stmt* $rbrace
+
+// ------------------------------------------------------------
+// Rules and templates
+// ------------------------------------------------------------
+
+#scope_assignment =
+    #qualified_name $equals #expr $semicolon
+
+#scope_stmt =
+    $kw_scope $lbrace #scope_assignment* $rbrace
+
+#action_stmt =
+    $kw_action ($kw_show || $kw_hide) $semicolon
+
+#style_stmt = $kw_style #expr $semicolon
+#inherit_stmt = $kw_inherit $kw_action $semicolon
+
+#rule_command =
+    #action_stmt || #style_stmt || #inherit_stmt
+
+#baseline_stmt =
+    $kw_baseline $lbrace #rule_command* $rbrace
+
+#when_stmt =
+    $kw_when #expr $lbrace #rule_command* $rbrace
+
+#variants_stmt =
+    $kw_variants $lbrace #when_stmt* $rbrace
+
+#rule_body_item =
+    #scope_stmt || #baseline_stmt ||
+    #variants_stmt || #rule_command
+
+#template_stmt =
+    $kw_export? $kw_template $identifier
+    $lparen #parameters $rparen
+    $lbrace #rule_body_item* $rbrace
+
+#rule_stmt =
+    $kw_rule $identifier?
+    (
+        $equals #call $semicolon
+        ||
+        $lbrace #rule_body_item* $rbrace
+    )
+
+// ------------------------------------------------------------
+// Compile-time statements
+// ------------------------------------------------------------
+
+#variable_stmt =
+    ($kw_let || $kw_var) $identifier
+    ($colon #type)? $equals #expr $semicolon
+
+#assignment_stmt =
+    $identifier $equals #expr $semicolon
+
+#return_stmt =
+    $kw_return #expr? $semicolon
+
+#include_target = #call || #reference
+
+#with_binding =
+    ($identifier || $kw_theme || $kw_adapter)
+    $colon #expr
+
+#with_clause =
+    $kw_with $lbrace
+    (#with_binding ($comma #with_binding)*)?
+    $rbrace
+
+#include_stmt =
+    $kw_include #include_target #with_clause? $semicolon
+
+#emit_rule_stmt = $kw_emit #rule_stmt
+
+#if_stmt =
+    $kw_if #expr
+    $lbrace #generator_stmt* $rbrace
+    (
+        $kw_else
+        ($lbrace #generator_stmt* $rbrace || #if_stmt)
+    )?
+
+#for_stmt =
+    $kw_for $identifier $kw_in #expr
+    ($kw_where #expr)?
+    $lbrace #generator_stmt* $rbrace
+
+#generator_stmt =
+    #variable_stmt ||
+    #assignment_stmt ||
+    #if_stmt ||
+    #for_stmt ||
+    #return_stmt ||
+    #include_stmt ||
+    #emit_rule_stmt ||
+    #rule_stmt ||
+    #native_stmt
+
+// ------------------------------------------------------------
+// Rulesets
+// ------------------------------------------------------------
+
+#description_stmt =
+    $kw_description $string_literal $semicolon
+
+#core_conditions_stmt =
+    $kw_core_conditions
+    $lbrace (#expr $semicolon)* $rbrace
+
+#ruleset_item =
+    #description_stmt ||
+    #core_conditions_stmt ||
+    #generator_stmt
+
+#ruleset_stmt =
+    $kw_export? $kw_ruleset $identifier
+    $lbrace #ruleset_item* $rbrace
+
+// ------------------------------------------------------------
+// Functions
+// ------------------------------------------------------------
+
+#function_stmt =
+    $kw_export? $kw_func $identifier
+    $lparen #parameters $rparen
+    ($arrow #type)?
+    $lbrace #generator_stmt* $rbrace
+
+// ------------------------------------------------------------
+// Configuration and adapters
+// ------------------------------------------------------------
+
+#configuration_key_part =
+    $identifier || $kw_theme || $kw_schema
+
+#configuration_key =
+    #configuration_key_part
+    ($minus #configuration_key_part)*
+
+#configuration_assignment =
+    #configuration_key $equals #expr $semicolon
+
+#adapter_mapping =
+    $identifier $equals $identifier $semicolon
+
+#adapter_stmt =
+    $kw_adapter $identifier $arrow #qualified_name
+    $lbrace #adapter_mapping* $rbrace
+
+#configuration_item =
+    #configuration_assignment || #adapter_stmt
+
+#configuration_stmt =
+    $kw_configuration
+    $lbrace #configuration_item* $rbrace
+
+// ------------------------------------------------------------
+// Native PoE escape hatch
+// ------------------------------------------------------------
+
+// Content is an escaped string rather than a new lexer mode.
+// The semantic analyzer validates the expanded native block.
+#native_stmt =
+    $kw_native $string_literal $semicolon
+
+// ------------------------------------------------------------
+// Script
+// ------------------------------------------------------------
+
+#declaration =
+    #schema_stmt ||
+    #dataset_stmt ||
+    #theme_schema_stmt ||
+    #color_set_stmt ||
+    #theme_stmt ||
+    #template_stmt ||
+    #ruleset_stmt ||
+    #function_stmt ||
+    #configuration_stmt
+
+#script =
+    #version_stmt
+    #module_stmt
+    #import_stmt*
+    #declaration*

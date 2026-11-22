@@ -1,0 +1,20 @@
+# configuration
+---
+name: genesis
+version: 1.5
+url: http://example.com:8080/a
+list:
+  - one
+  - two: 2
+    three: "3"
+  - [a, b, {c: d}]
+anchors: &base
+  key: value
+copy: *base
+text: |
+  first line
+  second line
+folded: >-
+  folded text
+empty:
+...

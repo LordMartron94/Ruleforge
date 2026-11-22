@@ -1,0 +1,52 @@
+Language: PythonEmbeddedSubset
+Version: 1.0.0
+
+IMPORT SQL AS Sql { #document }
+IMPORT JSON AS Json { #document }
+IMPORT General { #embedded_token }
+
+PARSER {
+    entry = #document
+    choice = ChoiceMode.ORDERED
+}
+
+CONTEXT <ROOT> {
+    $sql_name = 'sql'
+    $json_name = 'json'
+    $lparen = '('
+    $rparen = ')'
+    $newline = '\r\n' || '\n'
+
+    // A restricted raw triple-quoted string: no embedded triple quotes.
+    // The terminator is part of this single emitting host token.
+    $_raw_char = '\t' || '\r' || '\n' || ' '..'!' || '#'..'~' ||
+                  '\u{80}'..'\u{10FFFF}'
+    $raw_triple_string = 'r"""'
+                         ($_raw_char || '"' $_raw_char || '""' $_raw_char)*
+                         '"""'
+}
+
+#document = #call ($newline #call)* $newline?
+#call = #sql_call || #json_call
+#sql_call = $sql_name $lparen #sql_body $rparen
+#json_call = $json_name $lparen #json_body $rparen
+
+// The opening r + three quotes is four ASCII bytes; the closing delimiter is three.
+// Only the interior is parsed by the respective guest language.
+#embedded_token(
+    name: #sql_body,
+    language: Sql,
+    entry: Sql.#document,
+    source: $raw_triple_string,
+    prefix_bytes: 4,
+    suffix_bytes: 3
+)
+
+#embedded_token(
+    name: #json_body,
+    language: Json,
+    entry: Json.#document,
+    source: $raw_triple_string,
+    prefix_bytes: 4,
+    suffix_bytes: 3
+)

@@ -1,0 +1,13 @@
+# A TOML document
+title = "Example"
+count = 0x1F
+when = 2024-01-02T03:04:05Z
+
+[owner]
+name = 'Tom'
+tags = [ "a", "b",
+  "c", ]
+
+[[servers]]
+host = "alpha"
+ports = { http = 80, https = 443 }

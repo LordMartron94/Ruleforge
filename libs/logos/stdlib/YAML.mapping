@@ -1,0 +1,22 @@
+extensions = yaml, yml
+scope = source.yaml
+
+$comment = comment.line.number-sign
+$document_start = punctuation.definition.document
+$document_end = punctuation.definition.document
+$dash = punctuation.definition.list-item
+$key = entity.name.tag
+$quoted_key = entity.name.tag
+$inline_key = entity.name.tag
+$anchor = variable.other.anchor
+$alias = variable.other.alias
+$tag = storage.type.tag
+$block_indicator = keyword.control.block
+$block_line = string.unquoted.block
+$double_quoted = string.quoted.double
+$single_quoted = string.quoted.single
+$plain = string.unquoted
+$flow_open = punctuation.section.flow.begin
+$flow_close = punctuation.section.flow.end
+$flow_comma = punctuation.separator
+$colon_in_value = punctuation.separator.key-value

@@ -1,0 +1,10 @@
+version 1.0.0;
+module t;
+
+import std.collections;
+
+export func main() {
+    for i in collections.Range(0, 1000) {
+        for j in collections.Range(0, 1000) { }
+    }
+}

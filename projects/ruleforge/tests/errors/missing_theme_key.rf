@@ -1,0 +1,5 @@
+version 1.0.0;
+module t;
+themeSchema S { a; b; }
+theme T implements S { a { onShow { Background #FF0000; } } }
+export func main() { emit rule { action show; style T.a; } }

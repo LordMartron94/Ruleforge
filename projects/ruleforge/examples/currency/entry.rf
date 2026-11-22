@@ -1,0 +1,15 @@
+version 1.0.0;
+module entry;
+
+import filters.currency;
+import filters.themes;
+
+configuration {
+    default-theme = themes.DefaultTheme;
+}
+
+export func main() {
+    include currency.ValuableDrops;
+    include currency.GenerateCurrencyRules();
+    include currency.GeneralFallback;
+}

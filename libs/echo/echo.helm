@@ -1,0 +1,68 @@
+entity echo {
+    kind = "lib"
+    use c_shared_library {
+        params {
+            SOURCE_FILES = [
+                glob("src", include="**/*.c", recursive=true),
+            ]
+            OUT_NAME = "echo"
+            CPPFLAGS = [ "-I.", "-Isrc" ]
+            COMPILER_FLAGS = LIBRARY_COMPILER_FLAGS
+            LDFLAGS = [ "-pthread", "-ldl" ]
+        }
+    }
+
+    interface {
+        INCLUDE_PATHS = [ rel(".") ]
+        LDFLAGS = [ "-lecho", "-lm", "-pthread", "-ldl" ]
+    }
+
+    deps = [ "//libs/nexus:nexus"]
+}
+
+entity echo_tests {
+    kind = "bin"
+
+    use c_executable {
+        params {
+            SOURCE_FILES = [
+                glob("tests", include="*.c", recursive=false),
+            ]
+            OUT_NAME = "echo_tests"
+            COMPILER_FLAGS = APPLICATION_COMPILER_FLAGS
+        }
+    }
+
+    deps = [ "//libs/echo:echo" ]
+}
+
+target run_echo_tests() {
+    help = "Runs the focused Echo runtime and dynamic-registry tests."
+    configuration = "development"
+
+    depends_on [
+        "//libs/echo:echo_tests",
+    ]
+
+    run "${BIN_DIR}/echo_tests"
+}
+
+target run_echo_tests_release() {
+    help = "Runs the focused Echo tests without developer assertions."
+    configuration = "release"
+
+    depends_on [
+        "//libs/echo:echo_tests",
+    ]
+
+    run "${BIN_DIR}/echo_tests"
+}
+
+target build_echo_tests_thread_sanitizer() {
+    help = "Builds Echo tests with ThreadSanitizer."
+    configuration = "thread_sanitizer"
+
+    depends_on [
+        "//libs/echo:echo_tests",
+    ]
+}

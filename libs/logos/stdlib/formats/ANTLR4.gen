@@ -1,0 +1,167 @@
+Language: ANTLR4
+Version: 1.0.0
+
+// The grammar language of ANTLR 4 (.g4): lexer, parser and combined grammars, fragments, modes, options, tokens and channels,
+// lexer commands, element suffixes with their non-greedy forms, labels, actions and semantic predicates, rule arguments.
+// Actions, predicates and arguments are target-language code, and are read as nested braces and brackets with strings and
+// comments, as ANTLR itself reads them.
+//
+// Lexical selection follows the grammar, because '[' opens a character set in a lexer rule and the arguments of a rule
+// reference in a parser rule, and '{' opens an action in a rule and the body of options, tokens and channels.
+
+PARSER {
+	entry = #grammar_spec
+	global = #trivia
+	lexical_selection = grammar_expected
+}
+
+CONTEXT <ROOT> {
+	$whitespace = (' ' || '\t' || '\r' || '\n' || '\u{C}')+
+	$line_comment = '//' ('\t' || ' '..'\u{10FFFF}')*
+	$block_comment = '/*' ('\t' || '\n' || '\r' || ' '..')' || '+'..'\u{10FFFF}' || ('*'+ ('\t' || '\n' || '\r' || ' '..')' || '+'..'.' || '0'..'\u{10FFFF}')))* '*'+ '/'
+
+	$kw_lexer = 'lexer'
+	$kw_parser = 'parser'
+	$kw_grammar = 'grammar'
+	$kw_fragment = 'fragment'
+	$kw_mode = 'mode'
+	$kw_import = 'import'
+	$kw_options = 'options'
+	$kw_tokens = 'tokens'
+	$kw_channels = 'channels'
+	$kw_returns = 'returns'
+	$kw_locals = 'locals'
+	$kw_throws = 'throws'
+	$kw_catch = 'catch'
+	$kw_finally = 'finally'
+	$kw_public = 'public'
+	$kw_private = 'private'
+	$kw_protected = 'protected'
+
+	$token_name = ('A'..'Z') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_')*
+	$rule_name = ('a'..'z') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_')*
+	$integer = '0'..'9'+
+
+	// '...' with ANTLR's escapes
+	$string_literal = '\'' ('\\' ('n' || 'r' || 't' || 'b' || 'f' || '\\' || '\'' || '"' || '-' || ']' || 'u' ('0'..'9' || 'a'..'f' || 'A'..'F')+ || 'u{' ('0'..'9' || 'a'..'f' || 'A'..'F')+ '}') || '\t' || ' '..'&' || '('..'[' || ']'..'\u{10FFFF}')* '\''
+	// [a-z\]] in a lexer rule
+	$char_set = '[' ('\\' ('n' || 'r' || 't' || 'b' || 'f' || '\\' || '-' || ']' || '[' || '\'' || '"' || 'u' ('0'..'9' || 'a'..'f' || 'A'..'F')+ || 'u{' ('0'..'9' || 'a'..'f' || 'A'..'F')+ '}' || ('p' || 'P') '{' ('a'..'z' || 'A'..'Z' || '_' || '=' || ' ')+ '}') || '\t' || ' '..'Z' || '^'..'\u{10FFFF}')* ']'
+
+	$colon_colon = '::'
+	$colon = ':'
+	$semi = ';'
+	$comma = ','
+	$pipe = '|'
+	$lparen = '('
+	$rparen = ')'
+	$question = '?'
+	$star = '*'
+	$plus = '+'
+	$question_greedy = '??'
+	$star_greedy = '*?'
+	$plus_greedy = '+?'
+	$dot = '.'
+	$range = '..'
+	$not = '~'
+	$arrow = '->'
+	$assign = '='
+	$plus_assign = '+='
+	$at = '@'
+	$hash = '#'
+	$lt = '<'
+	$gt = '>'
+	$lbrace = '{'
+	$rbrace = '}'
+
+	// { ... } as an action or predicate; [ ... ] as rule arguments, returns, locals
+	$action_open = '{' -> push(ACTION)
+	$arg_open = '[' -> push(ARGUMENT)
+}
+
+CONTEXT <ACTION> {
+	$action_nested_open = '{' -> push(ACTION)
+	$action_close = '}' -> pop(1)
+	$action_string = '"' ('\\' ('\t' || ' '..'\u{10FFFF}') || '\t' || ' '..'!' || '#'..'[' || ']'..'\u{10FFFF}')* '"'
+	$action_character = '\'' ('\\' ('\t' || ' '..'\u{10FFFF}') || '\t' || ' '..'&' || '('..'[' || ']'..'\u{10FFFF}')* '\''
+	$action_line_comment = '//' ('\t' || ' '..'\u{10FFFF}')*
+	$action_block_comment = '/*' ('\t' || '\n' || '\r' || ' '..')' || '+'..'\u{10FFFF}' || ('*'+ ('\t' || '\n' || '\r' || ' '..')' || '+'..'.' || '0'..'\u{10FFFF}')))* '*'+ '/'
+	$action_text = ('\t' || '\n' || '\r' || ' '..'!' || '#'..'&' || '('..'.' || '0'..'z' || '|' || '~'..'\u{10FFFF}')+
+	$action_slash = '/'
+}
+
+CONTEXT <ARGUMENT> {
+	$argument_nested_open = '[' -> push(ARGUMENT)
+	$arg_close = ']' -> pop(1)
+	$argument_string = '"' ('\\' ('\t' || ' '..'\u{10FFFF}') || '\t' || ' '..'!' || '#'..'[' || ']'..'\u{10FFFF}')* '"'
+	$argument_character = '\'' ('\\' ('\t' || ' '..'\u{10FFFF}') || '\t' || ' '..'&' || '('..'[' || ']'..'\u{10FFFF}')* '\''
+	$argument_text = ('\t' || '\n' || '\r' || ' '..'!' || '#'..'&' || '('..'Z' || '^'..'\u{10FFFF}')+
+}
+
+// Whitespace and comments are everywhere between tokens.
+#trivia = $whitespace || $line_comment || $block_comment
+
+#grammar_spec = #grammar_declaration #prequel* #rule_specification* #mode_specification*
+#grammar_declaration = ($kw_lexer || $kw_parser)? $kw_grammar #identifier $semi
+#identifier = $token_name || $rule_name
+
+#prequel = #options_specification || #import_declaration || #tokens_specification || #channels_specification || #named_action
+#options_specification = $kw_options $lbrace (#option $semi)* $rbrace
+#option = #identifier $assign #option_value
+#option_value = (#identifier ($dot #identifier)*) || $string_literal || #action_block || $integer
+#import_declaration = $kw_import #imported_grammar ($comma #imported_grammar)* $semi
+#imported_grammar = #identifier ($assign #identifier)?
+#tokens_specification = $kw_tokens $lbrace (#identifier ($comma #identifier)* $comma?)? $rbrace
+#channels_specification = $kw_channels $lbrace (#identifier ($comma #identifier)* $comma?)? $rbrace
+#named_action = $at (#identifier $colon_colon)? #identifier #action_block
+
+// { ... } and [ ... ]: the text of an action or of an argument list, nested.
+#action_block = $action_open #action_content* $action_close
+#action_content = $action_nested_open #action_content* $action_close || $action_string || $action_character || $action_line_comment || $action_block_comment ||
+                  $action_text || $action_slash
+#argument_block = $arg_open #argument_content* $arg_close
+#argument_content = $argument_nested_open #argument_content* $arg_close || $argument_string || $argument_character || $argument_text
+
+#rule_specification = #lexer_rule || #parser_rule
+#mode_specification = $kw_mode #identifier $semi #lexer_rule*
+
+// ---- parser rules ----
+#parser_rule = #rule_modifier* $rule_name #argument_block? #returns_clause? #throws_clause? #locals_clause? #rule_prequel* $colon #parser_alternatives $semi #exception_group
+#rule_modifier = $kw_public || $kw_private || $kw_protected || $kw_fragment
+#returns_clause = $kw_returns #argument_block
+#locals_clause = $kw_locals #argument_block
+#throws_clause = $kw_throws #identifier ($comma #identifier)*
+#rule_prequel = #options_specification || #named_action
+#exception_group = #exception_handler* #finally_clause?
+#exception_handler = $kw_catch #argument_block #action_block
+#finally_clause = $kw_finally #action_block
+
+#parser_alternatives = #parser_labeled_alternative ($pipe #parser_labeled_alternative)*
+#parser_labeled_alternative = #parser_alternative ($hash #identifier)?
+#parser_alternative = #element_options? #parser_element*
+#parser_element = #parser_labeled_element #ebnf_suffix? || #parser_atom #ebnf_suffix? || #parser_block #ebnf_suffix? || #action_or_predicate
+#parser_labeled_element = #identifier ($assign || $plus_assign) (#parser_atom || #parser_block)
+#parser_block = $lparen (#options_specification? #named_action* $colon)? #parser_alternatives $rparen
+#parser_atom = #terminal || #parser_rule_reference || #parser_not_set || ($dot #element_options?)
+#parser_rule_reference = $rule_name #argument_block? #element_options?
+#terminal = ($token_name || $string_literal) #element_options?
+#parser_not_set = $not (#parser_set_element || #parser_block_set)
+#parser_block_set = $lparen #parser_set_element ($pipe #parser_set_element)* $rparen
+#parser_set_element = $token_name || $string_literal
+#element_options = $lt #element_option ($comma #element_option)* $gt
+#element_option = #identifier ($assign (#identifier || $string_literal || $integer))?
+#ebnf_suffix = $question_greedy || $star_greedy || $plus_greedy || $question || $star || $plus
+#action_or_predicate = #action_block $question?
+
+// ---- lexer rules ----
+#lexer_rule = $kw_fragment? $token_name #options_specification? $colon #lexer_alternatives $semi
+#lexer_alternatives = #lexer_alternative ($pipe #lexer_alternative)*
+#lexer_alternative = #lexer_element* #lexer_commands?
+#lexer_commands = $arrow #lexer_command ($comma #lexer_command)*
+#lexer_command = #identifier ($lparen (#identifier || $integer) $rparen)?
+#lexer_element = #lexer_atom #ebnf_suffix? || #lexer_block #ebnf_suffix? || #action_or_predicate
+#lexer_block = $lparen #lexer_alternatives $rparen
+#lexer_atom = #character_range || #terminal || #lexer_not_set || $char_set || $dot
+#character_range = $string_literal $range $string_literal
+#lexer_not_set = $not (#lexer_set_element || #lexer_block_set)
+#lexer_block_set = $lparen #lexer_set_element ($pipe #lexer_set_element)* $rparen
+#lexer_set_element = #character_range || $char_set || $string_literal || $token_name

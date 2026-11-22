@@ -1,0 +1,23 @@
+// Editor mapping for JSON.gen: file types, scopes and the settings of the generated files.
+extensions = json
+scope = source.json
+test.comment = //
+sublime.package = User
+
+$brace_open = punctuation.section.mapping.begin
+$brace_close = punctuation.section.mapping.end
+$bracket_open = punctuation.section.sequence.begin
+$bracket_close = punctuation.section.sequence.end
+$colon = punctuation.separator.key-value
+$comma = punctuation.separator
+$number = constant.numeric
+$true = constant.language
+$false = constant.language
+$null = constant.language
+$string_open = punctuation.definition.string.begin
+$string_close = punctuation.definition.string.end
+$string_content = string.quoted.double
+$escape_start = constant.character.escape
+$escape_simple = constant.character.escape
+$escape_unicode = constant.character.escape
+context STRING = string.quoted.double

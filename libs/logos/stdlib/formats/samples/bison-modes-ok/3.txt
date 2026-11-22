@@ -1,0 +1,2 @@
+/* a comment
+ * over lines */ list = [1, "two", [3], []]; // trailing

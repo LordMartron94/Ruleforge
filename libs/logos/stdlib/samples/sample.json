@@ -1,0 +1,6 @@
+{
+  "name": "genesis",
+  "version": 1.5e2,
+  "tags": ["a", "b\n", true, null],
+  "nested": {"empty": {}, "list": [1, [2, 3], {"x": -0.5}]}
+}

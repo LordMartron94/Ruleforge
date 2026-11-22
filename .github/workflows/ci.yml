@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  push:
+    branches: [rewrite, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build the engine
+        run: cmake --build build --target ruleforge_cli
+      - name: Test the engine
+        run: ctest --test-dir build -R ruleforge --output-on-failure
+      - name: Test the studio
+        working-directory: projects/ruleforge/studio
+        run: go vet ./... && go test ./...
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build the engine
+        run: cmake --build build --target ruleforge_cli
+      - name: Test the engine
+        run: ctest --test-dir build -R ruleforge --output-on-failure
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Test the studio
+        shell: pwsh
+        working-directory: projects/ruleforge/studio
+        run: |
+          go vet ./...
+          go test ./...

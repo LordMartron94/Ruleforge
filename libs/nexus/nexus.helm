@@ -1,0 +1,47 @@
+entity nexus {
+    kind = "lib"
+    use c_shared_library {
+        params {
+            SOURCE_FILES = [
+                glob("src", include="**/*.c", recursive=true),
+            ]
+            OUT_NAME = "nexus"
+            CPPFLAGS = [ "-I.", "-Isrc" ]
+            COMPILER_FLAGS = LIBRARY_COMPILER_FLAGS
+            LDFLAGS = [ "-pthread", "-ldl" ]
+        }
+    }
+
+    interface {
+        INCLUDE_PATHS = [ rel(".") ]
+        LDFLAGS = [ "-lnexus", "-lm", "-pthread", "-ldl" ]
+    }
+
+    deps = [ "//external/stb:stb", "//external/xxHash:xxhash" ]
+}
+
+entity nexus_tests {
+    kind = "bin"
+    use c_executable {
+        params {
+            SOURCE_FILES = [
+                glob("tests", include="*.c", recursive=false),
+            ]
+            OUT_NAME = "nexus_tests"
+            COMPILER_FLAGS = APPLICATION_COMPILER_FLAGS
+        }
+    }
+
+    deps = [ "//libs/nexus:nexus" ]
+}
+
+target run_nexus_tests() {
+    help = "Runs focused Nexus data, entropy, hashing, and identity tests."
+    configuration = "development"
+
+    depends_on [
+        "//libs/nexus:nexus_tests",
+    ]
+
+    run "${BIN_DIR}/nexus_tests"
+}
