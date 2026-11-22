@@ -1,9 +1,13 @@
-#include "../nexus.h"
-
-#ifdef NEXUS_PLATFORM_WINDOWS
+/* The Windows headers use memcpy/memset, which nexus.h poisons, so they come first; every file that needs them does this. */
+#ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
 #  include <bcrypt.h>
+#endif
+
+#include "../nexus.h"
+
+#if defined(NEXUS_PLATFORM_WINDOWS)
 #elif defined(NEXUS_PLATFORM_LINUX) || defined(NEXUS_PLATFORM_ANDROID)
 #  include <errno.h>
 #  include <sys/types.h>

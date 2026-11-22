@@ -1,10 +1,14 @@
+/* The Windows headers use memcpy/memset, which nexus.h poisons, so they come first. */
+#ifdef _WIN32
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
+#endif
+
 #include "../nexus.h"
 
 #include <stddef.h>
 
 #if NEXUS_PLATFORM_WINDOWS
-#  define WIN32_LEAN_AND_MEAN
-#  include <windows.h>
 #elif NEXUS_PLATFORM_POSIX || NEXUS_PLATFORM_BSD
 #  include <pthread.h>
 #  include <unistd.h>

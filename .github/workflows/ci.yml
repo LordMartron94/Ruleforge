@@ -22,7 +22,7 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build the engine
-        run: cmake --build build --target ruleforge_cli
+        run: cmake --build build --target ruleforge_cli -- -k 0
       - name: Test the engine
         run: ctest --test-dir build -R ruleforge --output-on-failure
       - name: Test the studio
@@ -38,16 +38,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build the engine
-        run: cmake --build build --target ruleforge_cli
+        run: cmake --build build --target ruleforge_cli -- -k 0
       - name: Test the engine
         run: ctest --test-dir build -R ruleforge --output-on-failure
       - uses: actions/setup-go@v5
