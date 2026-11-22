@@ -28,7 +28,7 @@ jobs:
       - name: Test the platform layer (links, replacing rename, pattern matching)
         run: |
           cmake --build build --target nexus_filesystem_tests nexus_filesystem_builtin_regex_tests -- -k 0
-          ctest --test-dir build -R nexus_filesystem --output-on-failure
+          ctest --test-dir build -R nexus_filesystem --output-on-failure -V
       - name: Test the studio
         working-directory: projects/ruleforge/studio
         run: go vet ./... && go test ./...
@@ -57,7 +57,7 @@ jobs:
       - name: Test the platform layer (links, replacing rename, pattern matching)
         run: |
           cmake --build build --target nexus_filesystem_tests nexus_filesystem_builtin_regex_tests -- -k 0
-          ctest --test-dir build -R nexus_filesystem --output-on-failure
+          ctest --test-dir build -R nexus_filesystem --output-on-failure -V
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
