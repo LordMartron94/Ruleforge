@@ -116,7 +116,8 @@ func (s *Server) resolve(relative string) (string, error) {
 		return "", errors.New("no path")
 	}
 	clean := filepath.Clean(filepath.FromSlash(relative))
-	if filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+	// A rooted path (a leading slash, a drive or a UNC share) is not project-relative, whichever platform decides it is absolute.
+	if filepath.IsAbs(clean) || filepath.VolumeName(clean) != "" || strings.HasPrefix(relative, "/") || strings.HasPrefix(relative, `\`) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
 		return "", errors.New("the path leaves the project folder")
 	}
 	full := filepath.Join(s.Project.Dir, clean)
