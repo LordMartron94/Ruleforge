@@ -2,12 +2,14 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/RuleforgeEmbed.cmake")
 
 # The grammar and its library are compiled into the engine, so no data files are needed at run time.
 set(ruleforge_embedded_grammar "${CMAKE_CURRENT_BINARY_DIR}/r_grammar_data.c")
+# Ruleforge's own grammar, and the standard grammars the Logos library ships (General, JSON, TOML, CSV).
+set(ruleforge_logos_stdlib "${PROJECT_SOURCE_DIR}/libs/logos/stdlib")
 set(ruleforge_grammars
-    "${CMAKE_CURRENT_SOURCE_DIR}/spec/General.gen"
+    "${ruleforge_logos_stdlib}/General.gen"
     "${CMAKE_CURRENT_SOURCE_DIR}/spec/ruleforge.gen"
-    "${CMAKE_CURRENT_SOURCE_DIR}/spec/RuleforgeCsv.gen"
-    "${PROJECT_SOURCE_DIR}/libs/logos/stdlib/JSON.gen"
-    "${PROJECT_SOURCE_DIR}/libs/logos/stdlib/TOML.gen"
+    "${ruleforge_logos_stdlib}/CSVRelaxed.gen"
+    "${ruleforge_logos_stdlib}/JSON.gen"
+    "${ruleforge_logos_stdlib}/TOML.gen"
 )
 ruleforge_embed("${ruleforge_embedded_grammar}" "ruleforge_data" ${ruleforge_grammars})
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${ruleforge_grammars})
@@ -17,20 +19,20 @@ include("${PROJECT_SOURCE_DIR}/libs/logos/cmake/LogosGenesis.cmake")
 # Ruleforge's own syntax, and the formats its datasets and settings are written in, all read through generated views.
 logos_genesis_bindings(ruleforge_syntax_bindings
     GRAMMAR "${CMAKE_CURRENT_SOURCE_DIR}/spec/ruleforge.gen"
-    INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/spec"
+    INCLUDE "${ruleforge_logos_stdlib}"
     PREFIX rf
     OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
 logos_genesis_bindings(ruleforge_json_bindings
-    GRAMMAR "${PROJECT_SOURCE_DIR}/libs/logos/stdlib/JSON.gen"
+    GRAMMAR "${ruleforge_logos_stdlib}/JSON.gen"
     PREFIX json
     OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
 logos_genesis_bindings(ruleforge_toml_bindings
-    GRAMMAR "${PROJECT_SOURCE_DIR}/libs/logos/stdlib/TOML.gen"
-    INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/spec"
+    GRAMMAR "${ruleforge_logos_stdlib}/TOML.gen"
+    INCLUDE "${ruleforge_logos_stdlib}"
     PREFIX toml
     OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
 logos_genesis_bindings(ruleforge_csv_bindings
-    GRAMMAR "${CMAKE_CURRENT_SOURCE_DIR}/spec/RuleforgeCsv.gen"
+    GRAMMAR "${ruleforge_logos_stdlib}/CSVRelaxed.gen"
     PREFIX csv
     OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
 set(ruleforge_bindings_directory "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")

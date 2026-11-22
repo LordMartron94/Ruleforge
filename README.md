@@ -41,7 +41,7 @@ ctest --test-dir build -R ruleforge
 ```
 
 The syntax bindings are not written by hand: `genesis bind` generates typed views of every parse tree from the grammars
-(`spec/ruleforge.gen`, `spec/RuleforgeCsv.gen`, and the JSON and TOML grammars of the Logos library) while the build runs.
+(`spec/ruleforge.gen`, and the CSV, JSON and TOML grammars of the Logos library) while the build runs.
 JSON, CSV and TOML are therefore read by Genesis grammars, never by hand-written parsers.
 
 ## Releases and updates

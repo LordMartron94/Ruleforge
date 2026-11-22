@@ -11,13 +11,13 @@
 #include "../ruleforge.h"
 #include "./r_internal.h"
 
-/* The grammars, embedded by cmake/RuleforgeEmbed.cmake: Ruleforge, its library, and the formats datasets and settings use. */
+/* The grammars, embedded by cmake/RuleforgeEmbed.cmake: Ruleforge, and the Logos standard grammars it imports or reads (General, CSV, JSON, TOML). */
 extern const unsigned char ruleforge_data_General[];
 extern const unsigned long ruleforge_data_General_size;
 extern const unsigned char ruleforge_data_ruleforge[];
 extern const unsigned long ruleforge_data_ruleforge_size;
-extern const unsigned char ruleforge_data_RuleforgeCsv[];
-extern const unsigned long ruleforge_data_RuleforgeCsv_size;
+extern const unsigned char ruleforge_data_CSVRelaxed[];
+extern const unsigned long ruleforge_data_CSVRelaxed_size;
 extern const unsigned char ruleforge_data_JSON[];
 extern const unsigned long ruleforge_data_JSON_size;
 extern const unsigned char ruleforge_data_TOML[];
@@ -65,9 +65,9 @@ static LGenesisEngine *r_syntax_engine_get(RuleforgeRuntime *runtime, RuleforgeS
     name = "JSON.gen";
     break;
   case RSK_CSV:
-    text = ruleforge_data_RuleforgeCsv;
-    size = (uint_large)ruleforge_data_RuleforgeCsv_size;
-    name = "RuleforgeCsv.gen";
+    text = ruleforge_data_CSVRelaxed;
+    size = (uint_large)ruleforge_data_CSVRelaxed_size;
+    name = "CSVRelaxed.gen";
     break;
   case RSK_TOML:
     text = ruleforge_data_TOML;

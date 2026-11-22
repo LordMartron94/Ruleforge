@@ -15,6 +15,7 @@ listed in `conformance/<language>.semantic`, to be rejected by a semantic analyz
 | `TOML.gen` | TOML 1.1.0 | complete as a grammar, including the calendar and the Unicode scalar range of escapes; toml-test: all 218 valid files accepted, 439 of 502 invalid ones rejected, the other 63 are key/table definition rules (semantic) |
 | `XML.gen` (+ `XMLCharacters.gen`) | XML 1.0, Fifth Edition | every production for a document, DTD internal subset included; W3C xmlconf: all 824 well-formed documents accepted, 784 of 826 not-well-formed ones rejected, the other 42 are well-formedness constraints (semantic). Not provided: the external subset and external parsed entities (separate inputs) |
 | `CSV.gen` | RFC 4180 | complete (strict: CRLF, ASCII TEXTDATA); invalid samples are rejected by CTest |
+| `CSVRelaxed.gen` | RFC 4180 without its two restrictions on real data | the same rules and token names as `CSV.gen`, but a record ends with CRLF, LF or CR and a field holds any UTF-8 text; used by Ruleforge for dataset snapshots |
 | `INI.gen` | none (Windows INI, de facto) | covers sections, `key=value`/`key:value`, `;` and `#` comments |
 | `General.gen` | - | a library of templates: lists, dictionaries, Pratt rules, embedding, keywords, and `$_semver` (Semantic Versioning 2.0.0, production by production) |
 | `sql/SQLite.gen`, `sql/TransactSQL.gen`, `sql/MySQL.gen` | the ANTLR grammars of grammars-v4, converted | see `sql/README.md`: SQLite 17 of 17 example scripts, T-SQL 110 of 137, MySQL 19 of 24; PostgreSQL and Oracle follow |

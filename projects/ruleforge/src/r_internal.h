@@ -600,7 +600,7 @@ extern RuleforgeJson       *ruleforge_json_parse(RuleforgeRuntime *runtime, Nexu
                                                  uint_large error_size);
 extern const RuleforgeJson *ruleforge_json_member_get(const RuleforgeJson *object, const char *key);
 
-/* r_csv.c: records of cells, read through the RuleforgeCsv grammar. */
+/* r_csv.c: records of cells, read through the Logos CSV grammar. */
 typedef struct RuleforgeCsv {
   uint32        row_count;
   uint32       *column_counts; /* per row */

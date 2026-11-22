@@ -9,9 +9,28 @@
 #include "./r_internal.h"
 
 /*
-CSV is parsed by Genesis (spec/RuleforgeCsv.gen through its generated views). This file turns the syntax tree into cells: it
+CSV is parsed by Genesis (the Logos library's relaxed CSV grammar, CSVRelaxed.gen, through its generated views). This file turns the syntax tree into cells: it
 removes the quotes of an escaped field and collapses its doubled quotes; it never interprets what a cell means.
 */
+
+/* The five token kinds that can follow one another inside a quoted field, in the order the grammar lists them. */
+#define R_CSV_PART_KINDS 5
+
+/* Summary: the token of kind `kind` at `index` inside an escaped field, or NULL past the last one. */
+static const LParserGreenNode *r_csv_part_get(CsvEscaped escaped, uint32 kind, uint32 index) {
+  switch (kind) {
+  case 0:
+    return index < csv_escaped_count_token_quoted_text(escaped) ? csv_escaped_token_quoted_text(escaped, index) : NULL;
+  case 1:
+    return index < csv_escaped_count_token_quoted_comma(escaped) ? csv_escaped_token_quoted_comma(escaped, index) : NULL;
+  case 2:
+    return index < csv_escaped_count_token_quoted_cr(escaped) ? csv_escaped_token_quoted_cr(escaped, index) : NULL;
+  case 3:
+    return index < csv_escaped_count_token_quoted_lf(escaped) ? csv_escaped_token_quoted_lf(escaped, index) : NULL;
+  default:
+    return index < csv_escaped_count_token_escaped_quote(escaped) ? csv_escaped_token_escaped_quote(escaped, index) : NULL;
+  }
+}
 
 static const char *r_csv_field_text(NexusDataArena *arena, CsvField field) {
   NexusStringBuilder out;
@@ -21,35 +40,56 @@ static const char *r_csv_field_text(NexusDataArena *arena, CsvField field) {
 
   if (csv_field_count_rule_escaped(field) > 0) {
     CsvEscaped escaped;
-    uint32     quoted_index;
-    uint32     escape_index;
+    uint32     index[R_CSV_PART_KINDS];
+    uint32     kind;
 
-    escaped      = csv_field_rule_escaped(field, 0);
-    quoted_index = 0;
-    escape_index = 0;
+    escaped = csv_field_rule_escaped(field, 0);
 
-    /* The views list the two token kinds apart; their source positions restore the order they were written in. */
-    while (quoted_index < csv_escaped_count_token_quoted_text(escaped) || escape_index < csv_escaped_count_token_escaped_quote(escaped)) {
-      const byte *quoted_text;
-      const byte *escape_text;
-      uint_large  size;
+    for (kind = 0; kind < R_CSV_PART_KINDS; kind++) {
+      index[kind] = 0;
+    }
 
-      quoted_text =
-          quoted_index < csv_escaped_count_token_quoted_text(escaped)
-              ? logos_language_tooling_parsing_syntax_green_node_text_get(escaped.tree, csv_escaped_token_quoted_text(escaped, quoted_index), &size)
-              : NULL;
-      escape_text =
-          escape_index < csv_escaped_count_token_escaped_quote(escaped)
-              ? logos_language_tooling_parsing_syntax_green_node_text_get(escaped.tree, csv_escaped_token_escaped_quote(escaped, escape_index), &size)
-              : NULL;
+    /* The views list the token kinds apart; their source positions restore the order they were written in. */
+    for (;;) {
+      const byte *best_text;
+      uint_large  best_size;
+      uint32      best_kind;
 
-      if (escape_text == NULL || (quoted_text != NULL && quoted_text < escape_text)) {
-        (void)logos_language_tooling_parsing_syntax_green_node_text_get(escaped.tree, csv_escaped_token_quoted_text(escaped, quoted_index), &size);
-        (void)nexus_strings_string_builder_append_formatted(&out, "%.*s", (int)size, (const char *)quoted_text);
-        quoted_index++;
-      } else {
+      best_text = NULL;
+      best_size = 0;
+      best_kind = R_CSV_PART_KINDS;
+
+      for (kind = 0; kind < R_CSV_PART_KINDS; kind++) {
+        const LParserGreenNode *token;
+        const byte             *text;
+        uint_large              size;
+
+        token = r_csv_part_get(escaped, kind, index[kind]);
+
+        if (token == NULL) {
+          continue;
+        }
+
+        text = logos_language_tooling_parsing_syntax_green_node_text_get(escaped.tree, token, &size);
+
+        if (best_text == NULL || text < best_text) {
+          best_text = text;
+          best_size = size;
+          best_kind = kind;
+        }
+      }
+
+      if (best_kind == R_CSV_PART_KINDS) {
+        break;
+      }
+
+      index[best_kind]++;
+
+      /* A doubled quote stands for one quote; everything else is the text as written. */
+      if (best_kind == R_CSV_PART_KINDS - 1) {
         (void)nexus_strings_string_builder_append(&out, "\"");
-        escape_index++;
+      } else {
+        (void)nexus_strings_string_builder_append_formatted(&out, "%.*s", (int)best_size, (const char *)best_text);
       }
     }
   } else if (csv_field_count_token_text(field) > 0) {

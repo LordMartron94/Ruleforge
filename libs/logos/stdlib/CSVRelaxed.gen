@@ -1,0 +1,38 @@
+Language: CSVRelaxed
+Version: 1.0.0
+
+// Comma-separated values as the files that tools actually write them: RFC 4180 (see CSV.gen) with the two restrictions that
+// real data does not keep lifted.
+//
+//   - A record ends with CRLF, LF or CR. Unix tools, spreadsheets and Go's and Python's CSV writers use LF.
+//   - A field holds any UTF-8 text. CSV.gen limits text to printable ASCII, which cannot carry names such as "Maelström".
+//
+// Everything else is as in CSV.gen: a field is quoted with double quotes to hold a comma, a quote (written twice) or a line break,
+// and the first record is the header only by convention. The token and rule names are the same as CSV.gen's, so a program that
+// reads one reads the other.
+
+PARSER {
+	entry = #file
+}
+
+CONTEXT <ROOT> {
+	$text = (!(',' || '"' || '\r' || '\n'))+
+	$comma = ','
+	$line_end = '\r\n' || '\n' || '\r'
+	$quote_open = '"' -> push(QUOTED)
+}
+
+CONTEXT <QUOTED> {
+	$quoted_text = (!('"' || ',' || '\r' || '\n'))+
+	$quoted_comma = ','
+	$quoted_cr = '\r'
+	$quoted_lf = '\n'
+	$escaped_quote = '""'
+	$quote_close = '"' -> pop(1)
+}
+
+// file = record *(line-end record) [line-end]
+#file = #record ($line_end #record)* $line_end?
+#record = #field ($comma #field)*
+#field = #escaped || $text?
+#escaped = $quote_open ($quoted_text || $quoted_comma || $quoted_cr || $quoted_lf || $escaped_quote)* $quote_close
