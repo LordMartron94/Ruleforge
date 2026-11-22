@@ -171,6 +171,216 @@ static void l_tool_bind_helpers(LToolBind *bind) {
   l_tool_bind_emit(bind, lines);
 }
 
+
+/* Summary: the generated helpers every grammar gets: which rules are global (trivia), the byte range of a node, rule names and a JSON dump. */
+static void l_tool_bind_generic(LToolBind *bind) {
+  LToolText             *out;
+  const LGenesisGrammar *grammar;
+  uint32                 i;
+
+  out     = &bind->out;
+  grammar = bind->grammar;
+
+  logos_tool_text_format(out,
+                         "/* Tells whether a syntax node is one of the global rules of the grammar (its PARSER block's trivia). */\n"
+                         "static NEXUS_MAYBE_UNUSED boolean %s_node_is_global(const LParserTree *tree, const LParserGreenNode *node) {\n"
+                         "  const char *label;\n\n"
+                         "  if (node == NULL || logos_language_tooling_parsing_syntax_green_node_kind_get(node) != LPGK_RULE) {\n"
+                         "    return FALSE;\n"
+                         "  }\n\n"
+                         "  label = logos_language_tooling_parsing_syntax_green_node_label_get(tree, node);\n\n"
+                         "  if (label == NULL) {\n"
+                         "    return FALSE;\n"
+                         "  }\n\n",
+                         bind->prefix);
+
+  for (i = 0; i < logos_languages_genesis_grammar_global_count_get(grammar); i++) {
+    logos_tool_text_format(out, "  if (nexus_strings_string_equals(label, \"%s\")) {\n    return TRUE;\n  }\n\n",
+                           logos_languages_genesis_grammar_global_at(grammar, i));
+  }
+
+  logos_tool_text_add(out, "  return FALSE;\n}\n\n");
+
+  {
+    static const char *const lines[] = {
+        "/* The byte range of the tokens below a node, leaving out the global rules (trivia) before the first and after the last token. */",
+        "static NEXUS_MAYBE_UNUSED boolean @P@_node_range(const LParserTree *tree, const LParserGreenNode *node, uint_large *out_start, uint_large "
+        "*out_end) {",
+        "  const LParserGreenAlternative *alternative;",
+        "  const byte                    *text;",
+        "  const byte                    *base;",
+        "  uint_large                     size;",
+        "  uint_large                     start;",
+        "  uint_large                     end;",
+        "  uint_large                     tree_size;",
+        "  uint32                         i;",
+        "  boolean                        found;",
+        "",
+        "  if (logos_language_tooling_parsing_syntax_green_node_kind_get(node) == LPGK_TOKEN) {",
+        "    text = logos_language_tooling_parsing_syntax_green_node_text_get(tree, node, &size);",
+        "    base = logos_language_tooling_parsing_syntax_tree_source_get(tree, &tree_size);",
+        "",
+        "    if (size == 0) {",
+        "      return FALSE;",
+        "    }",
+        "",
+        "    *out_start = (uint_large)(text - base);",
+        "    *out_end   = *out_start + size;",
+        "",
+        "    return TRUE;",
+        "  }",
+        "",
+        "  if (@P@_node_is_global(tree, node)) {",
+        "    return FALSE;",
+        "  }",
+        "",
+        "  alternative = logos_language_tooling_parsing_syntax_green_node_alternative_first_get(tree, node);",
+        "  found       = FALSE;",
+        "",
+        "  if (alternative == NULL) {",
+        "    return FALSE;",
+        "  }",
+        "",
+        "  for (i = 0; i < logos_language_tooling_parsing_syntax_alternative_child_count_get(alternative); i++) {",
+        "    if (@P@_node_range(tree, logos_language_tooling_parsing_syntax_alternative_child_get(tree, alternative, i), &start, &end)) {",
+        "      if (!found || start < *out_start) {",
+        "        *out_start = start;",
+        "      }",
+        "",
+        "      if (!found || end > *out_end) {",
+        "        *out_end = end;",
+        "      }",
+        "",
+        "      found = TRUE;",
+        "    }",
+        "  }",
+        "",
+        "  return found;",
+        "}",
+        "",
+        "/* The exact source text of a token, and its length, or NULL for a node that is not a token. */",
+        "static NEXUS_MAYBE_UNUSED const char *@P@_token_text(const LParserTree *tree, const LParserGreenNode *token, uint_large *out_size) {",
+        "  return (const char *)logos_language_tooling_parsing_syntax_green_node_text_get(tree, token, out_size);",
+        "}",
+        "",
+        NULL};
+
+    l_tool_bind_emit(bind, lines);
+  }
+
+  logos_tool_text_format(out, "/* The name of a rule of the grammar, or NULL. */\nstatic NEXUS_MAYBE_UNUSED const char *%s_rule_name(int32 rule) {\n  switch (rule) {\n",
+                         bind->prefix);
+
+  for (i = 0; i < logos_languages_genesis_grammar_rule_count_get(grammar); i++) {
+    const LGenesisGrammarRule *rule;
+    char                      *upper;
+
+    rule = logos_languages_genesis_grammar_rule_at(grammar, i);
+
+    if (l_tool_bind_private(rule->name)) {
+      continue;
+    }
+
+    upper = logos_tool_identifier_upper(rule->name);
+    logos_tool_text_format(out, "  case %s_RULE_%s:\n    return \"%s\";\n", bind->upper, upper, rule->name);
+    nexus_memory_deallocate(upper);
+  }
+
+  logos_tool_text_add(out, "  default:\n    return NULL;\n  }\n}\n\n");
+
+  {
+    static const char *const lines[] = {
+        "/*",
+        "Summary: writes a syntax tree as JSON with the names the grammar gives its rules and tokens.",
+        "Description: a rule is {\"rule\":name,\"start\":byte,\"end\":byte,\"children\":[...]} and a token {\"token\":name,\"start\":byte,\"end\":byte,\"text\":string},",
+        "  in source order. The global rules (trivia) are left out and the grammar's private helper rules are flattened into their parent.",
+        "  The names come from the grammar, so the JSON cannot drift from it. The text of a token is its exact source.",
+        "*/",
+        "static NEXUS_MAYBE_UNUSED void @P@_node_json_write(const LParserTree *tree, const LParserGreenNode *node, NexusStringBuilder *out, boolean *first) {",
+        "  const LParserGreenAlternative *alternative;",
+        "  LParserGreenKind               kind;",
+        "  uint_large                     start;",
+        "  uint_large                     end;",
+        "  uint_large                     size;",
+        "  const char                    *label;",
+        "  const char                    *text;",
+        "  char                          *copy;",
+        "  uint32                         i;",
+        "  boolean                        children_first;",
+        "",
+        "  kind = logos_language_tooling_parsing_syntax_green_node_kind_get(node);",
+        "",
+        "  if (kind == LPGK_TOKEN) {",
+        "    if (!@P@_node_range(tree, node, &start, &end)) {",
+        "      return;",
+        "    }",
+        "",
+        "    label = @P@_token_name(logos_language_tooling_parsing_syntax_green_node_token_kind_get(tree, node));",
+        "    text  = @P@_token_text(tree, node, &size);",
+        "    copy  = (char *)nexus_memory_allocate(size + 1);",
+        "    nexus_memory_bytes_copy(text, copy, size);",
+        "    copy[size] = '\\0';",
+        "    (void)nexus_strings_string_builder_append_formatted(out, \"%s{\\\"token\\\":\\\"%s\\\",\\\"start\\\":%lu,\\\"end\\\":%lu,\\\"text\\\":\", *first ? \"\" : \",\",",
+        "                                                        label == NULL ? \"\" : label, (unsigned long)start, (unsigned long)end);",
+        "    (void)nexus_json_quote_append(out, copy);",
+        "    (void)nexus_strings_string_builder_append(out, \"}\");",
+        "    nexus_memory_deallocate(copy);",
+        "    *first = FALSE;",
+        "",
+        "    return;",
+        "  }",
+        "",
+        "  if (@P@_node_is_global(tree, node)) {",
+        "    return;",
+        "  }",
+        "",
+        "  label       = logos_language_tooling_parsing_syntax_green_node_label_get(tree, node);",
+        "  alternative = logos_language_tooling_parsing_syntax_green_node_alternative_first_get(tree, node);",
+        "",
+        "  if (alternative == NULL) {",
+        "    return;",
+        "  }",
+        "",
+        "  /* Sequences, the source and private helper rules (their names contain \"__i\" or \"@\") add nothing of their own. */",
+        "  if (kind == LPGK_SEQUENCE || kind == LPGK_SOURCE || label == NULL || nexus_strings_string_contains(label, \"__i\") ||",
+        "      nexus_strings_string_contains(label, \"@\")) {",
+        "    for (i = 0; i < logos_language_tooling_parsing_syntax_alternative_child_count_get(alternative); i++) {",
+        "      @P@_node_json_write(tree, logos_language_tooling_parsing_syntax_alternative_child_get(tree, alternative, i), out, first);",
+        "    }",
+        "",
+        "    return;",
+        "  }",
+        "",
+        "  if (!@P@_node_range(tree, node, &start, &end)) {",
+        "    return;",
+        "  }",
+        "",
+        "  (void)nexus_strings_string_builder_append_formatted(out, \"%s{\\\"rule\\\":\\\"%s\\\",\\\"start\\\":%lu,\\\"end\\\":%lu,\\\"children\\\":[\", *first ? \"\" : \",\", label,",
+        "                                                      (unsigned long)start, (unsigned long)end);",
+        "  children_first = TRUE;",
+        "",
+        "  for (i = 0; i < logos_language_tooling_parsing_syntax_alternative_child_count_get(alternative); i++) {",
+        "    @P@_node_json_write(tree, logos_language_tooling_parsing_syntax_alternative_child_get(tree, alternative, i), out, &children_first);",
+        "  }",
+        "",
+        "  (void)nexus_strings_string_builder_append(out, \"]}\");",
+        "  *first = FALSE;",
+        "}",
+        "",
+        "/* Summary: a whole parsed tree as one JSON object (see @P@_node_json_write); the root of the tree is the entry rule. */",
+        "static NEXUS_MAYBE_UNUSED void @P@_tree_json_write(const LParserTree *tree, NexusStringBuilder *out) {",
+        "  boolean first;",
+        "",
+        "  first = TRUE;",
+        "  @P@_node_json_write(tree, logos_language_tooling_parsing_syntax_tree_root_get(tree), out, &first);",
+        "}",
+        "",
+        NULL};
+
+    l_tool_bind_emit(bind, lines);
+  }
+}
+
 static void l_tool_bind_typedef(LToolBind *bind, const LGenesisGrammarRule *rule) {
   char *rule_camel;
 
@@ -432,6 +642,7 @@ static void l_tool_bind_generate(LToolBind *bind, const LGenesisEngine *engine, 
   logos_tool_text_format(out, "  return %s_RULE_NONE;\n}\n\n", bind->upper);
 
   l_tool_bind_helpers(bind);
+  l_tool_bind_generic(bind);
 
   for (i = 0; i < logos_languages_genesis_grammar_rule_count_get(grammar); i++) {
     const LGenesisGrammarRule *rule;

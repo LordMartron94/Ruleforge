@@ -458,7 +458,7 @@ NexusError *_nexus_program_errors_forward(NexusError *forwarded, const char *fil
   return outer_error;
 }
 
-#if NEXUS_PLATFORM_LINUX
+#if NEXUS_PLATFORM_LINUX || NEXUS_PLATFORM_POSIX_API
 NexusError *_nexus_program_errors_from_errno_create(int32 errno_value, const char *format, const char *file, uint32 line, ...) {
   NexusErrorCode code;
   char           user_message[NEXUS_PROGRAM_ERROR_MESSAGE_MAX_SIZE];

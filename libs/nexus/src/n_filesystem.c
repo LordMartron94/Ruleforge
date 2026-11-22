@@ -1,16 +1,18 @@
 #include "../nexus.h"
 
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
 
 #  include <dirent.h>
 #  include <errno.h>
-#  include <pwd.h>
-#  include <regex.h>
 #  include <stdio.h>
 #  include <stdlib.h>
 #  include <sys/stat.h>
 #  include <sys/types.h>
 #  include <unistd.h>
+#  if NEXUS_PLATFORM_POSIX
+#    include <pwd.h>
+#    include <regex.h>
+#  endif
 
 /* memfd_create lives in <sys/mman.h> alongside mmap/munmap/mprotect, which nexus.h poisons
    (Insulation -- every mapping must go through nexus_memory_map/unmap, never libc directly) --
@@ -875,6 +877,7 @@ NexusError *nexus_filesystem_directory_collect_allocated(const NexusPath *direct
   return nexus_filesystem_directory_collect(directory_path, recursive, filter, filter_user_data, out_path_list);
 }
 
+#if NEXUS_PLATFORM_POSIX
 static boolean _nexus_filesystem_regex_filter_callback(const NexusPath *entry_path, NEXUS_MAYBE_UNUSED NexusPathType entry_type,
                                                        const void *user_data) {
   const regex_t *compiled_pattern = (const regex_t *)user_data;
@@ -908,13 +911,30 @@ NexusError *nexus_filesystem_directory_collect_matching_allocated(const NexusPat
   return error;
 }
 
+#else
+
+/* MinGW has no regex.h; matching by pattern is the one directory operation Windows does not offer yet. */
+NexusError *nexus_filesystem_directory_collect_matching_allocated(const NexusPath *directory_path, boolean recursive, const char *regex_pattern,
+                                                                  NexusPathList *out_path_list) {
+  NEXUS_PROGRAM_CONTEXT_PUSH("nexus_filesystem_directory_collect_matching_allocated");
+  (void)directory_path;
+  (void)recursive;
+  (void)regex_pattern;
+  (void)out_path_list;
+  NEXUS_PLATFORM_UNSUPPORTED_RAISE("filesystem_directory_collect_matching_allocated");
+}
+
+#endif
+
 /* ---------------------------------------------------------------------------- */
 /* SPECIAL DIRECTORIES                                                          */
 /* ---------------------------------------------------------------------------- */
 
 NexusError *nexus_filesystem_special_directory_get(NexusSpecialDirectory directory, NexusPath *out_path) {
   const char    *value;
+#if NEXUS_PLATFORM_POSIX
   struct passwd *password_entry;
+#endif
   NexusPath      home_path;
   NexusError    *result;
 
@@ -929,12 +949,21 @@ NexusError *nexus_filesystem_special_directory_get(NexusSpecialDirectory directo
       break;
     }
 
+#if NEXUS_PLATFORM_POSIX
     password_entry = getpwuid(getuid());
     if (password_entry != NULL && password_entry->pw_dir != NULL) {
       *out_path = nexus_filesystem_path_create(password_entry->pw_dir);
       result    = &nexus_program_errors_success;
       break;
     }
+#else
+    value = getenv("USERPROFILE");
+    if (value != NULL && value[0] != '\0') {
+      *out_path = nexus_filesystem_path_create(value);
+      result    = &nexus_program_errors_success;
+      break;
+    }
+#endif
 
     result = NEXUS_PROGRAM_ERROR_FROM_ERRNO("could not determine the home directory: no HOME and no passwd entry");
     break;

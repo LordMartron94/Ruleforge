@@ -3,7 +3,7 @@
 /* pthread functions return their error code directly rather than setting errno. Every
    fallible pthread call copies that code to errno immediately before creating a NexusError. */
 
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
 
 #  include <errno.h>
 #  include <pthread.h>

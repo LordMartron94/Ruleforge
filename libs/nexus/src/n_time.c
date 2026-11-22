@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
 
 static NexusTimePrecision _nexus_time_precision_from_nanoseconds(timestamp precision_nanoseconds) {
   if (precision_nanoseconds <= 1) {
@@ -214,7 +214,7 @@ NexusDuration nexus_time_duration_div(NexusDuration duration, int64 scalar) {
   return result;
 }
 
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
 
 NexusDateTime nexus_time_to_local_datetime(NexusTime utc_time) {
   NexusDateTime date_time;
@@ -247,7 +247,12 @@ NexusDateTime nexus_time_to_local_datetime(NexusTime utc_time) {
   }
 
   timer_seconds = (time_t)seconds;
+  #if defined(__MINGW32__)
+  /* The Windows C runtime's localtime_s takes the arguments the other way round and returns an error code. */
+  conversion_ok = (localtime_s(&tm_info, &timer_seconds) == 0);
+#else
   conversion_ok = (localtime_r(&timer_seconds, &tm_info) != NULL);
+#endif
 
   if (!conversion_ok) {
     NEXUS_PROGRAM_CONTEXT_POP();

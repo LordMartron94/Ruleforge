@@ -59,6 +59,14 @@ These typedefs have (in part) been sourced from Eskil Steenberg's Forge.
 #  if defined(NEXUS_PLATFORM_LINUX) || defined(NEXUS_PLATFORM_MACOS) || defined(NEXUS_PLATFORM_ANDROID)
 #    define NEXUS_PLATFORM_POSIX 1
 #  endif
+
+/*
+NEXUS_PLATFORM_POSIX_API: the platform offers the POSIX file, directory, time and thread functions Nexus's portable-enough code
+uses. True on POSIX systems and on MinGW-w64 (Windows), which implements them over the Win32 API.
+*/
+#  if defined(NEXUS_PLATFORM_POSIX) || defined(__MINGW32__)
+#    define NEXUS_PLATFORM_POSIX_API 1
+#  endif
 #endif /* PLATFORM DETECTION */
 
 #ifdef NEXUS_PLATFORM_POSIX
@@ -202,6 +210,27 @@ typedef uint8 byte;
 typedef unsigned char boolean;
 
 #include <limits.h>
+
+/*
+MinGW-w64 provides the POSIX file, directory and thread APIs Nexus uses (through winpthreads and its C runtime), but its headers
+include <string.h> and <io.h>, which declare the memcpy and memset this header poisons further down. They are therefore included
+here, before the poison, so that no later include of them in a Nexus-using file can fail.
+*/
+#if defined(__MINGW32__)
+#  include <direct.h>
+#  include <dirent.h>
+#  include <errno.h>
+#  include <io.h>
+#  include <pthread.h>
+#  include <semaphore.h>
+#  include <stdio.h>
+#  include <stdlib.h>
+#  include <string.h>
+#  include <sys/stat.h>
+#  include <sys/types.h>
+#  include <time.h>
+#  include <unistd.h>
+#endif
 
 /* ============================================================================ */
 /* ---------------------------------------------------------------------------- */
@@ -6748,8 +6777,26 @@ extern NEXUS_NODISCARD uint_large nexus_time_datetime_format(char *string, uint_
 /* ---------------------------------------------------------------------------- */
 /* ============================================================================ */
 
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
 #  include <sys/stat.h>
+#endif
+
+#if defined(__MINGW32__)
+/* The Windows C runtime has no lstat (it has no symbolic links Nexus follows), a one-argument mkdir, and no S_ISLNK/S_ISSOCK. */
+#  define lstat(path, info) stat(path, info)
+#  define mkdir(path, mode) _mkdir(path)
+#  ifndef S_ISLNK
+#    define S_ISLNK(mode) 0
+#  endif
+#  ifndef S_ISSOCK
+#    define S_ISSOCK(mode) 0
+#  endif
+#  ifndef S_ISFIFO
+#    define S_ISFIFO(mode) 0
+#  endif
+#  ifndef S_ISBLK
+#    define S_ISBLK(mode) 0
+#  endif
 #endif
 
 #include <stdio.h> /* rename(), remove() -- standard C89, not POSIX-specific. */
@@ -6791,7 +6838,7 @@ static NEXUS_MAYBE_UNUSED void nexus_filesystem_path_join(NexusPath *base, const
                              "Combined path length exceeds max path length: got=%llu,max=%llu", base->path_length + addition_length + 1,
                              NEXUS_FILESYSTEM_MAX_PATH_LENGTH);
 
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   base->buffer[base->path_length] = '/';
   nexus_memory_bytes_copy(addition, &base->buffer[base->path_length + 1], addition_length);
   base->path_length += (1 + addition_length);
@@ -6811,7 +6858,7 @@ static NEXUS_MAYBE_UNUSED NexusPath nexus_filesystem_path_parent(const NexusPath
   separator_idx = UINT64_MAX_VAL;
 
   for (i = path->path_length; i-- > 0;) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
     if (path->buffer[i] == '/') {
       separator_idx = i;
       break;
@@ -6853,7 +6900,7 @@ static NEXUS_MAYBE_UNUSED NexusPath nexus_filesystem_path_root(const NexusPath *
   first_separator_idx = UINT64_MAX_VAL;
 
   for (i = 0; i < path->path_length; i++) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
     if (path->buffer[i] == '/') {
       first_separator_idx = i;
       break;
@@ -6886,7 +6933,7 @@ static NEXUS_MAYBE_UNUSED NexusPath nexus_filesystem_path_root(const NexusPath *
 
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_exists(const NexusPath *path, boolean *path_exists,
                                                                                    boolean follow_symlinks) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   struct stat path_info;
   NexusError *error;
   int         stat_result;
@@ -6969,7 +7016,7 @@ Summary: internal -- classifies a raw st_mode bit pattern into a NexusPathType. 
 Params: mode_bits  path_stat.st_mode, widened to Nexus's own portable type -- cast back to mode_t internally, POSIX-only.
 */
 static NEXUS_MAYBE_UNUSED NexusPathType nexus_filesystem_path_type_from_mode_bits(uint32 mode_bits) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   mode_t mode = (mode_t)mode_bits;
 
   if (S_ISREG(mode)) {
@@ -7010,7 +7057,7 @@ See: nexus_filesystem_path_info_get, if more than just the type is needed -- one
   either way, so calling both back to back costs two.
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_type_get(const NexusPath *path, NexusPathType *type) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   struct stat path_stat;
   NexusError *error;
 
@@ -7034,7 +7081,7 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_type
 Summary: TRUE if path names a regular file. See nexus_filesystem_path_type_get's Description re: nonexistence.
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_is_file(const NexusPath *path, boolean *is_file) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   struct stat path_stat;
   NexusError *error;
 
@@ -7058,7 +7105,7 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_is_f
 Summary: TRUE if path names a directory. See nexus_filesystem_path_type_get's Description re: nonexistence.
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_is_directory(const NexusPath *path, boolean *is_directory) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   struct stat path_stat;
   NexusError *error;
 
@@ -7082,7 +7129,7 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_is_d
 Summary: TRUE if path itself is a symlink (never resolved -- lstat, not stat). See nexus_filesystem_path_type_get's Description re: nonexistence.
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_is_symlink(const NexusPath *path, boolean *is_symlink) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   struct stat path_stat;
   NexusError *error;
 
@@ -7112,7 +7159,7 @@ Description: a nonexistent path is a real NEXUS_PROGRAM_ERROR_FROM_ERRNO, same a
   that isn't real -- see NexusTimePrecision's NTP_UNKNOWN).
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_info_get(const NexusPath *path, NexusPathInfo *info) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   struct stat path_stat;
   NexusError *error;
 
@@ -7144,7 +7191,7 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_info
 Summary: TRUE if path is absolute (starts with '/' on POSIX).
 */
 static NEXUS_MAYBE_UNUSED boolean nexus_filesystem_path_is_absolute(const NexusPath *path) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   return path->path_length > 0 && path->buffer[0] == '/';
 #else
   NEXUS_PROGRAM_CONTEXT_PUSH("nexus_filesystem_path_is_absolute");
@@ -7187,7 +7234,7 @@ Description: fails with a real NEXUS_PROGRAM_ERROR_FROM_ERRNO (errno EXDEV) if o
   nexus_filesystem_directory_delete.
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_rename(const NexusPath *old_path, const NexusPath *new_path) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   NexusError *error;
 
   NEXUS_PROGRAM_CONTEXT_PUSH("nexus_filesystem_path_rename");
@@ -7210,7 +7257,7 @@ Summary: creates directory_path -- EEXIST is not an error (the directory existin
 Description: does not create missing parent directories -- see nexus_filesystem_directory_create_parents.
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_directory_create(const NexusPath *directory_path) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   NexusError *error;
 
   NEXUS_PROGRAM_CONTEXT_PUSH("nexus_filesystem_directory_create");
@@ -7232,7 +7279,7 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_directory
 Summary: deletes file_path if it exists -- nonexistence is not an error (the file being gone is the caller's actual goal).
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_file_delete(const NexusPath *file_path) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   NexusError *error;
 
   NEXUS_PROGRAM_CONTEXT_PUSH("nexus_filesystem_file_delete");
@@ -7626,7 +7673,7 @@ Errors: NEXUS_PROGRAM_PRECONDITION if buffer is too small for a variable that IS
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_environment_variable_get(const char *name, char *buffer, uint_large buffer_max_length,
                                                                                      boolean *out_found) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   const char             *value;
   NexusStringFormatResult copy_result;
 
@@ -7657,11 +7704,15 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_environment_variable
 Summary: sets (or replaces) environment variable name to value in the current process.
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_environment_variable_set(const char *name, const char *value) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   NexusError *error;
 
   NEXUS_PROGRAM_CONTEXT_PUSH("nexus_environment_variable_set");
+#  if defined(__MINGW32__)
+  if (_putenv_s(name, value) == 0) {
+#  else
   if (setenv(name, value, 1) == 0) {
+#  endif
     NEXUS_PROGRAM_CONTEXT_POP();
     return &nexus_program_errors_success;
   }
@@ -7679,11 +7730,15 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_environment_variable
 Summary: removes environment variable name from the current process, if it exists.
 */
 static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_environment_variable_unset(const char *name) {
-#if NEXUS_PLATFORM_POSIX
+#if NEXUS_PLATFORM_POSIX_API
   NexusError *error;
 
   NEXUS_PROGRAM_CONTEXT_PUSH("nexus_environment_variable_unset");
+#  if defined(__MINGW32__)
+  if (_putenv_s(name, "") == 0) {
+#  else
   if (unsetenv(name) == 0) {
+#  endif
     NEXUS_PROGRAM_CONTEXT_POP();
     return &nexus_program_errors_success;
   }

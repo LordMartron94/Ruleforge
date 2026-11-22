@@ -15,6 +15,10 @@ target_link_libraries(nexus
 if(UNIX)
     target_link_libraries(nexus PRIVATE m)
 endif()
+# n_entropy.c reads the system random source through BCryptGenRandom on Windows.
+if(WIN32)
+    target_link_libraries(nexus PUBLIC bcrypt)
+endif()
 
 # These public-header switches must match in Nexus and its consumers.
 target_compile_definitions(nexus PUBLIC
