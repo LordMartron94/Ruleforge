@@ -7175,9 +7175,28 @@ static NEXUS_MAYBE_UNUSED NEXUS_NODISCARD NexusError *nexus_filesystem_path_info
   info->owner_user_id     = (uint32)path_stat.st_uid;
   info->owner_group_id    = (uint32)path_stat.st_gid;
   info->hard_link_count   = (uint64)path_stat.st_nlink;
+#  if defined(__MINGW32__)
+  /* The Windows C runtime's struct stat has whole seconds only (st_atime, not st_atim). */
+  {
+    struct timespec access_timespec;
+    struct timespec modification_timespec;
+    struct timespec change_timespec;
+
+    access_timespec.tv_sec        = path_stat.st_atime;
+    access_timespec.tv_nsec       = 0;
+    modification_timespec.tv_sec  = path_stat.st_mtime;
+    modification_timespec.tv_nsec = 0;
+    change_timespec.tv_sec        = path_stat.st_ctime;
+    change_timespec.tv_nsec       = 0;
+    info->access_time             = nexus_time_from_timespec(access_timespec, NCO_REAL, NTP_SECOND);
+    info->modification_time       = nexus_time_from_timespec(modification_timespec, NCO_REAL, NTP_SECOND);
+    info->change_time             = nexus_time_from_timespec(change_timespec, NCO_REAL, NTP_SECOND);
+  }
+#  else
   info->access_time       = nexus_time_from_timespec(path_stat.st_atim, NCO_REAL, NTP_UNKNOWN);
   info->modification_time = nexus_time_from_timespec(path_stat.st_mtim, NCO_REAL, NTP_UNKNOWN);
   info->change_time       = nexus_time_from_timespec(path_stat.st_ctim, NCO_REAL, NTP_UNKNOWN);
+#  endif
 
   NEXUS_PROGRAM_CONTEXT_POP();
   return &nexus_program_errors_success;
