@@ -578,6 +578,22 @@ static uint64 r_compilation_hash_bytes(uint64 hash, const byte *bytes, uint_larg
   return hash;
 }
 
+/* Summary: hashes source text with CRLF read as LF, so a checkout with Windows line endings yields the same filter hash. */
+static uint64 r_compilation_hash_text(uint64 hash, const byte *bytes, uint_large size) {
+  uint_large i;
+
+  for (i = 0; i < size; i++) {
+    if (bytes[i] == (byte)'\r' && i + 1 < size && bytes[i + 1] == (byte)'\n') {
+      continue;
+    }
+
+    hash ^= (uint64)bytes[i];
+    hash *= 1099511628211ULL;
+  }
+
+  return hash;
+}
+
 uint64 ruleforge_compilation_hash_get(const RuleforgeCompilation *compilation) {
   uint64     hash;
   uint_large i;
@@ -591,7 +607,7 @@ uint64 ruleforge_compilation_hash_get(const RuleforgeCompilation *compilation) {
     const RuleforgeFile *file;
 
     file = ruleforge_source_get(compilation, ((const RuleforgeModule *)nexus_data_list_pointer_at(compilation->modules, i))->file);
-    hash = r_compilation_hash_bytes(hash, file->text, file->size);
+    hash = r_compilation_hash_text(hash, file->text, file->size);
   }
 
   for (i = 0; i < nexus_data_list_length_get(compilation->datasets); i++) {
