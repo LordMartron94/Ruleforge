@@ -145,7 +145,7 @@ static int nexus_filesystem_test_count(const NexusPath *directory, const char *p
 }
 
 static int nexus_filesystem_test_patterns(const NexusPath *root) {
-  static const char *names[NEXUS_FILESYSTEM_TEST_PATTERN_FILES] = {"abc", "abbbc", "ac", "xyz", "a1b22", "AbC", "foo.bar", "x", "aaaa"};
+  static const char *names[NEXUS_FILESYSTEM_TEST_PATTERN_FILES] = {"abc", "abbbc", "ac", "xyz", "a1b22", "QbC", "foo.bar", "x", "aaaa"};
   NexusPath          directory;
   NexusPath          file;
   NexusPathList      list;
@@ -166,13 +166,13 @@ static int nexus_filesystem_test_patterns(const NexusPath *root) {
     }
   }
 
-  /* Every pattern is anchored to the last path component, so the scratch folder's own name cannot take part. */
+  /* Every pattern is anchored to the last path component, so the scratch folder's own name cannot take part. The names differ by more than case: Windows file names are case-insensitive. */
   result = nexus_filesystem_test_count(&directory, "/ab+c$", 2, 210);                            /* abc abbbc */
   result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/a(b|x)?c$", 2, 211); /* abc ac */
   result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/[[:upper:]][a-z]C$", 1, 212);
   result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/a[0-9]{1,2}b[0-9]+$", 1, 213);
   result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/foo\\.bar$", 1, 214);
-  result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/[^a-z/][^/]*$", 1, 215); /* AbC */
+  result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/[^a-z/][^/]*$", 1, 215); /* QbC */
   result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/a{4}$", 1, 216);         /* aaaa */
   result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/a{3}$", 0, 216);         /* exactly three, from the slash */
   result = result != 0 ? result : nexus_filesystem_test_count(&directory, "/a{2,}$", 1, 217);
