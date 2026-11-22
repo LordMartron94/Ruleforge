@@ -1,7 +1,11 @@
+/* <io.h> pulls in memcpy/memset, which nexus.h poisons, so on Windows it comes first. */
+#ifdef _WIN32
+#  include <io.h>
+#endif
+
 #include "../nexus.h"
 
 #if NEXUS_PLATFORM_WINDOWS
-#  include <io.h>
 #elif NEXUS_PLATFORM_POSIX
 #  include <unistd.h>
 #endif
