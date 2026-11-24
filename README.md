@@ -53,6 +53,9 @@ in [the Studio guide](docs/studio.md). Script form editors remain a later TODO.
 
 ## Releases and updates
 
+For a fresh installation or a legacy filter project, follow [the migration guide](docs/migration.md). Release archives include
+both programs, the working currency example and the documentation needed on another machine.
+
 Pushing a tag `vX.Y.Z` to this repository builds and tests Linux and Windows, publishes `ruleforge-<version>-<os>-<arch>.zip` and
 `SHA256SUMS` as a GitHub release. `ruleforge-studio` checks the latest release, and `ruleforge-studio update --apply` (or the
 "Update" button) downloads the archive for its platform, verifies the checksum and replaces the programs. Stable releases also publish
