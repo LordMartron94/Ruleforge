@@ -62,6 +62,7 @@ int main(void) {
   B_COLOR_REQUIRE(blaze_color_srgb_delta_e_2000_get(0xFFFFFFFFU, 0xFFFFFFFFU) == 0.0);
   B_COLOR_REQUIRE(blaze_color_srgb_delta_e_2000_get(0x000000FFU, 0x000000FFU) == 0.0);
   blaze_color_srgb_lab_get(0xFF0000FFU, &first);
+  (void)nexus_stdio_stdout_write_formatted("sRGB red D65 Lab: %.9f %.9f %.9f\n", first.l, first.a, first.b);
   B_COLOR_REQUIRE(blaze_numerics_fabsf64(first.l - 53.2408) < 0.001);
   B_COLOR_REQUIRE(blaze_numerics_fabsf64(first.a - 80.0925) < 0.001);
   B_COLOR_REQUIRE(blaze_numerics_fabsf64(first.b - 67.2032) < 0.001);
