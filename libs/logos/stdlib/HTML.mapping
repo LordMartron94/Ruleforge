@@ -1,0 +1,23 @@
+extensions = html, htm
+scope = text.html
+
+$start_tag = entity.name.tag
+$end_tag = entity.name.tag
+$script_open = entity.name.tag
+$style_open = entity.name.tag
+$tag_end = punctuation.definition.tag.end
+$tag_self_end = punctuation.definition.tag.end
+$script_start_end = punctuation.definition.tag.end
+$style_start_end = punctuation.definition.tag.end
+$script_end = entity.name.tag
+$style_end = entity.name.tag
+$attribute_name = entity.other.attribute-name
+$equals = punctuation.separator.key-value
+$quoted_value = string.quoted
+$bare_value = string.unquoted
+$doctype = meta.preprocessor.doctype
+$comment_open = comment.block
+$comment_close = comment.block
+$comment_text = comment.block
+$comment_dash = comment.block
+context COMMENT = comment.block

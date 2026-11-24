@@ -1,0 +1,7 @@
+(* Arithmetic in ISO 14977: options, repetitions, groups, a count, an exception and a meta identifier of two words. *)
+expression = term, { ("+" | '-'), term } ;
+term = factor, { ("*" | "/"), factor } ;
+factor = number | "(", expression, ")" ;
+number = digit, { digit }, [ ".", 3 * digit ] ;
+digit = digit character - "9" | "9" ;
+digit character = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;

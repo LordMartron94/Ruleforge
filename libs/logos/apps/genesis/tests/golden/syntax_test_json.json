@@ -1,0 +1,15 @@
+// SYNTAX TEST "Packages/User/JSON.sublime-syntax"
+   true
+// ^^^^ constant.language.json
+   false
+// ^^^^^ constant.language.json
+   null
+// ^^^^ constant.language.json
+   {}
+// ^ punctuation.section.mapping.begin.json
+//  ^ punctuation.section.mapping.end.json
+// ^^ meta.object.json
+   []
+// ^ punctuation.section.sequence.begin.json
+//  ^ punctuation.section.sequence.end.json
+// ^^ meta.array.json

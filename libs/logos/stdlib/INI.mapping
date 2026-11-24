@@ -1,0 +1,8 @@
+extensions = ini
+scope = source.ini
+
+$comment = comment.line.number-sign
+$section = entity.name.section
+$key = variable.other.member
+$equals = keyword.operator.assignment
+$value = string.unquoted

@@ -1,0 +1,42 @@
+version 1.0.0;
+module filters.themes;
+
+export themeSchema BaseTiering {
+    godTier;
+    goodTier;
+    poopTier;
+}
+
+colorSet Palette {
+    GOLD = #FFD700;
+    DARK = hsl(h220 s20 l15 a240);
+    LOW  = hsv(h15 s35 v45 a220);
+}
+
+export theme DefaultTheme implements BaseTiering {
+    godTier {
+        onShow {
+            Background Palette.GOLD;
+            Border r255 g240 b120;
+            FontSize 45;
+            Beam Red;
+            MinimapIcon 0, Red, Star;
+            Sound 6, 300;
+        }
+        onHide { Background Palette.DARK; }
+    }
+    goodTier {
+        onShow { Background #402080; Text Palette.GOLD; FontSize 36; }
+        onHide { Background Palette.DARK; }
+    }
+    poopTier {
+        onShow { Background Palette.LOW; FontSize 18; }
+        onHide { Background Palette.DARK; }
+    }
+}
+
+export theme AlternativeTheme extends DefaultTheme {
+    override godTier {
+        onShow { Background #402080; Border Palette.GOLD; }
+    }
+}

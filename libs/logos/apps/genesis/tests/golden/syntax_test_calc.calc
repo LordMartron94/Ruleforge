@@ -1,0 +1,23 @@
+// SYNTAX TEST "Packages/User/Calculator.sublime-syntax"
+   let
+// ^^^ keyword.declaration.calc
+   =
+// ^ keyword.operator.assignment.calc
+   -
+// ^ keyword.operator.arithmetic.calc
+   +
+// ^ keyword.operator.arithmetic.calc
+   *
+// ^ keyword.operator.arithmetic.calc
+   ^
+// ^ keyword.operator.arithmetic.calc
+   !
+// ^ keyword.operator.arithmetic.calc
+   ()
+// ^ punctuation.section.group.begin.calc
+//  ^ punctuation.section.group.end.calc
+// ^^ meta.group.calc
+   []
+// ^ punctuation.section.sequence.begin.calc
+//  ^ punctuation.section.sequence.end.calc
+// ^^ meta.sequence.calc

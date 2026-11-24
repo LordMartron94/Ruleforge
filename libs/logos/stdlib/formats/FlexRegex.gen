@@ -1,0 +1,46 @@
+Language: FlexRegex
+Version: 1.0.0
+
+// The patterns of flex (and lex): the regular expressions of a scanner's definitions and rules. A pattern is read from the text the
+// scanner file gives it, so it holds no unquoted white space; the converter of flex files finds where a pattern ends.
+//
+// Strings in double quotes, character classes (with ranges, negation, escapes and [:alpha:]-style classes), names in braces that stand for
+// a definition, repetitions {n,m}, grouping, alternation, the anchors ^ and $ and trailing context r/s are all read. What a lexer
+// generator of the target format cannot do is left to the converter, which says so.
+
+PARSER {
+	entry = #pattern
+}
+
+CONTEXT <ROOT> {
+	$string = '"' ('\\' . || !('\u{0}' || '"' || '\\'))* '"'
+	// [a-z\]], [^"], []abc], [[:alpha:]_]
+	$class = '[' '^'? ']'? ('\\' . || '[:' ('a'..'z')+ ':]' || !('\u{0}' || '\\' || ']'))* ']'
+	// {name} and {2,5}
+	$name = '{' ('a'..'z' || 'A'..'Z' || '_') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '-')* '}'
+	$repeat = '{' '0'..'9'+ (',' '0'..'9'*)? '}'
+	// \n, \x41, \101, \.
+	$escape = '\\' (('x' ('0'..'9' || 'a'..'f' || 'A'..'F') ('0'..'9' || 'a'..'f' || 'A'..'F')?) || ('0'..'7' ('0'..'7')? ('0'..'7')?) || .)
+	// (?i: (?-i: (?s: (?x:
+	$lparen_options = '(?' ('a'..'z' || '-')* ':'
+	$lparen = '('
+	$rparen = ')'
+	$pipe = '|'
+	$star = '*'
+	$plus = '+'
+	$question = '?'
+	$dot = '.'
+	$caret = '^'
+	$dollar = '$'
+	$slash = '/'
+	// Any other character stands for itself.
+	$char = '!' || '#' || '%'..'\'' || ','..'-' || '0'..'>' || '@'..'Z' || ']' || '_'..'z' || '}'..'~' || '\u{80}'..'\u{10FFFF}'
+}
+
+#pattern = #alternation ($slash #alternation)?
+#alternation = #concatenation ($pipe #concatenation)*
+#concatenation = #repetition*
+#repetition = #atom #quantifier*
+#quantifier = $star || $plus || $question || $repeat
+#atom = $string || $class || $dot || $char || $escape || $name || $caret || $dollar || #group
+#group = ($lparen_options || $lparen) #alternation $rparen

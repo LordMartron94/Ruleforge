@@ -1,0 +1,38 @@
+version 1.0.0;
+module std.core;
+
+/*
+The core of the standard library: what every other module needs and no script can write for itself.
+
+The standard library is Ruleforge. The modules std.math, std.collections, std.stats, std.economy, std.rules and std.color are ordinary
+Ruleforge files embedded in the engine, so they are the examples of how functions are written in the language. The few things a function
+cannot be written from (taking apart a number, building a list or a record, reporting an error) are declared here and in the other modules
+as `intrinsic func`: a signature and its documentation, with the implementation in the engine. Only the embedded library may declare one.
+*/
+
+/*
+Summary: stops the compilation with an error.
+Description: the error is reported at the place in your script where the call that led here is written, however many library functions
+  sit in between, so the message reads as an error of the call, not of a file you did not write.
+Params: message  what is wrong, in a sentence
+Errors: always RF0599 carrying the message
+Example: if $count < 1 { std.core.Fail("count must be at least 1"); }
+*/
+export intrinsic func Fail(message string);
+
+/*
+Summary: reports a warning and goes on.
+Description: reported at the place in your script where the call that led here is written. A warning that is raised again by the same
+  place with the same message is reported once.
+Params: message  what is suspicious, in a sentence
+Errors: none; RF0598 is a warning
+*/
+export intrinsic func Warn(message string);
+
+/*
+Summary: the name of the kind of a value, for code that has to treat kinds differently.
+Params: value  any value, including none
+Returns: one of "none", "int", "float", "bool", "string", "color", "style", "list", "record", "dataset", "ruleset", "theme", "module"
+Example: if std.core.TypeOf($previous) == "int" { ... }
+*/
+export intrinsic func TypeOf(value any) -> string;

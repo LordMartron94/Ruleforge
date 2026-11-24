@@ -1,0 +1,9 @@
+version 1.0.0;
+module fixture;
+
+schema Item {
+    name string;
+    price float?;
+}
+
+export dataset Items: Item from "items";

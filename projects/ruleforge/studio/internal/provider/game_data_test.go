@@ -1,0 +1,72 @@
+package provider
+
+import (
+	"context"
+	"encoding/json"
+	"github.com/LordMartron94/Ruleforge/studio/internal/config"
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestPoBPathSnapshotsAndFailedRefresh(t *testing.T) {
+	dir := t.TempDir()
+	pob := filepath.Join(dir, "pob")
+	os.MkdirAll(filepath.Join(pob, "Bases"), 0o755)
+	os.MkdirAll(filepath.Join(pob, "Uniques"), 0o755)
+	files := map[string]string{
+		"Bases/wand.lua":   `return function(itemBases) itemBases["Driftwood Wand"]={type="Wand",socketLimit=3,req={level=1},tags={wand=true}} end`,
+		"Gems.lua":         `return {Fireball={name="Fireball",tags={intelligence=true}}}`,
+		"Uniques/wand.lua": "return {[[Lifesprig\nDriftwood Wand\nVariant: test]]}",
+	}
+	for path, text := range files {
+		if err := os.WriteFile(filepath.Join(pob, path), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	levels := filepath.Join(dir, "levels.json")
+	os.WriteFile(levels, []byte(`{"Driftwood Wand":3}`), 0o644)
+	project := &config.Project{Dir: dir, GameData: &config.GameData{PoBPath: "pob", DropLevelsPath: "levels.json"}}
+	if err := PrepareGameData(context.Background(), project); err != nil {
+		t.Fatal(err)
+	}
+	paths := GamePaths(project)
+	first, err := os.ReadFile(paths["game.bases"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rows []GameRow
+	if err := json.Unmarshal(first, &rows); err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 || rows[0].Class != "Wands" || rows[0].DropLevel == nil || *rows[0].DropLevel != 3 {
+		t.Fatalf("normalized bases: %+v", rows)
+	}
+	for _, kind := range []string{"game.gems", "game.uniques"} {
+		data, err := os.ReadFile(paths[kind])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if json.Unmarshal(data, &rows) != nil || len(rows) != 1 {
+			t.Fatalf("bad %s: %s", kind, data)
+		}
+	}
+	os.WriteFile(filepath.Join(pob, "Gems.lua"), []byte(`return false`), 0o644)
+	if err := PrepareGameData(context.Background(), project); err == nil {
+		t.Fatal("invalid refresh succeeded")
+	}
+	if GamePaths(project)["game.bases"] != paths["game.bases"] {
+		t.Fatal("failed refresh replaced generation")
+	}
+	after, _ := os.ReadFile(paths["game.bases"])
+	if string(first) != string(after) {
+		t.Fatal("failed refresh destroyed last valid snapshot")
+	}
+}
+func TestLuaProviderCannotUseFileOrProcessAPIs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.lua")
+	os.WriteFile(path, []byte(`return os.execute("false")`), 0o644)
+	if err := readPoBTable(context.Background(), path, false, nil); err == nil {
+		t.Fatal("Lua process API was available")
+	}
+}

@@ -1,0 +1,143 @@
+name: release
+
+# Pushing a tag vX.Y.Z builds the engine and the studio for Linux and Windows, packs one zip per platform
+# (ruleforge-<version>-<os>-<arch>.zip), publishes them with SHA256SUMS, and thereby makes the version the studio's updater offers.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build zip
+      - name: Version from the tag
+        run: echo "${GITHUB_REF_NAME#v}" > projects/ruleforge/VERSION
+      - name: Build and test the engine
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target ruleforge_cli blaze_color_tests
+          ctest --test-dir build -R "ruleforge|blaze_color_tests" --output-on-failure
+      - name: Build the studio
+        working-directory: projects/ruleforge/studio
+        run: |
+          go test ./...
+          go build -trimpath -ldflags "-s -w -X main.version=${GITHUB_REF_NAME#v}" -o ../../../build/ruleforge-studio ./cmd/ruleforge-studio
+      - name: Package
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          mkdir -p pack && cp build/bin/ruleforge build/ruleforge-studio projects/ruleforge/README.md pack/
+          git archive HEAD projects/ruleforge/examples projects/ruleforge/docs | tar -x -C pack --strip-components=2
+          (cd pack && zip -r "../ruleforge-$v-linux-amd64.zip" .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: ruleforge-*.zip
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            zip
+      - name: Version from the tag
+        run: echo "${GITHUB_REF_NAME#v}" > projects/ruleforge/VERSION
+      - name: Build and test the engine
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target ruleforge_cli blaze_color_tests
+          ctest --test-dir build -R "ruleforge|blaze_color_tests" --output-on-failure
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Build the studio
+        shell: pwsh
+        working-directory: projects/ruleforge/studio
+        run: |
+          go test ./...
+          $v = "$env:GITHUB_REF_NAME".TrimStart('v')
+          go build -trimpath -ldflags "-s -w -X main.version=$v" -o ../../../build/ruleforge-studio.exe ./cmd/ruleforge-studio
+      - name: Package
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          mkdir -p pack && cp build/bin/ruleforge.exe build/ruleforge-studio.exe projects/ruleforge/README.md pack/
+          git archive HEAD projects/ruleforge/examples projects/ruleforge/docs | tar -x -C pack --strip-components=2
+          (cd pack && zip -r "../ruleforge-$v-windows-amd64.zip" .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: ruleforge-*.zip
+
+  publish:
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum ruleforge-*.zip > SHA256SUMS
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A tag with a suffix (v0.2.0-rc1) is a pre-release: GitHub's "latest" release, which the updater reads, skips it.
+          flag=""
+          case "$GITHUB_REF_NAME" in *-*) flag="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "Ruleforge ${GITHUB_REF_NAME#v}" --generate-notes $flag
+
+  economy-image:
+    needs: [publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image tags
+        id: image
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ruleforge-economy"
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$image:$version" >> "$GITHUB_OUTPUT"
+          case "$version" in *-*) ;; *) echo "$image:latest" >> "$GITHUB_OUTPUT" ;; esac
+          echo "EOF" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: projects/ruleforge/studio
+          file: projects/ruleforge/deployment/economy/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.tags }}

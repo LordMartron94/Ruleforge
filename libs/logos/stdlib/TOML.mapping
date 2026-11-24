@@ -1,0 +1,25 @@
+extensions = toml
+scope = source.toml
+
+$comment = comment.line.number-sign
+$bare_key = variable.other.member
+$basic_string = string.quoted.double
+$literal_string = string.quoted.single
+$multiline_basic_string = string.quoted.double
+$multiline_literal_string = string.quoted.single
+$integer = constant.numeric.integer
+$float = constant.numeric.float
+$boolean = constant.language
+$offset_datetime = constant.other.datetime
+$local_datetime = constant.other.datetime
+$local_date = constant.other.datetime
+$local_time = constant.other.datetime
+$equals = keyword.operator.assignment
+$dot = punctuation.separator.dot
+$comma = punctuation.separator
+$bracket_open = punctuation.section.brackets.begin
+$bracket_close = punctuation.section.brackets.end
+$double_bracket_open = punctuation.section.brackets.begin
+$double_bracket_close = punctuation.section.brackets.end
+$brace_open = punctuation.section.braces.begin
+$brace_close = punctuation.section.braces.end

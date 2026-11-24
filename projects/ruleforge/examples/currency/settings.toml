@@ -1,0 +1,12 @@
+[filter]
+name = "Currency demo"
+
+[context]
+strictness = 3
+
+[context.character]
+level = 80
+
+[datasets."economy.currency"]
+provider = "csv"
+path = "data/currency.csv"

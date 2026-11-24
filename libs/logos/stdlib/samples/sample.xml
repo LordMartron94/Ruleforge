@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE note SYSTEM "Note.dtd">
+<!-- a note -->
+<note id="1" lang='en'>
+  <to>Tove</to>
+  <body>Don't forget &amp; remember<![CDATA[ <raw> ]]></body>
+  <empty/>
+</note>

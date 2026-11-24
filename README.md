@@ -1,585 +1,68 @@
 # Ruleforge
 
-_Disclaimer: This is written by Gemini 2.5 Pro on 23 June 2025 with the entire codebase in mind (to save time). **However, I have fact-checked the explanation to ensure accuracy.**_
+A programmable loot-filter engine for Path of Exile 1. You write `.rf` scripts (modules, functions, templates, datasets, themes);
+the engine runs them at compile time and emits item filters, plus a structured model that explains every generated block: which
+declaration produced it, through which includes and calls, from which dataset row.
 
-Ruleforge is a sophisticated, highly configurable compiler designed to generate item filters for the game Path of Exile.
-It transforms a modular, easy-to-read syntax (.rf files) into a Path of Exile item filter.
-By integrating directly with Path of Building data and real-time economic information from poe.ninja,
-Ruleforge allows for the creation of powerful,
-data-driven, and context-aware filters that go far beyond what is possible with simple text-based filter editors.
+- **Engine** (`ruleforge`, C): parses, checks, evaluates, lowers and simulates. One authority on what a script means.
+- **Studio** (`ruleforge-studio`, Go): a web editor and inspector, a scheduler that refreshes data and republishes filters,
+  and the self-updater. It never interprets a script itself; it calls the engine.
+- Both run on **Linux and Windows**, built from this repository by CI.
 
-## Table of Contents
-- [Table of Contents](#table-of-contents)
-- [Core Concepts](#core-concepts)
-- [Installation & Setup](#installation-and-setup)
-  - [Configuration](#1-configuration-configtoml)
-  - [Styles](#2-styles)
-  - [Running](#3-running-ruleforge)
-  - [Ruleforge Studio](#4-ruleforge-studio)
-- [Ruleforge Syntax](#ruleforge-syntax-rf-files)
-  - [File Structure](#file-structure)
-  - [Comments](#comments)
-  - [Metadata Block](#metadata-block)
-  - [Variables](#var-declarations)
-  - [Style Overrides](#style-overrides)
-  - [Section Block](#section-block)
-  - [Rule Syntax](#rule-syntax)
-  - [Macros](#macros)
+```
+design:     DESIGN.md             language and architecture
+semantics:  docs/language.md      how the open points of the design were decided
+formats:    docs/ast.md           the syntax-tree JSON the parser emits
+            docs/model.md         the compile model (blocks, conditions, styles, traces) and the simulation result
+studio:     docs/studio.md        the web editor, inspector, scheduler, updates
+```
 
-## Core Concepts
-Ruleforge is built around a few key ideas:
-
-- **Modular Syntax**: Instead of a single, monolithic file, you define your filter logic in modular .rf script files using a clear and expressive syntax. 
-- **Centralized Styling**: All visual aspects of the filter (colors, sizes, sounds, effects) are defined in TOML stylesheets, with colours filled in from a per-style palette. This separates logic from presentation, and one script compiles into one filter per style. 
-- **Data-Driven Macros**: Ruleforge includes powerful macros that can automatically generate complex sets of rules based on game data. For example, it can create a full equipment progression for leveling, or automatically tier unique items and skill gems based on their market value. 
-- **Economic Awareness**: By pulling data from poe.ninja, Ruleforge can make decisions based on an item's real economic value, ensuring your filter highlights what's truly valuable in the current league. 
-- **Configuration over Hardcoding**: Key paths, league settings, and economic calculations are all controlled through a central config.toml file, making the tool adaptable to your setup and preferences.
-
-## Installation and Setup
-
-### Quick start (Linux and Windows)
-
-Requires Go 1.23 or newer, internet access for the first run (Go dependencies,
-official Path of Building data, and poe.ninja economy data), and write access to
-this project directory. No local Path of Building installation or Git executable
-is required. From the extracted ZIP directory on Linux:
+## Try it
 
 ```sh
-./run.sh
+cd examples/currency
+ruleforge compile entry.rf --settings settings.toml -o currency.filter --model model.json
+ruleforge simulate entry.rf --settings settings.toml --items items.json
+ruleforge-studio serve --project .          # open http://127.0.0.1:8750
 ```
 
-Or build and run directly from that directory on Linux or Windows:
+`ruleforge ast entry.rf` writes the syntax trees as JSON: any tool in any language can read them without parsing `.rf` again.
+`ruleforge tokens` and `ruleforge manifest` feed editors (highlighting; completion from what the engine really accepts).
+
+## Build
+
+Needs a C compiler (GCC or Clang; on Windows MinGW-w64 via MSYS2), CMake 3.20+, Ninja, and Go 1.22+ for the studio.
 
 ```sh
-go build -o ruleforge-app ./ruleforge/components/ruleforge/entry
-./ruleforge-app -config config.toml
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target ruleforge_cli
+ctest --test-dir build -R ruleforge
+(cd projects/ruleforge/studio && go test ./... && go build ./cmd/ruleforge-studio)
 ```
 
-On Windows, the built executable is `ruleforge-app.exe`. Launch it with
-`ruleforge-app.exe -config config.toml` (PowerShell: `./ruleforge-app.exe -config config.toml`).
-Every script in `RuleforgeInputDir` is compiled once per enabled style it
-asks for (all of them unless the script sets [`THEMES`](#metadata-block)), into
-`<script NAME> (<style Suffix>).filter` in each output directory.
-`run.sh` builds from the project root and forwards any command-line flags.
+The syntax bindings are not written by hand: `genesis bind` generates typed views of every parse tree from the grammars
+(`spec/ruleforge.gen`, and the CSV, JSON and TOML grammars of the Logos library) while the build runs.
+JSON, CSV, TOML and copied PoE item text are therefore read through Genesis grammars and generated bindings.
 
-### 1. Configuration (config.toml)
+## Studio additions
 
-The included `config.toml` uses relative paths. All configured filesystem paths
-(including each entry in `FilterOutputDirs` and the optional
-`PathOfBuildingDataPath`) are resolved **relative to the location of the config
-file**, not the current working directory. Absolute paths also work. Unknown
-settings are rejected with an error that names them, so a typo never silently
-falls back to a default.
+Theme and palette forms edit current source with conflict checks. The Simulator parses English copied item text and generates
+repeatable catalogue samples. Generic colour calculations live in Blaze and are exposed through `std.color`. Managed PoB data,
+local path overrides, progression/class-use modules, persistent rotated logs and the compatible economy history service are described
+in [the Studio guide](docs/studio.md). Script form editors remain a later TODO.
 
-- `FilterOutputDirs`: Where the compiled `.filter` files are written.
-- `RuleforgeInputDir`: Directory containing `.rf` input scripts.
-- `StylesDir`: Directory of style files; see [Styles](#2-styles).
-- `StudioFile`: Where the [Ruleforge Studio](#4-ruleforge-studio) page is
-  written after compiling. Leave it out to skip the studio.
-- `PathOfBuildingDataPath`: Optional managed cache directory for the official
-  Path of Building Lua sources. Defaults to `.ruleforge-cache/pob` beside the
-  config file. **Do not point it at an existing PoB installation or personal
-  data directory**: Ruleforge only manages a directory it created itself.
-- `LeagueWeights`, `EconomyWeights`, `EconomyNormalizationStrategy`, and
-  `ChaseVSGeneralPotentialFactor`: Settings for economy-based compilation.
-  League names are resolved using poe.ninja's active PoE 1 economy leagues API;
-  each configured league must be available there. If a league is unavailable,
-  the error lists the currently advertised names and IDs. Do not change the
-  weights to another league silently: update `LeagueWeights` deliberately.
-- `[CurrencyTiering]`: `Profiles` is the currency profile CSV that
-  `currency_tiering` reads (default `configuration/currency/currency_profiles.csv`)
-  and `CraftingWeight` the share of each currency's score that comes from its
-  crafting rating rather than the economy (default 0.4).
+## Releases and updates
 
-Ruleforge uses poe.ninja's documented PoE 1 economy endpoints
-(`/poe1/api/economy/leagues`, `/poe1/api/economy/stash/current/item/overview`,
-and `/poe1/api/economy/exchange/item/overview`). Old economy caches created
-with the retired `/api/data/itemoverview` endpoint are invalidated automatically.
-Economy snapshots refresh after `EconomyHistoryRefreshHours` (24 hours by
-default; one hour in the supplied configuration); source Lua item caches are independent.
-An HTTP/API error aborts economy loading with the failed league, category, and
-status instead of repeatedly treating every failed request as an empty dataset.
+For a fresh installation or a legacy filter project, follow [the migration guide](docs/migration.md). Release archives include
+both programs, the working currency example and the documentation needed on another machine.
 
-Item drop levels come from PoE Wiki in paced batches, with bounded retries for
-throttling and temporary server failures. Failed requests abort item loading
-instead of saving an incomplete cache; older caches affected by the previous
-lookup failures are rebuilt automatically. PoB's required level is different
-from drop level, so it is only a progression estimate for bases the wiki does
-not list (level 1 when the requirement is omitted). Such bases are reported
-together during enrichment, rather than repeatedly during sorting.
+Pushing a tag `vX.Y.Z` to this repository builds and tests Linux and Windows, publishes `ruleforge-<version>-<os>-<arch>.zip` and
+`SHA256SUMS` as a GitHub release. `ruleforge-studio` checks the latest release, and `ruleforge-studio update --apply` (or the
+"Update" button) downloads the archive for its platform, verifies the checksum and replaces the programs. Stable releases also publish
+the compatible `ruleforge-economy:latest` Docker image; [existing-container migration](deployment/economy/README.md) preserves the history volume.
 
-On the first run Ruleforge downloads the specific Lua files it uses from
-`PathOfBuildingCommunity/PathOfBuilding` on GitHub, pinned to one commit.
-Every run checks for an update, downloading a new full snapshot only
-when upstream changed. Existing snapshots remain available offline if an
-ordinary refresh check/download fails. `-refresh-pob` forces an update check
-and reports an error if that check or a needed download fails; it does not
-redownload an unchanged revision. `-update-cache-only` downloads/updates data
-without compiling filters. To reset a managed snapshot, delete its cache folder
-while Ruleforge is not running.
+## About this repository
 
-The Sublime **Run PoB** build variant launches the separate application in
-`tools/pob`. Before launching, it updates that Git checkout from upstream `dev`
-with a fast-forward-only pull, including its runtime files. A failed pull is
-reported and the existing copy still launches. Local edits are never discarded;
-Git refuses an update that conflicts with them. This checkout uses PoB's developer
-mode, which disables its built-in updater. Its builds and settings stay in
-`tools/pob/src`, separate from Ruleforge's managed release-data cache.
-
-### 2. Styles
-
-Every `*.toml` file in `StylesDir` is one style (also called a theme). Every
-enabled style produces its own filter for every script, unless the script
-narrows that down with `THEMES` in its `METADATA`. A style file names a stylesheet, the
-base type automation CSV that goes with it, and the palette that colours it:
-
-```toml
-Name = "Aryzel I: The Stranded Prince"   # shown in logs and the studio
-Suffix = "Aryzel I - The Stranded Prince" # the filter becomes "<script> (<Suffix>).filter"
-Stylesheet = "../stylesheets/aryzel.toml"
-BaseTypes = "../basetypes/basetype_automation_config_new_theme.csv"
-# Enabled = false                         # keeps the style without compiling it
-
-[Palette]
-t2 = "#FFF39B"
-bg-equipment = "#10234F"
-bg-special = "#0A0A11E6"                 # "#RRGGBBAA" for transparency
-```
-
-Paths in a style file are relative to the style file. Several styles can share
-one stylesheet and differ only in their palette; that is how the four Aryzel
-phases work.
-
-The bundled themes are `aryzel-*` (the Martron Arada arc), `new-theme`, the
-disabled `original`, and `general`: a theme for any character with no story
-attached. Select it with `THEMES => "general"` in a script's `METADATA`. Its
-palette keeps every tier colour and border at the studio's contrast targets and
-every [Studio.Distinct] group apart.
-
-A **stylesheet** is a TOML file where each table is a style, named by its path:
-`[Final.Orbs.T1]` is the style `Final/Orbs/T1`. A colour is either a palette
-name (`TextColor = "t2"`) or a literal (`"#FFD700"`, `"#FFD700CC"`). Styles
-can build on each other with `Combination`: later entries win conflicts, and
-the style's own properties win over all of them.
-
-```toml
-[Templates.Tiers.High.T2]
-FontSize = 40
-TextColor = "t2"
-Beam = { Color = "Orange", Temp = false }
-Minimap = { Color = "Orange", Size = 1 }
-
-[Templates.Groups.Orbs]
-BackgroundColor = "bg-orbs"
-Minimap = { Shape = "Circle" }
-
-[Final.Orbs.T3]
-Combination = ["Templates/Groups/Orbs", "Templates/Tiers/High/T2"]
-```
-
-A stylesheet can also list palette colours that must stay perceptually apart,
-which the studio checks for every style that uses the stylesheet:
-
-```toml
-[Studio.Distinct.CampaignFields]
-Min = 10                                   # minimum CIEDE2000 distance
-Vars = ["bg-equipment", "bg-orbs", "bg-flasks"]
-```
-
-### 3. Running Ruleforge
-
-See the Quick start above. Pass `-config /path/to/config.toml` to load another
-configuration from any working directory. Optional flags: `-verbose`,
-`-refresh-pob`, `-update-cache-only`, and `-refresh-economy`, which records
-fresh poe.ninja prices even when the last snapshot is younger than
-`EconomyHistoryRefreshHours`.
-
-### 4. Ruleforge Studio
-
-After compiling, Ruleforge writes a single HTML page to `StudioFile`. Open it
-in a browser; it needs no server. To also edit themes, stylesheets and scripts
-in it, run the Studio server instead (see [Editing in the Studio](#editing-in-the-studio)).
-
-- **Loot simulator.** Rolls random drops for an area level (equipment with
-  sockets and links, flasks, gems, currency, divination cards, uniques, league
-  items and gold), then runs them through the compiled filter the way the game
-  does. Pick an item to see every rule it matches: the top one is active, the
-  rest are shadowed. Each rule shows its line in the filter, its section, the
-  script rule or macro that produced it, its style and its conditions.
-  "Showcase" mode draws every tier equally, so rare styles are easy to see.
-- **Pasted item inspector.** Copy an item in Path of Exile with Ctrl+C and
-  paste its text into the Studio. The page parses the plain text locally,
-  evaluates it against the selected compiled filter using the current area
-  slider, and keeps a separate inspector showing active and shadowed rules
-  plus the applied text, background, border, font, beam, minimap and sound
-  styling. Base defences are recovered from the copied values by undoing local
-  defence mods and quality, so `BaseArmour` and `BaseDefencePercentile`
-  (max-roll) evaluate as they do in the game.
-- **Palette.** A searchable style browser. Final styles are grouped by what
-  the item is (uniques, equipment, crafting bases, links and sockets, gems,
-  currency, maps and atlas, league mechanics, ...) in collapsible sections,
-  with a category sidebar that counts styles and issues. Search matches style
-  paths, palette colour names, sounds and icon shapes; "Only styles with
-  issues" narrows the list to failing contrast checks. The checks cover every
-  final style's text and border contrast (APCA, with targets by font size) and
-  the stylesheet's `[Studio.Distinct]` groups (CIEDE2000).
-- **Palette colours.** Grouped as the style file's `[Palette]` comments group
-  them. Each colour shows how many styles use it; the count jumps the browser to
-  those styles. Edit a colour to recolour both views live, then copy the
-  changes as TOML lines for the style file.
-- **Source.** Every style in the browser and every rule in the inspectors has
-  a Source view: the tree of styles it combines, what each of them sets, and
-  which style supplied each channel of the result. Max-roll precedence copies
-  show both the rule they restyle and the max-roll style.
-
-Item sizes are approximated per item class, and conditions the studio does not
-understand are flagged instead of guessed.
-
-#### Editing in the Studio
-
-```bash
-./run.sh -studio -open          # or the Sublime build variant "Studio (edit mode)"
-```
-
-`-studio` compiles as usual, then serves the Studio at `http://127.0.0.1:7878/`
-(`-studio-addr` changes it; keep it on localhost) until you stop it. `-open`
-opens it in your browser. Three more views appear:
-
-- **Themes.** Every style file in `StylesDir`, enabled or not: name, suffix,
-  whether it compiles, its stylesheet and base type CSV, and its palette in the
-  groups its comments make. Rename, add, remove, recolour and regroup colours,
-  with a live preview of the theme's labels. The editor lists colours the
-  stylesheet needs but the palette lacks, and can add them. "New theme…" starts
-  from a copy of a theme or from a blank palette for a stylesheet. The Palette
-  view's colour edits can be saved to the theme file too.
-- **Stylesheets.** Every style of a stylesheet, templates included, in a
-  searchable tree. Edit what a style combines and the properties it sets itself
-  (colours, font size, minimap icon, beam, sound, volume, comment); each
-  property shows what it would inherit instead, and a live label, the resolved
-  channels and the text contrast update as you type. Styles can be added,
-  duplicated and deleted, and the `[Studio.Distinct]` groups edited.
-- **Scripts.** A form for every construct of the scripting language: the
-  script's METADATA (name, version, strictness, build), IMPORTs, `var`
-  declarations with `+` combinations and `!override`s, and SECTIONs with their
-  METADATA, SECTION_CONDITIONS and RULES. Rules offer each condition with a
-  fitting value control (base type and item class lists, rarities, sockets,
-  numbers), a style picker with the stylesheet's styles and the script's
-  variables, `$Show`/`$Hide` and the optional `# STRICTNESS`. Macros offer their
-  parameters, with ordered tiers for the economy tiering macros. Comments stay
-  where they are and can be edited; a block whose layout does not fit the form
-  (such as several rules on one line) is edited as text.
-
-Every editor has **Check** (compile with the change, write nothing), **View
-changes** (the file lines a save changes) and **Save**. A save only writes a
-file that compiles: scripts with every enabled theme, themes with every script,
-stylesheets with every theme that uses them. It then recompiles and writes all
-filters, as a normal run does, and reloads the Studio. Saving keeps everything
-you did not change exactly as it was, comments and alignment included, and it
-refuses to overwrite a file that changed on disk after the Studio opened it.
-
-The enabled themes share a documented [visual channel policy](configuration/CHANNELS.md):
-text and size show pickup priority, backgrounds show purpose, and borders show
-the selected special property. Crafting bases keep their forge field and edge;
-normal and magic bases use the same priority text. Max-rolled armour takes
-precedence over the styling of any rule that shows it, without making anything
-visible that the filter would hide. Gem quality and Vaal status
-cannot replace the tier's beam, sound, text or minimap signals. Links and
-sockets are deliberately secondary because their layout is already visible on
-the item label; only 5/6-link and 5/6-socket cases keep a stronger border, and
-fractured, corrupted or max-rolled state wins first.
-
-The campaign filter covers maps and supplemental mapping supplies below area
-level 68. The simulator samples configured currency rows, including legacy
-items, without enforcing acquisition restrictions. Scouting Reports are retired
-items, so seeing one in a simulated campaign drop does not imply it still drops
-in the game. See the [research note](results/research/2026-09-28-0215-campaign-mapping-items.md).
-
-## Ruleforge Syntax (.rf files)
-
-### File Structure
-A .rf file is composed of three types of top-level blocks: METADATA, var, and SECTION.
-
-### Comments
-Single-line comments start with `!!`.
-Block comments are enclosed in `!![` and `]!!`.
-
-```rf
-!! This is a single-line comment.
-
-!![
-  This is a
-  multi-line block comment.
-]!!
-```
-
-### `METADATA` Block
-Every script must start with a `METADATA` block, which defines the filter's overall properties.
-```rf
-METADATA {
-  NAME           => "MyAwesomeFilter"
-  VERSION        => "1.0"
-  STRICTNESS     => "STRICT"
-  BUILD          => "SHADOW"
-  THEMES         => "aryzel original"
-}
-```
-- `NAME`: The output filename of the filter (e.g., MyAwesomeFilter → which would compile into MyAwesomeFilter.filter). 
-- `VERSION`: A version string for your reference. 
-- `STRICTNESS`: A user-defined value. Can be `ALL`, `SOFT`, `SEMI-STRICT`, `STRICT`, `SUPER-STRICT`. 
-  - Note: These are currently (23 June 2025) not used yet... These are on the to-do list to be implemented.
-- `BUILD`: The character class archetype the filter is designed for. Macros use this to determine the appropriate gear. Valid options: `MARAUDER`, `RANGER`, `WITCH`, `TEMPLAR`, `DUELIST`, `SHADOW`.
-- `THEMES` (optional): The themes this script compiles with, as space-separated names. A name is a style file's name without `.toml`
-  (`original`, `new-theme`, `aryzel-2-first-whisper`), or the start of one up to a hyphen: `aryzel` picks all four `aryzel-*` themes.
-  Names ignore case. A script without `THEMES` compiles with every enabled theme. A name no theme file matches is an error,
-  while a theme that is merely disabled is skipped. Keep it in mind when you delete or rename a theme: a filter already compiled
-  for a theme a script no longer selects stays in the output folder until you delete it.
-
-### `var` Declarations
-You can declare variables to store and combine styles.
-This is extremely useful for creating reusable, complex styles.
-Variables are prefixed with `$` when referenced (not when declared).
-
-```rf
-!! Var declaration
-var rare_style = "ItemGroups/Equipment" + "Tiers/Primal"
-
-!! If I were to reference this variable sometime later, I would say: $rare_style
-```
-
-### Style Overrides
-When combining styles, you may have conflicts (e.g., both styles define a `FontSize`).
-You can explicitly resolve these conflicts using an `!override` block.
-
-```rf
-var custom_weapon_style = "StyleA" + "StyleB" !override [
-  "StyleB" => "FontSize"
-]
-```
-
-This declaration combines `StyleA` and `StyleB`, but if both have a `FontSize`, the one from `StyleB` will be used.
-
-**The default behavior is to use everything from `StyleA` if there is a conflict present,
-UNLESS an `!override` block is defined.
-In this case, it will override only the specific elements specified.
-Obviously if there are no conflicts, it's a simple combination (this would be preferred).**
-
-### `SECTION` Block
-Sections are the core organizational unit of the filter.
-They group a set of rules under a common theme and can apply conditions to all rules within them.
-
-```rf
-SECTION {
-  METADATA {
-    NAME        => "Flasks"
-    DESCRIPTION => "Rules for all utility and life/mana flasks"
-  }
-
-  SECTION_CONDITIONS {
-    WHERE @item_class == "Flask"
-  }
-
-  RULES {
-    !! Rules go here...
-  }
-}
-```
-
-- `METADATA`: Contains the `NAME` and `DESCRIPTION` of the section, which are used to generate a Table of Contents in the final filter file. 
-- `SECTION_CONDITIONS`: A block where you can define conditions that apply to every rule inside this section. This is great for reducing repetition. 
-  They apply to the rules macros generate too. `@class_use` here narrows a macro's base type list (such as a
-  `handle_csv` category) to the bases the script's `BUILD` uses (`"true"`) or does not use (`"false"`).
-- `RULES`: The block that contains the actual filter rules and macros for this section.
-
-### Rule Syntax
-The standard rule format is a chain of a condition, a style, and an action.
-
-`WHERE <condition> => <style> => <action>`
-- `WHERE`: The start of every rule. 
-- Condition: Defines what item property to check. 
-  - Identifiers: `@area_level`, `@stack_size`, `@item_type`, `@item_class`, `@rarity`, `@sockets`, `@socket_group`, `@height`, `@width`. 
-    `@corrupted_mods` counts an item's corruption implicits (the game's `CorruptedMods`); `@item_level` and
-    `@drop_level` are the game's `ItemLevel` and `DropLevel`.
-    `@unidentified_item_tier` (0-5) is the game's `UnidentifiedItemTier`, the tier 3.30 gives Magic and Rare drops.
-    `@class_use` (`"true"` or `"false"`) matches the weapon classes and armour bases the script's `BUILD` uses.
-  - Operators: `==`, `!=`, `>=`, `<=`, `>`, `<`. 
-  - Value: A quoted string `"value"`, a number, or a variable reference `$var`. 
-- Style: A reference to a style defined in the stylesheet, either by its full path (`Essences/Tiers/High`) or via a variable (`$my_style`). 
-- Action: What to do with the item. Can be `$Show` or `$Hide`.
-
-**Example:**
-```rf
-RULES {
-  !! Show rare helmets with an item level of 86 or higher using the celestial style
-  WHERE @rarity == "Rare" -> @item_class == "Helmets" -> @item_level >= 86 => "Tiers/Celestial" => $Show
-  
-  !! Whitespace is optional. For brevity, the following is allowed too:
-  WHERE @rarity=="Rare"->@item_class=="Helmets"->@item_level>=86=>"Tiers/Celestial"=>$Show
-}
-```
-
-### Macros
-Macros are powerful commands that generate large numbers of rules automatically.
-
-`MACRO["<macro_name>"-><parameters>]`
-
-`item_progression-equipment-leveling`, `item_progression-equipment-mapping` & `item_progression-flasks`
-These macros generate a complete set of Show/Hide rules for equipment or flasks to guide the leveling process.
-They automatically use drop-level data from Path of Building.
-
-```rf
-MACRO["item_progression-equipment-leveling"
-  -> $show_normal => $leveling_style
-  -> $show_magic  => $leveling_style
-  -> $show_rare   => $leveling_style_rare
-  -> $hidden_normal => $hidden_style
-  -> $hidden_magic  => $hidden_style
-  -> $hidden_rare   => $hidden_style
-]
-```
-
-`unique_tiering` & `skill_gem_tiering`
-These macros fetch economy data from poe.ninja
-and use K-Means clustering to automatically group unique items or skill gems into tiers.
-You provide a style for each tier.
-
-```rf
-!! The name of each parameter is irrelevant in this example (since it's not used by the macro)
-MACRO["unique_tiering"
-  -> $tier1 => "Special/Uniques_T1_Chase"
-  -> $tier2 => "Special/Uniques_T2_Exceptional"
-  -> $tier3 => "Special/Uniques_T3_Valuable"
-  -> $tier4 => "Special/Uniques_T4_Useful"
-  -> $tier5 => "Special/Uniques_T5_Common"
-]
-```
-
-`divination_card_tiering` & `tattoo_tiering` work the same way for divination
-cards and Trial of the Ancestors tattoos, priced from poe.ninja's bulk exchange.
-These economy-only tiering macros also take an optional `$fallback` style,
-which does not take a tier: it goes after the tiers and styles every item of
-the kind that has no price. That includes all of them before the first economy
-refresh that records the kind.
-
-```rf
-MACRO["tattoo_tiering"
-  -> $tier_1   => "Final/Tattoos/T1"
-  -> $tier_2   => "Final/Tattoos/T2"
-  -> $fallback => "Final/Tattoos/Unpriced"
-]
-```
-
-`currency_tiering`
-Tiers currency the same way, and blends in how useful one unit is for
-self-found hardcore crafting. The currency profile CSV (`BaseType,Crafting,Note`)
-decides which currencies it tiers and rates each one's crafting use from 0 to
-10; that rating is the hand-made part. A currency's score is
-`(1 - CraftingWeight) × economy score + CraftingWeight × crafting z-score`,
-where the economy score is the value, rarity and trend score every other
-tiering uses. A stack is scored as one item worth the whole stack, so stacks of
-3, 5, 10 and 20 get their own rules whenever they reach a better tier. With
-`$hidden`, one more tier is clustered below the given ones and hidden in that
-style; its stacks still show once they are worth a tier. A currency without a
-price yet is tiered on its rating against an average economy score. Compiling
-names any currency poe.ninja prices that neither the profiles nor a base type
-category list. The rarity input is a market-availability proxy: exchange
-volume divided by unit price supplies the count used by the shared rarity
-calculation. It is not a measured drop rate. Campaign rules show all profiled
-currencies; the mapping macro's hidden tier and stack thresholds adapt to the
-scores. Scrolls remain in the supply CSV with their fixed stack thresholds.
-
-```rf
-MACRO["currency_tiering"
-  -> $tier_1 => "Final/Orbs/T1"
-  -> $tier_2 => "Final/Orbs/T2"
-  -> $hidden => "Final/Orbs/Hidden"
-]
-```
-
-`handle_csv`
-This macro generates rules based on a CSV file,
-allowing for easy management of large, repetitive rule sets like currencies or essences.
-It uses the CSV selected by the current style's `BaseTypes` setting.
-
-```rf
-MACRO["handle_csv"->$category=>"Essences"]
-```
-This command would process all rows in the CSV file where the `Category` column is "Essences,"
-generating a rule for each one based on its configured `Basetype`, `MinStackSize`, `Style`, and `Tier`.
-
-`max_roll_precedence`
-Gives max-rolled armour precedence over every later Show rule without showing
-anything new. It generates no rules itself; from where it appears, each Show
-rule that could match armour gets a copy placed just before it, restricted to
-armour whose base defences all rolled their maximum (`BaseDefencePercentile == 100`).
-The copy keeps the rule's background and icon shape, takes the given style's
-border, and takes the given style's text, size, icon and sound when they rank
-higher. Hide rules get no copy. Put it before the first rule it should override.
-
-```rf
-MACRO["max_roll_precedence" -> $style => "Final/Equipment/MaxRolled"]
-```
-
-Scripts can also test the roll directly with `@base_defence_percentile`.
-
-### Low-memory unique loading
-
-This build deliberately **does not execute** PoB `Generated.lua` or download the
-large modifier files needed by its generator. It still loads regular uniques
-from `Uniques/*.lua` and any items in `Uniques/Special/New.lua`. Unique items
-which exist *only* in PoB's generated dataset are not available for Ruleforge
-rules or unique-specific tiering. No errors are suppressed: regular source-file
-and parsing errors still fail normally.
-
-The first run writes a new `data-cache/basetypes-standard-only.json` item cache.
-The legacy `basetypes.json` file is intentionally not read or deleted, so a
-large cache from earlier generated-unique builds cannot be reloaded. PoB's
-existing `.ruleforge-cache/pob` source files can be reused unchanged; there is
-no need to delete the PoB cache or force an upstream refresh.
-
-The generator implementation remains in the source tree for future development,
-but the application never invokes it in low-memory mode.
-
-## PoE 3.30 tiers and continuous economy history
-
-Both shipped filters prioritize game item tiers before generic campaign and
-mapping cutoffs. The matrix combines build affinity, base quality and special
-jewellery; tier-5 magic Helical Rings and Simplex Amulets no longer depend on
-old crafting item-level thresholds. Fated items receive a border only where
-another rule shows them, yielding to max-roll, fractured, corruption and veiled
-properties. New map encounter/mod-count highlights precede generic map rules.
-The existing 164 Viscera base classifications remain intact. A build preset can
-set `PreferredViscera = ["Warden's Arm"]` to mark explicitly selected pieces;
-unknown Viscera retain a visible class fallback.
-
-`item_tier_matrix` accepts `$tier_2` through `$tier_5` styles. These are game
-roll-potential tiers, not the global pickup-priority ranks in CHANNELS.md.
-`economy_csv` accepts `$category` and ordered tier styles, uses credible current
-prices when available, and preserves the CSV's curated rules otherwise.
-Threads and map enchantment consumables use it in both scripts. The existing
-currency stack scoring also applies to these categories. `fated_precedence`
-adds a property border to later Show rules without changing their visibility.
-`@fated`, `@identified`, `@has_explicit_mod` and `@explicit_mod_count` are available
-in scripts and editors. Studio recognizes pasted `Unidentified (Tier 5)` text,
-shows item-tier/Fated state and economy evidence, and distinguishes Viscera,
-mechanic Threads and Frayed Thread by their real classes. Simulated tier
-frequencies are illustrative, not measured game probabilities.
-
-Economy snapshots now preserve source, provider ID, known variants and exchange
-turnover independently of listing supply. The `[EconomyMemory]` settings select
-a patch regime and observation time buckets, identify stale data, and gate
-confidence separately for each league. Default policy uses four-hour buckets,
-a 72-hour freshness limit, five stash listings or 20 estimated exchange units
-for a liquid observation, and three liquid buckets for a reliable state.
-These are filtering heuristics, not statistical confidence intervals. Raw
-history is retained even when excluded from current tiering. With fewer than
-20 distinct well-listed time buckets, prices use a recency-weighted median
-rather than the upper percentile. Unknown/exchange supply contributes no
-scarcity bonus. Persistent tier decisions require two new reliable buckets to
-promote and three to demote; repeatedly compiling the same data adds no votes.
-Studio previews do not persist those decisions. A scoring-policy change starts
-a separate decision namespace while keeping raw observations.
-
-For uninterrupted collection and optional automatic container-image updates,
-see [the Docker deployment for server-media](deployment/economy/README.md).
-Set `EconomyHistoryURL` and `EconomyHistoryTokenEnv` to synchronize that service
-instead of doing desktop API polls. Each desktop retains its own offline cache.
+This is the public mirror of the Ruleforge part of a private monorepo. It is regenerated from there (`UPSTREAM.md` names the
+commits it was made from), so it carries the libraries it builds on (`libs/nexus`, `echo`, `pharos`, `logos`) as a snapshot.
+Do not edit it by hand.

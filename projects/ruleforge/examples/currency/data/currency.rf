@@ -1,0 +1,11 @@
+version 1.0.0;
+module data.currency;
+
+export schema CurrencyRecord {
+    baseType string;
+    chaosValue float?;
+    listingCount int?;
+}
+
+export dataset Currencies: CurrencyRecord
+    from "economy.currency";

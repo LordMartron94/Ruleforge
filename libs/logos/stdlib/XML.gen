@@ -1,0 +1,302 @@
+Language: XML
+Version: 1.0.5
+
+// XML 1.0 (Fifth Edition), W3C Recommendation 26 November 2008: the productions of the specification for a document, as
+// lexical contexts and grammar rules. Production names of the specification appear in the comments.
+//
+// White space matters in XML (S is required in many places and is character data in content), so there are no global
+// rules: every S is written where the specification has it. Lexical selection follows the grammar, because the same
+// characters are a name in one place, a keyword in another and a literal in a third (the declarations of a DTD).
+//
+// What a context-free grammar cannot say is not enforced; conformance/xml-1.0.semantic lists the cases of the W3C test
+// suite that break such a rule: an end tag must name its start tag (Element Type Match), an attribute may be given once, a
+// reference must name a declared entity, a character reference must name a Char, entities must not be recursive,
+// parameter entities must nest properly, and so on. Not provided: the external subset (extSubset, conditional sections)
+// and external parsed entities, which are separate inputs with their own start; text is read as UTF-8 (the transcoding of
+// UTF-16 and other encodings happens before parsing, as Appendix F describes).
+
+IMPORT XMLCharacters {
+	$_space,
+	$_char,
+	$_name_start,
+	$_name_char,
+	$_name,
+	$_char_reference,
+	$_reference,
+	$_pubid_char
+}
+
+PARSER {
+	entry = #document
+	lexical_selection = grammar_expected
+}
+
+CONTEXT <ROOT> {
+	// Document level: before the root element, and after it (Misc ::= Comment | PI | S).
+	$byte_order_mark = '\u{FEFF}'
+	$s = $_space()+
+	$comment_open = '<!--' -> push(COMMENT)
+	$pi_open = '<?' -> push(PI_TARGET)
+	// XMLDecl ::= '<?xml' VersionInfo ... : the opening includes the S that VersionInfo starts with, so that
+	// <?xml-stylesheet ... ?> is still a processing instruction.
+	$xml_decl_open = '<?xml' $_space() -> push(XML_DECL)
+	$doctype_open = '<!DOCTYPE' -> push(DTD)
+	// STag ::= '<' Name ... '>' : the name is part of the opening token and the attributes follow in the tag context.
+	$start_tag_open = '<' $_name() -> push(TAG)
+}
+
+// XMLDecl ::= '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>'
+CONTEXT <XML_DECL> {
+	$decl_s = $_space()+
+	$version_key = 'version'
+	$encoding_key = 'encoding'
+	$standalone_key = 'standalone'
+	$decl_eq = '='
+	// VersionNum ::= '1.' [0-9]+
+	$version_value = ('"' '1.' '0'..'9'+ '"') || ('\'' '1.' '0'..'9'+ '\'')
+	// EncName ::= [A-Za-z] ([A-Za-z0-9._] | '-')*
+	$encoding_value = ('"' ('A'..'Z' || 'a'..'z') ('A'..'Z' || 'a'..'z' || '0'..'9' || '.' || '_' || '-')* '"') ||
+	                  ('\'' ('A'..'Z' || 'a'..'z') ('A'..'Z' || 'a'..'z' || '0'..'9' || '.' || '_' || '-')* '\'')
+	$standalone_value = ('"' ('yes' || 'no') '"') || ('\'' ('yes' || 'no') '\'')
+	$decl_close = '?>' -> pop(1)
+}
+
+// Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->' : runs of Chars without '-', and a '-' that must be followed by one.
+CONTEXT <COMMENT> {
+	$comment_text = ('\t' || '\n' || '\r' || ' '..',' || '.'..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}')+
+	$comment_dash = '-'
+	$comment_close = '-->' -> pop(1)
+}
+
+// PI ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
+// PITarget ::= Name - (('X' | 'x') ('M' | 'm') ('L' | 'l')) : every name but those three letters in any case. A name
+// that begins with them and goes on ("xml-stylesheet") is fine.
+CONTEXT <PI_TARGET> {
+	$_start_not_x = ':' || 'A'..'W' || 'Y'..'Z' || '_' || 'a'..'w' || 'y'..'z' || '\u{C0}'..'\u{D6}' || '\u{D8}'..'\u{F6}' || '\u{F8}'..'\u{2FF}' || '\u{370}'..'\u{37D}' || '\u{37F}'..'\u{1FFF}' || '\u{200C}'..'\u{200D}' || '\u{2070}'..'\u{218F}' || '\u{2C00}'..'\u{2FEF}' || '\u{3001}'..'\u{D7FF}' || '\u{F900}'..'\u{FDCF}' || '\u{FDF0}'..'\u{FFFD}' || '\u{10000}'..'\u{EFFFF}'
+	$_char_not_m = ':' || 'A'..'L' || 'N'..'Z' || '_' || 'a'..'l' || 'n'..'z' || '\u{C0}'..'\u{D6}' || '\u{D8}'..'\u{F6}' || '\u{F8}'..'\u{2FF}' || '\u{370}'..'\u{37D}' || '\u{37F}'..'\u{1FFF}' || '\u{200C}'..'\u{200D}' || '\u{2070}'..'\u{218F}' || '\u{2C00}'..'\u{2FEF}' || '\u{3001}'..'\u{D7FF}' || '\u{F900}'..'\u{FDCF}' || '\u{FDF0}'..'\u{FFFD}' || '\u{10000}'..'\u{EFFFF}' || '-' || '.' || '0'..'9' || '\u{B7}' || '\u{300}'..'\u{36F}' || '\u{203F}'..'\u{2040}'
+	$_char_not_l = ':' || 'A'..'K' || 'M'..'Z' || '_' || 'a'..'k' || 'm'..'z' || '\u{C0}'..'\u{D6}' || '\u{D8}'..'\u{F6}' || '\u{F8}'..'\u{2FF}' || '\u{370}'..'\u{37D}' || '\u{37F}'..'\u{1FFF}' || '\u{200C}'..'\u{200D}' || '\u{2070}'..'\u{218F}' || '\u{2C00}'..'\u{2FEF}' || '\u{3001}'..'\u{D7FF}' || '\u{F900}'..'\u{FDCF}' || '\u{FDF0}'..'\u{FFFD}' || '\u{10000}'..'\u{EFFFF}' || '-' || '.' || '0'..'9' || '\u{B7}' || '\u{300}'..'\u{36F}' || '\u{203F}'..'\u{2040}'
+	$pi_target = ($_start_not_x $_name_char()*) ||
+	             (('X' || 'x') ($_char_not_m $_name_char()*)?) ||
+	             (('X' || 'x') ('M' || 'm') ($_char_not_l $_name_char()*)?) ||
+	             (('X' || 'x') ('M' || 'm') ('L' || 'l') $_name_char()+)
+	$pi_s = $_space()+ -> replace(PI_DATA)
+	$pi_close = '?>' -> pop(1)
+}
+
+CONTEXT <PI_DATA> {
+	// Char* without '?>' : runs of Chars where a '?' is followed by something other than '>', and each '?' on its own.
+	$_not_question = '\t' || '\n' || '\r' || ' '..'>' || '@'..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}'
+	$_not_question_greater = '\t' || '\n' || '\r' || ' '..'=' || '@'..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}'
+	$pi_data = ($_not_question || ('?'+ $_not_question_greater))+
+	$pi_question = '?'
+	$pi_end = '?>' -> pop(1)
+}
+
+// DOCTYPE and the markup declarations of the internal subset (productions 28 to 76) share one context: what a token is
+// depends on the declaration it stands in, which the grammar knows.
+CONTEXT <DTD> {
+	$dtd_s = $_space()+
+	$dtd_name = $_name()
+	$subset_open = '['
+	$subset_close = ']'
+	$pe_reference = '%' $_name() ';'
+	$dtd_percent = '%'
+
+	$element_decl_open = '<!ELEMENT'
+	$attlist_decl_open = '<!ATTLIST'
+	$entity_decl_open = '<!ENTITY'
+	$notation_decl_open = '<!NOTATION'
+	$dtd_comment_open = '<!--' -> push(COMMENT)
+	$dtd_pi_open = '<?' -> push(PI_TARGET)
+	$decl_gt = '>'
+	$doctype_gt = '>' -> pop(1)
+
+	// ExternalID ::= 'SYSTEM' S SystemLiteral | 'PUBLIC' S PubidLiteral S SystemLiteral
+	$system_key = 'SYSTEM'
+	$public_key = 'PUBLIC'
+	$ndata_key = 'NDATA'
+	// SystemLiteral ::= ('"' [^"]* '"') | ("'" [^']* "'")
+	$system_literal = ('"' ('\t' || '\n' || '\r' || ' '..'!' || '#'..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}')* '"') ||
+	                  ('\'' ('\t' || '\n' || '\r' || ' '..'&' || '('..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}')* '\'')
+	// PubidLiteral ::= '"' PubidChar* '"' | "'" (PubidChar - "'")* "'"
+	$pubid_literal = ('"' $_pubid_char()* '"') ||
+	                 ('\'' (' ' || '\r' || '\n' || 'a'..'z' || 'A'..'Z' || '0'..'9' || '-' || '('..'+' || ','..'/' || ':'..';' || '=' || '?' ||
+	                        '!' || '*' || '#' || '@' || '$' || '_' || '%')* '\'')
+
+	// elementdecl: contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
+	$empty_key = 'EMPTY'
+	$any_key = 'ANY'
+	$pcdata = '#PCDATA'
+	$dtd_lparen = '('
+	$dtd_rparen = ')'
+	// ')*' is one token because the lexer takes the longest match; the grammar reads it as a ')' with the '*' of a group.
+	$rparen_star = ')*'
+	$dtd_bar = '|'
+	$dtd_comma = ','
+	$dtd_question = '?'
+	$dtd_star = '*'
+	$dtd_plus = '+'
+
+	// AttDef: AttType ::= StringType | TokenizedType | EnumeratedType
+	$cdata_key = 'CDATA'
+	$id_key = 'ID'
+	$idref_key = 'IDREF'
+	$idrefs_key = 'IDREFS'
+	$entity_key = 'ENTITY'
+	$entities_key = 'ENTITIES'
+	$nmtoken_key = 'NMTOKEN'
+	$nmtokens_key = 'NMTOKENS'
+	$notation_key = 'NOTATION'
+	$required_key = '#REQUIRED'
+	$implied_key = '#IMPLIED'
+	$fixed_key = '#FIXED'
+	// Enumeration ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')' and NotationType's names, in their own parentheses.
+	$enum_lparen = '('
+	$enum_token = $_name_char()+
+	$enum_bar = '|'
+	$enum_rparen = ')'
+	$notation_lparen = '('
+	$notation_name = $_name()
+	$notation_bar = '|'
+	$notation_rparen = ')'
+	// AttValue ::= '"' ([^<&"] | Reference)* '"' | "'" ([^<&'] | Reference)* "'"
+	$default_value = ('"' ('\t' || '\n' || '\r' || ' '..'!' || '#'..'%' || '\''..';' || '='..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}' ||
+	                      $_reference())* '"') ||
+	                 ('\'' ('\t' || '\n' || '\r' || ' '..'%' || '('..';' || '='..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}' ||
+	                        $_reference())* '\'')
+	// EntityValue ::= '"' ([^%&"] | PEReference | Reference)* '"' | "'" ([^%&'] | PEReference | Reference)* "'"
+	// In the internal subset a parameter-entity reference may not occur within a declaration (WFC: PEs in Internal Subset),
+	// so none is allowed here; only between declarations.
+	$entity_value = ('"' ('\t' || '\n' || '\r' || ' '..'!' || '#'..'$' || '\''..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}' ||
+	                     $_reference())* '"') ||
+	                ('\'' ('\t' || '\n' || '\r' || ' '..'$' || '('..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}' ||
+	                      $_reference())* '\'')
+}
+
+// STag ::= '<' Name (S Attribute)* S? '>' and EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'
+CONTEXT <TAG> {
+	$tag_s = $_space()+
+	$attribute_name = $_name()
+	$tag_eq = '='
+	// AttValue ::= '"' ([^<&"] | Reference)* '"' | "'" ([^<&'] | Reference)* "'"
+	$attribute_value = ('"' ('\t' || '\n' || '\r' || ' '..'!' || '#'..'%' || '\''..';' || '='..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}' ||
+	                        $_reference())* '"') ||
+	                   ('\'' ('\t' || '\n' || '\r' || ' '..'%' || '('..';' || '='..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}' ||
+	                          $_reference())* '\'')
+	// The start tag ends where the content begins; an empty-element tag ends the element.
+	$tag_close = '>' -> replace(CONTENT)
+	$empty_tag_close = '/>' -> pop(1)
+}
+
+// content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
+CONTEXT <CONTENT> {
+	// CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*) : runs of Chars except '<', '&', '>' and ']', and those two on their own;
+	// the grammar keeps ']]>' out (see #character_data).
+	$text = ('\t' || '\n' || '\r' || ' '..'%' || '\''..';' || '='..'=' || '?'..'\\' || '^'..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}')+
+	$greater = '>'
+	$right_bracket = ']'
+	$char_reference = $_char_reference()
+	$entity_reference = '&' $_name() ';'
+	$cdata_open = '<![CDATA[' -> push(CDATA)
+	$content_comment_open = '<!--' -> push(COMMENT)
+	$content_pi_open = '<?' -> push(PI_TARGET)
+	$content_start_tag_open = '<' $_name() -> push(TAG)
+	// ETag ::= '</' Name S? '>'
+	$end_tag = '</' $_name() $_space()* '>' -> pop(1)
+}
+
+// CDSect ::= CDStart CData CDEnd ; CData ::= (Char* - (Char* ']]>' Char*))
+CONTEXT <CDATA> {
+	$cdata_text = ('\t' || '\n' || '\r' || ' '..'\\' || '^'..'\u{D7FF}' || '\u{E000}'..'\u{FFFD}' || '\u{10000}'..'\u{10FFFF}')+
+	$cdata_bracket = ']'
+	$cdata_close = ']]>' -> pop(1)
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Grammar.
+// ---------------------------------------------------------------------------------------------------------------------
+
+// document ::= prolog element Misc*
+#document = $byte_order_mark? #prolog #element #misc*
+
+// prolog ::= XMLDecl? Misc* (doctypedecl Misc*)?
+#prolog = #xml_decl? #misc* (#doctype_decl #misc*)?
+#misc = #comment || #processing_instruction || $s
+
+// XMLDecl ::= '<?xml' VersionInfo EncodingDecl? SDDecl? S? '?>' ; Eq ::= S? '=' S?
+#xml_decl = $xml_decl_open #version_info #encoding_decl? #standalone_decl? $decl_s? $decl_close
+#xml_eq = $decl_s? $decl_eq $decl_s?
+#version_info = $decl_s? $version_key #xml_eq $version_value
+#encoding_decl = $decl_s $encoding_key #xml_eq $encoding_value
+#standalone_decl = $decl_s $standalone_key #xml_eq $standalone_value
+
+// Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
+#comment = ($comment_open || $dtd_comment_open || $content_comment_open) ($comment_text || ($comment_dash $comment_text))* $comment_close
+
+// PI ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
+#processing_instruction = ($pi_open || $dtd_pi_open || $content_pi_open) $pi_target
+                          ($pi_close || ($pi_s ($pi_data || $pi_question)* $pi_end))
+
+// doctypedecl ::= '<!DOCTYPE' S Name (S ExternalID)? S? ('[' intSubset ']' S?)? '>'
+#doctype_decl = $doctype_open $dtd_s $dtd_name ($dtd_s #external_id)? $dtd_s? (#internal_subset $dtd_s?)? $doctype_gt
+// intSubset ::= (markupdecl | DeclSep)* ; DeclSep ::= PEReference | S
+#internal_subset = $subset_open (#markup_decl || $pe_reference || $dtd_s)* $subset_close
+// markupdecl ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl | PI | Comment
+#markup_decl = #element_decl || #attlist_decl || #entity_decl || #notation_decl || #processing_instruction || #comment
+
+// ExternalID ::= 'SYSTEM' S SystemLiteral | 'PUBLIC' S PubidLiteral S SystemLiteral ; PublicID ::= 'PUBLIC' S PubidLiteral
+#external_id = ($system_key $dtd_s $system_literal) || ($public_key $dtd_s $pubid_literal $dtd_s $system_literal)
+#public_id = $public_key $dtd_s $pubid_literal
+
+// elementdecl ::= '<!ELEMENT' S Name S contentspec S? '>'
+#element_decl = $element_decl_open $dtd_s $dtd_name $dtd_s #content_spec $dtd_s? $decl_gt
+// contentspec ::= 'EMPTY' | 'ANY' | Mixed | children
+#content_spec = $empty_key || $any_key || #mixed || #children
+// children ::= (choice | seq) ('?' | '*' | '+')? ; cp ::= (Name | choice | seq) ('?' | '*' | '+')?
+// The modifier of a group is written inside the group, where the lexer's ')*' also belongs.
+#children = #choice || #sequence
+#content_particle = ($dtd_name ($dtd_question || $dtd_star || $dtd_plus)?) || #choice || #sequence
+// choice ::= '(' S? cp ( S? '|' S? cp )+ S? ')' ; seq ::= '(' S? cp ( S? ',' S? cp )* S? ')'
+#choice = $dtd_lparen $dtd_s? #content_particle ($dtd_s? $dtd_bar $dtd_s? #content_particle)+ $dtd_s? #group_end
+#sequence = $dtd_lparen $dtd_s? #content_particle ($dtd_s? $dtd_comma $dtd_s? #content_particle)* $dtd_s? #group_end
+#group_end = $rparen_star || ($dtd_rparen ($dtd_question || $dtd_star || $dtd_plus)?)
+// Mixed ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*' | '(' S? '#PCDATA' S? ')'
+#mixed = ($dtd_lparen $dtd_s? $pcdata ($dtd_s? $dtd_bar $dtd_s? $dtd_name)* $dtd_s? $rparen_star) || ($dtd_lparen $dtd_s? $pcdata $dtd_s? $dtd_rparen)
+
+// AttlistDecl ::= '<!ATTLIST' S Name AttDef* S? '>' ; AttDef ::= S Name S AttType S DefaultDecl
+#attlist_decl = $attlist_decl_open $dtd_s $dtd_name #attribute_definition* $dtd_s? $decl_gt
+#attribute_definition = $dtd_s $dtd_name $dtd_s #attribute_type $dtd_s #default_declaration
+// AttType ::= StringType | TokenizedType | EnumeratedType
+#attribute_type = $cdata_key || $id_key || $idref_key || $idrefs_key || $entity_key || $entities_key || $nmtoken_key || $nmtokens_key ||
+                  #notation_type || #enumeration
+// NotationType ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
+#notation_type = $notation_key $dtd_s $notation_lparen $dtd_s? $notation_name ($dtd_s? $notation_bar $dtd_s? $notation_name)* $dtd_s? $notation_rparen
+// Enumeration ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
+#enumeration = $enum_lparen $dtd_s? $enum_token ($dtd_s? $enum_bar $dtd_s? $enum_token)* $dtd_s? $enum_rparen
+// DefaultDecl ::= '#REQUIRED' | '#IMPLIED' | (('#FIXED' S)? AttValue)
+#default_declaration = $required_key || $implied_key || (($fixed_key $dtd_s)? $default_value)
+
+// EntityDecl ::= GEDecl | PEDecl
+#entity_decl = #general_entity || #parameter_entity
+// GEDecl ::= '<!ENTITY' S Name S EntityDef S? '>' ; EntityDef ::= EntityValue | (ExternalID NDataDecl?)
+#general_entity = $entity_decl_open $dtd_s $dtd_name $dtd_s ($entity_value || (#external_id #ndata_declaration?)) $dtd_s? $decl_gt
+// PEDecl ::= '<!ENTITY' S '%' S Name S PEDef S? '>' ; PEDef ::= EntityValue | ExternalID
+#parameter_entity = $entity_decl_open $dtd_s $dtd_percent $dtd_s $dtd_name $dtd_s ($entity_value || #external_id) $dtd_s? $decl_gt
+// NDataDecl ::= S 'NDATA' S Name
+#ndata_declaration = $dtd_s $ndata_key $dtd_s $dtd_name
+
+// NotationDecl ::= '<!NOTATION' S Name S (ExternalID | PublicID) S? '>'
+#notation_decl = $notation_decl_open $dtd_s $dtd_name $dtd_s (#external_id || #public_id) $dtd_s? $decl_gt
+
+// element ::= EmptyElemTag | STag content ETag ; Attribute ::= Name Eq AttValue ; Eq ::= S? '=' S?
+#element = ($start_tag_open || $content_start_tag_open) #attributes $tag_s? ($empty_tag_close || ($tag_close #content $end_tag))
+#attributes = ($tag_s #attribute)*
+#attribute = $attribute_name $tag_s? $tag_eq $tag_s? $attribute_value
+// content ::= CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
+#content = #character_data? ((#element || $char_reference || $entity_reference || #cdata_section || #processing_instruction || #comment) #character_data?)*
+// CharData must not contain ']]>': a ']' is followed by text or '>' (when it is alone), and any number of them by text; a run of
+// them can only end the data, where markup follows.
+#character_data_item = ($right_bracket{2,} $text) || ($right_bracket $text) || ($right_bracket $greater) || $text || $greater
+#character_data = (#character_data_item+ $right_bracket*) || $right_bracket+
+// CDSect ::= CDStart CData CDEnd
+#cdata_section = $cdata_open ($cdata_text || $cdata_bracket)* $cdata_close

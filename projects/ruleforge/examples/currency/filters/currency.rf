@@ -1,0 +1,56 @@
+version 1.0.0;
+module filters.currency;
+
+import std.conditions;
+import std.economy;
+import data.currency;
+import filters.themes;
+
+export ruleset ValuableDrops {
+    description "Always worth a look";
+    coreConditions { class == "Stackable Currency"; }
+
+    rule ExaltedOrb {
+        scope { baseType = "Exalted Orb"; }
+        action show;
+        style DefaultTheme.godTier;
+    }
+}
+
+template TieredCurrency(itemName string, tier int) {
+    scope { baseType = $itemName; }
+    baseline {
+        action show;
+        style DefaultTheme.goodTier;
+    }
+    variants {
+        when $tier >= 3 and @strictness >= 2 {
+            action hide;
+            style DefaultTheme.poopTier;
+        }
+        when areaLevel >= 80 {
+            inherit action;
+            style DefaultTheme.godTier;
+        }
+    }
+}
+
+export func GenerateCurrencyRules() -> ruleset {
+    let tiers = economy.AssignTiers(data: currency.Currencies, field: "chaosValue", count: 4);
+    for item in tiers {
+        if item.chaosValue == none {
+            // An unpriced currency is never assumed to be worthless.
+            emit rule { scope { baseType = item.baseType; } action show; style DefaultTheme.godTier; }
+        } else {
+            rule Tiered = TieredCurrency(item.baseType, item.tier);
+        }
+    }
+}
+
+export ruleset GeneralFallback {
+    rule Everything {
+        scope { class = "Stackable Currency"; }
+        action show;
+        style DefaultTheme.poopTier;
+    }
+}

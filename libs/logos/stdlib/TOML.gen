@@ -1,0 +1,373 @@
+Language: TOML // For debugging.
+Version: 1.1.0 // For debugging and client compatibility; not used internally by Genesis.
+
+// Lexical tokens are prefixed with a $.
+// Grammatical rules are prefixed with a #.
+//
+// Tokens prefixed with $_ are non-emitting lexical fragments.
+// They can be referenced by other lexical definitions, but do not
+// participate independently in token matching or produce output.
+// Fragments cannot have priorities or context actions.
+//
+// Tokens may specify @priority(N), where N is a signed integer.
+// Default priority is 0.
+//
+// Matching precedence:
+// 1. The longest matching lexeme wins.
+// 2. The highest priority breaks equal-length ties.
+// 3. Earlier registration breaks remaining ties.
+//
+// Priorities cannot override a longer match.
+//
+// ROOT is the obligatory initial lexical context.
+// Context actions execute only for the winning token.
+//
+// The PARSER block configures the grammatical entry point and
+// automatically applied global rules.
+//
+// This example additionally uses grammar_expected lexical selection.
+// Only tokens eligible at the current grammatical position participate
+// in lexical matching. Longest-match and priority rules are then applied.
+//
+// This is necessary because TOML allows identical character sequences
+// to represent different constructs depending on their position.
+// For example, 1234 is a valid bare key and a valid integer value.
+//
+// All matched tokens, including whitespace, comments, and newlines,
+// are retained in the lossless syntax tree.
+//
+// Assumptions:
+// - Character ranges operate on Unicode scalar values.
+// - \u{XXXX} denotes a Unicode code point in lexical definitions.
+// - The parser requires complete input consumption.
+// - Lexical fragments are expanded into their referencing tokens.
+// - Every syntactic and lexical rule of TOML 1.1.0 is enforced here, including the calendar and the Unicode scalar
+//   ranges of escapes. What a grammar cannot express is not: no key or table may be defined twice, and tables may not
+//   be redefined or extended where the spec forbids it. That is for the semantic analyzer (see conformance/).
+
+// Reuse grammatically parameterized container constructs from General.
+IMPORT General {
+    #delimited,
+    #dictionary,
+    EmptyPolicy,
+    TrailingSeparatorPolicy
+}
+
+PARSER {
+	entry = #document
+
+	// Horizontal whitespace can appear between grammatical tokens.
+	// Newlines and comments are deliberately not global because
+	// TOML only permits them at specific grammatical positions.
+	global = #horizontal_whitespace
+
+	// Restrict lexical candidates to those expected by the grammar.
+	lexical_selection = grammar_expected
+}
+
+CONTEXT <ROOT> {
+	// Reusable character and numerical fragments.
+	$_digit = '0'..'9'
+	$_nonzero_digit = '1'..'9'
+	$_hex_digit = $_digit || 'a'..'f' || 'A'..'F'
+	$_oct_digit = '0'..'7'
+	$_bin_digit = '0'..'1'
+	$_sign = '+' || '-'
+
+	// Underscores may only occur between digits.
+	$_decimal_digits = $_digit ('_'? $_digit)*
+	$_unsigned_decimal = '0' || $_nonzero_digit ('_'? $_digit)*
+	$_hex_digits = $_hex_digit ('_'? $_hex_digit)*
+	$_oct_digits = $_oct_digit ('_'? $_oct_digit)*
+	$_bin_digits = $_bin_digit ('_'? $_bin_digit)*
+
+	// Non-ASCII Unicode scalar values, excluding surrogates.
+	$_non_ascii = '\u{80}'..'\u{D7FF}' ||
+	              '\u{E000}'..'\u{10FFFF}'
+
+	// Whitespace and newlines are separate.
+	// TOML recognizes LF and CRLF, but not an isolated CR.
+	$_newline = '\r\n' || '\n'
+
+	$horizontal_whitespace = (' ' || '\t')+
+	$newline = $_newline
+
+	// Comments begin with # and continue until newline or EOF.
+	// Newline is not consumed by the comment token.
+	// Control characters other than tab are forbidden.
+	$_comment_character = '\t' || ' '..'~' || $_non_ascii
+	$comment = '#' $_comment_character*
+
+	// Structural tokens.
+	$equals = '='
+	$dot = '.'
+	$comma = ','
+
+	$bracket_open = '['
+	$bracket_close = ']'
+	$double_bracket_open = '[['
+	$double_bracket_close = ']]'
+
+	$brace_open = '{'
+	$brace_close = '}'
+
+	// Bare keys contain ASCII letters, digits, underscores, and dashes.
+	// A bare key may consist entirely of digits.
+	$bare_key = ('a'..'z' || 'A'..'Z' ||
+	             $_digit || '_' || '-')+
+
+	// Basic strings.
+	// Quotation marks, backslashes, and most control characters
+	// must be escaped.
+	$_basic_character = '\t' || ' '..'!' || '#'..'[' ||
+	                     ']'..'~' || $_non_ascii
+
+	// Valid TOML 1.1 escape sequences. A Unicode escape must name a Unicode scalar value: not a surrogate (U+D800..U+DFFF)
+	// and not above U+10FFFF.
+	$_hex4_scalar = (($_digit || 'a'..'c' || 'A'..'C' || 'e'..'f' || 'E'..'F') $_hex_digit{3}) ||
+	                (('d' || 'D') '0'..'7' $_hex_digit{2})
+	$_hex8_scalar = ('0000' $_hex4_scalar) ||
+	                ('000' ('1'..'9' || 'a'..'f' || 'A'..'F') $_hex_digit{4}) ||
+	                ('0010' $_hex_digit{4})
+	$_escape = '\\' ('"' || '\\' || 'b' || 'e' ||
+	                 'f' || 'n' || 'r' || 't' ||
+	                 ('x' $_hex_digit{2}) ||
+	                 ('u' $_hex4_scalar) ||
+	                 ('U' $_hex8_scalar))
+
+	$basic_string = '"' ($_basic_character || $_escape)* '"'
+
+	// Literal strings.
+	// Backslashes are ordinary characters; escapes are not interpreted.
+	$_apostrophe = '\u{0027}'
+	$_literal_character = '\t' || ' '..'&' ||
+	                       '('..'~' || $_non_ascii
+
+	$literal_string = $_apostrophe
+	                  $_literal_character*
+	                  $_apostrophe
+
+	// Multi-line basic strings.
+	// Newlines are permitted within the content.
+	// An initial newline immediately after the opening delimiter
+	// is removed when interpreting the string value.
+	//
+	// A line-ending backslash removes itself and the following
+	// whitespace/newlines up to the next non-whitespace character.
+	$_line_continuation = '\\' (' ' || '\t')* $_newline
+	                      (' ' || '\t' || $_newline)*
+
+	$_multiline_basic_character = $_basic_character ||
+	                              $_escape ||
+	                              $_newline ||
+	                              $_line_continuation
+
+	// One or two unescaped quotation marks may occur in the body.
+	// Three consecutive quotation marks terminate the string;
+	// four or five at the end include one or two literal quotes.
+	$_basic_quotes = '"'{1,2}
+
+	$multiline_basic_string =
+		'"""' $_newline?
+		$_multiline_basic_character*
+		($_basic_quotes $_multiline_basic_character+)*
+		$_basic_quotes?
+		'"""'
+
+	// Multi-line literal strings.
+	// There are no escapes or line continuations.
+	// One or two apostrophes may occur within the body.
+	$_triple_apostrophe = $_apostrophe{3}
+	$_literal_quotes = $_apostrophe{1,2}
+
+	$_multiline_literal_character = $_literal_character || $_newline
+
+	$multiline_literal_string =
+		$_triple_apostrophe $_newline?
+		$_multiline_literal_character*
+		($_literal_quotes $_multiline_literal_character+)*
+		$_literal_quotes?
+		$_triple_apostrophe
+
+	// Integers.
+	// Decimal values may be signed but cannot contain leading zeros.
+	// Hexadecimal, octal, and binary values cannot have signs.
+	$integer = ($_sign? $_unsigned_decimal) ||
+	           ('0x' $_hex_digits) ||
+	           ('0o' $_oct_digits) ||
+	           ('0b' $_bin_digits)
+
+	// Floating-point numbers.
+	// A fraction and/or exponent is required for finite floats.
+	// Special values are always lowercase.
+	$_exponent = ('e' || 'E') $_sign? $_decimal_digits
+
+	$float = ($_sign? $_unsigned_decimal
+	          (('.' $_decimal_digits $_exponent?) ||
+	           $_exponent)) ||
+	         ($_sign? ('inf' || 'nan'))
+
+	// Booleans.
+	// Priority is illustrative: it only resolves equal-length
+	// matches among eligible lexical candidates.
+	$boolean = ('true' || 'false') @priority(10)
+
+	// Date and time fragments (RFC 3339 as TOML uses it). The calendar is checked here, in the lexical rules: months
+	// have 31, 30 or 28 days, and 29 February needs a leap year (divisible by 4, unless by 100 and not by 400).
+	$_two_digits = $_digit{2}
+	$_div4_nonzero = ('0' ('4' || '8')) ||
+	                 (('2' || '4' || '6' || '8') ('0' || '4' || '8')) ||
+	                 (('1' || '3' || '5' || '7' || '9') ('2' || '6'))
+	$_div4 = '00' || $_div4_nonzero
+	$_leap_year = ($_digit{2} $_div4_nonzero) || ($_div4 '00')
+	$_year = $_digit{4}
+
+	$_day_28 = ('0' $_nonzero_digit) || ('1' $_digit) || ('2' '0'..'8')
+	$_day_30 = $_day_28 || '29' || '30'
+	$_day_31 = $_day_30 || '31'
+
+	$_month_day = (('01' || '03' || '05' || '07' || '08' || '10' || '12') '-' $_day_31) ||
+	              (('04' || '06' || '09' || '11') '-' $_day_30) ||
+	              ('02' '-' $_day_28)
+
+	$_full_date = ($_year '-' $_month_day) || ($_leap_year '-02-29')
+
+	$_hour = (('0' || '1') $_digit) || ('2' '0'..'3')
+	$_minute = '0'..'5' $_digit
+	$_second = ('0'..'5' $_digit) || '60'
+
+	// TOML 1.1 permits omission of seconds.
+	$_partial_time = $_hour ':' $_minute
+	                 (':' $_second ('.' $_digit+)?)?
+
+	$_time_separator = 'T' || 't' || ' '
+	$_time_offset = ('Z' || 'z') ||
+	                ($_sign $_hour ':' $_minute)
+
+	// Date/time tokens must be recognized as complete lexemes.
+	// Longest-match selects the most specific matching form.
+	$offset_datetime = $_full_date $_time_separator
+	                   $_partial_time $_time_offset
+
+	$local_datetime = $_full_date $_time_separator $_partial_time
+	$local_date = $_full_date
+	$local_time = $_partial_time
+}
+
+// GRAMMAR
+
+// Global grammatical rules.
+//
+// Horizontal whitespace is automatically accepted at eligible
+// token boundaries throughout the grammar.
+//
+// Unlike ignored tokens, it remains present in the syntax tree.
+// This rule is non-nullable, preventing zero-progress global matches.
+#horizontal_whitespace = $horizontal_whitespace
+
+// Document entry point.
+//
+// TOML is line-oriented. Each physical line may contain a statement,
+// a comment, or nothing. A statement may contain a multi-line value,
+// whose internal newlines are consumed by its lexical token.
+//
+// All top-level statements must be separated by a newline.
+// The final line does not require a terminating newline.
+#document = #line ($newline #line)*
+
+#line = (#statement $comment? || $comment)?
+
+// TOML statements.
+// Table headers change the semantic destination of subsequent
+// key/value pairs. This is handled during semantic interpretation.
+#statement = #array_of_tables || #table || #key_value
+
+// Keys.
+//
+// Keys may be bare or quoted. Multi-line strings cannot be keys.
+// Dotted keys create paths containing multiple key components.
+//
+// Horizontal whitespace around dots is permitted through the
+// global grammatical rule.
+#simple_key = $bare_key || $basic_string || $literal_string
+#key = #simple_key ($dot #simple_key)*
+
+// Key/value pairs.
+//
+// The key, equals sign, and beginning of the value must be on
+// the same physical line. Certain value forms may span lines.
+#key_value = #key $equals #value
+
+// TOML values.
+#value = #string || #number || $boolean || #datetime ||
+         #array || #inline_table
+
+// Strings.
+//
+// Global whitespace is explicitly excluded from these rules.
+// Since strings are currently represented by complete lexical
+// tokens, their internal whitespace is already protected.
+#string @exclude(#horizontal_whitespace) =
+	$basic_string ||
+	$literal_string ||
+	$multiline_basic_string ||
+	$multiline_literal_string
+
+// Numbers.
+#number = $integer || $float
+
+// Date and time values.
+#datetime = $offset_datetime || $local_datetime ||
+            $local_date || $local_time
+
+// Container trivia.
+// This is one non-nullable unit, not a starred expression.
+// The imported templates repeat the unit at permitted boundaries.
+// Horizontal whitespace is already handled by the global rule.
+#container_trivia_unit = $newline || ($comment $newline)
+
+// Arrays.
+// TOML permits mixed values, newlines, comments, and a final comma.
+// All permitted trivia remains represented in the syntax tree.
+#array = #delimited(
+    open_token: $bracket_open,
+    close_token: $bracket_close,
+    element: #value,
+    separator: $comma,
+    empty: EmptyPolicy.ALLOW,
+    trailing: TrailingSeparatorPolicy.ALLOW,
+    trivia: #container_trivia_unit
+)
+
+// Inline tables.
+// TOML 1.1 permits multiline inline tables and a trailing comma.
+// The same dictionary template works with its own element grammar.
+#inline_table = #dictionary(
+    open_token: $brace_open,
+    close_token: $brace_close,
+    key: #key,
+    value: #value,
+    assignment: $equals,
+    separator: $comma,
+    empty: EmptyPolicy.ALLOW,
+    trailing: TrailingSeparatorPolicy.ALLOW,
+    trivia: #container_trivia_unit
+)
+
+// Standard tables.
+//
+// A table header establishes a named table for subsequent
+// key/value pairs until another table header or EOF.
+//
+// Dotted table names are supported through #key.
+#table = $bracket_open #key $bracket_close
+
+// Arrays of tables.
+//
+// Each occurrence creates a new element within the named array.
+// Subsequent key/value pairs belong to its most recent element.
+//
+// Repeated headers are permitted here, unlike standard tables.
+#array_of_tables = $double_bracket_open
+                   #key
+                   $double_bracket_close

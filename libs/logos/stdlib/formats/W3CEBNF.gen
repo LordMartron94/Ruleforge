@@ -1,0 +1,46 @@
+Language: W3CEBNF
+Version: 1.0.0
+
+// The notation of the W3C specifications (XML 1.0 and the standards written like it): `Name ::= expression`, alternatives with `|`, the
+// suffixes `?`, `*` and `+`, groups in parentheses, strings in single or double quotes, `#x20` for a code point, character classes
+// `[a-zA-Z]`, `[^<&]` and `[#x20-#xD7FF]`, the exception `A - B`, comments `/* ... */`, and the constraint notes `[ wfc: ... ]` and
+// `[ vc: ... ]`, which are read as comments. A rule has no terminator: the next `Name ::=` begins the next rule, and is read as one token.
+
+PARSER {
+	entry = #grammar
+	global = #trivia
+}
+
+CONTEXT <ROOT> {
+	$whitespace = (' ' || '\t' || '\r' || '\n' || '\u{C}')+
+	$comment = '/*' ('\t' || '\n' || '\r' || ' '..')' || '+'..'\u{10FFFF}' || ('*'+ ('\t' || '\n' || '\r' || ' '..'.' || '0'..'\u{10FFFF}')))* '*'+ '/'
+	// [ wfc: Entity Declared ] and [ VC: Root Element Type ]
+	$constraint = '[' (' ' || '\t' || '\n' || '\r')+ ('a'..'z' || 'A'..'Z')+ ':' ('\t' || '\n' || '\r' || ' '..'\\' || '^'..'\u{10FFFF}')* ']' @priority(10)
+
+	$name = ('a'..'z' || 'A'..'Z' || '_') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '.' || '-')*
+	// `Name ::=` is one token, so that a rule's last name is never taken for the head of the next rule.
+	$rule_head = ('a'..'z' || 'A'..'Z' || '_') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '.' || '-')* (' ' || '\t' || '\r' || '\n')* '::='
+	$string_single = '\'' ('\t' || ' '..'&' || '('..'\u{10FFFF}')* '\''
+	$string_double = '"' ('\t' || ' '..'!' || '#'..'\u{10FFFF}')* '"'
+	$hex = '#x' ('0'..'9' || 'a'..'f' || 'A'..'F')+
+	// [a-z], [^<&], [#x20-#xD7FF], [^-'"]
+	$class = '[' '^'? ('\t' || '!'..'\\' || '^'..'\u{10FFFF}' || ' ')+ ']'
+
+	$pipe = '|'
+	$question = '?'
+	$star = '*'
+	$plus = '+'
+	$minus = '-'
+	$lparen = '('
+	$rparen = ')'
+}
+
+#trivia = $whitespace || $comment || $constraint
+
+#grammar = #rule*
+#rule = $rule_head #choice
+#choice = #concatenation ($pipe #concatenation)*
+#concatenation = #difference+
+#difference = #item ($minus #item)?
+#item = #primary ($question || $star || $plus)*
+#primary = $name || $string_single || $string_double || $hex || $class || $lparen #choice $rparen

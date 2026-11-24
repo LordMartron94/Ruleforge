@@ -1,0 +1,266 @@
+version 1.0.0;
+module std.economy;
+
+import std.collections;
+import std.core;
+import std.math;
+import std.stats;
+
+/*
+Prices and tiers. A price is a number, or none when the item has none: an unpriced item is never assumed to be worth nothing, and every
+function here keeps that difference.
+
+The tiering functions work on records, such as the rows of a dataset a provider fills with prices, and return new records: the
+originals are not changed.
+*/
+
+/*
+Summary: the value of a stack of items.
+Params: price  the price of one; quantity  how many
+Returns: a float
+*/
+export func StackValue(price number, quantity number) -> float {
+    return $price * $quantity;
+}
+
+/*
+Summary: a score from a market value and a crafting value, mixed by weight.
+Description: market * (1 - weight) + crafting * weight. A component that is none gives its whole weight to the other, and when both are
+  none there is no score.
+Params: market  the market value, or none; crafting  the crafting value, or none; weight  the share of the crafting value, from 0 to 1
+Returns: a number, or none when both components are none
+Errors: RF0599 when the weight is outside 0 to 1
+*/
+export func Score(market number?, crafting number?, weight number) -> number? {
+    if $weight < 0 or $weight > 1 {
+        core.Fail("economy.Score needs a weight between 0 and 1");
+    }
+
+    if $market == none and $crafting == none {
+        return none;
+    }
+
+    if $market == none {
+        return $crafting;
+    }
+
+    if $crafting == none {
+        return $market;
+    }
+
+    return ($market * (1.0 - $weight)) + ($crafting * $weight);
+}
+
+/*
+Summary: gives every record a tier from a number, 1 being the most valuable.
+Description: returns the records, in their order, with two fields added: `tier` and `score` (the number). A record without a number
+  has tier and score none: it is not ranked and is not assumed to be worthless. The strategies:
+    "quantile"   the ranked records are split into `count` groups of equal size (the default)
+    "threshold"  `thresholds` are the lower bounds of tiers 1 to count - 1, highest first: a record is in the first tier whose bound its
+                 number reaches, and in the last tier when it reaches none
+    "cluster"    the ranked records are split at the `count - 1` widest gaps between neighbouring numbers
+Params: data  a list or dataset of records; field  the field holding the number; count  the number of tiers, 1 to 64;
+        strategy  "quantile", "threshold" or "cluster"; thresholds  the bounds, for "threshold" only, `count - 1` of them
+Errors: RF0599 for a count outside 1 to 64, an unknown strategy, or thresholds that are not `count - 1` numbers
+*/
+export func AssignTiers(data any, field string, count int, strategy string?, thresholds list<number>?) -> list<record> {
+    if $count < 1 or $count > 64 {
+        core.Fail("economy.AssignTiers needs a tier count from 1 to 64");
+    }
+
+    var mode = "quantile";
+
+    if $strategy != none {
+        mode = $strategy;
+    }
+
+    if mode != "quantile" and mode != "threshold" and mode != "cluster" {
+        core.Fail("unknown tiering strategy \"" + mode + "\"; the strategies are quantile, threshold and cluster");
+    }
+
+    if mode == "threshold" {
+        if $thresholds == none or collections.Count($thresholds) + 1 != $count {
+            core.Fail("the threshold strategy needs a list of count - 1 thresholds, highest first");
+        }
+    }
+
+    let numbers = collections.Values($data, $field);
+    let priced = collections.Count(numbers);
+    let ranks = collections.Ranks($data, $field, true);
+
+    // The places, in the ranking, after which a new tier begins.
+    var cuts = [];
+
+    if mode == "cluster" {
+        cuts = stats.WidestGaps(collections.Sort(numbers, none, true), $count - 1);
+    }
+
+    var result = [];
+    var index = 0;
+
+    for item in $data {
+        let rank = ranks[index];
+        var tier = none;
+        var score = none;
+
+        if rank != none {
+            score = collections.Field(item, $field);
+
+            if mode == "quantile" {
+                tier = 1 + math.Truncate(rank * $count / priced);
+            } else if mode == "threshold" {
+                var level = 0;
+                var found = false;
+
+                tier = $count;
+
+                for bound in $thresholds {
+                    if (not found) and score >= bound {
+                        tier = level + 1;
+                        found = true;
+                    }
+
+                    level = level + 1;
+                }
+            } else {
+                tier = 1;
+
+                for cut in cuts {
+                    if cut < rank {
+                        tier = tier + 1;
+                    }
+                }
+            }
+        }
+
+        let withTier = collections.WithField(item, "tier", tier);
+
+        result = collections.Concat(result, [collections.WithField(withTier, "score", score)]);
+        index = index + 1;
+    }
+
+    return result;
+}
+
+/*
+Summary: keeps an established tier until a new tier has held for enough snapshots in a row.
+Description: `current` is what AssignTiers returned for this snapshot; `history` holds records from the previous run, kept by the host:
+  {key, tier, streak} and, while a change is pending, {candidate, candidateStreak}. A record whose tier is unchanged keeps counting its
+  streak. A changed one stays at its old tier until the new tier has been seen `required` snapshots in a row, and then moves. The records
+  come back with `tier` set to the tier to use and `streak` added. Compiling the same snapshot again adds no evidence: the host only
+  advances the history when there is a new snapshot.
+Params: current  records with a `tier`; history  the records of the previous run; key  the field that identifies a record in both;
+        required  how many snapshots in a row, at least 1
+Errors: RF0599 when `required` is below 1 or a current record lacks the key field or a tier
+*/
+export func PersistTiers(current any, history any, key string, required int) -> list<record> {
+    if $required < 1 {
+        core.Fail("economy.PersistTiers needs a positive snapshot count");
+    }
+
+    var result = [];
+
+    for source in $current {
+        if (not collections.Has(source, $key)) or (not collections.Has(source, "tier")) {
+            core.Fail("economy.PersistTiers: every item needs the key field and a tier; run AssignTiers first");
+        }
+
+        let identity = collections.Field(source, $key);
+        let tier = collections.Field(source, "tier");
+        var held = 0;
+        var streak = 1;
+        var matched = false;
+
+        if core.TypeOf(tier) == "int" {
+            held = tier;
+        }
+
+        for entry in $history {
+            if (not matched) and core.TypeOf(entry) == "record" and collections.Has(entry, $key) {
+                if collections.Field(entry, $key) == identity {
+                    let previous = collections.Get(entry, "tier");
+                    let previousStreak = collections.Get(entry, "streak");
+
+                    matched = true;
+
+                    if core.TypeOf(previous) == "int" and core.TypeOf(tier) == "int" {
+                        if previous == tier {
+                            if core.TypeOf(previousStreak) == "int" {
+                                streak = previousStreak + 1;
+                            }
+                        } else {
+                            // The new tier counts the snapshots it has held in `candidateStreak`; the established tier stays until enough.
+                            let candidate = collections.Get(entry, "candidate");
+                            let candidateStreak = collections.Get(entry, "candidateStreak");
+
+                            held = previous;
+
+                            if core.TypeOf(candidate) == "int" and core.TypeOf(candidateStreak) == "int" and candidate == tier {
+                                streak = candidateStreak + 1;
+                            }
+
+                            if streak >= $required {
+                                held = tier;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        var output = source;
+
+        if core.TypeOf(tier) == "int" {
+            output = collections.WithField(source, "tier", held);
+        }
+
+        result = collections.Concat(result, [collections.WithField(output, "streak", streak)]);
+    }
+
+    return result;
+}
+
+/* Raw observations remain in SQLite. The host exposes one latest variant observation per league/time bucket,
+   with patch regime, freshness and provider-specific liquidity evidence. A thin league does not borrow another league's confidence. */
+export schema HistoryRow {
+    id string;
+    name string;
+    baseType string;
+    class string;
+    variant string;
+    league string;
+    gameVersion string;
+    bucket int;
+    chaosValue float;
+    divineValue float;
+    listingCount int;
+    tradedUnits float;
+    source string;
+    state string;
+    reliableBuckets int;
+}
+
+/* Summary: synchronized, patch-filtered economy time buckets; configure economyHistory in studio.json. */
+export dataset History: HistoryRow from "economy.history";
+
+/* Summary: reliable observations of one league, preserving variants and source identity. */
+export func ReliableHistory(rows any, league string) -> list<record> {
+    var result = [];
+    for row in $rows {
+        if collections.Field(row, "league") == $league and collections.Field(row, "state") == "reliable" {
+            result = collections.Concat(result, [row]);
+        }
+    }
+    return result;
+}
+
+/* Summary: mean price of the exact named variant in one league's reliable time buckets, or none when absent. */
+export func MemoryPrice(rows any, league string, name string, variant string) -> float? {
+    var values = [];
+    for row in ReliableHistory($rows, $league) {
+        if collections.Field(row, "name") == $name and collections.Field(row, "variant") == $variant {
+            values = collections.Concat(values, [collections.Field(row, "chaosValue")]);
+        }
+    }
+    return stats.Mean(values, none);
+}

@@ -1,0 +1,53 @@
+Language: EBNF
+Version: 1.0.0
+
+// Extended BNF as ISO/IEC 14977 defines it: `name = definitions ;`, concatenation with a comma, alternatives with `|`, `/` or `!`,
+// `[ ... ]` for an option, `{ ... }` for a repetition, `( ... )` for a group, `n * x` for a count, `x - y` for an exception, terminal strings
+// in single or double quotes, `? ... ?` for a special sequence and `(* ... *)` for a comment. A meta identifier may hold white space between
+// its words. Either of `;` and `.` ends a rule.
+
+PARSER {
+	entry = #syntax
+	global = #trivia
+}
+
+CONTEXT <ROOT> {
+	$whitespace = (' ' || '\t' || '\r' || '\n' || '\u{C}')+
+	$comment = '(*' ('\t' || '\n' || '\r' || ' '..')' || '+'..'\u{10FFFF}' || ('*'+ ('\t' || '\n' || '\r' || ' '..'(' || '+'..'\u{10FFFF}')))* '*'+ ')'
+
+	$word = ('a'..'z' || 'A'..'Z') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_')*
+	$integer = '0'..'9'+
+	$terminal_single = '\'' ('\t' || ' '..'&' || '('..'\u{10FFFF}')* '\''
+	$terminal_double = '"' ('\t' || ' '..'!' || '#'..'\u{10FFFF}')* '"'
+	$special = '?' ('\t' || '\n' || '\r' || ' '..'>' || '@'..'\u{10FFFF}')* '?'
+
+	$equals = '='
+	$comma = ','
+	$pipe = '|'
+	$slash = '/'
+	$bang = '!'
+	$semicolon = ';'
+	$dot = '.'
+	$star = '*'
+	$minus = '-'
+	$lparen = '('
+	$rparen = ')'
+	$lbracket = '['
+	$rbracket = ']'
+	$lbrace = '{'
+	$rbrace = '}'
+}
+
+#trivia = $whitespace || $comment
+
+#syntax = #rule*
+#rule = #meta_identifier $equals #definitions_list ($semicolon || $dot)
+#meta_identifier = $word+
+#definitions_list = #single_definition (($pipe || $slash || $bang) #single_definition)*
+#single_definition = (#term ($comma #term)*)?
+#term = #factor ($minus #factor)?
+#factor = ($integer $star)? #primary
+#primary = #optional || #repeated || #grouped || $special || $terminal_single || $terminal_double || #meta_identifier
+#optional = $lbracket #definitions_list $rbracket
+#repeated = $lbrace #definitions_list $rbrace
+#grouped = $lparen #definitions_list $rparen

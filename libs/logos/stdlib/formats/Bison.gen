@@ -1,0 +1,97 @@
+Language: Bison
+Version: 1.0.0
+
+// The grammar language of yacc and GNU Bison (.y, .yy): the prologue and the declarations (%token, %left, %right, %nonassoc,
+// %precedence, %start, %type, %union, %define, %code and the rest), the rules section with its alternatives, actions, mid-rule
+// actions, semantic predicates, %prec, %empty, %dprec and %merge, and the epilogue.
+//
+// Actions, the prologue and the epilogue are target-language code. An action is read as nested braces with strings, character
+// constants and comments, as Bison itself reads it; the prologue %{ ... %} and the epilogue are read as one piece of text each.
+// The epilogue begins at the second %%, which the grammar tells from the first by what it expects there.
+
+PARSER {
+	entry = #grammar_file
+	global = #trivia
+	lexical_selection = grammar_expected
+}
+
+CONTEXT <ROOT> {
+	$whitespace = (' ' || '\t' || '\r' || '\n' || '\u{C}')+
+	$line_comment = '//' ('\t' || ' '..'\u{10FFFF}')*
+	$block_comment = '/*' ('\t' || '\n' || '\r' || ' '..')' || '+'..'\u{10FFFF}' || ('*'+ ('\t' || '\n' || '\r' || ' '..')' || '+'..'.' || '0'..'\u{10FFFF}')))* '*'+ '/'
+
+	// %{ ... %}
+	$prologue = '%{' ('\t' || '\n' || '\r' || ' '..'$' || '&'..'\u{10FFFF}' || ('%'+ ('\t' || '\n' || '\r' || ' '..'$' || '&'..'|' || '~'..'\u{10FFFF}')))* '%'+ '}'
+
+	$section_break = '%%'
+	$directive = '%' ('a'..'z' || 'A'..'Z' || '_' || '-')+
+	$kw_prec = '%prec' @priority(10)
+	$kw_empty = '%empty' @priority(10)
+	$kw_dprec = '%dprec' @priority(10)
+	$kw_merge = '%merge' @priority(10)
+
+	// Names may hold dots and dashes after the first character.
+	$identifier = ('a'..'z' || 'A'..'Z' || '_' || '.') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '.' || '-')*
+	$integer = ('0x' ('0'..'9' || 'a'..'f' || 'A'..'F')+) || '0'..'9'+
+
+	// 'c' and "text" with C escapes
+	$char_literal = '\'' ('\\' ('\t' || ' '..'\u{10FFFF}') || '\t' || ' '..'&' || '('..'[' || ']'..'\u{10FFFF}')+ '\''
+	$string_literal = '"' ('\\' ('\t' || ' '..'\u{10FFFF}') || '\t' || ' '..'!' || '#'..'[' || ']'..'\u{10FFFF}')* '"'
+	// <type>, <*> and <>
+	$tag = '<' ('\t' || ' '..'=' || '?'..'\u{10FFFF}')* '>'
+
+	$colon = ':'
+	$semicolon = ';'
+	$pipe = '|'
+	$comma = ','
+	$assign = '='
+	$lbracket = '['
+	$rbracket = ']'
+	$plus_assign = '+='
+
+	// { ... } is an action, a union or a code block; %?{ ... } is a semantic predicate.
+	$action_open = '{' -> push(ACTION)
+	$predicate_open = '%?{' -> push(ACTION)
+
+	// What follows the second %%.
+	$epilogue_text = .+
+}
+
+CONTEXT <ACTION> {
+	$action_nested_open = '{' -> push(ACTION)
+	$action_close = '}' -> pop(1)
+	$action_string = '"' ('\\' ('\t' || ' '..'\u{10FFFF}') || '\t' || ' '..'!' || '#'..'[' || ']'..'\u{10FFFF}')* '"'
+	$action_character = '\'' ('\\' ('\t' || ' '..'\u{10FFFF}') || '\t' || ' '..'&' || '('..'[' || ']'..'\u{10FFFF}')* '\''
+	$action_line_comment = '//' ('\t' || ' '..'\u{10FFFF}')*
+	$action_block_comment = '/*' ('\t' || '\n' || '\r' || ' '..')' || '+'..'\u{10FFFF}' || ('*'+ ('\t' || '\n' || '\r' || ' '..')' || '+'..'.' || '0'..'\u{10FFFF}')))* '*'+ '/'
+	$action_text = ('\t' || '\n' || '\r' || ' '..'!' || '#'..'&' || '('..'.' || '0'..'z' || '|' || '~'..'\u{10FFFF}')+
+	$action_slash = '/'
+}
+
+// Whitespace and comments are everywhere between tokens.
+#trivia = $whitespace || $line_comment || $block_comment
+
+#grammar_file = #declaration* $section_break #rule* ($section_break $epilogue_text?)?
+
+// ---- declarations ----
+#declaration = $prologue || #directive_declaration || $semicolon
+#directive_declaration = $directive #argument*
+#argument = $identifier || $integer || $char_literal || $string_literal || $tag || $assign || $plus_assign || $comma || $lbracket || $rbracket ||
+            $colon || $pipe || #action_block
+
+// { ... }: the text of an action, nested.
+#action_block = $action_open #action_content* $action_close
+#predicate_block = $predicate_open #action_content* $action_close
+#action_content = $action_nested_open #action_content* $action_close || $action_string || $action_character || $action_line_comment || $action_block_comment ||
+                  $action_text || $action_slash
+
+// ---- rules ----
+#rule = $identifier $colon #alternatives $semicolon?
+#alternatives = #alternative ($pipe #alternative)*
+#alternative = #element*
+#element = #symbol #symbol_alias? || #action_block || #predicate_block || #precedence_clause || $kw_empty || #dprec_clause || #merge_clause
+#symbol = $identifier || $char_literal || $string_literal
+#symbol_alias = $lbracket $identifier $rbracket
+#precedence_clause = $kw_prec #symbol
+#dprec_clause = $kw_dprec $integer
+#merge_clause = $kw_merge $tag

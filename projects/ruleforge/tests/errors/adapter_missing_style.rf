@@ -1,0 +1,8 @@
+version 1.0.0;
+module t;
+themeSchema Base { big; small; }
+themeSchema Legacy { huge; tiny; }
+theme Old implements Legacy { huge { onShow { Background #FF0000; } } tiny { onShow { Background #00FF00; } } }
+func Rules() -> ruleset { emit rule { action show; style big; } }
+configuration { default-schema = Base; adapter A -> Base { big = huge; small = gone; } }
+export func main() { include Rules() with { theme: Old, adapter: A }; }

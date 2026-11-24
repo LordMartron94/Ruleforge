@@ -1,0 +1,82 @@
+Language: Calculator
+Version: 1.0.0
+
+IMPORT General {
+    $_integer,
+    $keyword,
+    #delimited,
+    #arithmetic_pratt,
+    EmptyPolicy,
+    TrailingSeparatorPolicy,
+    SignPolicy
+}
+
+PARSER {
+    entry = #document
+    global = #whitespace
+}
+
+CONTEXT <ROOT> {
+    $whitespace = (' ' || '\t' || '\r' || '\n')+
+
+    $open = '('
+    $close = ')'
+    $bracket_open = '['
+    $bracket_close = ']'
+    $comma = ','
+    $equals = '='
+
+    $minus = '-'
+    $plus = '+'
+    $multiply = '*'
+    $power = '^'
+    $factorial = '!'
+
+    // Signs are represented by Pratt operators, not number lexemes.
+    $integer = $_integer(sign: SignPolicy.NONE)
+    $identifier = ('a'..'z' || 'A'..'Z' || '_')+
+
+    // Equal-length tie with $identifier resolved by lexical priority.
+    $keyword(name: $let, text: "let", priority: 10)
+}
+
+#whitespace = $whitespace
+#document = #assignment || #integer_list || #expression
+#assignment = $let $identifier $equals #expression
+
+// Parenthesized expressions invoke the same Pratt rule recursively.
+#atom = $integer || $identifier || ($open #expression $close)
+
+// Generate a full Pratt rule using the imported library template.
+// 2 ^ 3 ^ 4 groups as 2 ^ (3 ^ 4) because 80 == 80.
+// 2 * 3 + 4 groups as (2 * 3) + 4 because 50 > 30.
+// -2 ^ 3! groups as -(2 ^ (3!)) because 65 < 80 < 90.
+#arithmetic_pratt(
+    name: #expression,
+    atom: #atom,
+    minus: $minus,
+    plus: $plus,
+    multiply: $multiply,
+    power: $power,
+    factorial: $factorial,
+    prefix_right_bp: 65,
+    plus_left_bp: 30,
+    plus_right_bp: 31,
+    multiply_left_bp: 50,
+    multiply_right_bp: 51,
+    power_left_bp: 80,
+    power_right_bp: 80,
+    factorial_left_bp: 90
+)
+
+// A separate grammar template is configured using enum policies.
+// For example: [1, 2,] is accepted, [] is accepted, and commas
+// are preserved as ordinary CST tokens.
+#integer_list = #delimited(
+    open_token: $bracket_open,
+    close_token: $bracket_close,
+    element: $integer,
+    separator: $comma,
+    empty: EmptyPolicy.ALLOW,
+    trailing: TrailingSeparatorPolicy.ALLOW
+)

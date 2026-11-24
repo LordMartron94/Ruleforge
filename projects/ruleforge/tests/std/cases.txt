@@ -1,0 +1,100 @@
+# Each line is `expression => expected JSON`. Run by run_std_cases.cmake with the fixture module and the standard library imported.
+# imports: std.core std.math std.collections std.stats std.economy
+
+# std.math
+math.Abs(-4) => 4
+math.Abs(-4.5) => 4.5
+math.Min(3, 2.5) => 2.5
+math.Max(3, 2.5) => 3
+math.Clamp(15, 0, 10) => 10
+math.Clamp(-1, 0, 10) => 0
+math.Clamp(5, 0, 10) => 5
+math.Floor(3.9) => 3
+math.Floor(-3.1) => -4
+math.Floor(4) => 4
+math.Ceil(3.1) => 4
+math.Ceil(-3.9) => -3
+math.Round(2.5) => 3
+math.Round(-2.5) => -3
+math.Round(2.4) => 2
+math.Truncate(-3.9) => -3
+math.Pow(2, 10) => 1024
+math.Pow(2, -2) => 0.25
+math.Pow(10, 0) => 1
+math.Sqrt(0) => 0
+math.Sqrt(16) => 4
+math.Sqrt(2) => 1.414213562
+
+# std.collections
+collections.Count([1, 2, 3]) => 3
+collections.Count(fixture.Items) => 7
+collections.Range(0, 4) => [0,1,2,3]
+collections.Range(2, 2) => []
+collections.Concat([1, 2], [3]) => [1,2,3]
+collections.Take([1, 2, 3, 4], 2, 1) => [2,3]
+collections.Take([1, 2, 3], 10, none) => [1,2,3]
+collections.Reverse([1, 2, 3]) => [3,2,1]
+collections.Sort([3, 1, 2], none, false) => [1,2,3]
+collections.Sort([3, 1, 2], none, true) => [3,2,1]
+collections.Pluck(collections.Sort(fixture.Items, "price", true), "name") => ["a","b","c","d","e","g","f"]
+collections.Pluck(collections.Sort(fixture.Items, "price", false), "name") => ["g","e","d","c","b","a","f"]
+collections.Values(fixture.Items, "price") => [100,50,49,10,9,1]
+collections.Ranks(fixture.Items, "price", true) => [0,1,2,3,4,null,5]
+collections.Ranks(fixture.Items, "price", false) => [5,4,3,2,1,null,0]
+collections.Contains([1, 2], 2) => true
+collections.Contains(["a"], "b") => false
+collections.Has(collections.MakeRecord(["a"], [1]), "a") => true
+collections.Get(collections.MakeRecord(["a"], [1]), "b") => null
+collections.Field(collections.WithField(collections.MakeRecord(["a"], [1]), "a", 5), "a") => 5
+collections.Count(collections.Concat(collections.Concat([1], [2]), [3])) => 3
+
+# Appending in a loop-like chain keeps every earlier version intact.
+collections.Concat(collections.Concat([1], [2]), [3, 4]) => [1,2,3,4]
+
+# std.stats
+stats.Mean([1, 2, 6], none) => 3
+stats.Mean(fixture.Items, "price") => 36.5
+stats.Mean([], none) => null
+stats.Median([5, 1, 3, 9], none) => 4
+stats.Median(fixture.Items, "price") => 29.5
+stats.Quantile([1, 2, 3, 4, 5], 0.9, none) => 4.6
+stats.Quantile([1, 2, 3, 4, 5], 0, none) => 1
+stats.Quantile([1, 2, 3, 4, 5], 1, none) => 5
+stats.WidestGaps([100, 50, 49, 10, 9, 1], 2) => [0,2]
+stats.WidestGaps([5], 3) => []
+
+# std.economy
+economy.StackValue(2, 3.5) => 7
+economy.Score(10, 20, 0.25) => 12.5
+economy.Score(none, 20, 0.25) => 20
+economy.Score(10, none, 0.25) => 10
+economy.Score(none, none, 0.25) => null
+collections.Pluck(economy.AssignTiers(fixture.Items, "price", 3, none, none), "tier") => [1,1,2,2,3,null,3]
+collections.Pluck(economy.AssignTiers(fixture.Items, "price", 3, "quantile", none), "score") => [100,50,49,10,9,null,1]
+collections.Pluck(economy.AssignTiers(fixture.Items, "price", 3, "threshold", [60, 20]), "tier") => [1,2,2,3,3,null,3]
+collections.Pluck(economy.AssignTiers(fixture.Items, "price", 3, "cluster", none), "tier") => [1,2,2,3,3,null,3]
+collections.Pluck(economy.AssignTiers(fixture.Items, "price", 1, none, none), "tier") => [1,1,1,1,1,null,1]
+collections.Pluck(economy.PersistTiers(economy.AssignTiers(fixture.Items, "price", 3, none, none), [collections.MakeRecord(["name", "tier", "streak"], ["a", 2, 3])], "name", 2), "tier") => [2,1,2,2,3,null,3]
+collections.Pluck(economy.PersistTiers(economy.AssignTiers(fixture.Items, "price", 3, none, none), [collections.MakeRecord(["name", "tier", "streak", "candidate", "candidateStreak"], ["a", 2, 3, 1, 1])], "name", 2), "tier") => [1,1,2,2,3,null,3]
+collections.Pluck(economy.PersistTiers(economy.AssignTiers(fixture.Items, "price", 3, none, none), [collections.MakeRecord(["name", "tier", "streak"], ["b", 1, 4])], "name", 2), "streak") => [1,5,1,1,1,1,1]
+
+# std.core
+core.TypeOf(1) => "int"
+core.TypeOf(1.5) => "float"
+core.TypeOf(none) => "none"
+core.TypeOf([1]) => "list"
+core.TypeOf(fixture.Items) => "dataset"
+
+# imports: std.color std.build std.progression
+# The colour algorithms live in Blaze; these check the Ruleforge bridge and error-free imports.
+color.WCAG(#000000, #FFFFFF) => 21
+math.Abs(color.APCA(#000000, #FFFFFF) - 106.04067321268862) < 0.000001 => true
+math.Abs(color.APCA(#FFFFFF, #000000) + 107.88473318309848) < 0.000001 => true
+math.Abs(color.DeltaE2000Lab([50,2.6772,-79.7751], [50,0,-82.7485]) - 2.0425) < 0.00005 => true
+color.DeltaE2000(#FFFFFF, #FFFFFF) => 0
+color.Composite(#FF000080, #0000FF) => "#80007FFF"
+color.Channel(#12345678, 2) => 86
+build.UsesClass(collections.MakeRecord(["class"], ["Wands"]), ["Wands", "Shields"]) => true
+build.UsesClass(collections.MakeRecord(["class"], ["Wands"]), ["Bows"]) => false
+collections.Count(progression.Available([collections.MakeRecord(["class","dropLevel"], ["Wands",3]), collections.MakeRecord(["class","dropLevel"], ["Wands",none])], 5, none)) => 1
+collections.Pluck(progression.Upgrades([collections.MakeRecord(["class","dropLevel"], ["Wands",3]),collections.MakeRecord(["class","dropLevel"], ["Wands",7]),collections.MakeRecord(["class","dropLevel"], ["Bows",5])], 10), "dropLevel") => [7,5]

@@ -1,0 +1,4 @@
+version 1.0.0;
+module t;
+export condition c { keyword "C"; }
+export func main() { }

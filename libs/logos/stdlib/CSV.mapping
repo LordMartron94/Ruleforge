@@ -1,0 +1,14 @@
+extensions = csv
+scope = source.csv
+
+$text = string.unquoted
+$comma = punctuation.separator
+$quoted_comma = string.quoted.double
+$quoted_text = string.quoted.double
+$quoted_cr = string.quoted.double
+$quoted_lf = string.quoted.double
+$escaped_quote = constant.character.escape
+$quote_open = punctuation.definition.string.begin
+$quote_close = punctuation.definition.string.end
+context QUOTED = string.quoted.double
+rule #escaped = string.quoted.double

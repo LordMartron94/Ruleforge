@@ -1,0 +1,17 @@
+Language: Ambiguous
+Version: 1.0.0
+
+// The Earley engine takes any context-free grammar: left recursion and ambiguity are fine, and every derivation is kept.
+// This is what grammars imported from yacc, bison or ANTLR need; the default backtracking engine has PEG semantics.
+
+PARSER {
+	entry = #sum
+	engine = earley
+}
+
+CONTEXT <ROOT> {
+	$number = '0'..'9'+
+	$plus = '+'
+}
+
+#sum = #sum $plus #sum || $number

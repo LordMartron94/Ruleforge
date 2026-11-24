@@ -1,0 +1,109 @@
+Language: SQL
+Version: 0.1.0
+
+// A tolerant SQL: statements made of keywords, names, literals, operators and parenthesized groups, separated by
+// semicolons. It does not check that a statement is well formed; it gives editors the structure and gives other
+// languages (Markdown fences, string embedding) something to parse a query with.
+
+PARSER {
+	entry = #document
+	global = #trivia
+}
+
+CONTEXT <ROOT> {
+	$whitespace = (' ' || '\t' || '\r' || '\n')+
+	$line_comment = '--' ('\t' || ' '..'\u{10FFFF}')*
+	$block_comment_open = '/*' -> push(BLOCK_COMMENT)
+
+	$kw_select = ('S' || 's') ('E' || 'e') ('L' || 'l') ('E' || 'e') ('C' || 'c') ('T' || 't') @priority(10)
+	$kw_distinct = ('D' || 'd') ('I' || 'i') ('S' || 's') ('T' || 't') ('I' || 'i') ('N' || 'n') ('C' || 'c') ('T' || 't') @priority(10)
+	$kw_from = ('F' || 'f') ('R' || 'r') ('O' || 'o') ('M' || 'm') @priority(10)
+	$kw_where = ('W' || 'w') ('H' || 'h') ('E' || 'e') ('R' || 'r') ('E' || 'e') @priority(10)
+	$kw_group = ('G' || 'g') ('R' || 'r') ('O' || 'o') ('U' || 'u') ('P' || 'p') @priority(10)
+	$kw_by = ('B' || 'b') ('Y' || 'y') @priority(10)
+	$kw_having = ('H' || 'h') ('A' || 'a') ('V' || 'v') ('I' || 'i') ('N' || 'n') ('G' || 'g') @priority(10)
+	$kw_order = ('O' || 'o') ('R' || 'r') ('D' || 'd') ('E' || 'e') ('R' || 'r') @priority(10)
+	$kw_limit = ('L' || 'l') ('I' || 'i') ('M' || 'm') ('I' || 'i') ('T' || 't') @priority(10)
+	$kw_offset = ('O' || 'o') ('F' || 'f') ('F' || 'f') ('S' || 's') ('E' || 'e') ('T' || 't') @priority(10)
+	$kw_join = ('J' || 'j') ('O' || 'o') ('I' || 'i') ('N' || 'n') @priority(10)
+	$kw_inner = ('I' || 'i') ('N' || 'n') ('N' || 'n') ('E' || 'e') ('R' || 'r') @priority(10)
+	$kw_left = ('L' || 'l') ('E' || 'e') ('F' || 'f') ('T' || 't') @priority(10)
+	$kw_right = ('R' || 'r') ('I' || 'i') ('G' || 'g') ('H' || 'h') ('T' || 't') @priority(10)
+	$kw_full = ('F' || 'f') ('U' || 'u') ('L' || 'l') ('L' || 'l') @priority(10)
+	$kw_outer = ('O' || 'o') ('U' || 'u') ('T' || 't') ('E' || 'e') ('R' || 'r') @priority(10)
+	$kw_cross = ('C' || 'c') ('R' || 'r') ('O' || 'o') ('S' || 's') ('S' || 's') @priority(10)
+	$kw_on = ('O' || 'o') ('N' || 'n') @priority(10)
+	$kw_using = ('U' || 'u') ('S' || 's') ('I' || 'i') ('N' || 'n') ('G' || 'g') @priority(10)
+	$kw_union = ('U' || 'u') ('N' || 'n') ('I' || 'i') ('O' || 'o') ('N' || 'n') @priority(10)
+	$kw_all = ('A' || 'a') ('L' || 'l') ('L' || 'l') @priority(10)
+	$kw_insert = ('I' || 'i') ('N' || 'n') ('S' || 's') ('E' || 'e') ('R' || 'r') ('T' || 't') @priority(10)
+	$kw_into = ('I' || 'i') ('N' || 'n') ('T' || 't') ('O' || 'o') @priority(10)
+	$kw_values = ('V' || 'v') ('A' || 'a') ('L' || 'l') ('U' || 'u') ('E' || 'e') ('S' || 's') @priority(10)
+	$kw_update = ('U' || 'u') ('P' || 'p') ('D' || 'd') ('A' || 'a') ('T' || 't') ('E' || 'e') @priority(10)
+	$kw_set = ('S' || 's') ('E' || 'e') ('T' || 't') @priority(10)
+	$kw_delete = ('D' || 'd') ('E' || 'e') ('L' || 'l') ('E' || 'e') ('T' || 't') ('E' || 'e') @priority(10)
+	$kw_create = ('C' || 'c') ('R' || 'r') ('E' || 'e') ('A' || 'a') ('T' || 't') ('E' || 'e') @priority(10)
+	$kw_table = ('T' || 't') ('A' || 'a') ('B' || 'b') ('L' || 'l') ('E' || 'e') @priority(10)
+	$kw_view = ('V' || 'v') ('I' || 'i') ('E' || 'e') ('W' || 'w') @priority(10)
+	$kw_index = ('I' || 'i') ('N' || 'n') ('D' || 'd') ('E' || 'e') ('X' || 'x') @priority(10)
+	$kw_unique = ('U' || 'u') ('N' || 'n') ('I' || 'i') ('Q' || 'q') ('U' || 'u') ('E' || 'e') @priority(10)
+	$kw_drop = ('D' || 'd') ('R' || 'r') ('O' || 'o') ('P' || 'p') @priority(10)
+	$kw_alter = ('A' || 'a') ('L' || 'l') ('T' || 't') ('E' || 'e') ('R' || 'r') @priority(10)
+	$kw_add = ('A' || 'a') ('D' || 'd') ('D' || 'd') @priority(10)
+	$kw_column = ('C' || 'c') ('O' || 'o') ('L' || 'l') ('U' || 'u') ('M' || 'm') ('N' || 'n') @priority(10)
+	$kw_primary = ('P' || 'p') ('R' || 'r') ('I' || 'i') ('M' || 'm') ('A' || 'a') ('R' || 'r') ('Y' || 'y') @priority(10)
+	$kw_key = ('K' || 'k') ('E' || 'e') ('Y' || 'y') @priority(10)
+	$kw_foreign = ('F' || 'f') ('O' || 'o') ('R' || 'r') ('E' || 'e') ('I' || 'i') ('G' || 'g') ('N' || 'n') @priority(10)
+	$kw_references = ('R' || 'r') ('E' || 'e') ('F' || 'f') ('E' || 'e') ('R' || 'r') ('E' || 'e') ('N' || 'n') ('C' || 'c') ('E' || 'e') ('S' || 's') @priority(10)
+	$kw_default = ('D' || 'd') ('E' || 'e') ('F' || 'f') ('A' || 'a') ('U' || 'u') ('L' || 'l') ('T' || 't') @priority(10)
+	$kw_not = ('N' || 'n') ('O' || 'o') ('T' || 't') @priority(10)
+	$kw_null = ('N' || 'n') ('U' || 'u') ('L' || 'l') ('L' || 'l') @priority(10)
+	$kw_and = ('A' || 'a') ('N' || 'n') ('D' || 'd') @priority(10)
+	$kw_or = ('O' || 'o') ('R' || 'r') @priority(10)
+	$kw_in = ('I' || 'i') ('N' || 'n') @priority(10)
+	$kw_is = ('I' || 'i') ('S' || 's') @priority(10)
+	$kw_like = ('L' || 'l') ('I' || 'i') ('K' || 'k') ('E' || 'e') @priority(10)
+	$kw_between = ('B' || 'b') ('E' || 'e') ('T' || 't') ('W' || 'w') ('E' || 'e') ('E' || 'e') ('N' || 'n') @priority(10)
+	$kw_exists = ('E' || 'e') ('X' || 'x') ('I' || 'i') ('S' || 's') ('T' || 't') ('S' || 's') @priority(10)
+	$kw_as = ('A' || 'a') ('S' || 's') @priority(10)
+	$kw_case = ('C' || 'c') ('A' || 'a') ('S' || 's') ('E' || 'e') @priority(10)
+	$kw_when = ('W' || 'w') ('H' || 'h') ('E' || 'e') ('N' || 'n') @priority(10)
+	$kw_then = ('T' || 't') ('H' || 'h') ('E' || 'e') ('N' || 'n') @priority(10)
+	$kw_else = ('E' || 'e') ('L' || 'l') ('S' || 's') ('E' || 'e') @priority(10)
+	$kw_end = ('E' || 'e') ('N' || 'n') ('D' || 'd') @priority(10)
+	$kw_asc = ('A' || 'a') ('S' || 's') ('C' || 'c') @priority(10)
+	$kw_desc = ('D' || 'd') ('E' || 'e') ('S' || 's') ('C' || 'c') @priority(10)
+	$kw_begin = ('B' || 'b') ('E' || 'e') ('G' || 'g') ('I' || 'i') ('N' || 'n') @priority(10)
+	$kw_commit = ('C' || 'c') ('O' || 'o') ('M' || 'm') ('M' || 'm') ('I' || 'i') ('T' || 't') @priority(10)
+	$kw_rollback = ('R' || 'r') ('O' || 'o') ('L' || 'l') ('L' || 'l') ('B' || 'b') ('A' || 'a') ('C' || 'c') ('K' || 'k') @priority(10)
+	$kw_true = ('T' || 't') ('R' || 'r') ('U' || 'u') ('E' || 'e') @priority(10)
+	$kw_false = ('F' || 'f') ('A' || 'a') ('L' || 'l') ('S' || 's') ('E' || 'e') @priority(10)
+
+	$identifier = ('a'..'z' || 'A'..'Z' || '_') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '$')*
+	$quoted_identifier = '"' ('\t' || ' '..'!' || '#'..'\u{10FFFF}' || '""')* '"'
+	$number = '0'..'9'+ ('.' '0'..'9'+)? (('e' || 'E') ('+' || '-')? '0'..'9'+)?
+	$string = '\'' ('\t' || ' '..'&' || '('..'\u{10FFFF}' || '\'\'')* '\''
+	$parameter = '?' || (':' || '$' || '@') ('a'..'z' || 'A'..'Z' || '_') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_')*
+	$lparen = '('
+	$rparen = ')'
+	$comma = ','
+	$semicolon = ';'
+	$dot = '.'
+	$star = '*'
+	$operator = ('+' || '-' || '/' || '%' || '=' || '<' || '>' || '!' || '|' || '&' || '^' || '~')+
+}
+
+CONTEXT <BLOCK_COMMENT> {
+	$block_comment_close = '*/' -> pop(1)
+	$block_comment_text = ('\t' || '\n' || '\r' || ' '..')' || '+'..'\u{10FFFF}')+
+	$block_comment_star = '*'
+}
+
+#trivia = $whitespace || $line_comment || #block_comment
+#block_comment = $block_comment_open ($block_comment_text || $block_comment_star)* $block_comment_close
+
+#document = #statement*
+#statement = #word* $semicolon || #word+
+#group = $lparen #word* $rparen
+#word = #keyword || $identifier || $quoted_identifier || $number || $string || $parameter || $comma || $dot || $star || $operator || #group
+#keyword = $kw_select || $kw_distinct || $kw_from || $kw_where || $kw_group || $kw_by || $kw_having || $kw_order || $kw_limit || $kw_offset || $kw_join || $kw_inner || $kw_left || $kw_right || $kw_full || $kw_outer || $kw_cross || $kw_on || $kw_using || $kw_union || $kw_all || $kw_insert || $kw_into || $kw_values || $kw_update || $kw_set || $kw_delete || $kw_create || $kw_table || $kw_view || $kw_index || $kw_unique || $kw_drop || $kw_alter || $kw_add || $kw_column || $kw_primary || $kw_key || $kw_foreign || $kw_references || $kw_default || $kw_not || $kw_null || $kw_and || $kw_or || $kw_in || $kw_is || $kw_like || $kw_between || $kw_exists || $kw_as || $kw_case || $kw_when || $kw_then || $kw_else || $kw_end || $kw_asc || $kw_desc || $kw_begin || $kw_commit || $kw_rollback || $kw_true || $kw_false

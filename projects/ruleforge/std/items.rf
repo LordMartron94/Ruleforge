@@ -1,0 +1,21 @@
+version 1.0.0;
+module std.items;
+
+/* The host supplies these datasets from gameData in studio.json. They are snapshots: a compile never reaches the network. */
+export schema Item {
+    id string;
+    name string;
+    baseType string;
+    class string;
+    dropLevel int?;
+    requiredLevel int?;
+    socketLimit int;
+    tags list<string>;
+}
+
+/* Summary: PoB item bases, optionally enriched with configured PoE wiki drop levels. */
+export dataset Bases: Item from "game.bases";
+/* Summary: PoB skill and support gems, with their tags. */
+export dataset Gems: Item from "game.gems";
+/* Summary: PoB's named standard uniques; procedural generated uniques are excluded. */
+export dataset Uniques: Item from "game.uniques";

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruleforge Studio</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header id="bar">
+  <strong id="title">Ruleforge Studio</strong>
+  <span id="entry" class="muted"></span>
+  <span class="grow"></span>
+  <span id="status" class="muted" role="status" aria-live="polite"></span>
+  <button id="update-button" hidden></button>
+  <button id="save-button" title="Save the open file (Ctrl+S)">Save</button>
+  <button id="compile-button" class="primary" title="Save everything and compile (Ctrl+Enter)">Compile</button>
+</header>
+<main id="layout">
+  <nav id="files" aria-label="Project files"></nav>
+  <section id="center">
+    <div class="tabs" id="center-tabs" role="tablist"></div>
+    <div id="center-body"></div>
+  </section>
+  <aside id="right">
+    <div class="tabs" id="right-tabs" role="tablist"></div>
+    <div id="right-body"></div>
+  </aside>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+version 1.0.0;
+module adapting;
+import std.conditions;
+
+// The rules are written against Base. The theme only knows Legacy; the adapter says which of its styles serves which Base key.
+themeSchema Base { big; small; }
+themeSchema Legacy { huge; tiny; }
+
+theme Old implements Legacy {
+    huge { onShow { Background #FF0000; } }
+    tiny { onShow { Background #00FF00; } }
+}
+
+configuration {
+    default-schema = Base;
+    adapter OldToBase -> Base {
+        big = huge;
+        small = tiny;
+    }
+}
+
+func Rules() -> ruleset {
+    emit rule { scope { baseType = "Exalted Orb"; } action show; style big; }
+    emit rule { scope { baseType = "Scroll of Wisdom"; } action show; style small; }
+}
+
+export func main() {
+    include Rules() with { theme: Old, adapter: OldToBase };
+}

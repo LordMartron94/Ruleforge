@@ -1,0 +1,18 @@
+version 1.0.0;
+module std.build;
+import std.collections;
+
+/* Summary: whether a base's item class is one used by the build. Use with a configured PoB base dataset. */
+export func UsesClass(item record, classes list<string>) -> bool {
+    let kind = collections.Get($item, "class");
+    return kind != none and collections.Contains($classes, kind);
+}
+
+/* Summary: bases of the classes the build uses, retaining their provider metadata. */
+export func ForClasses(items any, classes list<string>) -> list<record> {
+    var result = [];
+    for item in $items {
+        if UsesClass(item, $classes) { result = collections.Concat(result, [item]); }
+    }
+    return result;
+}

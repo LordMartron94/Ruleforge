@@ -1,0 +1,82 @@
+Language: HTML
+Version: 0.1.0
+
+// A tolerant HTML: a stream of tags, text, comments, doctypes and raw-text elements (script, style). Nesting is not
+// checked, because HTML allows void elements and omitted end tags; editors get the tokens and the structure of every tag.
+
+PARSER {
+	entry = #page
+	global = #blank
+}
+
+CONTEXT <ROOT> {
+	$_name = ('a'..'z' || 'A'..'Z') ('a'..'z' || 'A'..'Z' || '0'..'9' || '-' || ':')*
+
+	$text = ('\t' || '\n' || '\r' || ' '..';' || '='..'\u{10FFFF}')+
+	$comment_open = '<!--' -> push(COMMENT)
+	$doctype = '<!' ('D' || 'd') ('O' || 'o') ('C' || 'c') ('T' || 't') ('Y' || 'y') ('P' || 'p') ('E' || 'e') ('\t' || '\n' || '\r' || ' '..'=' || '?'..'\u{10FFFF}')* '>'
+	$end_tag = '</' $_name ('\t' || '\n' || '\r' || ' ')* '>'
+	$script_open = '<' ('S' || 's') ('C' || 'c') ('R' || 'r') ('I' || 'i') ('P' || 'p') ('T' || 't') -> push(SCRIPT_TAG) @priority(10)
+	$style_open = '<' ('S' || 's') ('T' || 't') ('Y' || 'y') ('L' || 'l') ('E' || 'e') -> push(STYLE_TAG) @priority(10)
+	$start_tag = '<' $_name -> push(TAG)
+}
+
+CONTEXT <TAG> {
+	$blank = (' ' || '\t' || '\n' || '\r')+
+	$attribute_name = ('a'..'z' || 'A'..'Z' || '_' || ':' || '@') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || ':' || '.' || '-')*
+	$equals = '=' -> push(ATTRIBUTE_VALUE)
+	$tag_end = '>' -> pop(1)
+	$tag_self_end = '/>' -> pop(1)
+}
+
+CONTEXT <SCRIPT_TAG> {
+	$blank = (' ' || '\t' || '\n' || '\r')+
+	$attribute_name = ('a'..'z' || 'A'..'Z' || '_' || ':' || '@') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || ':' || '.' || '-')*
+	$equals = '=' -> push(ATTRIBUTE_VALUE)
+	$script_start_end = '>' -> set(SCRIPT_BODY)
+}
+
+CONTEXT <SCRIPT_BODY> {
+	$script_text = ('\t' || '\n' || '\r' || ' '..';' || '='..'\u{10FFFF}')+
+	$script_less = '<'
+	$script_end = '</' ('S' || 's') ('C' || 'c') ('R' || 'r') ('I' || 'i') ('P' || 'p') ('T' || 't') ('\t' || '\n' || '\r' || ' ')* '>' -> pop(1) @priority(10)
+}
+
+CONTEXT <STYLE_TAG> {
+	$blank = (' ' || '\t' || '\n' || '\r')+
+	$attribute_name = ('a'..'z' || 'A'..'Z' || '_' || ':' || '@') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || ':' || '.' || '-')*
+	$equals = '=' -> push(ATTRIBUTE_VALUE)
+	$style_start_end = '>' -> set(STYLE_BODY)
+}
+
+CONTEXT <STYLE_BODY> {
+	$style_text = ('\t' || '\n' || '\r' || ' '..';' || '='..'\u{10FFFF}')+
+	$style_less = '<'
+	$style_end = '</' ('S' || 's') ('T' || 't') ('Y' || 'y') ('L' || 'l') ('E' || 'e') ('\t' || '\n' || '\r' || ' ')* '>' -> pop(1) @priority(10)
+}
+
+// The value after an attribute's "=": quoted, or bare. It is its own context so that a bare value such as utf-8 is not
+// mistaken for an attribute name.
+CONTEXT <ATTRIBUTE_VALUE> {
+	$quoted_value = '"' ('\t' || '\n' || '\r' || ' '..'!' || '#'..'\u{10FFFF}')* '"' || '\'' ('\t' || '\n' || '\r' || ' '..'&' || '('..'\u{10FFFF}')* '\'' -> pop(1)
+	$bare_value = ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '.' || '-' || '#' || '%' || '/' || ':' || '?' || '&' || '+' || ',')+ -> pop(1)
+}
+
+CONTEXT <COMMENT> {
+	$comment_close = '-->' -> pop(1)
+	$comment_text = ('\t' || '\n' || '\r' || ' '..',' || '.'..'\u{10FFFF}')+
+	$comment_dash = '-'
+}
+
+#page = #node*
+#node = $text || $doctype || $end_tag || #comment || #tag || #script || #style
+#comment = $comment_open ($comment_text || $comment_dash)* $comment_close
+#tag = $start_tag #attribute* ($tag_self_end || $tag_end)
+#attribute = $attribute_name ($equals ($quoted_value || $bare_value))?
+#script = $script_open #script_attribute* $script_start_end ($script_text || $script_less)* $script_end
+#script_attribute = $attribute_name ($equals ($quoted_value || $bare_value))?
+#style = $style_open #style_attribute* $style_start_end ($style_text || $style_less)* $style_end
+#style_attribute = $attribute_name ($equals ($quoted_value || $bare_value))?
+
+// Blanks inside a tag are trivia.
+#blank = $blank

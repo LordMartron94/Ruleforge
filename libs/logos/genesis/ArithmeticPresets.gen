@@ -1,0 +1,20 @@
+Library: ArithmeticPresets
+Version: 1.0.0
+
+IMPORT General {
+    #pratt_infix
+}
+
+// This PrattEntry can itself be imported by another library
+// or inserted into a language's PRATT block.
+TEMPLATE <#addition_operator>(
+    $$operator: Token,
+    $$left_bp: int = 30,
+    $$right_bp: int = 31
+) -> PrattEntry {
+    #pratt_infix(
+        operator: $$operator,
+        left_bp: $$left_bp,
+        right_bp: $$right_bp
+    )
+}

@@ -1,0 +1,25 @@
+Language: ChoiceDemonstration
+Version: 1.0.0
+
+PARSER {
+    entry = #document
+    choice = ChoiceMode.ORDERED // Optional; this is the default.
+}
+
+CONTEXT <ROOT> {
+    $a = 'a'
+    $b = 'b'
+}
+
+#document = #longest
+
+// Input "ab": this group may succeed after reading only "a".
+// The surrounding rule must still consume any required remaining input.
+#ordered = ($a || ($a $b)) @choice(ChoiceMode.ORDERED)
+
+// Input "ab": selects the branch consuming both characters.
+#longest = ($a || ($a $b)) @choice(ChoiceMode.LONGEST)
+
+// Input "ab": both branches can succeed at this choice boundary;
+// the engine reports an ambiguity rather than selecting either.
+#strict @choice(ChoiceMode.UNAMBIGUOUS) = $a || ($a $b)

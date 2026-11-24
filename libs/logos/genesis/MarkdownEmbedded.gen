@@ -1,0 +1,53 @@
+Language: MarkdownEmbedded
+Version: 1.0.0
+
+IMPORT JSON AS Json {
+    #document
+}
+IMPORT SQL AS Sql {
+    #document
+}
+IMPORT General {
+    #embedded_region,
+    EmbeddedBoundary
+}
+
+PARSER {
+    entry = #document
+    lexical_selection = grammar_expected
+    choice = ChoiceMode.ORDERED
+}
+
+CONTEXT <ROOT> {
+    $json_open = '```json' ('\r\n' || '\n') -> push(FENCE)
+    $sql_open = '```sql' ('\r\n' || '\n') -> push(FENCE)
+    $text_line = ('\t' || ' '..'~' || '\u{80}'..'\u{10FFFF}')+
+    $newline = '\r\n' || '\n'
+}
+
+CONTEXT <FENCE> {
+    // The host lexer, not either guest lexer, closes the fence.
+    // The EMBED close_boundary constraint requires line start.
+    $fence_close = '```' (' ' || '\t')* ('\r\n' || '\n') -> pop(1)
+}
+
+#document = (#json_fence || #sql_fence || $text_line || $newline)*
+
+// A library template generates a complete EMBED rule at this call site.
+#embedded_region(
+    name: #json_fence,
+    language: Json,
+    entry: Json.#document,
+    open: $json_open,
+    close: $fence_close,
+    close_boundary: EmbeddedBoundary.LINE_START
+)
+
+#embedded_region(
+    name: #sql_fence,
+    language: Sql,
+    entry: Sql.#document,
+    open: $sql_open,
+    close: $fence_close,
+    close_boundary: EmbeddedBoundary.LINE_START
+)
