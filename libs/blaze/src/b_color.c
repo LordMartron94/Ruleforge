@@ -93,7 +93,7 @@ real64 blaze_color_srgb_apca_contrast_get(uint32 text, uint32 background) {
 }
 
 static real64 b_color_lab_f(real64 value) {
-  return value > (216.0 / 24389.0) ? blaze_numerics_cbrtf64(value) : ((24389.0 / 27.0) * value + 16.0) / 116.0;
+  return value > (216.0 / 24389.0) ? blaze_numerics_powf64(value, 1.0 / 3.0) : ((24389.0 / 27.0) * value + 16.0) / 116.0;
 }
 
 void blaze_color_srgb_lab_get(uint32 color, BColorLab *out) {
