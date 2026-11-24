@@ -30,6 +30,7 @@ include(CTest)
 
 add_subdirectory(libs/nexus)
 add_subdirectory(libs/echo)
+add_subdirectory(libs/blaze)
 add_subdirectory(libs/pharos)
 add_subdirectory(libs/logos)
 add_subdirectory(projects/ruleforge)

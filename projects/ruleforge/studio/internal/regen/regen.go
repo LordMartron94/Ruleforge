@@ -43,12 +43,13 @@ type OutputStatus struct {
 
 // Status is what the last cycle did, for the studio and the manifest.
 type Status struct {
-	Enabled  bool           `json:"enabled"`
-	LastRun  time.Time      `json:"lastRun"`
-	Inputs   string         `json:"inputs"`
-	Outputs  []OutputStatus `json:"outputs"`
-	Messages []string       `json:"messages"`
-	Skipped  bool           `json:"skipped"`
+	Diagnostics []engine.Diagnostic `json:"diagnostics"`
+	Enabled     bool                `json:"enabled"`
+	LastRun     time.Time           `json:"lastRun"`
+	Inputs      string              `json:"inputs"`
+	Outputs     []OutputStatus      `json:"outputs"`
+	Messages    []string            `json:"messages"`
+	Skipped     bool                `json:"skipped"`
 }
 
 func (r *Regenerator) logf(format string, args ...any) {
@@ -126,6 +127,13 @@ func (r *Regenerator) inputsHash() string {
 		paths = append(paths, dataset.Path)
 	}
 	sort.Strings(paths)
+	for _, path := range provider.GamePaths(r.Project) {
+		paths = append(paths, path)
+	}
+	if r.Project.EconomyHistory != nil {
+		paths = append(paths, provider.HistoryPath(r.Project))
+	}
+	sort.Strings(paths)
 	for _, path := range paths {
 		data, err := os.ReadFile(r.path(path))
 		fmt.Fprintf(hash, "%s:%d:%v\n", path, len(data), err == nil)
@@ -179,11 +187,21 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	messages := r.refresh(ctx, force)
+	if err := provider.PrepareGameData(ctx, r.Project); err != nil {
+		messages = append(messages, "game data kept its previous snapshot: "+err.Error())
+	}
+	if err := provider.PrepareHistory(ctx, r.Project); err != nil {
+		messages = append(messages, "economy history kept its previous snapshot: "+err.Error())
+	}
+	for _, message := range messages {
+		r.logf("%s", message)
+	}
 	inputs := r.inputsHash()
 	status := Status{LastRun: time.Now().UTC(), Inputs: inputs, Messages: messages, Enabled: r.Project.Regeneration.Enabled}
 	if !force && inputs == r.status.Inputs && len(r.status.Outputs) > 0 {
 		status.Skipped = true
 		status.Outputs = r.status.Outputs
+		status.Diagnostics = r.status.Diagnostics
 		r.status = status
 		return nil
 	}
@@ -192,6 +210,7 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 		outputs = []config.Output{{Name: "ruleforge", Path: "out/ruleforge.filter"}}
 	}
 	var firstError error
+	seenDiagnostics := map[engine.Diagnostic]bool{}
 	for _, output := range outputs {
 		request := engine.Request{Dir: r.Project.Dir, Entry: r.Project.Entry, Include: r.Project.Include, Name: output.Name, Set: map[string]string{}, Datasets: map[string]string{}}
 		for key, value := range r.Project.Context {
@@ -206,8 +225,21 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 		for _, dataset := range r.Project.Datasets {
 			request.Datasets[dataset.Source] = dataset.Path
 		}
+		for source, path := range provider.GamePaths(r.Project) {
+			request.Datasets[source] = path
+		}
+		if r.Project.EconomyHistory != nil {
+			request.Datasets["economy.history"] = provider.HistoryPath(r.Project)
+		}
 		item := OutputStatus{Name: output.Name, Path: output.Path}
 		result, err := r.Engine.Compile(ctx, request)
+		for _, diagnostic := range result.Diagnostics {
+			if !seenDiagnostics[diagnostic] {
+				seenDiagnostics[diagnostic] = true
+				status.Diagnostics = append(status.Diagnostics, diagnostic)
+				r.logf("%s:%d:%d: %s %s: %s", diagnostic.File, diagnostic.Line, diagnostic.Column, diagnostic.Severity, diagnostic.Code, diagnostic.Message)
+			}
+		}
 		switch {
 		case err != nil:
 			item.Error = err.Error()

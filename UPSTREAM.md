@@ -5,8 +5,9 @@ Ruleforge is developed in the MergeSource monorepo; this repository is its publi
 
 | Part | Monorepo commit |
 |---|---|
-| `libs/nexus` | `53be3c5a185d (+ uncommitted changes)` |
-| `libs/echo` | `4d5961b7034d` |
-| `libs/pharos` | `d6185f35c3bd (+ uncommitted changes)` |
-| `libs/logos` | `a040bb56727a` |
-| `projects/ruleforge` | `538c58759512 (+ uncommitted changes)` |
+| `libs/nexus` | `cc9116a052da` |
+| `libs/echo` | `3cc4ef7af1be` |
+| `libs/blaze` | `b7fb8cf52535` |
+| `libs/pharos` | `7501dd98b46c` |
+| `libs/logos` | `8c6b54b2da5d` |
+| `projects/ruleforge` | `6f246d370147` |

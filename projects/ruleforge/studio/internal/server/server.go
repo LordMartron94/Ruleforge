@@ -23,6 +23,7 @@ import (
 
 	"github.com/LordMartron94/Ruleforge/studio/internal/config"
 	"github.com/LordMartron94/Ruleforge/studio/internal/engine"
+	"github.com/LordMartron94/Ruleforge/studio/internal/provider"
 	"github.com/LordMartron94/Ruleforge/studio/internal/update"
 )
 
@@ -60,12 +61,16 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/files", s.handleFiles)
 	mux.HandleFunc("GET /api/file", s.handleFileRead)
 	mux.HandleFunc("PUT /api/file", s.handleFileWrite)
+	mux.HandleFunc("POST /api/source/replace", s.handleSourceReplace)
 	mux.HandleFunc("POST /api/file/create", s.handleFileCreate)
 	mux.HandleFunc("POST /api/check", s.handleCheck)
 	mux.HandleFunc("POST /api/compile", s.handleCompile)
 	mux.HandleFunc("POST /api/simulate", s.handleSimulate)
+	mux.HandleFunc("POST /api/item", s.handleItem)
+	mux.HandleFunc("POST /api/loot", s.handleLoot)
 	mux.HandleFunc("GET /api/ast", s.handleAST)
 	mux.HandleFunc("GET /api/themes", s.handleThemes)
+	mux.HandleFunc("POST /api/color", s.handleColor)
 	mux.HandleFunc("POST /api/tokens", s.handleTokens)
 	mux.HandleFunc("GET /api/manifest", s.handleManifest)
 	mux.HandleFunc("GET /api/update/check", s.handleUpdateCheck)
@@ -160,6 +165,12 @@ func (s *Server) request() engine.Request {
 			datasets[dataset.Source] = dataset.Path
 		}
 	}
+	for source, path := range provider.GamePaths(s.Project) {
+		datasets[source] = path
+	}
+	if s.Project.EconomyHistory != nil {
+		datasets["economy.history"] = provider.HistoryPath(s.Project)
+	}
 	return engine.Request{Dir: s.Project.Dir, Entry: s.Project.Entry, Include: s.Project.Include, Set: set, Datasets: datasets}
 }
 
@@ -251,6 +262,8 @@ func (s *Server) handleFileWrite(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	if err := atomicWrite(full, body); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -385,12 +398,32 @@ func (s *Server) handleAST(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
+	before, err := s.sourceHashes()
+	if err != nil {
+		writeError(w, 500, err)
+		return
+	}
 	themes, diagnostics, err := s.Engine.Themes(ctx, s.request())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": themes != nil, "themes": themes, "diagnostics": diagnostics})
+	after, err := s.sourceHashes()
+	if err != nil {
+		writeError(w, 500, err)
+		return
+	}
+	for path, hash := range before {
+		if after[path] != hash {
+			writeError(w, 409, fmt.Errorf("sources changed while the form was loading; reload"))
+			return
+		}
+	}
+	if len(before) != len(after) {
+		writeError(w, 409, fmt.Errorf("sources changed while the form was loading; reload"))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": themes != nil, "themes": themes, "diagnostics": diagnostics, "sourceHashes": after})
 }
 
 func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {

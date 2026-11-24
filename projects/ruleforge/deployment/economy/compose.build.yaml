@@ -1,0 +1,5 @@
+services:
+  economy-history:
+    build:
+      context: ../../studio
+      dockerfile: ../deployment/economy/Dockerfile

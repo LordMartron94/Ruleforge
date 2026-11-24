@@ -94,8 +94,11 @@ Fields:
   mention        whether a candidate name is a mention of a name that has no declaration (a way to still find where it is used)
   hover          extra hover text for a position that is not on a name; return FALSE for none
 */
-typedef boolean     PharosDocumentKindCallback(void *user, const char *path, uint32 *out_kind);
-typedef void        PharosAnalyzeCallback(void *user, PharosServer *server, PharosDocument *document);
+typedef boolean PharosDocumentKindCallback(void *user, const char *path, uint32 *out_kind);
+typedef void    PharosAnalyzeCallback(void *user, PharosServer *server, PharosDocument *document);
+/* Summary: whether a file can contain occurrences of name; an optional, read-only prefilter before file I/O and analysis. */
+typedef boolean PharosNameFileCallback(void *user, const PharosName *name, const char *path);
+
 typedef boolean     PharosWorkspaceFileCallback(void *user, const char *path);
 typedef const char *PharosKindTextCallback(void *user, int32 kind);
 typedef boolean     PharosKindFlagCallback(void *user, int32 kind);
@@ -147,6 +150,7 @@ typedef struct PharosProvider {
   PharosDocumentKindCallback  *document_kind;
   PharosAnalyzeCallback       *analyze;
   PharosWorkspaceFileCallback *workspace_file;
+  PharosNameFileCallback      *name_file; /* NULL searches every workspace file. */
   PharosKindTextCallback      *kind_label;
   PharosKindTextCallback      *kind_sigil;
   PharosKindFlagCallback      *kind_text;

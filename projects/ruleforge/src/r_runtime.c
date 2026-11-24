@@ -23,6 +23,7 @@ RuleforgeRuntime *ruleforge_runtime_create(EchoRuntime *echo, EchoSystem *parent
   runtime->grammar_engines[1] = NULL;
   runtime->grammar_engines[2] = NULL;
   runtime->grammar_engines[3] = NULL;
+  runtime->grammar_engines[4] = NULL;
   error                       = echo_runtime_system_register(echo, RULEFORGE_ECHO_LABEL, parent_system, &runtime->log_system);
 
   if (error->code != GLOBAL_NEXUS_ERROR_SUCCESS) {
@@ -54,7 +55,7 @@ void ruleforge_runtime_destroy(RuleforgeRuntime *runtime) {
 
   NEXUS_PROGRAM_PRECONDITION(runtime != NULL, "ruleforge_runtime_destroy: NULL runtime");
 
-  for (index = 0; index < 4; index++) {
+  for (index = 0; index < 5; index++) {
     if (runtime->grammar_engines[index] != NULL) {
       logos_languages_genesis_engine_release(runtime->grammar_engines[index]);
     }

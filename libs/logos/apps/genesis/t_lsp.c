@@ -1,6 +1,8 @@
 #include <nexus.h>
+#include <pharos.h>
 #include <logos.h>
 
+#include "tool.h"
 #include "lsp.h"
 
 /* ---------------------------------------------------------------------------- */
@@ -966,6 +968,18 @@ static boolean l_ls_workspace_file(void *user, const char *path) {
   return l_ls_suffix(path, ".gen") || l_ls_suffix(path, ".mapping") || l_ls_language_for((const LToolLs *)user, path) != NULL;
 }
 
+static boolean l_ls_name_file(void *user, const PharosName *name, const char *path) {
+  const LToolLsLanguage *language;
+
+  if (name->owner != NULL && nexus_strings_string_starts_with(name->owner, "generic:")) {
+    language = l_ls_language_for((const LToolLs *)user, path);
+
+    return language != NULL && nexus_strings_string_equals(language->name, name->owner + 8);
+  }
+
+  return l_ls_suffix(path, ".gen") || l_ls_suffix(path, ".mapping");
+}
+
 static const char *l_ls_kind_label(void *user, int32 kind) {
   (void)user;
 
@@ -1167,6 +1181,7 @@ int logos_tool_lsp_run(int argument_count, char **arguments, const LToolOptions 
     callbacks.document_kind  = l_ls_document_kind;
     callbacks.analyze        = l_ls_analyze;
     callbacks.workspace_file = l_ls_workspace_file;
+    callbacks.name_file      = l_ls_name_file;
     callbacks.kind_label     = l_ls_kind_label;
     callbacks.kind_sigil     = l_ls_kind_sigil;
     callbacks.kind_text      = l_ls_kind_text;

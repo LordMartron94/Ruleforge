@@ -84,3 +84,17 @@ core.TypeOf(1.5) => "float"
 core.TypeOf(none) => "none"
 core.TypeOf([1]) => "list"
 core.TypeOf(fixture.Items) => "dataset"
+
+# imports: std.color std.build std.progression
+# The colour algorithms live in Blaze; these check the Ruleforge bridge and error-free imports.
+color.WCAG(#000000, #FFFFFF) => 21
+math.Abs(color.APCA(#000000, #FFFFFF) - 106.04067321268862) < 0.000001 => true
+math.Abs(color.APCA(#FFFFFF, #000000) + 107.88473318309848) < 0.000001 => true
+math.Abs(color.DeltaE2000Lab([50,2.6772,-79.7751], [50,0,-82.7485]) - 2.0425) < 0.00005 => true
+color.DeltaE2000(#FFFFFF, #FFFFFF) => 0
+color.Composite(#FF000080, #0000FF) => "#80007FFF"
+color.Channel(#12345678, 2) => 86
+build.UsesClass(collections.MakeRecord(["class"], ["Wands"]), ["Wands", "Shields"]) => true
+build.UsesClass(collections.MakeRecord(["class"], ["Wands"]), ["Bows"]) => false
+collections.Count(progression.Available([collections.MakeRecord(["class","dropLevel"], ["Wands",3]), collections.MakeRecord(["class","dropLevel"], ["Wands",none])], 5, none)) => 1
+collections.Pluck(progression.Upgrades([collections.MakeRecord(["class","dropLevel"], ["Wands",3]),collections.MakeRecord(["class","dropLevel"], ["Wands",7]),collections.MakeRecord(["class","dropLevel"], ["Bows",5])], 10), "dropLevel") => [7,5]

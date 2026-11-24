@@ -215,8 +215,8 @@ Params: imports  module names to import, or NULL; settings  the limits and compi
         out_json  the value as JSON, owned by the caller (release with nexus_memory_deallocate); NULL when the evaluation failed
 Returns: FALSE after reporting diagnostics when the expression does not parse or fails
 */
-extern boolean ruleforge_compilation_expression_evaluate(RuleforgeCompilation *compilation, const RuleforgeSettings *settings, const char *const *imports,
-                                                         uint32 import_count, const char *expression, char **out_json);
+extern boolean ruleforge_compilation_expression_evaluate(RuleforgeCompilation *compilation, const RuleforgeSettings *settings,
+                                                         const char *const *imports, uint32 import_count, const char *expression, char **out_json);
 
 /*
 Summary: the filter text produced by ruleforge_compilation_compile.
@@ -265,3 +265,13 @@ Description: the editor builds completion and hover help from this, so it can ne
 Returns: a NUL-terminated string owned by the caller; release with nexus_memory_deallocate.
 */
 extern char *ruleforge_manifest_json_write(RuleforgeRuntime *runtime);
+
+/*
+Summary: interprets English PoE copied item text through the embedded Genesis item grammar.
+Description: preserves unknown lines as _unparsed; drop-only information is not invented. Magic item base names may require a configured base catalog.
+Params: error  receives an explanation on failure; error_size must be positive
+Returns: owned item JSON on success, NULL for invalid copied text. Release with nexus_memory_deallocate.
+Ownership: inputs are borrowed for the call, the caller owns the returned text.
+Errors: NULL runtime, text or error, or zero error_size asserts; invalid input returns NULL.
+*/
+extern char *ruleforge_item_json_write(RuleforgeRuntime *runtime, const char *text, char *error, uint_large error_size);

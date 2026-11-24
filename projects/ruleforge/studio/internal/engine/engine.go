@@ -53,7 +53,9 @@ type Result struct {
 
 // Engine locates and runs the ruleforge executable.
 type Engine struct {
-	Path string
+	LogDir  string
+	LogKeep int
+	Path    string
 }
 
 // Locate finds the engine: an explicit path, then next to the running executable, then PATH.
@@ -111,6 +113,13 @@ func (r Request) arguments() []string {
 }
 
 func (e Engine) run(ctx context.Context, dir string, args ...string) (stdout, stderr []byte, status int, err error) {
+	if e.LogDir != "" && len(args) > 0 && args[0] != "version" {
+		keep := e.LogKeep
+		if keep == 0 {
+			keep = 10
+		}
+		args = append(args, "--log-dir", e.LogDir, "--log-keep", fmt.Sprint(keep))
+	}
 	command := exec.CommandContext(ctx, e.Path, args...)
 	command.Dir = dir
 	var out, errors_ bytes.Buffer
@@ -164,6 +173,11 @@ func (e Engine) Compile(ctx context.Context, req Request) (Result, error) {
 		result.OK = true
 		result.Filter = string(filterBytes)
 		result.Model = modelBytes
+		warnings, err := validateCatalog(req, result.Model)
+		if err != nil {
+			return Result{}, err
+		}
+		result.Diagnostics = append(result.Diagnostics, warnings...)
 		return result, nil
 	}
 	if len(result.Diagnostics) == 0 && len(bytes.TrimSpace(stderr)) > 0 {

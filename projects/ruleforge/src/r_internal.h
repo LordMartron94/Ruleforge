@@ -21,7 +21,7 @@ struct RuleforgeRuntime {
 
   /* The compiled grammars (Ruleforge and the formats it reads), built on first use and kept for the runtime's lifetime. */
   LGenesisCompiler *grammar_compiler;
-  LGenesisEngine   *grammar_engines[4];
+  LGenesisEngine   *grammar_engines[5];
 };
 
 /* ---------------------------------------------------------------------------- */
@@ -656,12 +656,13 @@ struct RuleforgeCompilation {
   RuleforgeRuntime *runtime;
   NexusDataArena    arena;
 
-  NexusDataList    *files;       /* RuleforgeFile * */
-  NexusDataList    *diagnostics; /* RuleforgeDiagnostic * */
-  NexusDataList    *search;      /* const char * source folders */
-  NexusDataList    *modules;     /* RuleforgeModule * in load order: imports before their importers */
-  NexusDataHashMap *interned;    /* syntax token -> its NUL-terminated text, made once per token */
-  NexusDataHashMap *strings;     /* string literal token -> its unescaped value, made once per token */
+  NexusDataList    *files;           /* RuleforgeFile * */
+  NexusDataList    *diagnostics;     /* RuleforgeDiagnostic * */
+  NexusDataHashMap *diagnostic_keys; /* owned text keys in the arena; one diagnostic per location and message */
+  NexusDataList    *search;          /* const char * source folders */
+  NexusDataList    *modules;         /* RuleforgeModule * in load order: imports before their importers */
+  NexusDataHashMap *interned;        /* syntax token -> its NUL-terminated text, made once per token */
+  NexusDataHashMap *strings;         /* string literal token -> its unescaped value, made once per token */
   uint32            error_count;
 
   /* Products of compile (r_compilation.c). */
@@ -699,6 +700,7 @@ typedef enum RuleforgeSyntaxKind {
   RSK_JSON,
   RSK_CSV,
   RSK_TOML,
+  RSK_ITEM,
   RSK_COUNT
 } RuleforgeSyntaxKind;
 

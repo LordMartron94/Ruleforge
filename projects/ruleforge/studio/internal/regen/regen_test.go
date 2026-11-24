@@ -92,3 +92,32 @@ func TestUnchangedInputsSkipRecompile(t *testing.T) {
 		t.Errorf("a source edit must trigger a regeneration (err=%v)", err)
 	}
 }
+
+func TestProjectReportsWarningsOnceAcrossOutputs(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "entry.rf"), []byte("version 1.0.0;"), 0o644)
+	eng := fakeEngine(t, dir)
+	data, err := os.ReadFile(eng.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := strings.Replace(string(data), "printf 'Show", `echo '[{"severity":"warning","code":"RF0598","message":"shared warning","file":"entry.rf","line":1}]'
+printf 'Show`, 1)
+	if err := os.WriteFile(eng.Path, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	project := &config.Project{Dir: dir, Entry: "entry.rf", Outputs: []config.Output{{Name: "one", Path: "one.filter"}, {Name: "two", Path: "two.filter"}}}
+	messages := 0
+	regenerator := &Regenerator{Project: project, Engine: eng, Log: func(format string, args ...any) {
+		if strings.Contains(format, "%s:%d:%d") {
+			messages++
+		}
+	}}
+	if err := regenerator.RunOnce(context.Background(), true); err != nil {
+		t.Fatal(err)
+	}
+	status := regenerator.Status().(Status)
+	if len(status.Diagnostics) != 1 || messages != 1 || len(status.Outputs) != 2 {
+		t.Fatalf("duplicate diagnostics: %+v, log count %d", status, messages)
+	}
+}

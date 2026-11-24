@@ -6,6 +6,7 @@
 #include <json_bindings.h>
 #include <rf_bindings.h>
 #include <toml_bindings.h>
+#include <poe_bindings.h>
 
 #include "../ruleforge.h"
 #include "./r_internal.h"
@@ -19,6 +20,8 @@ extern const unsigned char ruleforge_data_csvrelaxed[];
 extern const unsigned long ruleforge_data_csvrelaxed_size;
 extern const unsigned char ruleforge_data_json[];
 extern const unsigned long ruleforge_data_json_size;
+extern const unsigned char ruleforge_data_poeitemtext[];
+extern const unsigned long ruleforge_data_poeitemtext_size;
 extern const unsigned char ruleforge_data_toml[];
 extern const unsigned long ruleforge_data_toml_size;
 
@@ -81,6 +84,11 @@ static LGenesisEngine *r_syntax_engine_get(RuleforgeRuntime *runtime, RuleforgeS
     size = (uint_large)ruleforge_data_csvrelaxed_size;
     name = "CSVRelaxed.gen";
     break;
+  case RSK_ITEM:
+    text = ruleforge_data_poeitemtext;
+    size = (uint_large)ruleforge_data_poeitemtext_size;
+    name = "PoEItemText.gen";
+    break;
   case RSK_TOML:
     text = ruleforge_data_toml;
     size = (uint_large)ruleforge_data_toml_size;
@@ -107,6 +115,9 @@ static LGenesisEngine *r_syntax_engine_get(RuleforgeRuntime *runtime, RuleforgeS
     break;
   case RSK_CSV:
     matches = csv_grammar_matches(runtime->grammar_engines[kind]);
+    break;
+  case RSK_ITEM:
+    matches = poe_grammar_matches(runtime->grammar_engines[kind]);
     break;
   case RSK_TOML:
     matches = toml_grammar_matches(runtime->grammar_engines[kind]);
@@ -335,9 +346,42 @@ const char *ruleforge_syntax_name_get(RuleforgeCompilation *compilation, RfQuali
 
   joined = nexus_strings_string_builder_create_growable(32);
 
-  for (i = 0; i < rf_qualified_name_count_token_identifier(name); i++) {
-    (void)nexus_strings_string_builder_append_formatted(
-        &joined, "%s%s", i > 0 ? "." : "", ruleforge_syntax_text_get(compilation, name.tree, rf_qualified_name_token_identifier(name, i)));
+  {
+    uint32 colors;
+    uint32 identifiers;
+    uint32 color_index;
+    uint32 identifier_index;
+
+    colors           = rf_qualified_name_count_token_kw_color(name);
+    identifiers      = rf_qualified_name_count_token_identifier(name);
+    color_index      = 0;
+    identifier_index = 0;
+
+    for (i = 0; i < colors + identifiers; i++) {
+      const LParserGreenNode *token;
+      const LParserGreenNode *color;
+      const LParserGreenNode *identifier;
+      uint_large              size;
+      const char             *color_text;
+      const char             *identifier_text;
+
+      color      = color_index < colors ? rf_qualified_name_token_kw_color(name, color_index) : NULL;
+      identifier = identifier_index < identifiers ? rf_qualified_name_token_identifier(name, identifier_index) : NULL;
+
+      color_text      = color != NULL ? rf_token_text(name.tree, color, &size) : NULL;
+      identifier_text = identifier != NULL ? rf_token_text(name.tree, identifier, &size) : NULL;
+
+      if (color_text != NULL && (identifier_text == NULL || color_text < identifier_text)) {
+        token = color;
+        color_index++;
+      } else {
+        token = identifier;
+        identifier_index++;
+      }
+
+      (void)nexus_strings_string_builder_append_formatted(&joined, "%s%s", i > 0 ? "." : "",
+                                                          ruleforge_syntax_text_get(compilation, name.tree, token));
+    }
   }
 
   result = nexus_data_arena_text_copy(&compilation->arena, nexus_strings_string_builder_string_get(&joined),

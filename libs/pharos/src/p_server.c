@@ -1,5 +1,7 @@
 #include <nexus.h>
 
+#include "../pharos.h"
+
 #include "./p_internal.h"
 
 /*
@@ -325,6 +327,15 @@ static boolean p_renameable(const PharosServer *server, const PharosName *name) 
          (server->provider.kind_rename == NULL || server->provider.kind_rename(server->provider.user, name->kind));
 }
 
+/*
+Summary: whether a name does not say which file declares it.
+Description: the names of a language described by a grammar are shared by all its files and are owned by the language, not by a path; their
+  declaration may be in a file nothing has opened. A name owned by a file is looked up there, so scanning the workspace for it would only be slow.
+*/
+static boolean p_name_without_file(const PharosName *name) {
+  return name->owner == NULL || name->owner[0] != '/';
+}
+
 static void p_hover(PharosServer *server, PharosDocument *document, uint_large offset, const NexusJson *message, NexusStringBuilder *out) {
   const PharosName  *name;
   NexusStringBuilder markup;
@@ -343,7 +354,7 @@ static void p_hover(PharosServer *server, PharosDocument *document, uint_large o
     pharos_names_occurrences_visit(server, name, FALSE, p_collect_first, &collect);
 
     /* The declaration may be in a file that nothing has opened: look through the workspace before saying there is none. */
-    if (collect.first_name == NULL) {
+    if (collect.first_name == NULL && p_name_without_file(name) && nexus_data_list_length_get(server->roots) > 0) {
       pharos_names_occurrences_visit(server, name, TRUE, p_collect_first, &collect);
     }
 
@@ -570,7 +581,7 @@ static void p_handle(PharosServer *server, const NexusJson *message) {
       A declaration in a file nothing has opened yet is found by looking through the workspace: a name that is not tied to one file (a
       language described by a grammar, whose names are shared by all its files) does not say where to look.
       */
-      if (definition && collect.count == 0) {
+      if (definition && collect.count == 0 && p_name_without_file(name) && nexus_data_list_length_get(server->roots) > 0) {
         pharos_names_occurrences_visit(server, name, TRUE, p_collect_location, &collect);
       }
 

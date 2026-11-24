@@ -1,0 +1,38 @@
+version 1.0.0;
+module std.progression;
+import std.core;
+import std.collections;
+import std.math;
+
+/* Summary: bases whose known drop levels are in an inclusive level range; missing levels are omitted, never treated as zero. */
+export func Available(items any, areaLevel int, window int?) -> list<record> {
+    var lower = 0;
+    if $window != none {
+        if $window < 0 { core.Fail("progression.Available needs a nonnegative window"); }
+        lower = math.Max(0, $areaLevel - $window);
+    }
+    var result = [];
+    for item in $items {
+        let level = collections.Get(item, "dropLevel");
+        if level != none and level >= lower and level <= $areaLevel { result = collections.Concat(result, [item]); }
+    }
+    return result;
+}
+
+/* Summary: the highest available drop-level base of each item class. Equal-level bases are retained together. */
+export func Upgrades(items any, areaLevel int) -> list<record> {
+    let available = Available($items, $areaLevel, none);
+    let ranked = collections.Sort(available, "dropLevel", true);
+    var levels = collections.MakeRecord([], []);
+    var result = [];
+    for item in ranked {
+        let kind = collections.Field(item, "class");
+        let level = collections.Field(item, "dropLevel");
+        let highest = collections.Get(levels, kind);
+        if highest == none {
+            levels = collections.WithField(levels, kind, level);
+            result = collections.Concat(result, [item]);
+        } else { if highest == level { result = collections.Concat(result, [item]); } }
+    }
+    return result;
+}

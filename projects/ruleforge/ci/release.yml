@@ -26,8 +26,8 @@ jobs:
       - name: Build and test the engine
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --target ruleforge_cli
-          ctest --test-dir build -R ruleforge --output-on-failure
+          cmake --build build --target ruleforge_cli blaze_color_tests
+          ctest --test-dir build -R "ruleforge|blaze_color_tests" --output-on-failure
       - name: Build the studio
         working-directory: projects/ruleforge/studio
         run: |
@@ -64,8 +64,8 @@ jobs:
       - name: Build and test the engine
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --target ruleforge_cli
-          ctest --test-dir build -R ruleforge --output-on-failure
+          cmake --build build --target ruleforge_cli blaze_color_tests
+          ctest --test-dir build -R "ruleforge|blaze_color_tests" --output-on-failure
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
@@ -106,3 +106,36 @@ jobs:
           flag=""
           case "$GITHUB_REF_NAME" in *-*) flag="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "Ruleforge ${GITHUB_REF_NAME#v}" --generate-notes $flag
+
+  economy-image:
+    needs: [publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image tags
+        id: image
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ruleforge-economy"
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$image:$version" >> "$GITHUB_OUTPUT"
+          case "$version" in *-*) ;; *) echo "$image:latest" >> "$GITHUB_OUTPUT" ;; esac
+          echo "EOF" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: projects/ruleforge/studio
+          file: projects/ruleforge/deployment/economy/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.tags }}

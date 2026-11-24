@@ -42,13 +42,21 @@ ctest --test-dir build -R ruleforge
 
 The syntax bindings are not written by hand: `genesis bind` generates typed views of every parse tree from the grammars
 (`spec/ruleforge.gen`, and the CSV, JSON and TOML grammars of the Logos library) while the build runs.
-JSON, CSV and TOML are therefore read by Genesis grammars, never by hand-written parsers.
+JSON, CSV, TOML and copied PoE item text are therefore read through Genesis grammars and generated bindings.
+
+## Studio additions
+
+Theme and palette forms edit current source with conflict checks. The Simulator parses English copied item text and generates
+repeatable catalogue samples. Generic colour calculations live in Blaze and are exposed through `std.color`. Managed PoB data,
+local path overrides, progression/class-use modules, persistent rotated logs and the compatible economy history service are described
+in [the Studio guide](docs/studio.md). Script form editors remain a later TODO.
 
 ## Releases and updates
 
 Pushing a tag `vX.Y.Z` to this repository builds and tests Linux and Windows, publishes `ruleforge-<version>-<os>-<arch>.zip` and
 `SHA256SUMS` as a GitHub release. `ruleforge-studio` checks the latest release, and `ruleforge-studio update --apply` (or the
-"Update" button) downloads the archive for its platform, verifies the checksum and replaces the programs.
+"Update" button) downloads the archive for its platform, verifies the checksum and replaces the programs. Stable releases also publish
+the compatible `ruleforge-economy:latest` Docker image; [existing-container migration](deployment/economy/README.md) preserves the history volume.
 
 ## About this repository
 

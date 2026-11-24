@@ -527,6 +527,23 @@ RuleforgeTheme *ruleforge_theme_adapt(REval *eval, const RuleforgeTheme *theme, 
 /* THEMES AS JSON                                                               */
 /* ---------------------------------------------------------------------------- */
 
+/* Summary: source spans used by form editors for an entire construct and, optionally, its name. */
+static void r_theme_edit_span_json_write(RuleforgeCompilation *compilation, const RuleforgeModule *module, const LParserTree *tree,
+                                         const LParserGreenNode *node, const LParserGreenNode *name, NexusStringBuilder *out) {
+  RuleforgeSpan span;
+
+  span = ruleforge_syntax_span_get(module, tree, node);
+  (void)nexus_strings_string_builder_append_formatted(out, ",\"start\":%lu,\"end\":%lu", (unsigned long)span.start, (unsigned long)span.end);
+
+  if (name != NULL) {
+    span = ruleforge_syntax_span_get(module, tree, name);
+    (void)nexus_strings_string_builder_append_formatted(out, ",\"nameStart\":%lu,\"nameEnd\":%lu", (unsigned long)span.start,
+                                                        (unsigned long)span.end);
+  }
+
+  (void)compilation;
+}
+
 /* Summary: appends the source text of a node, quoted. */
 static void r_theme_source_json_write(RuleforgeCompilation *compilation, const RuleforgeModule *module, const LParserTree *tree,
                                       const LParserGreenNode *node, NexusStringBuilder *out) {
@@ -586,14 +603,17 @@ static void r_theme_style_json_write(RuleforgeCompilation *compilation, const Ru
   (void)nexus_strings_string_builder_append_formatted(
       out, "{\"override\":%s,\"key\":", rf_theme_style_stmt_count_token_kw_override(style) > 0 ? "true" : "false");
   (void)nexus_json_quote_append(out, ruleforge_syntax_text_get(compilation, style.tree, rf_theme_style_stmt_token_identifier(style, 0)));
+  r_theme_edit_span_json_write(compilation, module, style.tree, style.node, rf_theme_style_stmt_token_identifier(style, 0), out);
   (void)nexus_strings_string_builder_append(out, ",\"states\":[");
 
   for (i = 0; i < rf_theme_style_stmt_count_rule_theme_state_stmt(style); i++) {
     RfThemeStateStmt state;
 
     state = rf_theme_style_stmt_rule_theme_state_stmt(style, i);
-    (void)nexus_strings_string_builder_append_formatted(out, "%s{\"state\":\"%s\",\"properties\":[", i > 0 ? "," : "",
+    (void)nexus_strings_string_builder_append_formatted(out, "%s{\"state\":\"%s\"", i > 0 ? "," : "",
                                                         rf_theme_state_stmt_count_token_kw_on_show(state) > 0 ? "show" : "hide");
+    r_theme_edit_span_json_write(compilation, module, state.tree, state.node, NULL, out);
+    (void)nexus_strings_string_builder_append(out, ",\"properties\":[");
 
     for (j = 0; j < rf_theme_state_stmt_count_rule_style_property_stmt(state); j++) {
       RfStylePropertyStmt property;
@@ -601,6 +621,7 @@ static void r_theme_style_json_write(RuleforgeCompilation *compilation, const Ru
       property = rf_theme_state_stmt_rule_style_property_stmt(state, j);
       (void)nexus_strings_string_builder_append_formatted(out, "%s{\"name\":", j > 0 ? "," : "");
       (void)nexus_json_quote_append(out, ruleforge_syntax_text_get(compilation, property.tree, rf_style_property_stmt_token_identifier(property, 0)));
+      r_theme_edit_span_json_write(compilation, module, property.tree, property.node, NULL, out);
       (void)nexus_strings_string_builder_append(out, ",\"arguments\":[");
 
       for (k = 0; k < rf_style_property_stmt_count_rule_expr(property); k++) {
@@ -663,6 +684,7 @@ void ruleforge_theme_declarations_json_write(RuleforgeCompilation *compilation, 
       theme = rf_declaration_rule_theme_stmt(declaration, 0);
       (void)nexus_strings_string_builder_append_formatted(out, "%s{\"name\":", themes > 0 ? "," : "");
       (void)nexus_json_quote_append(out, ruleforge_syntax_text_get(compilation, theme.tree, rf_theme_stmt_token_identifier(theme, 0)));
+      r_theme_edit_span_json_write(compilation, module, theme.tree, declaration.node, rf_theme_stmt_token_identifier(theme, 0), out);
       (void)nexus_strings_string_builder_append(out, ",\"module\":");
       (void)nexus_json_quote_append(out, module->name == NULL ? "" : module->name);
       (void)nexus_strings_string_builder_append(out, ",\"file\":");
@@ -718,6 +740,7 @@ void ruleforge_theme_declarations_json_write(RuleforgeCompilation *compilation, 
       (void)nexus_json_quote_append(out, ruleforge_syntax_text_get(compilation, set.tree, rf_color_set_stmt_token_identifier(set, 0)));
       (void)nexus_strings_string_builder_append(out, ",\"file\":");
       (void)nexus_json_quote_append(out, file->name);
+      r_theme_edit_span_json_write(compilation, module, set.tree, declaration.node, rf_color_set_stmt_token_identifier(set, 0), out);
       (void)nexus_strings_string_builder_append(out, ",\"colors\":[");
 
       for (j = 0; j < rf_color_set_stmt_count_rule_color_definition(set); j++) {
@@ -727,6 +750,7 @@ void ruleforge_theme_declarations_json_write(RuleforgeCompilation *compilation, 
         (void)nexus_strings_string_builder_append_formatted(out, "%s{\"name\":", j > 0 ? "," : "");
         (void)nexus_json_quote_append(out,
                                       ruleforge_syntax_text_get(compilation, definition.tree, rf_color_definition_token_identifier(definition, 0)));
+        r_theme_edit_span_json_write(compilation, module, definition.tree, definition.node, rf_color_definition_token_identifier(definition, 0), out);
         (void)nexus_strings_string_builder_append(out, ",\"value\":");
         r_theme_expression_json_write(compilation, module, rf_color_definition_rule_expr(definition, 0), out);
         (void)nexus_strings_string_builder_append(out, "}");

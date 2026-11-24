@@ -507,11 +507,41 @@ NexusError *echo_sink_simple_file_create(EchoFilterFunction *filter, void *filte
 }
 
 static boolean e_rich_file_matches(const NexusPath *path, NexusPathType type, const void *user_data) {
-  const char *prefix = (const char *)user_data;
+  const char *prefix;
+  const char *name;
+  const char *cursor;
+  uint_large  prefix_size;
+  uint_large  size;
+  uint_large  index;
 
-  (void)type;
+  if (type != NPT_FILE) {
+    return FALSE;
+  }
 
-  return e_string_contains(path->buffer, prefix);
+  prefix = (const char *)user_data;
+  name   = path->buffer;
+
+  for (cursor = name; *cursor != '\0'; cursor++) {
+    if (*cursor == '/' || *cursor == '\\') {
+      name = cursor + 1;
+    }
+  }
+
+  prefix_size = nexus_strings_string_length_get(prefix);
+  size        = nexus_strings_string_length_get(name);
+
+  if (size != prefix_size + 20 || !nexus_strings_string_starts_with(name, prefix) || name[prefix_size] != '_' || name[prefix_size + 9] != '_' ||
+      !nexus_strings_string_ends_with(name, ".log")) {
+    return FALSE;
+  }
+
+  for (index = prefix_size + 1; index < prefix_size + 16; index++) {
+    if (index != prefix_size + 9 && (name[index] < '0' || name[index] > '9')) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
 }
 
 static void e_rich_file_paths_sort(NexusPath *paths, uint64 count) {
@@ -549,23 +579,57 @@ NexusError *echo_sink_rich_file_create(EchoRichFileConfiguration configuration, 
     return error;
   }
 
-  paths.paths = NULL;
-  paths.count = 0;
-  error = nexus_filesystem_directory_collect_allocated(&configuration.base_directory, FALSE, e_rich_file_matches, configuration.log_prefix, &paths);
-  if (error == NEXUS_PROGRAM_ERROR_SUCCESS() && configuration.max_logs != 0 && paths.count > configuration.max_logs) {
-    e_rich_file_paths_sort(paths.paths, paths.count);
-    for (i = 0; i < paths.count; i++) {
-      if (i + configuration.max_logs < paths.count)
-        (void)nexus_filesystem_file_delete(&paths.paths[i]);
-    }
-  }
-  nexus_filesystem_path_list_destroy(&paths);
-
   now = nexus_time_to_local_datetime(nexus_time_get_real());
   nexus_strings_string_format_with_truncation(filename, sizeof(filename), "%s_%04d%02u%02u_%02u%02u%02u.log", configuration.log_prefix, now.year,
                                               now.month, now.day, now.hour, now.minute, now.second);
   path = configuration.base_directory;
   nexus_filesystem_path_join(&path, filename);
+
+  if (configuration.max_logs != 0) {
+    uint64 old_count;
+    uint64 remove_count;
+
+    paths.paths = NULL;
+    paths.count = 0;
+    error = nexus_filesystem_directory_collect_allocated(&configuration.base_directory, FALSE, e_rich_file_matches, configuration.log_prefix, &paths);
+
+    if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+      nexus_filesystem_path_list_destroy(&paths);
+      NEXUS_PROGRAM_CONTEXT_POP();
+
+      return error;
+    }
+
+    old_count = paths.count;
+
+    for (i = 0; i < paths.count; i++) {
+      if (nexus_strings_string_equals(paths.paths[i].buffer, path.buffer)) {
+        old_count--;
+      }
+    }
+
+    remove_count = old_count >= configuration.max_logs ? old_count - configuration.max_logs + 1 : 0;
+    e_rich_file_paths_sort(paths.paths, paths.count);
+
+    for (i = 0; i < paths.count && remove_count > 0; i++) {
+      if (nexus_strings_string_equals(paths.paths[i].buffer, path.buffer)) {
+        continue;
+      }
+
+      error = nexus_filesystem_file_delete(&paths.paths[i]);
+
+      if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+        nexus_filesystem_path_list_destroy(&paths);
+        NEXUS_PROGRAM_CONTEXT_POP();
+
+        return error;
+      }
+
+      remove_count--;
+    }
+
+    nexus_filesystem_path_list_destroy(&paths);
+  }
 
   state = (EchoFileState *)nexus_memory_allocate(NEXUS_SIZEOF(*state));
   nexus_memory_bytes_clear(state, NEXUS_SIZEOF(*state));

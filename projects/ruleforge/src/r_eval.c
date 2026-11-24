@@ -667,6 +667,8 @@ static uint32 r_eval_reference_segments(REval *eval, RfReference view, const cha
   } else if (rf_reference_count_token_compiler_reference(view) > 0) {
     segments[count++] = ruleforge_eval_text_get(eval, view.tree, rf_reference_token_compiler_reference(view, 0)) + 1;
     *out_prefix       = R_REF_COMPILER;
+  } else if (rf_reference_count_token_kw_color(view) > 0) {
+    segments[count++] = "color";
   }
 
   for (i = 0; i < rf_reference_count_token_identifier(view) && count < R_EVAL_SEGMENT_LIMIT; i++) {

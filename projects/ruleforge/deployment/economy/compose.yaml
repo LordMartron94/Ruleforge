@@ -1,0 +1,33 @@
+services:
+  economy-history:
+    image: ${RULEFORGE_ECONOMY_IMAGE:-ghcr.io/lordmartron94/ruleforge-economy:latest}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 768m
+    stop_grace_period: 30s
+    ports:
+      - "${RULEFORGE_BIND_ADDRESS:-127.0.0.1}:8087:8087"
+    command:
+      - -db=/data/economy.db
+      - -listen=:8087
+      - -leagues=${RULEFORGE_LEAGUES:-auto}
+      - -interval=${RULEFORGE_COLLECTION_INTERVAL:-4h}
+      - -game-version=${RULEFORGE_GAME_VERSION:-3.30}
+    environment:
+      RULEFORGE_HISTORY_TOKEN: ${RULEFORGE_HISTORY_TOKEN:?Set a random service token in .env}
+    logging:
+      driver: json-file
+      options:
+        max-size: ${RULEFORGE_LOG_MAX_SIZE:-10m}
+        max-file: "${RULEFORGE_LOG_KEEP:-5}"
+    volumes:
+      - history:/data
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+volumes:
+  history:

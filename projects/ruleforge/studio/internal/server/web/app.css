@@ -73,3 +73,7 @@ pre.filter .line .n { display: inline-block; width: 42px; color: var(--muted); u
 label.field { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
 .diff-add { color: var(--ok); } .diff-del { color: var(--error); } .diff-chg { color: var(--warn); }
 @media (max-width: 1100px) { #layout { grid-template-columns: 160px minmax(0, 1fr); } #right { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); min-height: 40vh; } }
+
+.property-row {display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0}.property-row>span:first-child{min-width:100px}.property-control{display:inline-flex;gap:4px;align-items:center}.property-control input[type=text]{width:170px}.channel{width:65px}fieldset{border:1px solid var(--line);border-radius:6px;margin:10px 0}legend{color:var(--muted)}
+
+.form-actions {display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0}.form-actions select{max-width:320px}.loot-controls{display:flex;gap:6px;flex-wrap:wrap}.loot-controls input{width:75px}.sev-warning{color:var(--warn)}

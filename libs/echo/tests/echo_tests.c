@@ -133,11 +133,84 @@ int main(void) {
     return startup_result;
 #endif
 
-  count                   = 0;
-  expected_admitted_count = 402;
+  count = 0;
 #if NEXUS_MEMORY_TRACING
   expected_admitted_count = 404;
+#else
+  expected_admitted_count = 402;
 #endif
+  {
+    EchoRichFileConfiguration logs;
+    EchoSink                 *sink;
+    NexusPath                 directory;
+    NexusPath                 path;
+    NexusPathList             entries;
+    NexusFileHandle          *file;
+    char                      directory_name[128];
+    const char               *old_names[4];
+    uint32                    index;
+
+    (void)stbsp_snprintf(directory_name, (int)NEXUS_SIZEOF(directory_name), "echo-retention-%llu", (unsigned long long)nexus_time_get_real().time);
+    directory = nexus_filesystem_path_create(directory_name);
+    error     = nexus_filesystem_directory_create_parents(&directory);
+    if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+      return 60;
+    }
+
+    old_names[0] = "echo_20000101_000001.log";
+    old_names[1] = "echo_20000101_000002.log";
+    old_names[2] = "echo_20000101_000003.log";
+    old_names[3] = "other.log";
+
+    for (index = 0; index < 4; index++) {
+      path = directory;
+      nexus_filesystem_path_join(&path, old_names[index]);
+      error = nexus_filesystem_file_open(&path, NFM_WRITE_BINARY, &file);
+      if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+        return 61;
+      }
+      error = nexus_filesystem_file_close(file);
+      if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+        return 62;
+      }
+    }
+
+    logs.filter            = NULL;
+    logs.filter_user_data  = NULL;
+    logs.base_directory    = directory;
+    logs.max_logs          = 2;
+    logs.display_precision = NTP_MILLI_SECOND;
+    logs.log_prefix        = "echo";
+
+    for (index = 0; index < 3; index++) {
+      if (index == 2) {
+        logs.max_logs = 1;
+      }
+
+      error = echo_sink_rich_file_create(logs, &sink);
+      if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+        return 63;
+      }
+      echo_sink_destroy(sink);
+      entries.paths = NULL;
+      entries.count = 0;
+      error         = nexus_filesystem_directory_collect_allocated(&directory, FALSE, NULL, NULL, &entries);
+      if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+        return 64;
+      }
+      /* The count includes the current log; unrelated files survive even when the directory contains the prefix. */
+      if (entries.count != (uint64)logs.max_logs + 1U) {
+        return 65;
+      }
+      nexus_filesystem_path_list_destroy(&entries);
+    }
+
+    error = nexus_filesystem_directory_delete(&directory, TRUE);
+    if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+      return 66;
+    }
+  }
+
   configuration                = echo_runtime_configuration_default();
   configuration.queue_capacity = 8;
   error                        = echo_runtime_create(&configuration, &runtime);

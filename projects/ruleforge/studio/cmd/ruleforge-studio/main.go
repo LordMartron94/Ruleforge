@@ -12,6 +12,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/LordMartron94/Ruleforge/studio/internal/config"
 	"github.com/LordMartron94/Ruleforge/studio/internal/engine"
+	"github.com/LordMartron94/Ruleforge/studio/internal/logging"
 	"github.com/LordMartron94/Ruleforge/studio/internal/regen"
 	"github.com/LordMartron94/Ruleforge/studio/internal/server"
 	"github.com/LordMartron94/Ruleforge/studio/internal/update"
@@ -81,6 +83,7 @@ func openProject(dir, enginePath string) (*config.Project, engine.Engine, error)
 	if err != nil {
 		return nil, engine.Engine{}, err
 	}
+	eng.LogDir, eng.LogKeep, _ = project.LogOptions()
 	return project, eng, nil
 }
 
@@ -96,6 +99,15 @@ func serve(args []string) int {
 		log.Print(err)
 		return 1
 	}
+	logDir, keep, size := project.LogOptions()
+	writer, err := logging.Open(logDir, keep, size)
+	if err != nil {
+		log.Print(err)
+		return 1
+	}
+	defer writer.Close()
+	log.SetOutput(io.MultiWriter(os.Stderr, writer))
+	defer log.SetOutput(os.Stderr)
 	var updater *update.Updater
 	if !*noUpdate {
 		updater = newUpdater()
@@ -138,6 +150,15 @@ func build(args []string) int {
 		log.Print(err)
 		return 1
 	}
+	logDir, keep, size := project.LogOptions()
+	writer, err := logging.Open(logDir, keep, size)
+	if err != nil {
+		log.Print(err)
+		return 1
+	}
+	defer writer.Close()
+	log.SetOutput(io.MultiWriter(os.Stderr, writer))
+	defer log.SetOutput(os.Stderr)
 	regenerator := &regen.Regenerator{Project: project, Engine: eng, Log: log.Printf}
 	if err := regenerator.RunOnce(context.Background(), true); err != nil {
 		log.Print(err)

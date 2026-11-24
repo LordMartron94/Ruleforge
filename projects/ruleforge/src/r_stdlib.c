@@ -1,4 +1,5 @@
 #include <nexus.h>
+#include <blaze.h>
 
 #include "../ruleforge.h"
 #include "./r_internal.h"
@@ -728,6 +729,135 @@ static RuleforgeValue r_math_truncate(REval *eval, RuleforgeSpan span, const Rul
   return ruleforge_value_integer((int64)number);
 }
 
+static RuleforgeValue r_color_channel(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  int64 index;
+
+  (void)count;
+  index = arguments[1].as.integer;
+
+  if (index < 0 || index > 3) {
+    ruleforge_eval_fail(eval, "RF0503", span, NULL, "color.Channel index must be 0..3 (red, green, blue, alpha)");
+
+    return ruleforge_value_none();
+  }
+
+  return ruleforge_value_integer((int64)((arguments[0].as.color >> ((3U - (uint32)index) * 8U)) & 255U));
+}
+
+static RuleforgeValue r_color_wcag(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  (void)count;
+
+  if ((arguments[0].as.color & 255U) != 255U || (arguments[1].as.color & 255U) != 255U) {
+    ruleforge_eval_fail(eval, "RF0503", span, NULL, "colour metrics require opaque colours; call color.Composite first");
+
+    return ruleforge_value_none();
+  }
+
+  return ruleforge_value_real((f_real)blaze_color_srgb_wcag_contrast_get(arguments[0].as.color, arguments[1].as.color));
+}
+
+static RuleforgeValue r_color_apca(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  (void)count;
+
+  if ((arguments[0].as.color & 255U) != 255U || (arguments[1].as.color & 255U) != 255U) {
+    ruleforge_eval_fail(eval, "RF0503", span, NULL, "colour metrics require opaque colours; call color.Composite first");
+
+    return ruleforge_value_none();
+  }
+
+  return ruleforge_value_real((f_real)blaze_color_srgb_apca_contrast_get(arguments[0].as.color, arguments[1].as.color));
+}
+
+static RuleforgeValue r_color_delta_e(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  (void)count;
+
+  if ((arguments[0].as.color & 255U) != 255U || (arguments[1].as.color & 255U) != 255U) {
+    ruleforge_eval_fail(eval, "RF0503", span, NULL, "colour metrics require opaque colours; call color.Composite first");
+
+    return ruleforge_value_none();
+  }
+
+  return ruleforge_value_real((f_real)blaze_color_srgb_delta_e_2000_get(arguments[0].as.color, arguments[1].as.color));
+}
+
+static RuleforgeValue r_color_luminance(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  (void)count;
+
+  if ((arguments[0].as.color & 255U) != 255U) {
+    ruleforge_eval_fail(eval, "RF0503", span, NULL, "colour luminance requires an opaque colour");
+
+    return ruleforge_value_none();
+  }
+
+  return ruleforge_value_real((f_real)blaze_color_srgb_luminance_get(arguments[0].as.color));
+}
+
+static RuleforgeValue r_color_composite(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  (void)count;
+
+  if ((arguments[1].as.color & 255U) != 255U) {
+    ruleforge_eval_fail(eval, "RF0503", span, NULL, "color.Composite requires an opaque background");
+
+    return ruleforge_value_none();
+  }
+
+  return ruleforge_value_color(blaze_color_srgb_composite(arguments[0].as.color, arguments[1].as.color));
+}
+
+static RuleforgeValue r_color_lab(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  BColorLab      color;
+  RuleforgeList *result;
+
+  (void)count;
+
+  if ((arguments[0].as.color & 255U) != 255U) {
+    ruleforge_eval_fail(eval, "RF0503", span, NULL, "color.Lab requires an opaque colour");
+
+    return ruleforge_value_none();
+  }
+
+  blaze_color_srgb_lab_get(arguments[0].as.color, &color);
+  result           = ruleforge_value_list_create(eval->compilation, 3);
+  result->items[0] = ruleforge_value_real((f_real)color.l);
+  result->items[1] = ruleforge_value_real((f_real)color.a);
+  result->items[2] = ruleforge_value_real((f_real)color.b);
+
+  return ruleforge_value_list(result);
+}
+
+static RuleforgeValue r_color_lab_delta_e(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  BColorLab first;
+  BColorLab second;
+  f_real    components[6];
+  uint32    i;
+
+  (void)count;
+
+  if (arguments[0].as.list->count != 3 || arguments[1].as.list->count != 3) {
+    ruleforge_eval_fail(eval, "RF0503", span, NULL, "color.DeltaE2000Lab requires two Lab triples");
+
+    return ruleforge_value_none();
+  }
+
+  for (i = 0; i < 6; i++) {
+    if (!ruleforge_value_number_get(&arguments[i / 3].as.list->items[i % 3], &components[i]) || !nexus_real_is_finite(components[i]) ||
+        components[i] < (i % 3 == 0 ? 0.0 : -200.0) || components[i] > (i % 3 == 0 ? 100.0 : 200.0)) {
+      ruleforge_eval_fail(eval, "RF0503", span, NULL, "Lab components need finite L in 0..100 and a/b in -200..200");
+
+      return ruleforge_value_none();
+    }
+  }
+
+  first.l  = components[0];
+  first.a  = components[1];
+  first.b  = components[2];
+  second.l = components[3];
+  second.a = components[4];
+  second.b = components[5];
+
+  return ruleforge_value_real((f_real)blaze_color_lab_delta_e_2000_get(&first, &second));
+}
+
 /* Summary: the name of the kind of a value. */
 static RuleforgeValue r_core_type_of(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
   (void)eval;
@@ -972,6 +1102,14 @@ static const RuleforgeNative r_stdlib_natives[] = {
     {"std.core", "Warn", r_core_warn},
     {"std.core", "TypeOf", r_core_type_of},
     {"std.math", "Truncate", r_math_truncate},
+    {"std.color", "Channel", r_color_channel},
+    {"std.color", "WCAG", r_color_wcag},
+    {"std.color", "APCA", r_color_apca},
+    {"std.color", "DeltaE2000", r_color_delta_e},
+    {"std.color", "DeltaE2000Lab", r_color_lab_delta_e},
+    {"std.color", "Lab", r_color_lab},
+    {"std.color", "Composite", r_color_composite},
+    {"std.color", "Luminance", r_color_luminance},
     {"std.collections", "Count", r_collections_count},
     {"std.collections", "Take", r_collections_take},
     {"std.collections", "Reverse", r_collections_reverse},

@@ -219,3 +219,48 @@ export func PersistTiers(current any, history any, key string, required int) -> 
 
     return result;
 }
+
+/* Raw observations remain in SQLite. The host exposes one latest variant observation per league/time bucket,
+   with patch regime, freshness and provider-specific liquidity evidence. A thin league does not borrow another league's confidence. */
+export schema HistoryRow {
+    id string;
+    name string;
+    baseType string;
+    class string;
+    variant string;
+    league string;
+    gameVersion string;
+    bucket int;
+    chaosValue float;
+    divineValue float;
+    listingCount int;
+    tradedUnits float;
+    source string;
+    state string;
+    reliableBuckets int;
+}
+
+/* Summary: synchronized, patch-filtered economy time buckets; configure economyHistory in studio.json. */
+export dataset History: HistoryRow from "economy.history";
+
+/* Summary: reliable observations of one league, preserving variants and source identity. */
+export func ReliableHistory(rows any, league string) -> list<record> {
+    var result = [];
+    for row in $rows {
+        if collections.Field(row, "league") == $league and collections.Field(row, "state") == "reliable" {
+            result = collections.Concat(result, [row]);
+        }
+    }
+    return result;
+}
+
+/* Summary: mean price of the exact named variant in one league's reliable time buckets, or none when absent. */
+export func MemoryPrice(rows any, league string, name string, variant string) -> float? {
+    var values = [];
+    for row in ReliableHistory($rows, $league) {
+        if collections.Field(row, "name") == $name and collections.Field(row, "variant") == $variant {
+            values = collections.Concat(values, [collections.Field(row, "chaosValue")]);
+        }
+    }
+    return stats.Mean(values, none);
+}

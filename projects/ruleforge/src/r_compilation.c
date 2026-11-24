@@ -10,6 +10,23 @@
 /* LIFECYCLE                                                                    */
 /* ---------------------------------------------------------------------------- */
 
+static uint64 r_compilation_diagnostic_hash(const void *key, uint_large size, uint64 seed, void *user) {
+  const char *text;
+
+  (void)size;
+  (void)user;
+  text = *(const char *const *)key;
+
+  return nexus_hash_xxh3_64(text, nexus_strings_string_length_get(text)) ^ seed;
+}
+
+static boolean r_compilation_diagnostic_equal(const void *left, const void *right, uint_large size, void *user) {
+  (void)size;
+  (void)user;
+
+  return nexus_strings_string_equals(*(const char *const *)left, *(const char *const *)right);
+}
+
 RuleforgeCompilation *ruleforge_compilation_create(RuleforgeRuntime *runtime) {
   RuleforgeCompilation *compilation;
 
@@ -41,6 +58,20 @@ RuleforgeCompilation *ruleforge_compilation_create(RuleforgeRuntime *runtime) {
     }
   }
 
+  {
+    NexusDataHashMapConfig configuration;
+    NexusError            *error;
+
+    nexus_data_hashmap_config_initialize(&configuration, NEXUS_SIZEOF(const char *), NEXUS_SIZEOF(void *));
+    configuration.hash   = r_compilation_diagnostic_hash;
+    configuration.equals = r_compilation_diagnostic_equal;
+    error                = nexus_data_hashmap_create(&configuration, &compilation->diagnostic_keys);
+
+    if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
+      NEXUS_PROGRAM_PANIC_ERROR(error);
+    }
+  }
+
   compilation->error_count = 0;
   compilation->datasets    = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 8);
 
@@ -60,6 +91,7 @@ void ruleforge_compilation_destroy(RuleforgeCompilation *compilation) {
   nexus_data_hashmap_destroy(compilation->strings);
   nexus_data_list_destroy(compilation->files);
   nexus_data_list_destroy(compilation->diagnostics);
+  nexus_data_hashmap_destroy(compilation->diagnostic_keys);
   nexus_data_list_destroy(compilation->search);
   nexus_data_list_destroy(compilation->modules);
   nexus_data_list_destroy(compilation->datasets);

@@ -7,6 +7,7 @@ set(ruleforge_logos_stdlib "${PROJECT_SOURCE_DIR}/libs/logos/stdlib")
 set(ruleforge_grammars
     "${ruleforge_logos_stdlib}/General.gen"
     "${CMAKE_CURRENT_SOURCE_DIR}/spec/ruleforge.gen"
+    "${CMAKE_CURRENT_SOURCE_DIR}/spec/PoEItemText.gen"
     "${ruleforge_logos_stdlib}/CSVRelaxed.gen"
     "${ruleforge_logos_stdlib}/JSON.gen"
     "${ruleforge_logos_stdlib}/TOML.gen"
@@ -41,6 +42,10 @@ logos_genesis_bindings(ruleforge_csv_bindings
     GRAMMAR "${ruleforge_logos_stdlib}/CSVRelaxed.gen"
     PREFIX csv
     OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
+logos_genesis_bindings(ruleforge_item_bindings
+    GRAMMAR "${CMAKE_CURRENT_SOURCE_DIR}/spec/PoEItemText.gen"
+    PREFIX poe
+    OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
 set(ruleforge_bindings_directory "${CMAKE_BINARY_DIR}/generated/ruleforge_bindings")
 
 # The Sublime Text syntax of Ruleforge, generated from the same grammar and mapping, so it cannot differ from the language. It is rebuilt
@@ -68,11 +73,11 @@ file(GLOB_RECURSE ruleforge_sources CONFIGURE_DEPENDS
 )
 add_library(ruleforge STATIC ${ruleforge_sources} "${ruleforge_embedded_grammar}" "${ruleforge_embedded_std}")
 add_library(Ruleforge::Ruleforge ALIAS ruleforge)
-add_dependencies(ruleforge ruleforge_syntax_bindings ruleforge_json_bindings ruleforge_toml_bindings ruleforge_csv_bindings)
+add_dependencies(ruleforge ruleforge_syntax_bindings ruleforge_json_bindings ruleforge_toml_bindings ruleforge_csv_bindings ruleforge_item_bindings)
 target_compile_definitions(ruleforge PRIVATE RULEFORGE_VERSION="${ruleforge_version}")
 target_include_directories(ruleforge PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(ruleforge PRIVATE "${ruleforge_bindings_directory}")
-target_link_libraries(ruleforge PRIVATE MergeSource::Options PUBLIC Nexus::Nexus Echo::Echo Logos::Logos)
+target_link_libraries(ruleforge PRIVATE MergeSource::Options Blaze::Blaze PUBLIC Nexus::Nexus Echo::Echo Logos::Logos)
 
 # The command line: `ruleforge parse|check|compile|simulate`.
 file(GLOB ruleforge_cli_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/apps/ruleforge/*.c")
@@ -82,6 +87,11 @@ target_link_libraries(ruleforge_cli PRIVATE MergeSource::Options Ruleforge::Rule
 
 # Tests: golden compile + simulation of the example project, and the diagnostics of every error case.
 if(BUILD_TESTING)
+    add_test(NAME ruleforge_item_text
+        COMMAND "${CMAKE_COMMAND}" -DRULEFORGE=$<TARGET_FILE:ruleforge_cli>
+            -DCASE=${CMAKE_CURRENT_SOURCE_DIR}/tests/items/rare.txt
+            -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/items
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/run_item_case.cmake")
     set(ruleforge_golden_directory "${CMAKE_CURRENT_SOURCE_DIR}/tests/golden")
     add_test(NAME ruleforge_golden_currency
         COMMAND "${CMAKE_COMMAND}" -DRULEFORGE=$<TARGET_FILE:ruleforge_cli>

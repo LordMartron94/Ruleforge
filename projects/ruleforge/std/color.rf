@@ -1,0 +1,23 @@
+version 1.0.0;
+module std.color;
+
+/* Colour operations are owned by Blaze, independently of Ruleforge. These declarations bind its reusable C API.
+   Packed colours use sRGB with alpha. Flatten translucent text/background onto the intended backdrop with Composite first.
+   WCAG is a luminance ratio; APCA is signed Lc; DeltaE2000 measures colour separation, not legibility. */
+
+/* Summary: channel byte 0 red, 1 green, 2 blue, 3 alpha. Errors: RF0503 for another index. */
+export intrinsic func Channel(value color, index int) -> int;
+/* Summary: source-over sRGB compositing onto an opaque background, rounded to bytes (Blaze). */
+export intrinsic func Composite(foreground color, background color) -> color;
+/* Summary: WCAG 2.2 relative luminance, 0..1, of an opaque sRGB colour (Blaze). */
+export intrinsic func Luminance(value color) -> float;
+/* Summary: WCAG contrast ratio, 1..21, of two opaque sRGB colours (Blaze). */
+export intrinsic func WCAG(text color, background color) -> float;
+/* Summary: signed APCA 0.0.98G-4g Lc; dark on light positive, light on dark negative (Blaze). */
+export intrinsic func APCA(text color, background color) -> float;
+/* Summary: opaque sRGB converted to a D65 CIELAB [L,a,b] triple (Blaze). */
+export intrinsic func Lab(value color) -> list<number>;
+/* Summary: CIEDE2000 difference of two CIELAB triples, unit weighting factors (Blaze). */
+export intrinsic func DeltaE2000Lab(first list<number>, second list<number>) -> float;
+/* Summary: CIEDE2000 difference of two opaque sRGB colours, D65, unit weighting factors (Blaze). */
+export intrinsic func DeltaE2000(first color, second color) -> float;

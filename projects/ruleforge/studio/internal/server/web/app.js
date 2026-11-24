@@ -312,6 +312,7 @@ function renderSimulator(body) {
       const response = await api('/api/simulate', { method: 'POST', body: JSON.stringify({ items }) });
       if (!response.ok) { result.replaceChildren(...(response.diagnostics || []).map(diagnosticRow)); return; }
       state.simResults = response.results;
+      state.simNames=(Array.isArray(items)?items:[items]).map(item=>item.name||item.baseType||"Item");
       drawResults();
     } catch (error) { result.replaceChildren(h('div', { class: 'sev-error' }, error.message)); }
   };
@@ -322,13 +323,38 @@ function renderSimulator(body) {
       result.append(h('div', { class: 'card' },
         h('h4', {}, entry.matched == null ? 'No rule matches: the game shows the item with its defaults.' : `Block #${entry.matched} wins`),
         entry.matched != null ? h('div', {}, h('span', { class: 'pill ' + entry.action }, entry.action), ' ', block ? h('a', { href: '#', onclick: (e) => { e.preventDefault(); selectBlock(block.id); } }, `${block.rule.name || '(rule)'} — ${block.role}`) : '') : '',
-        entry.style ? h('div', {}, labelPreview(entry.style, 'Item')) : '',
+        entry.style ? h('div', {}, labelPreview(entry.style, state.simNames?.[entry.index] || 'Item')) : '',
         h('h4', {}, 'Why earlier blocks did not match'),
         h('ul', {}, entry.considered.slice(-30).map((c) => h('li', {}, h('a', { href: '#', onclick: (e) => { e.preventDefault(); selectBlock(c.id); } }, '#' + c.id), ' ',
           c.failed?.condition ? h('span', { class: 'muted' }, `needs ${conditionText(c.failed.condition)}, item has ${JSON.stringify(c.failed.actual)}`) : 'native block (cannot be evaluated)'))),
         entry.shadowed?.length ? h('div', {}, h('strong', {}, 'Also matches, but shadowed: '), entry.shadowed.map((id) => h('a', { href: '#', onclick: (e) => { e.preventDefault(); selectBlock(id); } }, '#' + id + ' '))) : ''));
     }
   };
+  const paste=h('textarea',{rows:6,class:'mono',style:'width:100%','aria-label':'Copied PoE item text',placeholder:'Paste an English item copied with Ctrl+C in Path of Exile'});
+  paste.value=state.pastedItem||'';
+  const pasteStatus=h('div',{class:'muted',role:'status'});
+  const inspect=h('button',{onclick:async()=>{
+    state.pastedItem=paste.value;
+    try{
+      const response=await api('/api/item',{method:'POST',body:JSON.stringify({text:paste.value,areaLevel:Number(level.value)})});
+      area.value=JSON.stringify(response.item,null,2);pasteStatus.textContent=response.warnings.join(' ');await run();
+    }catch(error){pasteStatus.textContent=error.message;}
+  }},'Inspect pasted item');
+  const count=h('input',{type:'number',min:1,max:200,value:30,'aria-label':'Loot sample count'});
+  const seed=h('input',{type:'number',value:1,'aria-label':'Loot random seed'});
+  const level=h('input',{type:'number',min:1,max:100,value:83,'aria-label':'Area level'});
+  const source=h('select',{'aria-label':'Loot catalogue'},h('option',{value:'game.bases'},'Item bases'),h('option',{value:'game.gems'},'Gems'),h('option',{value:'game.uniques'},'Uniques'));
+  const random=h('button',{onclick:async()=>{
+    try{
+      const response=await api('/api/loot',{method:'POST',body:JSON.stringify({count:Number(count.value),seed:Number(seed.value),areaLevel:Number(level.value),source:source.value})});
+      if(!response.ok){result.replaceChildren(...(response.diagnostics||[]).map(diagnosticRow));return;}
+      area.value=JSON.stringify(response.items,null,2);state.simItem=area.value;state.simResults=response.results;state.simNames=response.items.map(item=>item.name);drawResults();
+      pasteStatus.textContent=`${response.sampling}. ${response.unknownDropLevels} samples have unknown drop levels.`;
+    }catch(error){pasteStatus.textContent=error.message;}
+  }},'Scatter loot');
+  body.append(h('div',{class:'pad'},h('h3',{},'Pasted item'),paste,inspect,pasteStatus,
+    h('h3',{},'Loot preview'),h('p',{class:'muted'},'Repeatable uniform samples from your PoB catalogue. This previews filter coverage, not actual game drop rates.'),
+    h('div',{class:'loot-controls'},h('label',{},'Samples ',count),h('label',{},'Seed ',seed),h('label',{},'Area level ',level),source,random)));
   const presetSelect = h('select', { 'aria-label': 'Saved items', onchange: () => { if (presetSelect.value !== '') { area.value = presets()[presetSelect.value].json; } } },
     h('option', { value: '' }, 'Saved items…'), ...presets().map((p, i) => h('option', { value: i }, p.name)));
   body.append(h('div', { class: 'pad' },
@@ -355,56 +381,112 @@ function renderDiagnostics(body) {
 
 const hexOf = (rgba) => '#' + [24, 16, 8].map((shift) => ((rgba >>> shift) & 255).toString(16).padStart(2, '0')).join('');
 
-/** Theme colors, edited in place: the engine interprets the themes and reports each color's byte span; the editor replaces it by position. */
+/** Forms edit the engine's source spans; all interpretation remains in the engine. */
 async function renderThemes(body) {
-  body.append(h('div', { class: 'pad muted' }, 'Loading themes…'));
+  body.append(h('div', {class:'pad muted'}, 'Loading themes…'));
   let response;
-  try { response = await api('/api/themes'); } catch (error) { body.replaceChildren(h('div', { class: 'pad sev-error' }, error.message)); return; }
-  if (!response.ok) { body.replaceChildren(h('div', { class: 'pad' }, 'The sources do not parse yet; see Diagnostics.')); return; }
+  try { response=await api('/api/themes'); } catch(error){body.replaceChildren(h('div',{class:'pad sev-error'},error.message));return;}
+  if(!response.ok){body.replaceChildren(h('div',{class:'pad'},'The sources do not parse yet; see Diagnostics.'));return;}
   body.replaceChildren();
-  const pad = h('div', { class: 'pad' });
-  // Color sets: "Palette.GOLD" -> the color (and its file), so a theme color that names a palette entry edits the palette.
-  const palette = new Map();
-  for (const set of response.themes.colorSets) for (const entry of set.colors) {
-    if (entry.value.kind === 'color') palette.set(`${set.name}.${entry.name}`, { color: entry.value, file: set.file });
+  const pad=h('div',{class:'pad'}), palette=new Map();
+  const edit=(file,span,text)=>replaceExpression(file,span,text,response.sourceHashes[fileOf({file})]).catch(error=>setStatus(error.message));
+  const rename=(file,span,current)=>{
+    const next=prompt('New name',current);
+    if(next==null||next===current)return;
+    if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(next)){setStatus('Use a Ruleforge identifier for the name.');return;}
+    edit(file,{start:span.nameStart,end:span.nameEnd},next);
+  };
+  const controls=(file,span,name)=>h('span',{class:'form-actions'},
+    h('button',{onclick:()=>rename(file,span,name)},'Rename'),
+    h('button',{onclick:()=>{if(confirm(`Delete ${name}?`))edit(file,span,'');}},'Delete'));
+  const append=(file,span,text)=>edit(file,{start:span.end-1,end:span.end-1},'\n'+text+'\n');
+  const files=state.files.filter(file=>file.path.endsWith('.rf'));
+  const targetFile=h('select',{'aria-label':'File for new theme or palette'},...files.map(file=>h('option',{value:file.path},file.path)));
+  const create=async(kind)=>{
+    const name=prompt(`Name for the new ${kind}`,kind==='theme'?'NewTheme':'NewPalette');
+    if(name==null)return;if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)){setStatus('Use a Ruleforge identifier.');return;}
+    const path=targetFile.value;if(!state.buffers.has(path))await openFile(path);
+    const buffer=state.buffers.get(path);const end=new TextEncoder().encode(buffer.saved).length;
+    const parent=response.themes.themes.find(theme=>fileOf({file:theme.file})===path);
+    const source=kind==='theme'?`\nexport theme ${name}${parent?' extends '+parent.name:''} {\n}\n`:`\ncolorSet ${name} {\n    COLOR = #FFFFFF;\n}\n`;
+    edit(path,{start:end,end},source);
+  };
+  pad.append(h('div',{class:'form-actions'},targetFile,h('button',{onclick:()=>create('theme')},'New theme'),h('button',{onclick:()=>create('palette')},'New palette')));
+  for(const set of response.themes.colorSets) for(const entry of set.colors) {
+    if(entry.value.kind==='color') palette.set(`${set.name}.${entry.name}`,{color:entry.value,file:set.file});
   }
-  for (const theme of response.themes.themes) {
-    const card = h('div', { class: 'card' }, h('h4', {}, theme.name, theme.extends ? h('span', { class: 'muted' }, ' extends ' + theme.extends) : ''));
-    for (const style of theme.styles) {
-      card.append(h('div', {}, h('strong', {}, (style.override ? 'override ' : '') + style.key)));
-      for (const state of style.states) {
-        const line = h('div', { style: 'margin-left:12px' }, h('span', { class: 'muted' }, state.state + ': '));
-        for (const property of state.properties) {
-          const parts = property.arguments.map((arg) => {
-            const target = arg.kind === 'color' ? { color: arg, file: theme.file } : arg.kind === 'reference' ? palette.get(arg.text) : null;
-            if (!target) return h('code', {}, arg.text);
-            return h('span', {}, h('input', { type: 'color', value: hexOf(target.color.value), title: arg.kind === 'reference' ? 'Edits ' + arg.text : 'Edit this color', 'aria-label': `${theme.name}.${style.key} ${property.name}`, onchange: (event) => replaceColor(target.file, target.color, event.target.value) }), arg.kind === 'reference' ? h('span', { class: 'muted' }, ' ' + arg.text) : '');
-          });
-          line.append(h('span', { style: 'margin-right:12px' }, property.name, ' ', ...parts.flatMap((part, i) => (i ? [', ', part] : [part]))));
-        }
-        card.append(line);
-      }
+  const widget=(file,arg,label)=>{
+    const target=arg.kind==='color'?{color:arg,file}:arg.kind==='reference'?palette.get(arg.text):null;
+    const box=h('span',{class:'property-control'});
+    if(target){
+      const color=target.color;
+      const hex='#'+(color.value>>>8).toString(16).padStart(6,'0');
+      const picker=h('input',{type:'color',value:hex,'aria-label':label+' colour'});
+      const alpha=h('input',{type:'number',min:0,max:255,value:color.value&255,'aria-label':label+' opacity',title:'Opacity (0–255)',class:'channel'});
+      const change=()=>{
+        const value=Number(alpha.value);
+        if(!Number.isInteger(value)||value<0||value>255){setStatus('Opacity must be 0–255.');return;}
+        edit(target.file,color,picker.value+(value===255&&!color.alpha?'':value.toString(16).padStart(2,'0')));
+      };
+      picker.addEventListener('change',change);alpha.addEventListener('change',change);
+      box.append(picker,alpha);
     }
+    const input=h('input',{type:'text',value:arg.text,'aria-label':label, title:'Ruleforge expression; palette references stay linked'});
+    input.addEventListener('change',()=>edit(file,arg,input.value));
+    box.append(input);return box;
+  };
+  for(const set of response.themes.colorSets){
+    const card=h('div',{class:'card'},h('h3',{},'Palette · '+set.name),controls(set.file,set,set.name));
+    for(const entry of set.colors)card.append(h('div',{class:'property-row'},h('span',{},entry.name),widget(set.file,entry.value,`${set.name}.${entry.name}`),controls(set.file,entry,entry.name)));
+    card.append(h('button',{onclick:()=>{const name=prompt('New palette colour name','COLOR');if(name&&/^[A-Za-z_][A-Za-z0-9_]*$/.test(name))append(set.file,set,`    ${name} = #FFFFFF;`);}},'Add colour'));
     pad.append(card);
   }
-  if (!pad.children.length) pad.append(h('div', { class: 'muted' }, 'No themes declared.'));
+  for(const theme of response.themes.themes){
+    const card=h('div',{class:'card'},h('h3',{},theme.name,theme.extends?h('small',{class:'muted'},' extends '+theme.extends):''),controls(theme.file,theme,theme.name));
+    for(const style of theme.styles){
+      card.append(h('h4',{},(style.override?'override ':'')+style.key),controls(theme.file,style,style.key));
+      for(const mode of style.states){
+        const group=h('fieldset',{},h('legend',{},mode.state==='show'?'Shown items':'Hidden items'));
+        for(const property of mode.properties){
+          group.append(h('div',{class:'property-row'},h('span',{},property.name),...property.arguments.map((arg,index)=>widget(theme.file,arg,`${theme.name}.${style.key} ${property.name} ${index+1}`)),h('button',{onclick:()=>edit(theme.file,property,'')},'Remove')));
+        }
+        group.append(h('button',{onclick:()=>{const property=prompt('Property name','FontSize');if(!property||!/^[A-Za-z_][A-Za-z0-9_]*$/.test(property))return;const value=prompt('Value or comma-separated arguments','36');if(value!=null)append(theme.file,mode,`            ${property} ${value};`);}},'Add property'));
+        const resolve=(name)=>{
+          const arg=mode.properties.find(p=>p.name===name)?.arguments[0];
+          return arg?.kind==='color'?arg.value:palette.get(arg?.text)?.color.value;
+        };
+        const text=resolve('Text'), background=resolve('Background');
+        if(text!=null&&background!=null){
+          const report=h('div',{class:'muted',role:'status'},'Checking contrast…');group.append(report);
+          const hex=(value)=>'#'+(value>>>0).toString(16).padStart(8,'0');
+          api('/api/color',{method:'POST',body:JSON.stringify({pairs:[{text:hex(text),background:hex(background),backdrop:'#000000'}]})}).then(result=>{
+            const metric=result.results[0];report.textContent=`WCAG ${metric.wcag.toFixed(2)}:1 · APCA ${metric.apca.toFixed(1)} Lc · ΔE00 ${metric.deltaE2000.toFixed(2)} (black scene backdrop)`;
+            report.classList.toggle('sev-warning',metric.wcag<4.5);
+          }).catch(error=>{report.textContent=error.message;});
+        }else group.append(h('div',{class:'muted'},'Contrast requires explicit text and background colours in this state.'));
+        card.append(group);
+      }
+    }
+    card.append(h('button',{onclick:()=>{const name=prompt('Style key');if(name&&/^[A-Za-z_][A-Za-z0-9_]*$/.test(name))append(theme.file,theme,`    ${theme.extends?'override ':''}${name} { onShow { FontSize 36; } onHide { } }`);}},'Add style'));
+    pad.append(card);
+  }
+  if(!pad.children.length)pad.append(h('div',{class:'muted'},'No themes declared.'));
   body.append(pad);
 }
 
-async function replaceColor(fileName, color, css) {
-  const path = fileOf({ file: fileName });
-  if (!state.buffers.has(path)) await openFile(path);
-  const buffer = state.buffers.get(path);
-  if (buffer.text !== buffer.saved) { setStatus('Save the file before editing a color: positions come from the saved source.'); return; }
-  const encoder = new TextEncoder(), decoder = new TextDecoder();
-  const bytes = encoder.encode(buffer.text);
-  const alpha = color.alpha ? (color.value & 255).toString(16).padStart(2, '0') : '';
-  const next = decoder.decode(bytes.subarray(0, color.start)) + css + alpha + decoder.decode(bytes.subarray(color.end));
-  buffer.text = next;
-  await saveFile(path);
-  setStatus('Color changed; compiling…');
-  await compile();
-  renderCenter();
+async function replaceExpression(fileName,expression,next,expectedHash){
+  const path=fileOf({file:fileName});
+  const previousTab=state.centerTab;
+  if(!state.buffers.has(path))await openFile(path);
+  state.centerTab=previousTab;
+  const buffer=state.buffers.get(path);
+  if(buffer.text!==buffer.saved)throw new Error('Save the file before editing it through a form.');
+  const bytes=new TextEncoder().encode(buffer.saved);
+  const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(!expectedHash||hash!==expectedHash)throw new Error('The file changed since this form loaded. Reload Themes.');
+  const response=await api('/api/source/replace',{method:'POST',body:JSON.stringify({path,start:expression.start,end:expression.end,hash,text:next})});
+  buffer.text=response.text;buffer.saved=response.text;
+  await compile();renderCenter();
 }
 
 function blockKey(block) { return JSON.stringify([block.rule.module, block.rule.name, block.rule.line, block.role, block.conditions]); }

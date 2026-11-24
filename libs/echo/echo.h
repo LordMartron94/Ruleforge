@@ -359,17 +359,16 @@ typedef struct EchoRichTerminalConfiguration {
 
 /*
 Summary: configuration for echo_sink_rich_file_create -- a rotating, timestamped log file.
-Description: on creation, Echo lists base_directory for files matching log_prefix and, if
-  max_logs is non-zero and already exceeded, deletes the oldest of them before opening the
-  new file (see e_rich_file_paths_sort's lexical ordering, which relies on the fixed
-  zero-padded timestamp format e_rich_file_create writes into the filename).
+Description: on creation, Echo matches only regular files named <log_prefix>_YYYYMMDD_HHMMSS.log in base_directory.
+  With nonzero max_logs, the total retained files including the current file is bounded by max_logs; the oldest other files are deleted.
+  Creation within the same second appends to the current file. Directory scans and deletions report errors instead of silently breaking retention.
 Fields:
   filter             optional; see EchoFilterFunction
   filter_user_data   passed to filter
   base_directory     directory the log file (and its prior rotations) live in; created if missing
   max_logs           0 disables rotation; otherwise the number of log files kept for log_prefix
   display_precision  see EchoRichTerminalConfiguration
-  log_prefix         filename prefix and the substring rotation matches against; must not be NULL
+  log_prefix         filename prefix; must not be NULL
 */
 typedef struct EchoRichFileConfiguration {
   EchoFilterFunction *filter;

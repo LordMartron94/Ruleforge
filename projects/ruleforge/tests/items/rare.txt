@@ -1,0 +1,12 @@
+Item Class: Wands
+Rarity: Rare
+Doom Branch
+Driftwood Wand
+--------
+Quality: +20% (augmented)
+Sockets: R-G-B R
+--------
+Item Level: 83
+--------
+Unidentified
+Corrupted

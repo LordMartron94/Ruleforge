@@ -43,16 +43,61 @@ type Regeneration struct {
 	PreserveLastGood bool   `json:"preserveLastValid"`
 }
 
+// Logging bounds persisted logs. Keep is the number of retained files per stream.
+type Logging struct {
+	Directory string `json:"directory,omitempty"`
+	Keep      int    `json:"keep,omitempty"`
+	MaxBytes  int64  `json:"maxBytes,omitempty"`
+}
+
+func (p *Project) LogOptions() (string, int, int64) {
+	dir := p.Logging.Directory
+	if dir == "" {
+		dir = ".ruleforge/logs"
+	}
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(p.Dir, dir)
+	}
+	keep := p.Logging.Keep
+	if keep == 0 {
+		keep = 10
+	}
+	size := p.Logging.MaxBytes
+	if size == 0 {
+		size = 4 << 20
+	}
+	return dir, keep, size
+}
+
 // Project is the whole file.
+// GameData uses a PoB src/Data path or a managed, revision-pinned download, with optional wiki or local drop levels.
+type GameData struct {
+	PoBPath         string `json:"pobPath,omitempty"`
+	Commit          string `json:"commit,omitempty"`
+	DropLevelsPath  string `json:"dropLevelsPath,omitempty"`
+	FetchDropLevels bool   `json:"fetchDropLevels,omitempty"`
+}
+
+type History struct {
+	Database string         `json:"database,omitempty"`
+	URL      string         `json:"url,omitempty"`
+	TokenEnv string         `json:"tokenEnv,omitempty"`
+	Leagues  []string       `json:"leagues"`
+	Memory   *EconomyMemory `json:"memory,omitempty"`
+}
+
 type Project struct {
-	Entry        string            `json:"entry"`
-	Include      []string          `json:"include,omitempty"`
-	Context      map[string]string `json:"context,omitempty"` // compile-time values shared by every output
-	Datasets     []Dataset         `json:"datasets,omitempty"`
-	Outputs      []Output          `json:"outputs,omitempty"`
-	Character    *Character        `json:"character,omitempty"`
-	Regeneration Regeneration      `json:"regeneration"`
-	Dir          string            `json:"-"` // the project folder
+	EconomyHistory *History          `json:"economyHistory,omitempty"`
+	GameData       *GameData         `json:"gameData,omitempty"`
+	Logging        Logging           `json:"logging,omitempty"`
+	Entry          string            `json:"entry"`
+	Include        []string          `json:"include,omitempty"`
+	Context        map[string]string `json:"context,omitempty"` // compile-time values shared by every output
+	Datasets       []Dataset         `json:"datasets,omitempty"`
+	Outputs        []Output          `json:"outputs,omitempty"`
+	Character      *Character        `json:"character,omitempty"`
+	Regeneration   Regeneration      `json:"regeneration"`
+	Dir            string            `json:"-"` // the project folder
 }
 
 // Load reads studio.json from a project folder.
@@ -73,6 +118,11 @@ func Load(dir string) (*Project, error) {
 		project.Entry = "entry.rf"
 	}
 	project.Dir = dir
+	_, keep, size := project.LogOptions()
+	if keep < 1 || keep > 65535 || size < 1024 {
+		return nil, fmt.Errorf("invalid logging retention")
+	}
+
 	for _, output := range project.Outputs {
 		if output.Path == "" {
 			return nil, fmt.Errorf("%s: an output has no path", path)

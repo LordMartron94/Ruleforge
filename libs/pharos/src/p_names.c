@@ -1,4 +1,5 @@
 #include <nexus.h>
+#include "../pharos.h"
 
 #include "./p_internal.h"
 
@@ -68,6 +69,10 @@ void pharos_names_occurrences_visit(PharosServer *server, const PharosName *name
     uint_large      index;
 
     document = (PharosDocument *)nexus_data_list_pointer_at(server->documents, i);
+
+    if (server->provider.name_file != NULL && !server->provider.name_file(server->provider.user, name, document->path)) {
+      continue;
+    }
 
     if (!document->open) {
       boolean owns;

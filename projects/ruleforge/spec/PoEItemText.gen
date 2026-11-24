@@ -1,0 +1,17 @@
+Language: PoEItemText
+Version: 1.0.0
+
+PARSER {
+    entry = #document
+}
+
+CONTEXT <ROOT> {
+    $newline = '\r'? '\n'
+    $separator = '--------' @priority(10)
+    $item_class = 'Item Class: ' (' '..'\u{10FFFF}')+ @priority(10)
+    $rarity = 'Rarity: ' (' '..'\u{10FFFF}')+ @priority(10)
+    $text = ('\t' || ' '..'\u{10FFFF}')+
+}
+
+#document = #line+
+#line = ($item_class || $rarity || $separator || $text)? $newline

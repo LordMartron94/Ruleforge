@@ -195,7 +195,7 @@ CONTEXT <BLOCK_COMMENT> {
 // Types
 // ------------------------------------------------------------
 
-#qualified_name = $identifier ($dot $identifier)*
+#qualified_name = $identifier ($dot ($identifier || $kw_color))*
 
 #scalar_type =
     $kw_int || $kw_float || $kw_bool ||
@@ -226,7 +226,7 @@ CONTEXT <BLOCK_COMMENT> {
 #reference =
     ($parameter_reference ||
      $compiler_reference ||
-     $identifier)
+     $identifier || $kw_color)
     ($dot $identifier)*
 
 #indexed_reference =
