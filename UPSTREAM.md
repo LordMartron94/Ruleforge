@@ -10,4 +10,4 @@ Ruleforge is developed in the MergeSource monorepo; this repository is its publi
 | `libs/blaze` | `cc2548161fac` |
 | `libs/pharos` | `7501dd98b46c` |
 | `libs/logos` | `8c6b54b2da5d` |
-| `projects/ruleforge` | `25cffaca51b3` |
+| `projects/ruleforge` | `09f29e3fe3e9` |

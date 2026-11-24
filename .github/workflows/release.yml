@@ -37,7 +37,7 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME#v}"
           mkdir -p pack && cp build/bin/ruleforge build/ruleforge-studio projects/ruleforge/README.md pack/
-          git archive HEAD projects/ruleforge/examples projects/ruleforge/docs | tar -x -C pack --strip-components=2
+          cp -r projects/ruleforge/examples projects/ruleforge/docs pack/
           (cd pack && zip -r "../ruleforge-$v-linux-amd64.zip" .)
       - uses: actions/upload-artifact@v4
         with:
@@ -82,7 +82,7 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME#v}"
           mkdir -p pack && cp build/bin/ruleforge.exe build/ruleforge-studio.exe projects/ruleforge/README.md pack/
-          git archive HEAD projects/ruleforge/examples projects/ruleforge/docs | tar -x -C pack --strip-components=2
+          cp -r projects/ruleforge/examples projects/ruleforge/docs pack/
           (cd pack && zip -r "../ruleforge-$v-windows-amd64.zip" .)
       - uses: actions/upload-artifact@v4
         with:
