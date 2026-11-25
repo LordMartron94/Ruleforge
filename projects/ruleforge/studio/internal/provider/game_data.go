@@ -141,7 +141,11 @@ func PrepareGameData(ctx context.Context, project *config.Project) error {
 		}
 	}
 	for i := range bases {
-		if level, ok := levels[bases[i].BaseType]; ok {
+		level, ok := levels[bases[i].BaseType]
+		if !ok {
+			level, ok = levels[bases[i].ID]
+		}
+		if ok {
 			value := level
 			bases[i].DropLevel = &value
 		}
@@ -267,6 +271,13 @@ func readPoBBases(ctx context.Context, dir string) ([]GameRow, error) {
 				if subtype, ok := entry.RawGetString("subType").(lua.LString); ok {
 					row.SubType = string(subtype)
 				}
+				// PoB distinguishes bases sharing one in-game name with a
+				// defence-subtype suffix. Preserve its ID, but export the real
+				// base name used by exact BaseType conditions in item filters.
+				if row.SubType != "" {
+					row.BaseType = strings.TrimSuffix(row.BaseType, " ("+row.SubType+")")
+					row.Name = row.BaseType
+				}
 				if kind == "One Handed Sword" && row.SubType == "Thrusting" {
 					row.Class = "Thrusting One Hand Swords"
 				}
@@ -367,6 +378,7 @@ func readPoBUniques(ctx context.Context, dir string, bases []GameRow) ([]GameRow
 	baseIndex := map[string]GameRow{}
 	for _, row := range bases {
 		baseIndex[row.BaseType] = row
+		baseIndex[row.ID] = row
 	}
 	rows := []GameRow{}
 	for _, path := range paths {
@@ -386,10 +398,12 @@ func readPoBUniques(ctx context.Context, dir string, bases []GameRow) ([]GameRow
 				}
 				name := strings.TrimSpace(lines[0])
 				base := strings.TrimSpace(lines[1])
-				row := baseIndex[base]
+				row, known := baseIndex[base]
+				if !known {
+					row.BaseType = base
+				}
 				row.ID = name
 				row.Name = name
-				row.BaseType = base
 				if row.Tags == nil {
 					row.Tags = []string{}
 				}

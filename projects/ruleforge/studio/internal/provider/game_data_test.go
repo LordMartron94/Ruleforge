@@ -116,3 +116,33 @@ func TestPoBEquipmentSubtypesAndSupportNames(t *testing.T) {
 		t.Fatal("missing gems", wanted)
 	}
 }
+
+func TestPoBSubtypeNamesAreNotEmittedAsGameBaseNames(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "Bases"), 0o755)
+	os.MkdirAll(filepath.Join(dir, "Uniques"), 0o755)
+	os.WriteFile(filepath.Join(dir, "Bases/boots.lua"), []byte(`return function(b)
+      b["Two-Toned Boots (Armour/Energy Shield)"]={type="Boots",subType="Armour/Energy Shield",req={level=70}}
+      b["Two-Toned Boots (Armour/Evasion)"]={type="Boots",subType="Armour/Evasion",req={level=70}}
+    end`), 0o644)
+	os.WriteFile(filepath.Join(dir, "Uniques/boots.lua"), []byte("return {[[Fixture Unique\nTwo-Toned Boots (Armour/Energy Shield)]]}"), 0o644)
+	bases, err := readPoBBases(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bases) != 2 {
+		t.Fatal(bases)
+	}
+	for _, base := range bases {
+		if base.BaseType != "Two-Toned Boots" || base.Name != "Two-Toned Boots" || base.ID == base.BaseType || base.SubType == "" {
+			t.Fatalf("PoB qualifier leaked into game name: %+v", base)
+		}
+	}
+	uniques, err := readPoBUniques(context.Background(), dir, bases)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(uniques) != 1 || uniques[0].BaseType != "Two-Toned Boots" || uniques[0].SubType != "Armour/Energy Shield" || uniques[0].Class != "Boots" {
+		t.Fatalf("unique lost normalized base metadata: %+v %v", uniques, err)
+	}
+}
