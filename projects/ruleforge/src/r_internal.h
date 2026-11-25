@@ -203,6 +203,9 @@ typedef struct RuleforgeCondition {
   uint32                        count;
   int64                        *numbers;
   const char                  **strings;
+  boolean                       substring;
+  boolean                       counted;
+  int64                         threshold;
 } RuleforgeCondition;
 
 /* A conjunction of conditions. */
@@ -246,6 +249,7 @@ typedef struct RuleforgeVariant {
 /* An immutable generated rule: scope, baseline and variants, with its provenance. */
 typedef struct RuleforgeRule {
   const char                *name;
+  const char                *section;
   RuleforgeSpan              span;
   RuleforgeClause            scope;
   boolean                    has_action;
@@ -459,6 +463,7 @@ struct RuleforgeEvaluation {
   NexusDataList              *variables; /* RuleforgeVariable, used as a stack */
   uint32                      frame_base;
   uint64                      steps;
+  void                       *economy_cache;
   uint32                      depth;
   uint32                      emitted;
   const RuleforgeProvenance  *provenance;
@@ -723,3 +728,8 @@ extern const char                 *ruleforge_compilation_documentation_get(Rulef
                                                                            const RuleforgeDeclaration *declaration);
 extern RuleforgeModule            *ruleforge_compilation_module_find(const RuleforgeCompilation *compilation, const char *name);
 extern const RuleforgeDeclaration *ruleforge_compilation_declaration_find(const RuleforgeModule *module, const char *name);
+
+/* r_economy.c */
+extern RuleforgeValue ruleforge_economy_tier_history(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count);
+
+extern void ruleforge_filter_optimize(RuleforgeCompilation *compilation, RuleforgeFilter *filter);

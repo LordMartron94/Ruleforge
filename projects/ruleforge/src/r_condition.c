@@ -505,6 +505,12 @@ boolean ruleforge_condition_evaluate(REval *eval, RfExpr view, boolean negate, R
   operands = rf_expr_operand_count(view);
   kind     = operands == 0 ? (LLexerTokenKind)L_LEXER_TOKEN_KIND_ERROR : rf_expr_operator_kind(view);
 
+  if (operands == 0) {
+    RfAtom atom;
+    atom = rf_expr_atom(view);
+    if (rf_atom_count_rule_expr(atom) == 1) { return ruleforge_condition_evaluate(eval, rf_atom_rule_expr(atom, 0), negate, out); }
+  }
+
   if (operands == 1 && kind == RF_TOKEN_KW_NOT) {
     return ruleforge_condition_evaluate(eval, rf_expr_operand(view, 0), !negate, out);
   }

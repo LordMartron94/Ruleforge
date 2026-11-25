@@ -1,0 +1,29 @@
+# SYNTAX TEST "Packages/User/PoEFilter.sublime-syntax"
+# [Mapping] Gear and currency
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.line.number-sign.poe-filter
+Show # Priority items
+#^^^ keyword.control.poe-filter
+#    ^^^^^^^^^^^^^^^^ comment.line.number-sign.poe-filter
+    BaseType == "Maelström Token #1"
+#   ^^^^^^^^ variable.language.condition.poe-filter
+#            ^^ keyword.operator.comparison.poe-filter
+#               ^^^^^^^^^^^^^^^^^^^ string.quoted.double.poe-filter
+    UnidentifiedItemTier >= 3
+#   ^^^^^^^^^^^^^^^^^^^^ variable.language.condition.poe-filter
+    SocketGroup >= 5GGG
+#                  ^^^^ constant.other.socket-pattern.poe-filter
+    SetBackgroundColor 16 35 79 255
+#   ^^^^^^^^^^^^^^^^^^ support.function.color.poe-filter
+    PlayAlertSoundPositional 6 300
+#   ^^^^^^^^^^^^^^^^^^^^^^^^ support.function.poe-filter
+    MinimapIcon 0 Red Star
+    Continue
+#   ^^^^^^^^ keyword.control.poe-filter
+Import "More.filter" Optional
+#^^^^^ keyword.control.import.poe-filter
+#                    ^^^^^^^^ storage.modifier.poe-filter
+Hide
+    HasInfluence Redeemer
+#                ^^^^^^^^ string.unquoted.poe-filter
+    CustomAlertSoundOptional "sounds/drop.ogg" 200
+#   ^^^^^^^^^^^^^^^^^^^^^^^^ support.function.poe-filter

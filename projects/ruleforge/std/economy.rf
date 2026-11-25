@@ -264,3 +264,22 @@ export func MemoryPrice(rows any, league string, name string, variant string) ->
     }
     return stats.Mean(values, none);
 }
+
+/* Summary: confidence-gated, recency-weighted multi-league market tiers.
+   Returns {groups, state}. Raw history is provided by History; the host persists
+   state only after successful publication. A request specifies id, class, count,
+   optional profiles ({baseType, crafting}), validBases and policy weights.
+   Price and known stash supply are globally normalized (0.65/0.35); exchange
+   turnover is never treated as scarcity. Crafting profiles support 1/3/5/10/20
+   stacks. Promotions require two new reliable buckets, demotions three.
+   Repeated compilation of the same buckets does not add confirmations. */
+export intrinsic func TierHistory(history any, request record, weights any, previous any) -> record;
+
+/* Summary: all patch-filtered quotes grouped into series, without repeating
+   identity strings per observation. No variants, prices or time buckets are
+   dropped from the scoring projection; raw variant identities remain in History. */
+export schema QuoteSeries {
+    baseType string; name string; class string; league string; source string?; state string?;
+    prices list<float>; buckets list<int>; listings list<float>; tradedUnits list<float>;
+}
+export dataset Quotes: QuoteSeries from "economy.quotes";

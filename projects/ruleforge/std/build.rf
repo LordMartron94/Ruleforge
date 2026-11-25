@@ -16,3 +16,20 @@ export func ForClasses(items any, classes list<string>) -> list<record> {
     }
     return result;
 }
+
+/* Summary: select a build's weapon classes and armour subtypes from PoB bases.
+   Belts are universal; armour membership is explicit. */
+export func ForPreset(items any, weapons list<string>, armourTypes list<string>) -> list<record> {
+    var selected = [];
+    let armour = ["Body Armours", "Boots", "Gloves", "Helmets", "Shields"];
+    for item in $items {
+        var used = collections.Contains($weapons, item.class);
+        if collections.Contains(armour, item.class) {
+            let subtype = collections.Get(item, "subType");
+            used = subtype != none and collections.Contains($armourTypes, subtype);
+        }
+        if item.class == "Belts" { used = true; }
+        if used { selected = collections.Concat(selected, [item]); }
+    }
+    return selected;
+}

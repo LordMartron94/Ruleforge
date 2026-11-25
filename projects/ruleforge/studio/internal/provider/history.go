@@ -16,6 +16,24 @@ func HistoryPath(project *config.Project) string {
 	return filepath.Join(project.Dir, ".ruleforge", "economy", "history.json")
 }
 
+type historyObservation struct {
+	ID              string  `json:"id"`
+	Name            string  `json:"name"`
+	BaseType        string  `json:"baseType"`
+	Class           string  `json:"class"`
+	Variant         string  `json:"variant"`
+	League          string  `json:"league"`
+	GameVersion     string  `json:"gameVersion"`
+	Bucket          int64   `json:"bucket"`
+	ChaosValue      float64 `json:"chaosValue"`
+	DivineValue     float64 `json:"divineValue"`
+	ListingCount    int     `json:"listingCount"`
+	TradedUnits     float64 `json:"tradedUnits"`
+	Source          string  `json:"source"`
+	State           string  `json:"state"`
+	ReliableBuckets int     `json:"reliableBuckets"`
+}
+
 // PrepareHistory synchronizes the existing protocol and exposes patch-filtered buckets as a Ruleforge dataset.
 func PrepareHistory(ctx context.Context, project *config.Project) error {
 	if project.EconomyHistory == nil {
@@ -66,12 +84,18 @@ func PrepareHistory(ctx context.Context, project *config.Project) error {
 	for _, entry := range evidence {
 		index[entry.League+"\x00"+entry.Class+"\x00"+entry.BaseType] = entry
 	}
-	rows := []map[string]any{}
+	rowCount := 0
+	for _, snapshots := range buckets {
+		for _, snapshot := range snapshots {
+			rowCount += len(snapshot.Items)
+		}
+	}
+	rows := make([]historyObservation, 0, rowCount)
 	for _, league := range cfg.Leagues {
 		for _, snapshot := range buckets[league] {
 			for _, item := range snapshot.Items {
 				ev := index[league+"\x00"+item.Class+"\x00"+item.BaseType]
-				rows = append(rows, map[string]any{"id": item.ItemID, "name": item.Name, "baseType": item.BaseType, "class": item.Class, "variant": item.Variant, "league": league, "gameVersion": snapshot.GameVersion, "bucket": snapshot.FetchedAt.Unix(), "chaosValue": item.ChaosValue, "divineValue": item.DivineValue, "listingCount": item.ListingCount, "tradedUnits": item.TradedUnits, "source": item.Source, "state": ev.State, "reliableBuckets": ev.ReliableBuckets})
+				rows = append(rows, historyObservation{ID: item.ItemID, Name: item.Name, BaseType: item.BaseType, Class: item.Class, Variant: item.Variant, League: league, GameVersion: snapshot.GameVersion, Bucket: snapshot.FetchedAt.Unix(), ChaosValue: item.ChaosValue, DivineValue: item.DivineValue, ListingCount: item.ListingCount, TradedUnits: item.TradedUnits, Source: item.Source, State: ev.State, ReliableBuckets: ev.ReliableBuckets})
 			}
 		}
 	}
@@ -79,5 +103,8 @@ func PrepareHistory(ctx context.Context, project *config.Project) error {
 	if err != nil {
 		return err
 	}
-	return writeSnapshot(HistoryPath(project), data)
+	if err := writeSnapshot(HistoryPath(project), data); err != nil {
+		return err
+	}
+	return writeQuoteSeries(project, buckets, evidence)
 }

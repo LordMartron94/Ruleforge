@@ -44,3 +44,13 @@ Params: rules  the ruleset; name  the name of a game condition; value  a string,
 Errors: RF0357 when the name is not a game condition; RF0523 for a value of another kind
 */
 export intrinsic func WithScope(rules ruleset, name string, value any) -> ruleset;
+
+/* Summary: materialize ordered, typed rule records with dataset-row provenance.
+   Each record has action ("show"/"hide"), style (a theme key), source and conditions.
+   A condition has name, op and value; op "contains" matches text fragments.
+   Optional count compares the number of matched strings (e.g. explicit modifiers).
+   Invalid names, types, operators, actions and theme keys fail with RF0524. */
+export intrinsic func FromRecords(rows any, selectedTheme any) -> ruleset;
+
+/* Summary: give an ordered group of rules a heading in the emitted filter. */
+export intrinsic func Section(rules ruleset, title string) -> ruleset;

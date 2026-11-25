@@ -1,0 +1,292 @@
+Language: PoEFilter
+Version: 1.0.0
+
+// Line syntax for Path of Exile item filters (PoE 1 and PoE 2).
+// Reference: https://www.pathofexile.com/item-filter/about
+// Newlines terminate directives; indentation is cosmetic. Range checks,
+// block ordering and game-specific availability belong to the game validator.
+PARSER {
+    entry = #filter
+    global = #spacing
+}
+
+CONTEXT <ROOT> {
+    $space = (' ' || '\t')+
+    $newline = '\r\n' || '\n' || '\r'
+    $comment = '#' (!('\r' || '\n'))* @priority(30)
+    $kw_show = 'Show' @priority(10)
+    $kw_hide = 'Hide' @priority(10)
+    $kw_minimal = 'Minimal' @priority(10)
+    $continue = 'Continue' @priority(10)
+    $import = 'Import' @priority(10)
+    $optional = 'Optional' @priority(10)
+
+    $kw_area_level = 'AreaLevel' @priority(10)
+    $kw_item_level = 'ItemLevel' @priority(10)
+    $kw_drop_level = 'DropLevel' @priority(10)
+    $kw_gem_level = 'GemLevel' @priority(10)
+    $kw_map_tier = 'MapTier' @priority(10)
+    $kw_waystone_tier = 'WaystoneTier' @priority(10)
+    $kw_quality = 'Quality' @priority(10)
+    $kw_stack_size = 'StackSize' @priority(10)
+    $kw_height = 'Height' @priority(10)
+    $kw_width = 'Width' @priority(10)
+    $kw_linked_sockets = 'LinkedSockets' @priority(10)
+    $kw_base_defence_percentile = 'BaseDefencePercentile' @priority(10)
+    $kw_base_armour = 'BaseArmour' @priority(10)
+    $kw_base_evasion = 'BaseEvasion' @priority(10)
+    $kw_base_energy_shield = 'BaseEnergyShield' @priority(10)
+    $kw_base_ward = 'BaseWard' @priority(10)
+    $kw_corrupted_mods = 'CorruptedMods' @priority(10)
+    $kw_enchantment_passive_num = 'EnchantmentPassiveNum' @priority(10)
+    $kw_has_eater_of_worlds_implicit = 'HasEaterOfWorldsImplicit' @priority(10)
+    $kw_has_searing_exarch_implicit = 'HasSearingExarchImplicit' @priority(10)
+    $kw_unidentified_item_tier = 'UnidentifiedItemTier' @priority(10)
+    $kw_memory_strands = 'MemoryStrands' @priority(10)
+    $kw_alternate_quality = 'AlternateQuality' @priority(10)
+    $kw_always_show = 'AlwaysShow' @priority(10)
+    $kw_any_enchantment = 'AnyEnchantment' @priority(10)
+    $kw_blighted_map = 'BlightedMap' @priority(10)
+    $kw_corrupted = 'Corrupted' @priority(10)
+    $kw_elder_item = 'ElderItem' @priority(10)
+    $kw_elder_map = 'ElderMap' @priority(10)
+    $kw_exceptional = 'Exceptional' @priority(10)
+    $kw_fated = 'Fated' @priority(10)
+    $kw_foulborn = 'Foulborn' @priority(10)
+    $kw_fractured_item = 'FracturedItem' @priority(10)
+    $kw_has_crucible_passive_tree = 'HasCruciblePassiveTree' @priority(10)
+    $kw_has_vaal_unique_mod = 'HasVaalUniqueMod' @priority(10)
+    $kw_identified = 'Identified' @priority(10)
+    $kw_imbued = 'Imbued' @priority(10)
+    $kw_is_vaal_unique = 'IsVaalUnique' @priority(10)
+    $kw_mirage_map = 'MirageMap' @priority(10)
+    $kw_mirrored = 'Mirrored' @priority(10)
+    $kw_replica = 'Replica' @priority(10)
+    $kw_scourged = 'Scourged' @priority(10)
+    $kw_shaped_map = 'ShapedMap' @priority(10)
+    $kw_shaper_item = 'ShaperItem' @priority(10)
+    $kw_synthesised_item = 'SynthesisedItem' @priority(10)
+    $kw_twice_corrupted = 'TwiceCorrupted' @priority(10)
+    $kw_uber_blighted_map = 'UberBlightedMap' @priority(10)
+    $kw_vestigial = 'Vestigial' @priority(10)
+    $kw_zana_memory = 'ZanaMemory' @priority(10)
+    $kw_class = 'Class' @priority(10)
+    $kw_base_type = 'BaseType' @priority(10)
+    $kw_archnemesis_mod = 'ArchnemesisMod' @priority(10)
+    $kw_has_influence = 'HasInfluence' @priority(10)
+    $kw_enchantment_passive_node = 'EnchantmentPassiveNode' @priority(10)
+    $kw_gem_quality_type = 'GemQualityType' @priority(10)
+    $kw_has_explicit_mod = 'HasExplicitMod' @priority(10)
+    $kw_has_implicit_mod = 'HasImplicitMod' @priority(10)
+    $kw_has_enchantment = 'HasEnchantment' @priority(10)
+    $kw_transfigured_gem = 'TransfiguredGem' @priority(10)
+    $rarity_condition = 'Rarity' @priority(10)
+    $kw_sockets = 'Sockets' @priority(10)
+    $kw_socket_group = 'SocketGroup' @priority(10)
+
+    $kw_set_text_color = 'SetTextColor' @priority(10)
+    $kw_set_border_color = 'SetBorderColor' @priority(10)
+    $kw_set_background_color = 'SetBackgroundColor' @priority(10)
+    $font_action = 'SetFontSize' @priority(10)
+    $kw_play_alert_sound = 'PlayAlertSound' @priority(10)
+    $kw_play_alert_sound_positional = 'PlayAlertSoundPositional' @priority(10)
+    $kw_custom_alert_sound = 'CustomAlertSound' @priority(10)
+    $kw_custom_alert_sound_optional = 'CustomAlertSoundOptional' @priority(10)
+    $kw_disable_drop_sound = 'DisableDropSound' @priority(10)
+    $kw_enable_drop_sound = 'EnableDropSound' @priority(10)
+    $kw_disable_drop_sound_if_alert_sound = 'DisableDropSoundIfAlertSound' @priority(10)
+    $kw_enable_drop_sound_if_alert_sound = 'EnableDropSoundIfAlertSound' @priority(10)
+    $effect_action = 'PlayEffect' @priority(10)
+    $icon_action = 'MinimapIcon' @priority(10)
+
+    $operator = ('==' || '!=' || '<=' || '>=' || '=' || '!' || '<' || '>') @priority(20)
+    $kw_true = 'True' @priority(10)
+    $kw_false = 'False' @priority(10)
+    $kw_normal = 'Normal' @priority(10)
+    $kw_magic = 'Magic' @priority(10)
+    $kw_rare = 'Rare' @priority(10)
+    $kw_unique = 'Unique' @priority(10)
+    $kw_red = 'Red' @priority(10)
+    $kw_green = 'Green' @priority(10)
+    $kw_blue = 'Blue' @priority(10)
+    $kw_brown = 'Brown' @priority(10)
+    $kw_white = 'White' @priority(10)
+    $kw_yellow = 'Yellow' @priority(10)
+    $kw_cyan = 'Cyan' @priority(10)
+    $kw_grey = 'Grey' @priority(10)
+    $kw_orange = 'Orange' @priority(10)
+    $kw_pink = 'Pink' @priority(10)
+    $kw_purple = 'Purple' @priority(10)
+    $kw_circle = 'Circle' @priority(10)
+    $kw_diamond = 'Diamond' @priority(10)
+    $kw_hexagon = 'Hexagon' @priority(10)
+    $kw_square = 'Square' @priority(10)
+    $kw_star = 'Star' @priority(10)
+    $kw_triangle = 'Triangle' @priority(10)
+    $kw_cross = 'Cross' @priority(10)
+    $kw_moon = 'Moon' @priority(10)
+    $kw_raindrop = 'Raindrop' @priority(10)
+    $kw_kite = 'Kite' @priority(10)
+    $kw_pentagon = 'Pentagon' @priority(10)
+    $kw_upside_down_house = 'UpsideDownHouse' @priority(10)
+    $none = 'None' @priority(10)
+    $temporary = 'Temp' @priority(10)
+    $socket_pattern = ('0'..'9')+ ('R' || 'G' || 'B' || 'W' || 'A' || 'D')+ @priority(15)
+    $integer = '-'? ('0'..'9')+
+    $string = '"' (!('"' || '\\' || '\r' || '\n') || '\\' (!('\r' || '\n')))* '"'
+    $word = ('a'..'z' || 'A'..'Z' || '_') ('a'..'z' || 'A'..'Z' || '0'..'9' || '_' || '-' || '\'')*
+}
+
+// The final directive need not end with a newline. Blank and comment-only lines
+// are retained so section comments and inline comments have the same treatment.
+#spacing = $space
+#filter = #line ($newline #line)*
+#line = (#header || #import_line || #condition || #action || $continue)? $comment?
+#header = #block
+#import_line = $import $string $optional?
+#value = $string || $word || $integer || #boolean || #rarity || #named_color || #shape || $none || $socket_pattern
+#condition =
+    #numeric_condition $operator? $integer+ ||
+    #boolean_condition #boolean ||
+    #text_condition $operator? #value+ ||
+    #modifier_condition $operator? #value+ ||
+    $rarity_condition $operator? #rarity+ ||
+    #socket_condition $operator? ($integer || $socket_pattern || $string || $word)+
+#color_value = $integer $integer $integer $integer?
+#action =
+    #color_action #color_value ||
+    $font_action $integer ||
+    #sound_action ($integer || $none) $integer? ||
+    #custom_sound_action ($string || $none) $integer? ||
+    #drop_sound_action #boolean? ||
+    $effect_action (#named_color $temporary? || $none) ||
+    $icon_action ($integer #named_color #shape || $integer)
+
+#numeric_condition =
+    $kw_area_level ||
+    $kw_item_level ||
+    $kw_drop_level ||
+    $kw_gem_level ||
+    $kw_map_tier ||
+    $kw_waystone_tier ||
+    $kw_quality ||
+    $kw_stack_size ||
+    $kw_height ||
+    $kw_width ||
+    $kw_linked_sockets ||
+    $kw_base_defence_percentile ||
+    $kw_base_armour ||
+    $kw_base_evasion ||
+    $kw_base_energy_shield ||
+    $kw_base_ward ||
+    $kw_corrupted_mods ||
+    $kw_enchantment_passive_num ||
+    $kw_has_eater_of_worlds_implicit ||
+    $kw_has_searing_exarch_implicit ||
+    $kw_unidentified_item_tier ||
+    $kw_memory_strands
+
+#boolean_condition =
+    $kw_alternate_quality ||
+    $kw_always_show ||
+    $kw_any_enchantment ||
+    $kw_blighted_map ||
+    $kw_corrupted ||
+    $kw_elder_item ||
+    $kw_elder_map ||
+    $kw_exceptional ||
+    $kw_fated ||
+    $kw_foulborn ||
+    $kw_fractured_item ||
+    $kw_has_crucible_passive_tree ||
+    $kw_has_vaal_unique_mod ||
+    $kw_identified ||
+    $kw_imbued ||
+    $kw_is_vaal_unique ||
+    $kw_mirage_map ||
+    $kw_mirrored ||
+    $kw_replica ||
+    $kw_scourged ||
+    $kw_shaped_map ||
+    $kw_shaper_item ||
+    $kw_synthesised_item ||
+    $kw_twice_corrupted ||
+    $kw_uber_blighted_map ||
+    $kw_vestigial ||
+    $kw_zana_memory
+
+#text_condition =
+    $kw_class ||
+    $kw_base_type ||
+    $kw_archnemesis_mod ||
+    $kw_has_influence ||
+    $kw_enchantment_passive_node ||
+    $kw_gem_quality_type
+
+#modifier_condition =
+    $kw_has_explicit_mod ||
+    $kw_has_implicit_mod ||
+    $kw_has_enchantment ||
+    $kw_transfigured_gem
+
+#socket_condition =
+    $kw_sockets ||
+    $kw_socket_group
+
+#color_action =
+    $kw_set_text_color ||
+    $kw_set_border_color ||
+    $kw_set_background_color
+
+#sound_action =
+    $kw_play_alert_sound ||
+    $kw_play_alert_sound_positional
+
+#custom_sound_action =
+    $kw_custom_alert_sound ||
+    $kw_custom_alert_sound_optional
+
+#drop_sound_action =
+    $kw_disable_drop_sound ||
+    $kw_enable_drop_sound ||
+    $kw_disable_drop_sound_if_alert_sound ||
+    $kw_enable_drop_sound_if_alert_sound
+
+#boolean =
+    $kw_true ||
+    $kw_false
+
+#rarity =
+    $kw_normal ||
+    $kw_magic ||
+    $kw_rare ||
+    $kw_unique
+
+#named_color =
+    $kw_red ||
+    $kw_green ||
+    $kw_blue ||
+    $kw_brown ||
+    $kw_white ||
+    $kw_yellow ||
+    $kw_cyan ||
+    $kw_grey ||
+    $kw_orange ||
+    $kw_pink ||
+    $kw_purple
+
+#shape =
+    $kw_circle ||
+    $kw_diamond ||
+    $kw_hexagon ||
+    $kw_square ||
+    $kw_star ||
+    $kw_triangle ||
+    $kw_cross ||
+    $kw_moon ||
+    $kw_raindrop ||
+    $kw_kite ||
+    $kw_pentagon ||
+    $kw_upside_down_house
+
+#block = $kw_show || $kw_hide || $kw_minimal

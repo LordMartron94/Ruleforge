@@ -36,7 +36,7 @@ void ruleforge_filter_condition_json_write(const RuleforgeCondition *condition, 
   (void)nexus_strings_string_builder_append(out, "{\"name\":");
   (void)nexus_json_quote_append(out, condition->info->name);
   (void)nexus_strings_string_builder_append_formatted(out, ",\"keyword\":\"%s\",\"op\":\"%s\",\"values\":[", condition->info->keyword,
-                                                      ruleforge_manifest_operator_text_get(condition->op));
+                                                      condition->substring ? "contains" : ruleforge_manifest_operator_text_get(condition->op));
 
   for (i = 0; i < condition->count; i++) {
     if (i > 0) {
@@ -54,7 +54,11 @@ void ruleforge_filter_condition_json_write(const RuleforgeCondition *condition, 
     }
   }
 
-  (void)nexus_strings_string_builder_append(out, "]}");
+  (void)nexus_strings_string_builder_append(out, "]");
+  if (condition->counted) {
+    (void)nexus_strings_string_builder_append_formatted(out, ",\"count\":%lld", (long long)condition->threshold);
+  }
+  (void)nexus_strings_string_builder_append(out, "}");
 }
 
 void ruleforge_filter_style_json_write(const RuleforgeStyle *style, boolean show, NexusStringBuilder *out) {

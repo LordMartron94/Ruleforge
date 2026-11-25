@@ -72,6 +72,7 @@ func (p *Project) LogOptions() (string, int, int64) {
 // Project is the whole file.
 // GameData uses a PoB src/Data path or a managed, revision-pinned download, with optional wiki or local drop levels.
 type GameData struct {
+	Offline         bool   `json:"-"`
 	PoBPath         string `json:"pobPath,omitempty"`
 	Commit          string `json:"commit,omitempty"`
 	DropLevelsPath  string `json:"dropLevelsPath,omitempty"`
@@ -86,18 +87,28 @@ type History struct {
 	Memory   *EconomyMemory `json:"memory,omitempty"`
 }
 
+// StateExpression is evaluated by the C engine after successful publication.
+// Its result becomes the next snapshot of an explicitly configured JSON dataset.
+type StateExpression struct {
+	Source     string `json:"source"`
+	Module     string `json:"module"`
+	Expression string `json:"expression"`
+}
+
 type Project struct {
-	EconomyHistory *History          `json:"economyHistory,omitempty"`
-	GameData       *GameData         `json:"gameData,omitempty"`
-	Logging        Logging           `json:"logging,omitempty"`
-	Entry          string            `json:"entry"`
-	Include        []string          `json:"include,omitempty"`
-	Context        map[string]string `json:"context,omitempty"` // compile-time values shared by every output
-	Datasets       []Dataset         `json:"datasets,omitempty"`
-	Outputs        []Output          `json:"outputs,omitempty"`
-	Character      *Character        `json:"character,omitempty"`
-	Regeneration   Regeneration      `json:"regeneration"`
-	Dir            string            `json:"-"` // the project folder
+	Offline          bool              `json:"-"`
+	StateExpressions []StateExpression `json:"stateExpressions,omitempty"`
+	EconomyHistory   *History          `json:"economyHistory,omitempty"`
+	GameData         *GameData         `json:"gameData,omitempty"`
+	Logging          Logging           `json:"logging,omitempty"`
+	Entry            string            `json:"entry"`
+	Include          []string          `json:"include,omitempty"`
+	Context          map[string]string `json:"context,omitempty"` // compile-time values shared by every output
+	Datasets         []Dataset         `json:"datasets,omitempty"`
+	Outputs          []Output          `json:"outputs,omitempty"`
+	Character        *Character        `json:"character,omitempty"`
+	Regeneration     Regeneration      `json:"regeneration"`
+	Dir              string            `json:"-"` // the project folder
 }
 
 // Load reads studio.json from a project folder.

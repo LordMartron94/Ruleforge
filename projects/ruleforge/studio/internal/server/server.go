@@ -170,6 +170,7 @@ func (s *Server) request() engine.Request {
 	}
 	if s.Project.EconomyHistory != nil {
 		datasets["economy.history"] = provider.HistoryPath(s.Project)
+		datasets["economy.quotes"] = provider.HistoryQuotesPath(s.Project)
 	}
 	return engine.Request{Dir: s.Project.Dir, Entry: s.Project.Entry, Include: s.Project.Include, Set: set, Datasets: datasets}
 }

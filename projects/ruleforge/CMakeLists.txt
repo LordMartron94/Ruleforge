@@ -55,6 +55,10 @@ logos_genesis_sublime(ruleforge_sublime
     GRAMMAR "${CMAKE_CURRENT_SOURCE_DIR}/spec/ruleforge.gen"
     INCLUDE "${ruleforge_logos_stdlib}"
     INSTALL_DIRECTORY "${LOGOS_SUBLIME_PACKAGE_DIRECTORY}")
+# The game's emitted format has its own grammar and editor mapping.
+logos_genesis_sublime(poe_filter_sublime
+    GRAMMAR "${CMAKE_CURRENT_SOURCE_DIR}/spec/PoEFilter.gen"
+    INSTALL_DIRECTORY "${LOGOS_SUBLIME_PACKAGE_DIRECTORY}")
 # Genesis writes the syntax; the comment shortcuts of the editor (Ctrl+/) are this file next to the grammar, kept current the same way.
 if(LOGOS_SUBLIME_PACKAGE_DIRECTORY)
     set(ruleforge_comments_source "${CMAKE_CURRENT_SOURCE_DIR}/spec/Comments (Ruleforge).tmPreferences")
@@ -83,6 +87,7 @@ target_link_libraries(ruleforge PRIVATE MergeSource::Options Blaze::Blaze PUBLIC
 file(GLOB ruleforge_cli_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/apps/ruleforge/*.c")
 add_executable(ruleforge_cli ${ruleforge_cli_sources})
 set_target_properties(ruleforge_cli PROPERTIES OUTPUT_NAME ruleforge)
+add_dependencies(ruleforge_cli poe_filter_sublime)
 target_link_libraries(ruleforge_cli PRIVATE MergeSource::Options Ruleforge::Ruleforge)
 
 # Tests: golden compile + simulation of the example project, and the diagnostics of every error case.
@@ -129,4 +134,16 @@ if(BUILD_TESTING)
                 -DCASE=${case_directory}/${case_name}
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/run_error_case.cmake")
     endforeach()
+endif()
+
+if(BUILD_TESTING)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME ruleforge_poe_filter_grammar
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/features/verify_poe_filter.py" $<TARGET_FILE:genesis>)
+        add_test(NAME ruleforge_language_server
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/features/verify_lsp.py" $<TARGET_FILE:genesis>)
+        add_test(NAME ruleforge_structured_rules_and_history
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/features/verify.py" $<TARGET_FILE:ruleforge_cli>)
+    endif()
 endif()

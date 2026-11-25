@@ -21,3 +21,6 @@ export intrinsic func Lab(value color) -> list<number>;
 export intrinsic func DeltaE2000Lab(first list<number>, second list<number>) -> float;
 /* Summary: CIEDE2000 difference of two opaque sRGB colours, D65, unit weighting factors (Blaze). */
 export intrinsic func DeltaE2000(first color, second color) -> float;
+
+/* Summary: a named color from a colorSet; missing names fail with RF0540. */
+export intrinsic func Lookup(palette any, name string) -> color;

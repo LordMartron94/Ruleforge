@@ -72,7 +72,7 @@ static boolean r_manifest_color_text(RuleforgeCompilation *compilation, Ruleforg
     alpha = (uint32)alpha_override;
   }
 
-  if (alpha == 255) {
+  if (alpha == 255 && !nexus_strings_string_equals(property, "Background")) {
     (void)stbsp_snprintf(buffer, (int)NEXUS_SIZEOF(buffer), "%lu %lu %lu", (unsigned long)((value->as.color >> 24) & 0xFFU),
                          (unsigned long)((value->as.color >> 16) & 0xFFU), (unsigned long)((value->as.color >> 8) & 0xFFU));
   } else {

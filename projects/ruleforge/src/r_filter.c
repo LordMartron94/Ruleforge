@@ -16,7 +16,7 @@ compile-time condition was true and nothing is left for the game to decide) ends
 static RuleforgeBlock *r_filter_block_create(RuleforgeCompilation *compilation, NexusDataList *blocks) {
   RuleforgeBlock *block;
 
-  block     = (RuleforgeBlock *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*block));
+  block = (RuleforgeBlock *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*block));
   block->id = (uint32)nexus_data_list_length_get(blocks) + 1;
   (void)nexus_data_list_append_pointer(blocks, block);
 
@@ -25,7 +25,8 @@ static RuleforgeBlock *r_filter_block_create(RuleforgeCompilation *compilation, 
 
 /*
 Summary: puts the conditions of a block in the order their declarations ask for: by `order`, and by where they were declared when equal.
-Description: stable, and short lists only, so an insertion sort. The same filter written with the conditions in another order is the same filter.
+Description: stable, and short lists only, so an insertion sort. The same filter written with the conditions in another order is the same
+filter.
 */
 static void r_filter_conditions_sort(RuleforgeCondition **conditions, uint32 count) {
   uint32 i;
@@ -41,7 +42,7 @@ static void r_filter_conditions_sort(RuleforgeCondition **conditions, uint32 cou
       const RuleforgeConditionInfo *after;
 
       before = conditions[j - 1]->info;
-      after  = moving->info;
+      after = moving->info;
 
       if (before->order < after->order || (before->order == after->order && before->declaration <= after->declaration)) {
         break;
@@ -71,14 +72,14 @@ RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const
     boolean              reached_baseline;
     RuleforgeBlock      *block;
 
-    rule  = ruleset->rules[i];
+    rule = ruleset->rules[i];
     block = NULL;
 
     if (rule->native != NULL) {
-      block         = r_filter_block_create(compilation, blocks);
+      block = r_filter_block_create(compilation, blocks);
       block->native = rule->native;
-      block->rule   = rule;
-      block->role   = "native";
+      block->rule = rule;
+      block->role = "native";
 
       continue;
     }
@@ -97,13 +98,13 @@ RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const
 
         block = r_filter_block_create(compilation, blocks);
         (void)stbsp_snprintf(role, (int)NEXUS_SIZEOF(role), "variant %lu", (unsigned long)j + 1UL);
-        block->role            = nexus_data_arena_text_copy(&compilation->arena, role, nexus_strings_string_length_get(role));
-        block->rule            = rule;
-        block->show            = variant->has_action ? variant->show : rule->show;
-        block->style           = variant->style != NULL ? variant->style : rule->style;
+        block->role = nexus_data_arena_text_copy(&compilation->arena, role, nexus_strings_string_length_get(role));
+        block->rule = rule;
+        block->show = variant->has_action ? variant->show : rule->show;
+        block->style = variant->style != NULL ? variant->style : rule->style;
         block->condition_count = rule->scope.count + (variant->terminal ? 0 : variant->clauses[k].count);
-        block->conditions      = (RuleforgeCondition **)nexus_data_arena_allocate(&compilation->arena, ((uint_large)block->condition_count + 1U) *
-                                                                                                           NEXUS_SIZEOF(RuleforgeCondition *));
+        block->conditions = (RuleforgeCondition **)nexus_data_arena_allocate(&compilation->arena, ((uint_large)block->condition_count + 1U) *
+                                                                                                      NEXUS_SIZEOF(RuleforgeCondition *));
 
         for (m = 0; m < rule->scope.count; m++) {
           block->conditions[m] = rule->scope.conditions[m];
@@ -124,19 +125,19 @@ RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const
     }
 
     if (reached_baseline && rule->has_action) {
-      block                  = r_filter_block_create(compilation, blocks);
-      block->role            = "baseline";
-      block->rule            = rule;
-      block->show            = rule->show;
-      block->style           = rule->style;
+      block = r_filter_block_create(compilation, blocks);
+      block->role = "baseline";
+      block->rule = rule;
+      block->show = rule->show;
+      block->style = rule->style;
       block->condition_count = rule->scope.count;
-      block->conditions      = rule->scope.conditions;
+      block->conditions = rule->scope.conditions;
 
       r_filter_conditions_sort(block->conditions, block->condition_count);
     }
   }
 
-  filter        = (RuleforgeFilter *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*filter));
+  filter = (RuleforgeFilter *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*filter));
   filter->count = (uint32)nexus_data_list_length_get(blocks);
   filter->blocks =
       (RuleforgeBlock **)nexus_data_arena_allocate(&compilation->arena, ((uint_large)filter->count + 1U) * NEXUS_SIZEOF(RuleforgeBlock *));
@@ -147,6 +148,7 @@ RuleforgeFilter *ruleforge_filter_lower(RuleforgeCompilation *compilation, const
 
   nexus_data_list_destroy(blocks);
 
+  ruleforge_filter_optimize(compilation, filter);
   return filter;
 }
 
@@ -166,13 +168,19 @@ static void r_filter_condition_write(const RuleforgeCondition *condition, NexusS
     return;
   }
 
-  (void)nexus_strings_string_builder_append_formatted(out, " %s", ruleforge_manifest_operator_text_get(condition->op));
+  if (!condition->substring) {
+    (void)nexus_strings_string_builder_append_formatted(out, " %s", ruleforge_manifest_operator_text_get(condition->op));
+  }
+  if (condition->counted) {
+    (void)nexus_strings_string_builder_append_formatted(out, " %lld", (long long)condition->threshold);
+  }
 
   for (i = 0; i < condition->count; i++) {
     if (condition->info->type == RCT_INTEGER) {
       (void)nexus_strings_string_builder_append_formatted(out, " %lld", (long long)condition->numbers[i]);
     } else if (condition->info->type == RCT_ENUM) {
-      (void)nexus_strings_string_builder_append_formatted(out, " %s", ruleforge_condition_value_name_get(condition->info, condition->numbers[i]));
+      (void)nexus_strings_string_builder_append_formatted(out, " %s",
+                                                          ruleforge_condition_value_name_get(condition->info, condition->numbers[i]));
     } else {
       (void)nexus_strings_string_builder_append_formatted(out, " \"%s\"", condition->strings[i]);
     }
@@ -189,6 +197,7 @@ char *ruleforge_filter_text_write(RuleforgeCompilation *compilation, RuleforgeFi
   uint32             line;
   uint_large         k;
   uint_large         length;
+  const char        *section;
 
   NEXUS_PROGRAM_PRECONDITION(compilation != NULL && filter != NULL, "ruleforge_filter_text_write: NULL argument");
 
@@ -196,25 +205,31 @@ char *ruleforge_filter_text_write(RuleforgeCompilation *compilation, RuleforgeFi
   (void)nexus_strings_string_builder_append_formatted(
       &out, "# Generated by Ruleforge %s (language 1.0.0). Do not edit: change the .rf sources and compile again.\n", ruleforge_version_get());
   (void)nexus_strings_string_builder_append_formatted(&out, "# Filter: %s\n# Source hash: %016llx\n# Blocks: %lu\n\n",
-                                                      name == NULL ? "ruleforge" : name, (unsigned long long)hash, (unsigned long)filter->count);
-  line = 5;
+                                                      name == NULL ? "ruleforge" : name, (unsigned long long)hash,
+                                                      (unsigned long)filter->count);
+  line = 6;
+  section = NULL;
 
   for (i = 0; i < filter->count; i++) {
     RuleforgeBlock               *block;
-    const RuleforgeFile          *file;
-    uint32                        rule_line;
-    uint32                        rule_column;
     const RuleforgeStyleProperty *properties;
     uint32                        property_count;
 
     block = filter->blocks[i];
-    file  = ruleforge_source_get(compilation, block->rule->span.file);
-    ruleforge_text_position_get(file, block->rule->span.start, &rule_line, &rule_column);
 
-    (void)nexus_strings_string_builder_append_formatted(&out, "# rf:%lu %s%s%s (%s:%lu)\n", (unsigned long)block->id,
-                                                        block->rule->name == NULL ? "" : block->rule->name, block->rule->name == NULL ? "" : " ",
-                                                        block->role, file->module == NULL ? "" : file->module, (unsigned long)rule_line);
-    line++;
+    if (block->rule->section != NULL && (section == NULL || !nexus_strings_string_equals(section, block->rule->section))) {
+      const char *title;
+      section = block->rule->section;
+      (void)nexus_strings_string_builder_append(&out, "# ========================================================================\n# ");
+      for (title = section; *title != '\0'; title++) {
+        char one[2];
+        one[0] = *title == '\n' || *title == '\r' ? ' ' : *title;
+        one[1] = '\0';
+        (void)nexus_strings_string_builder_append(&out, one);
+      }
+      (void)nexus_strings_string_builder_append(&out, "\n# ========================================================================\n\n");
+      line += 4;
+    }
     block->first_line = line;
 
     if (block->native != NULL) {
@@ -238,7 +253,7 @@ char *ruleforge_filter_text_write(RuleforgeCompilation *compilation, RuleforgeFi
       }
 
       if (block->style != NULL) {
-        properties     = block->show ? block->style->show : block->style->hide;
+        properties = block->show ? block->style->show : block->style->hide;
         property_count = block->show ? block->style->show_count : block->style->hide_count;
 
         for (j = 0; j < property_count; j++) {
@@ -253,8 +268,8 @@ char *ruleforge_filter_text_write(RuleforgeCompilation *compilation, RuleforgeFi
     line++;
   }
 
-  result =
-      nexus_data_arena_text_copy(&compilation->arena, nexus_strings_string_builder_string_get(&out), nexus_strings_string_builder_length_get(&out));
+  result = nexus_data_arena_text_copy(&compilation->arena, nexus_strings_string_builder_string_get(&out),
+                                      nexus_strings_string_builder_length_get(&out));
   nexus_strings_string_builder_destroy(&out);
 
   return result;

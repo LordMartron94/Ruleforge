@@ -36,3 +36,68 @@ export func Upgrades(items any, areaLevel int) -> list<record> {
     }
     return result;
 }
+
+/* Summary: PoB bases grouped into inclusive progression windows by item class.
+   Unknown drop levels are omitted. All bases of one class and drop level stay
+   together; their window ends immediately before the next available base. */
+export func Windows(items any, maximumArea int) -> list<record> {
+    let ranked = collections.Sort(Available($items, $maximumArea, none), "dropLevel", false);
+    var windows = [];
+    for base in ranked {
+        var already = false;
+        for window in windows {
+            if window.itemClass == base.class and window.dropLevel == base.dropLevel {
+                already = true;
+            }
+        }
+        if not already {
+            var names = [];
+            var until = $maximumArea;
+            for other in ranked {
+                if other.class == base.class {
+                    if other.dropLevel == base.dropLevel {
+                        names = collections.Concat(names, [other.baseType]);
+                    } else {
+                        if other.dropLevel > base.dropLevel and other.dropLevel - 1 < until {
+                            until = other.dropLevel - 1;
+                        }
+                    }
+                }
+            }
+            let window = collections.MakeRecord(
+                ["itemClass", "dropLevel", "untilArea", "bases"],
+                [base.class, base.dropLevel, until, names]
+            );
+            windows = collections.Concat(windows, [window]);
+        }
+    }
+    return windows;
+}
+
+/* Summary: the highest known drop-level bases per class and subtype. */
+export func TopBases(items any) -> list<record> {
+    var highest = collections.MakeRecord([], []);
+    for base in $items {
+        if base.dropLevel != none {
+            var subtype = collections.Get(base, "subType");
+            if subtype == none { subtype = ""; }
+            let key = base.class + "/" + subtype;
+            let previous = collections.Get(highest, key);
+            if previous == none or base.dropLevel > previous {
+                highest = collections.WithField(highest, key, base.dropLevel);
+            }
+        }
+    }
+    var result = [];
+    for base in $items {
+        if base.dropLevel != none {
+            var subtype = collections.Get(base, "subType");
+            if subtype == none { subtype = ""; }
+            let key = base.class + "/" + subtype;
+            if base.dropLevel == collections.Get(highest, key) {
+                result = collections.Concat(result, [base]);
+            }
+        }
+    }
+    return result;
+}

@@ -121,3 +121,53 @@ printf 'Show`, 1)
 		t.Fatalf("duplicate diagnostics: %+v, log count %d", status, messages)
 	}
 }
+
+func TestEngineStateIsCommittedOnlyAfterSuccess(t *testing.T) {
+	dir := t.TempDir()
+	project := &config.Project{Dir: dir, Entry: "entry.rf", Outputs: []config.Output{{Name: "f", Path: "out/f.filter"}},
+		Datasets:         []config.Dataset{{Source: "state", Provider: "json", Path: "state.json"}},
+		StateExpressions: []config.StateExpression{{Source: "state", Module: "market", Expression: "market.State()"}}}
+	os.WriteFile(filepath.Join(dir, "entry.rf"), []byte("version 1.0.0;"), 0o644)
+	state := filepath.Join(dir, "state.json")
+	os.WriteFile(state, []byte("[]\n"), 0o644)
+	eng := fakeEngine(t, dir)
+	raw, err := os.ReadFile(eng.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw = []byte(strings.Replace(string(raw), "out=\"\"; model=\"\"", `if [ "$1" = eval ]; then
+  if [ -f "`+filepath.Join(dir, "fail-state")+`" ]; then echo 'state failure' >&2; exit 1; fi
+  printf '[{"tier":2,"confirmations":1}]\n'
+  exit 0
+fi
+out=""; model=""`, 1))
+	os.WriteFile(eng.Path, raw, 0o755)
+	r := &Regenerator{Project: project, Engine: eng}
+	if err := r.RunOnce(context.Background(), false); err != nil {
+		t.Fatal(err)
+	}
+	saved, _ := os.ReadFile(state)
+	if string(saved) != "[{\"tier\":2,\"confirmations\":1}]\n" {
+		t.Fatalf("state not saved: %s", saved)
+	}
+	if err := r.RunOnce(context.Background(), false); err != nil || !r.Status().(Status).Skipped {
+		t.Fatalf("state write caused a regeneration: %v", err)
+	}
+	os.WriteFile(filepath.Join(dir, "fail-state"), nil, 0o644)
+	if err := r.RunOnce(context.Background(), true); err == nil {
+		t.Fatal("failed state evaluation was not reported")
+	}
+	after, _ := os.ReadFile(state)
+	if string(after) != string(saved) {
+		t.Fatal("failed state evaluation overwrote last valid state")
+	}
+	os.Remove(filepath.Join(dir, "fail-state"))
+	os.WriteFile(filepath.Join(dir, "fail"), nil, 0o644)
+	if err := r.RunOnce(context.Background(), true); err == nil {
+		t.Fatal("compile failure was not reported")
+	}
+	after, _ = os.ReadFile(state)
+	if string(after) != string(saved) {
+		t.Fatal("failed compile changed state")
+	}
+}

@@ -18,7 +18,7 @@ PARSER {
 CONTEXT <ROOT> {
     // Trivia
     $whitespace = ('\t'..'\n' || '\r' || ' ')+
-    $line_comment = '//' ('\t' || ' '..'\u{10FFFF}')*
+    $line_comment = '//' ('\t' || ' '..'\u{10FFFF}')* @priority(20)
     $block_comment_open = '/*' -> push(BLOCK_COMMENT)
 
     // Module and declaration keywords

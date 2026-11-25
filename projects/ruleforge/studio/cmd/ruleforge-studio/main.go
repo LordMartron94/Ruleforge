@@ -24,6 +24,7 @@ import (
 	"github.com/LordMartron94/Ruleforge/studio/internal/config"
 	"github.com/LordMartron94/Ruleforge/studio/internal/engine"
 	"github.com/LordMartron94/Ruleforge/studio/internal/logging"
+	"github.com/LordMartron94/Ruleforge/studio/internal/provider"
 	"github.com/LordMartron94/Ruleforge/studio/internal/regen"
 	"github.com/LordMartron94/Ruleforge/studio/internal/server"
 	"github.com/LordMartron94/Ruleforge/studio/internal/update"
@@ -92,12 +93,22 @@ func serve(args []string) int {
 	dir := flags.String("project", ".", "the project folder")
 	addr := flags.String("addr", "127.0.0.1:8750", "the address to listen on (loopback only by default)")
 	enginePath := flags.String("engine", "", "the ruleforge executable")
+	offline := flags.Bool("offline", false, "use cached game and history data")
 	noUpdate := flags.Bool("no-update-check", false, "do not look for a newer release")
 	_ = flags.Parse(args)
 	project, eng, err := openProject(*dir, *enginePath)
 	if err != nil {
 		log.Print(err)
 		return 1
+	}
+	project.Offline = *offline
+	if *offline {
+		if project.EconomyHistory != nil {
+			project.EconomyHistory.URL = ""
+		}
+		if project.GameData != nil {
+			project.GameData.Offline = true
+		}
 	}
 	logDir, keep, size := project.LogOptions()
 	writer, err := logging.Open(logDir, keep, size)
@@ -144,11 +155,37 @@ func build(args []string) int {
 	flags := flag.NewFlagSet("build", flag.ExitOnError)
 	dir := flags.String("project", ".", "the project folder")
 	enginePath := flags.String("engine", "", "the ruleforge executable")
+	offline := flags.Bool("offline", false, "use cached game and history data without network requests")
+	dataOnly := flags.Bool("data-only", false, "refresh datasets without compiling or publishing")
 	_ = flags.Parse(args)
 	project, eng, err := openProject(*dir, *enginePath)
 	if err != nil {
 		log.Print(err)
 		return 1
+	}
+	project.Offline = *offline
+	if *offline {
+		if project.EconomyHistory != nil {
+			project.EconomyHistory.URL = ""
+		}
+		if project.GameData != nil {
+			project.GameData.Offline = true
+		}
+	}
+	if *dataOnly {
+		refresh := &regen.Regenerator{Project: project, Engine: eng, Log: log.Printf}
+		for _, message := range refresh.Refresh(context.Background(), true) {
+			log.Print(message)
+		}
+		if err := provider.PrepareGameData(context.Background(), project); err != nil {
+			log.Print(err)
+			return 1
+		}
+		if err := provider.PrepareHistory(context.Background(), project); err != nil {
+			log.Print(err)
+			return 1
+		}
+		return 0
 	}
 	logDir, keep, size := project.LogOptions()
 	writer, err := logging.Open(logDir, keep, size)

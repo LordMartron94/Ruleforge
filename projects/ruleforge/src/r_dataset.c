@@ -67,8 +67,10 @@ static boolean r_dataset_hex_color(const char *text, uint32 *out_color) {
   return TRUE;
 }
 
+static boolean r_dataset_json_convert(RuleforgeCompilation *compilation, const RuleforgeJson *json, RfType type, RuleforgeValue *out);
+
 /* Summary: converts CSV text to the declared field type; FALSE when the text is not of that type. */
-static boolean r_dataset_text_convert(const char *text, RfType type, RuleforgeValue *out) {
+static boolean r_dataset_text_convert(RuleforgeCompilation *compilation, const char *text, RfType type, RuleforgeValue *out) {
   RuleforgeTypeKind kind;
   uint_large        length;
   uint_large        i;
@@ -82,6 +84,13 @@ static boolean r_dataset_text_convert(const char *text, RfType type, RuleforgeVa
 
   length = nexus_strings_string_length_get(text);
   kind   = ruleforge_eval_type_kind_get(type);
+  if (kind == RTK_LIST || kind == RTK_RECORD || kind == RTK_ANY) {
+    RuleforgeJson *json;
+    char error[256];
+    json = ruleforge_json_parse(compilation->runtime, &compilation->arena, text, length, error, NEXUS_SIZEOF(error));
+    return json != NULL && r_dataset_json_convert(compilation, json, type, out);
+  }
+
 
   if (kind == RTK_STRING) {
     *out = ruleforge_value_string(text);
@@ -158,6 +167,30 @@ static boolean r_dataset_text_convert(const char *text, RfType type, RuleforgeVa
   return TRUE;
 }
 
+/* Summary: untyped nested JSON remains structured data, including nulls. */
+static RuleforgeValue r_dataset_json_value(RuleforgeCompilation *compilation, const RuleforgeJson *json) {
+  RuleforgeValue value;
+  uint32 i;
+  value = ruleforge_value_none();
+  if (json->kind == RJK_STRING) { return ruleforge_value_string(json->text); }
+  if (json->kind == RJK_NUMBER) { return json->integral ? ruleforge_value_integer(json->integer) : ruleforge_value_real(json->real); }
+  if (json->kind == RJK_BOOL) { return ruleforge_value_flag(json->flag); }
+  if (json->kind == RJK_ARRAY) {
+    RuleforgeList *list;
+    list = ruleforge_value_list_create(compilation, json->count);
+    for (i = 0; i < json->count; i++) { list->items[i] = r_dataset_json_value(compilation, json->items[i]); }
+    return ruleforge_value_list(list);
+  }
+  if (json->kind == RJK_OBJECT) {
+    RuleforgeRecord *record;
+    record = ruleforge_value_record_create(compilation, json->count);
+    for (i = 0; i < json->count; i++) { record->names[i] = json->keys[i]; record->values[i] = r_dataset_json_value(compilation, json->items[i]); }
+    value.kind = RVK_RECORD;
+    value.as.record = record;
+  }
+  return value;
+}
+
 /* Summary: converts one JSON value to the declared type; FALSE on a mismatch. */
 static boolean r_dataset_json_convert(RuleforgeCompilation *compilation, const RuleforgeJson *json, RfType type, RuleforgeValue *out) {
   RuleforgeTypeKind kind;
@@ -165,6 +198,11 @@ static boolean r_dataset_json_convert(RuleforgeCompilation *compilation, const R
   uint32            i;
 
   kind = ruleforge_eval_type_kind_get(type);
+
+  if (kind == RTK_ANY || (kind == RTK_RECORD && json->kind == RJK_OBJECT)) {
+    *out = r_dataset_json_value(compilation, json);
+    return TRUE;
+  }
 
   if (kind == RTK_LIST) {
     RuleforgeList *list;
@@ -460,7 +498,7 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
       }
 
       ok = is_json ? r_dataset_json_convert(compilation, member, type, &record->values[field])
-                   : r_dataset_text_convert(text, type, &record->values[field]);
+                   : r_dataset_text_convert(compilation, text, type, &record->values[field]);
 
       if (!ok) {
         ruleforge_eval_fail(eval, "RF0309", span,

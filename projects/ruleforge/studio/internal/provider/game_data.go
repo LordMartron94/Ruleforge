@@ -24,6 +24,7 @@ type GameRow struct {
 	Name          string   `json:"name"`
 	BaseType      string   `json:"baseType"`
 	Class         string   `json:"class"`
+	SubType       string   `json:"subType"`
 	DropLevel     *int     `json:"dropLevel"`
 	RequiredLevel *int     `json:"requiredLevel"`
 	SocketLimit   int      `json:"socketLimit"`
@@ -62,8 +63,10 @@ func PrepareGameData(ctx context.Context, project *config.Project) error {
 		dir = filepath.Join(project.Dir, ".ruleforge", "pob")
 		source := defaultPoBSource(log.Default())
 		source.commit = cfg.Commit
-		if _, err := source.ensure(ctx, dir, false); err != nil {
-			return err
+		if !cfg.Offline {
+			if _, err := source.ensure(ctx, dir, false); err != nil {
+				return err
+			}
 		}
 	} else if !filepath.IsAbs(dir) {
 		dir = filepath.Join(project.Dir, dir)
@@ -93,15 +96,44 @@ func PrepareGameData(ctx context.Context, project *config.Project) error {
 		if err := json.Unmarshal(data, &levels); err != nil {
 			return fmt.Errorf("drop levels: %w", err)
 		}
-	} else if cfg.FetchDropLevels {
-		names := make([]string, 0, len(bases))
+	}
+	if cfg.FetchDropLevels {
+		cachePath := filepath.Join(project.Dir, ".ruleforge", "drop-levels.json")
+		if data, err := os.ReadFile(cachePath); err == nil {
+			cached := map[string]int{}
+			if json.Unmarshal(data, &cached) == nil {
+				for name, level := range cached {
+					if _, exists := levels[name]; !exists {
+						levels[name] = level
+					}
+				}
+			}
+		}
+		names := []string{}
 		for _, row := range bases {
-			names = append(names, row.BaseType)
+			if row.DropLevel == nil {
+				if _, known := levels[row.BaseType]; !known {
+					names = append(names, row.BaseType)
+				}
+			}
 		}
-		levels, err = GetBaseTypeDropLevels(names)
-		if err != nil {
-			return err
+		if len(names) > 0 && !cfg.Offline {
+			fetched, err := GetBaseTypeDropLevels(names)
+			if err != nil {
+				return err
+			}
+			for name, level := range fetched {
+				levels[name] = level
+			}
+			encoded, err := json.Marshal(levels)
+			if err != nil {
+				return err
+			}
+			if err = writeSnapshot(cachePath, encoded); err != nil {
+				return err
+			}
 		}
+
 	}
 	for name, level := range levels {
 		if level < 1 || level > 100 {
@@ -232,6 +264,23 @@ func readPoBBases(ctx context.Context, dir string) ([]GameRow, error) {
 				}
 				kind := entry.RawGetString("type").String()
 				row := GameRow{ID: key.String(), Name: key.String(), BaseType: key.String(), Class: filterClass(kind), Tags: []string{}}
+				if subtype, ok := entry.RawGetString("subType").(lua.LString); ok {
+					row.SubType = string(subtype)
+				}
+				if kind == "One Handed Sword" && row.SubType == "Thrusting" {
+					row.Class = "Thrusting One Hand Swords"
+				}
+				if kind == "Flask" {
+					switch row.SubType {
+					case "Life":
+						row.Class = "Life Flasks"
+					case "Mana":
+						row.Class = "Mana Flasks"
+					case "Hybrid":
+						row.Class = "Hybrid Flasks"
+					}
+				}
+
 				if n, ok := entry.RawGetString("socketLimit").(lua.LNumber); ok {
 					row.SocketLimit = int(n)
 				}
@@ -286,7 +335,7 @@ func readPoBGems(ctx context.Context, dir string) ([]GameRow, error) {
 				return
 			}
 			base := entry.RawGetString("baseTypeName")
-			if base == lua.LNil {
+			if base == lua.LNil || base.String() == "" {
 				base = name
 			}
 			row := GameRow{ID: key.String(), Name: name.String(), BaseType: base.String(), Class: "Skill Gems", Tags: []string{}}
@@ -298,6 +347,9 @@ func readPoBGems(ctx context.Context, dir string) ([]GameRow, error) {
 				})
 				if lua.LVAsBool(tags.RawGetString("support")) {
 					row.Class = "Support Gems"
+					if !strings.Contains(row.BaseType, "Support") {
+						row.BaseType += " Support"
+					}
 				}
 				sort.Strings(row.Tags)
 			}

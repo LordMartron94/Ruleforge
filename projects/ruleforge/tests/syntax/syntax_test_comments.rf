@@ -1,0 +1,11 @@
+// SYNTAX TEST "Packages/User/Ruleforge.sublime-syntax"
+version 1.0.0;
+module comment_test;
+func Gear() {
+    // A perfect defence roll alone does not make an otherwise unwanted base
+//  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.line.double-slash.ruleforge
+    // worth picking up. Magic tier alone is not an exception either.
+//  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.line.double-slash.ruleforge
+    let result = 12 / 3;
+//                  ^ keyword.operator.arithmetic.ruleforge
+}

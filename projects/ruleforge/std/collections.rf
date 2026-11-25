@@ -110,12 +110,4 @@ export intrinsic func MakeRecord(names list<string>, values list<any>) -> record
 Summary: whether a value is one of the items.
 Params: items  a list or dataset; value  compared with == against each item
 */
-export func Contains(items any, value any) -> bool {
-    for item in $items {
-        if item == $value {
-            return true;
-        }
-    }
-
-    return false;
-}
+export intrinsic func Contains(items any, value any) -> bool;

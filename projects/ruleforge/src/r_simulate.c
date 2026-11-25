@@ -55,6 +55,61 @@ static boolean r_simulate_compare(int64 actual, RuleforgeOperator operation, int
   return FALSE;
 }
 
+/* Summary: case-insensitive fragments, used only when a rule explicitly asks for contains/count matching. */
+static boolean r_simulate_contains_text(const char *text, const char *fragment) {
+  uint32 i;
+  uint32 j;
+  for (i = 0; text[i] != '\0'; i++) {
+    for (j = 0; fragment[j] != '\0' && text[i + j] != '\0' && r_simulate_lower(text[i + j]) == r_simulate_lower(fragment[j]); j++) {
+    }
+    if (fragment[j] == '\0') {
+      return TRUE;
+    }
+  }
+  return fragment[0] == '\0';
+}
+
+/* Summary: socket patterns compare group size and colour multiplicities, rather than the order of socket letters. */
+static boolean r_simulate_socket_pattern(const char *actual, const char *pattern, RuleforgeOperator op) {
+  int64  total;
+  int64  required;
+  int64  present[256];
+  int64  wanted[256];
+  uint32 i;
+  uint32 start;
+  total = 0;
+  required = 0;
+  for (i = 0; i < 256; i++) {
+    present[i] = 0;
+    wanted[i] = 0;
+  }
+  for (i = 0; actual[i] != '\0'; i++) {
+    byte c;
+    c = (byte)r_simulate_lower(actual[i]);
+    if (c == 'r' || c == 'g' || c == 'b' || c == 'w' || c == 'a' || c == 'd') {
+      present[c]++;
+      total++;
+    }
+  }
+  for (start = 0; pattern[start] >= '0' && pattern[start] <= '9'; start++) {
+    required = required * 10 + pattern[start] - '0';
+  }
+  for (i = start; pattern[i] != '\0'; i++) {
+    byte c;
+    c = (byte)r_simulate_lower(pattern[i]);
+    wanted[c]++;
+  }
+  if (required > 0 && !r_simulate_compare(total, op, required)) {
+    return FALSE;
+  }
+  for (i = 0; i < 256; i++) {
+    if (wanted[i] > 0 && present[i] < wanted[i]) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
 /* Summary: whether one condition holds for the item; writes the item's actual value as JSON into `actual` for the explanation. */
 static boolean r_simulate_condition_holds(const RuleforgeCondition *condition, const RuleforgeJson *item, NexusStringBuilder *actual) {
   const RuleforgeJson *value;
@@ -99,10 +154,10 @@ static boolean r_simulate_condition_holds(const RuleforgeCondition *condition, c
     } else if (value != NULL && value->kind == RJK_NUMBER) {
       number = value->integer;
       (void)nexus_strings_string_builder_append_formatted(actual, "%lld", (long long)number);
-    } else if (value == NULL &&
-               (nexus_strings_string_equals(condition->info->name, "quality") || nexus_strings_string_equals(condition->info->name, "sockets") ||
-                nexus_strings_string_equals(condition->info->name, "linkedSockets") ||
-                nexus_strings_string_equals(condition->info->name, "corruptedMods"))) {
+    } else if (value == NULL && (nexus_strings_string_equals(condition->info->name, "quality") ||
+                                 nexus_strings_string_equals(condition->info->name, "sockets") ||
+                                 nexus_strings_string_equals(condition->info->name, "linkedSockets") ||
+                                 nexus_strings_string_equals(condition->info->name, "corruptedMods"))) {
       /* The game counts these as zero on an item that has none. */
       number = 0;
       (void)nexus_strings_string_builder_append(actual, "0");
@@ -112,6 +167,14 @@ static boolean r_simulate_condition_holds(const RuleforgeCondition *condition, c
       return FALSE;
     }
 
+    if (condition->info->type == RCT_ENUM && condition->count > 1) {
+      boolean matched;
+      matched = FALSE;
+      for (i = 0; i < condition->count; i++) {
+        matched = matched || number == condition->numbers[i];
+      }
+      return condition->op == ROP_NE ? !matched : matched;
+    }
     return r_simulate_compare(number, condition->op, condition->numbers[0]);
   }
 
@@ -143,14 +206,34 @@ static boolean r_simulate_condition_holds(const RuleforgeCondition *condition, c
   }
 
   any = FALSE;
-
-  for (i = 0; i < condition->count; i++) {
-    if (value->kind == RJK_STRING) {
-      any = any || r_simulate_equals_text(value->text, condition->strings[i]);
-    } else {
-      for (j = 0; j < value->count; j++) {
-        any = any || (value->items[j]->kind == RJK_STRING && r_simulate_equals_text(value->items[j]->text, condition->strings[i]));
+  {
+    int64  matches;
+    uint32 actual_count;
+    matches = 0;
+    actual_count = value->kind == RJK_ARRAY ? value->count : 1;
+    for (j = 0; j < actual_count; j++) {
+      const RuleforgeJson *entry;
+      boolean              matched;
+      entry = value->kind == RJK_ARRAY ? value->items[j] : value;
+      matched = FALSE;
+      if (entry->kind != RJK_STRING) {
+        continue;
       }
+      for (i = 0; i < condition->count; i++) {
+        if (nexus_strings_string_equals(condition->info->keyword, "SocketGroup")) {
+          matched = matched || r_simulate_socket_pattern(entry->text, condition->strings[i], condition->op);
+        } else {
+          matched = matched || ((condition->substring || condition->counted) ? r_simulate_contains_text(entry->text, condition->strings[i])
+                                                                             : r_simulate_equals_text(entry->text, condition->strings[i]));
+        }
+      }
+      any = any || matched;
+      if (matched) {
+        matches++;
+      }
+    }
+    if (condition->counted) {
+      return r_simulate_compare(matches, condition->op, condition->threshold);
     }
   }
 
@@ -173,7 +256,7 @@ static boolean r_simulate_block_matches(const RuleforgeBlock *block, const Rulef
     boolean            holds;
 
     actual = nexus_strings_string_builder_create_growable(32);
-    holds  = r_simulate_condition_holds(block->conditions[i], item, &actual);
+    holds = r_simulate_condition_holds(block->conditions[i], item, &actual);
 
     if (!holds) {
       (void)nexus_strings_string_builder_append(failed, "{\"condition\":");
@@ -203,7 +286,8 @@ boolean ruleforge_simulate_json_write(const RuleforgeCompilation *compilation, c
   NEXUS_PROGRAM_PRECONDITION(compilation != NULL && items_json != NULL && out != NULL, "ruleforge_simulate_json_write: NULL argument");
 
   nexus_data_arena_initialize(&arena);
-  items = ruleforge_json_parse(compilation->runtime, &arena, items_json, nexus_strings_string_length_get(items_json), error, NEXUS_SIZEOF(error));
+  items =
+      ruleforge_json_parse(compilation->runtime, &arena, items_json, nexus_strings_string_length_get(items_json), error, NEXUS_SIZEOF(error));
 
   if (items == NULL || (items->kind != RJK_ARRAY && items->kind != RJK_OBJECT)) {
     nexus_data_arena_release(&arena);
@@ -219,8 +303,8 @@ boolean ruleforge_simulate_json_write(const RuleforgeCompilation *compilation, c
     const RuleforgeJson  *item;
     const RuleforgeBlock *winner;
 
-    item       = items->kind == RJK_ARRAY ? items->items[index] : items;
-    winner     = NULL;
+    item = items->kind == RJK_ARRAY ? items->items[index] : items;
+    winner = NULL;
     matched_id = 0;
 
     if (!first_item) {
@@ -235,12 +319,12 @@ boolean ruleforge_simulate_json_write(const RuleforgeCompilation *compilation, c
       const RuleforgeBlock *block;
       boolean               matches;
 
-      block   = compilation->filter->blocks[i];
-      failed  = nexus_strings_string_builder_create_growable(64);
+      block = compilation->filter->blocks[i];
+      failed = nexus_strings_string_builder_create_growable(64);
       matches = r_simulate_block_matches(block, item, &failed);
 
       if (matches) {
-        winner     = block;
+        winner = block;
         matched_id = block->id;
         nexus_strings_string_builder_destroy(&failed);
 
@@ -265,8 +349,8 @@ boolean ruleforge_simulate_json_write(const RuleforgeCompilation *compilation, c
       continue;
     }
 
-    (void)nexus_strings_string_builder_append_formatted(
-        out, ",\"matched\":%lu,\"action\":\"%s\",\"default\":false,\"style\":", (unsigned long)matched_id, ruleforge_filter_action_name_get(winner));
+    (void)nexus_strings_string_builder_append_formatted(out, ",\"matched\":%lu,\"action\":\"%s\",\"default\":false,\"style\":",
+                                                        (unsigned long)matched_id, ruleforge_filter_action_name_get(winner));
     ruleforge_filter_style_json_write(winner->style, winner->show, out);
     (void)nexus_strings_string_builder_append(out, ",\"shadowed\":[");
 

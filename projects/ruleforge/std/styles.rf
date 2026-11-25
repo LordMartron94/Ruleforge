@@ -1,0 +1,5 @@
+version 1.0.0;
+module std.styles;
+
+/* Summary: replace only the border, preserving text, background, size and alerts. */
+export intrinsic func WithBorder(base style, marker style) -> style;

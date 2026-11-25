@@ -74,13 +74,33 @@ func (r *Regenerator) path(relative string) string {
 	return filepath.Join(r.Project.Dir, relative)
 }
 
-// refresh fetches every provider dataset that is due and returns messages for those that failed (their old snapshot stays).
-func (r *Regenerator) refresh(ctx context.Context, force bool) []string {
+// Refresh fetches every provider dataset that is due and returns messages for those that failed (their old snapshot stays).
+func (r *Regenerator) Refresh(ctx context.Context, force bool) []string {
 	var messages []string
+	if r.Project.Offline {
+		return messages
+	}
 	if r.last == nil {
 		r.last = map[string]time.Time{}
 	}
 	for _, dataset := range r.Project.Datasets {
+		if dataset.Provider == "neversink-divination" {
+			interval, err := config.Interval(dataset.Refresh, 24*time.Hour)
+			if err != nil {
+				messages = append(messages, fmt.Sprintf("dataset %s: %v", dataset.Source, err))
+				continue
+			}
+			if !force && time.Since(r.last[dataset.Source]) < interval {
+				continue
+			}
+			if err := provider.PrepareDivination(ctx, r.path(dataset.Path)); err != nil {
+				messages = append(messages, fmt.Sprintf("dataset %s kept its previous snapshot: %v", dataset.Source, err))
+			} else {
+				r.last[dataset.Source] = time.Now()
+				r.logf("refreshed %s from NeverSink", dataset.Source)
+			}
+			continue
+		}
 		if !strings.HasPrefix(dataset.Provider, "poe-ninja") {
 			continue
 		}
@@ -131,7 +151,7 @@ func (r *Regenerator) inputsHash() string {
 		paths = append(paths, path)
 	}
 	if r.Project.EconomyHistory != nil {
-		paths = append(paths, provider.HistoryPath(r.Project))
+		paths = append(paths, provider.HistoryPath(r.Project), provider.HistoryQuotesPath(r.Project))
 	}
 	sort.Strings(paths)
 	for _, path := range paths {
@@ -186,7 +206,7 @@ func atomicWrite(path string, data []byte) error {
 func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	messages := r.refresh(ctx, force)
+	messages := r.Refresh(ctx, force)
 	if err := provider.PrepareGameData(ctx, r.Project); err != nil {
 		messages = append(messages, "game data kept its previous snapshot: "+err.Error())
 	}
@@ -210,6 +230,7 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 		outputs = []config.Output{{Name: "ruleforge", Path: "out/ruleforge.filter"}}
 	}
 	var firstError error
+	var stateRequest engine.Request
 	seenDiagnostics := map[engine.Diagnostic]bool{}
 	for _, output := range outputs {
 		request := engine.Request{Dir: r.Project.Dir, Entry: r.Project.Entry, Include: r.Project.Include, Name: output.Name, Set: map[string]string{}, Datasets: map[string]string{}}
@@ -230,7 +251,9 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 		}
 		if r.Project.EconomyHistory != nil {
 			request.Datasets["economy.history"] = provider.HistoryPath(r.Project)
+			request.Datasets["economy.quotes"] = provider.HistoryQuotesPath(r.Project)
 		}
+		stateRequest = request
 		item := OutputStatus{Name: output.Name, Path: output.Path}
 		result, err := r.Engine.Compile(ctx, request)
 		for _, diagnostic := range result.Diagnostics {
@@ -267,6 +290,39 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 			firstError = fmt.Errorf("%s: %s", output.Name, item.Error)
 		}
 		status.Outputs = append(status.Outputs, item)
+	}
+	if firstError == nil {
+		pending := map[string][]byte{}
+		for _, state := range r.Project.StateExpressions {
+			path := ""
+			for _, dataset := range r.Project.Datasets {
+				if dataset.Source == state.Source && dataset.Provider == "json" {
+					path = r.path(dataset.Path)
+					break
+				}
+			}
+			if path == "" || state.Module == "" || state.Expression == "" {
+				firstError = fmt.Errorf("state expression %q needs a configured JSON dataset, module and expression", state.Source)
+				break
+			}
+			values, err := r.Engine.Eval(ctx, stateRequest, []string{state.Module}, []string{state.Expression})
+			if err != nil {
+				firstError = fmt.Errorf("state %s retained its previous value: %w", state.Source, err)
+				break
+			}
+			pending[path] = append([]byte(values[0]), '\n')
+		}
+		if firstError == nil {
+			for path, value := range pending {
+				if err := atomicWrite(path, value); err != nil {
+					firstError = err
+					break
+				}
+			}
+		}
+		// A state write alone is not fresh market evidence and must not cause a
+		// perpetual regeneration cycle with otherwise unchanged inputs.
+		status.Inputs = r.inputsHash()
 	}
 	r.status = status
 	manifest, _ := json.MarshalIndent(status, "", "  ")

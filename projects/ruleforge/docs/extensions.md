@@ -1,0 +1,19 @@
+# Engine and standard-library additions
+
+These are part of Ruleforge and the standard Studio, rather than a personal Go compilation step.
+
+- `std.rules.FromRecords(rows, theme)` accepts semantic records: `source`, optional `section`, `decision` (`show`/`hide`), `labelStyle`, and `conditions`. A condition has `name`, `op`, `value`, and an optional numeric `count`. Operators are validated against declared condition types. Active core conditions and dataset provenance are retained.
+- `std.rules.Section(rules, title)` labels a ruleset. The compiler emits one readable banner on each section transition; detailed provenance stays in the structured model, whose line numbers still locate the emitted blocks.
+- `contains` in a condition record produces PoE substring matching. Counted explicit modifiers count matching mods once each. Socket groups compare total socket count and colour multiplicities. Enum equality accepts every value in its list. Native text is unnecessary for these migrated rules.
+- `std.color.Lookup(palette, name)` selects a declared palette colour. `std.styles.WithBorder(base, marker)` replaces only the border, preserving the base label's other properties.
+- `std.build.ForPreset` selects real PoB weapon classes and armour subtypes. `std.progression.Windows` groups equal-level alternatives and determines the next base per class; `TopBases` finds the highest known drop level per class/subtype. Unknown drop levels are omitted from progression calculations.
+- `std.economy.TierHistory(history, request, weights, previous)` returns `{groups, state}`. Requests name their item family, tier count, eligible bases, optional crafting profiles and weights. It supports exact-name variant aggregation, recency-weighted robust prices, known stash supply, multi-league normalization, deterministic clustering, stack monotonicity, and persisted promotion/demotion confirmations. Exchange turnover is confidence evidence, never a rarity bonus. Repeated evaluation of one bucket cannot advance confirmations.
+- `std.economy.Quotes` accepts compact CSV quote series with JSON array cells. No retained price or bucket is omitted; complete raw variant identities remain available through `economy.History` and SQLite. Structured JSON and CSV dataset fields retain their schema types.
+- Studio's `stateExpressions` evaluates a module expression through the engine and saves its JSON result after successful compilation. Failed evaluation retains the previous state; a state-only write does not create a regeneration loop.
+- Studio's `neversink-divination` provider imports NeverSink's named card tiers and explicit stack exception, preserving version and content hash. Missing or changed upstream groups fail the refresh and keep the previous snapshot. Offline mode skips network providers.
+
+The compiler groups equivalent BaseType lists only when moving a rule cannot cross an overlapping rule. It excludes native/Continue blocks and uses scalar-property contradictions to prove disjointness. This preserves first-match semantics. Background colours always include alpha: omitting 255 would use PoE's different default opacity.
+
+The modifier, socket and alpha behaviour follows the [official PoE filter documentation](https://www.pathofexile.com/item-filter/about). Card membership comes from [NeverSink's published FilterBlade filter](https://github.com/NeverSinkDev/NeverSink-Filter). Sublime's project LSP configuration follows the [client documentation](https://lsp.sublimetext.io/client_configuration/).
+
+Focused engine regressions cover nested datasets, large CSV record framing (LF, CRLF and CR with embedded newlines/quotes), matching, ordering, opacity, section/model line alignment and tier confirmations. The Ruleforge LSP test exercises initialization, symbols, definition lookup and syntax errors. Studio tests cover lossless quote export, PoB normalization, NeverSink groups, and state retention after failures.

@@ -39,12 +39,13 @@ static boolean r_stdlib_items_get(REval *eval, RuleforgeSpan span, const Rulefor
 
   if (value->kind == RVK_DATASET) {
     *out_count = value->as.dataset->count;
-    *out_items = (RuleforgeValue *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)*out_count + 1U) * NEXUS_SIZEOF(RuleforgeValue));
+    *out_items =
+        (RuleforgeValue *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)*out_count + 1U) * NEXUS_SIZEOF(RuleforgeValue));
 
     for (i = 0; i < *out_count; i++) {
-      (*out_items)[i].kind          = RVK_RECORD;
+      (*out_items)[i].kind = RVK_RECORD;
       (*out_items)[i].is_identifier = FALSE;
-      (*out_items)[i].as.record     = value->as.dataset->rows[i];
+      (*out_items)[i].as.record = value->as.dataset->rows[i];
     }
 
     return TRUE;
@@ -68,16 +69,16 @@ static void r_stdlib_sort_indices(uint32 *indices, uint32 *scratch, const f_real
   uint32 *destination;
   uint32 *swap;
 
-  from        = indices;
+  from = indices;
   destination = scratch;
 
   for (width = 1; width < count; width *= 2) {
     for (start = 0; start < count; start += 2 * width) {
-      left      = start;
-      left_end  = start + width < count ? start + width : count;
-      right     = left_end;
+      left = start;
+      left_end = start + width < count ? start + width : count;
+      right = left_end;
       right_end = start + (2 * width) < count ? start + (2 * width) : count;
-      out       = start;
+      out = start;
 
       while (left < left_end && right < right_end) {
         if (keys[from[right]] < keys[from[left]]) {
@@ -96,8 +97,8 @@ static void r_stdlib_sort_indices(uint32 *indices, uint32 *scratch, const f_real
       }
     }
 
-    swap        = from;
-    from        = destination;
+    swap = from;
+    from = destination;
     destination = swap;
   }
 
@@ -109,6 +110,27 @@ static void r_stdlib_sort_indices(uint32 *indices, uint32 *scratch, const f_real
 /* ---------------------------------------------------------------------------- */
 /* std.collections                                                              */
 /* ---------------------------------------------------------------------------- */
+
+static RuleforgeValue r_collections_contains(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  RuleforgeValue *items;
+  uint32          size;
+  uint32          i;
+  (void)count;
+  if (!r_stdlib_items_get(eval, span, &arguments[0], "collections.Contains", &size, &items)) {
+    return ruleforge_value_none();
+  }
+  for (i = 0; i < size; i++) {
+    eval->steps++;
+    if (eval->settings != NULL && eval->steps > eval->settings->step_limit) {
+      ruleforge_eval_fail(eval, "RF0390", span, NULL, "collections.Contains exhausted the evaluation budget");
+      return ruleforge_value_none();
+    }
+    if (ruleforge_value_equals(&items[i], &arguments[1])) {
+      return ruleforge_value_flag(TRUE);
+    }
+  }
+  return ruleforge_value_flag(FALSE);
+}
 
 static RuleforgeValue r_collections_count(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
   uint32          items_count;
@@ -203,11 +225,11 @@ static RuleforgeValue r_collections_concat(REval *eval, RuleforgeSpan span, cons
   /* The newest version of a list with room left is extended in place; see RuleforgeList. */
   if (arguments[0].kind == RVK_LIST && arguments[0].as.list->used != NULL && *arguments[0].as.list->used == left_count &&
       (uint_large)left_count + right_count <= arguments[0].as.list->capacity) {
-    list           = (RuleforgeList *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*list));
-    list->items    = arguments[0].as.list->items;
+    list = (RuleforgeList *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*list));
+    list->items = arguments[0].as.list->items;
     list->capacity = arguments[0].as.list->capacity;
-    list->used     = arguments[0].as.list->used;
-    list->count    = left_count + right_count;
+    list->used = arguments[0].as.list->used;
+    list->count = left_count + right_count;
 
     for (i = 0; i < right_count; i++) {
       list->items[left_count + i] = right[i];
@@ -222,14 +244,15 @@ static RuleforgeValue r_collections_concat(REval *eval, RuleforgeSpan span, cons
     uint32 total;
     uint32 capacity;
 
-    total    = left_count + right_count;
+    total = left_count + right_count;
     capacity = total < 8 ? 8 : total * 2;
-    list     = (RuleforgeList *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*list));
+    list = (RuleforgeList *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*list));
 
-    list->count    = total;
+    list->count = total;
     list->capacity = capacity;
-    list->items = (RuleforgeValue *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)capacity + 1U) * NEXUS_SIZEOF(RuleforgeValue));
-    list->used  = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(uint32));
+    list->items =
+        (RuleforgeValue *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)capacity + 1U) * NEXUS_SIZEOF(RuleforgeValue));
+    list->used = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(uint32));
     *list->used = total;
   }
 
@@ -258,7 +281,7 @@ static RuleforgeValue r_collections_range(REval *eval, RuleforgeSpan span, const
     return ruleforge_value_none();
   }
 
-  from  = arguments[0].as.integer;
+  from = arguments[0].as.integer;
   upper = arguments[1].as.integer;
 
   if (upper < from || upper - from > 100000) {
@@ -304,7 +327,8 @@ static RuleforgeValue r_collections_pluck(REval *eval, RuleforgeSpan span, const
     field = items[i].kind == RVK_RECORD ? ruleforge_value_record_field_get(items[i].as.record, arguments[1].as.string) : NULL;
 
     if (field == NULL) {
-      ruleforge_eval_fail(eval, "RF0312", span, NULL, "collections.Pluck: item %lu has no field `%s`", (unsigned long)i, arguments[1].as.string);
+      ruleforge_eval_fail(eval, "RF0312", span, NULL, "collections.Pluck: item %lu has no field `%s`", (unsigned long)i,
+                          arguments[1].as.string);
 
       return ruleforge_value_none();
     }
@@ -315,7 +339,8 @@ static RuleforgeValue r_collections_pluck(REval *eval, RuleforgeSpan span, const
   return ruleforge_value_list(list);
 }
 
-/* Summary: the items sorted by a numeric field (or the numbers themselves), descending when asked; items without a value sort last, ties keep their order. */
+/* Summary: the items sorted by a numeric field (or the numbers themselves), descending when asked; items without a value sort last, ties keep
+ * their order. */
 static RuleforgeValue r_collections_sort(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
   uint32          items_count;
   RuleforgeValue *items;
@@ -339,23 +364,24 @@ static RuleforgeValue r_collections_sort(REval *eval, RuleforgeSpan span, const 
   }
 
   descending = arguments[2].kind == RVK_BOOL && arguments[2].as.flag;
-  indices    = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(uint32));
-  scratch    = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(uint32));
-  keys       = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(f_real));
+  indices = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(uint32));
+  scratch = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(uint32));
+  keys = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(f_real));
 
   for (i = 0; i < items_count; i++) {
     const RuleforgeValue *field;
     f_real                number;
 
     indices[i] = i;
-    field      = &items[i];
+    field = &items[i];
 
     /* Without a field name the items are the numbers themselves. */
     if (arguments[1].kind == RVK_STRING) {
       field = items[i].kind == RVK_RECORD ? ruleforge_value_record_field_get(items[i].as.record, arguments[1].as.string) : NULL;
 
       if (field == NULL) {
-        ruleforge_eval_fail(eval, "RF0312", span, NULL, "collections.Sort: item %lu has no field `%s`", (unsigned long)i, arguments[1].as.string);
+        ruleforge_eval_fail(eval, "RF0312", span, NULL, "collections.Sort: item %lu has no field `%s`", (unsigned long)i,
+                            arguments[1].as.string);
 
         return ruleforge_value_none();
       }
@@ -394,8 +420,9 @@ static RuleforgeValue r_collections_values(REval *eval, RuleforgeSpan span, cons
     return ruleforge_value_none();
   }
 
-  numbers = (RuleforgeValue *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(RuleforgeValue));
-  kept    = 0;
+  numbers =
+      (RuleforgeValue *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(RuleforgeValue));
+  kept = 0;
 
   for (i = 0; i < items_count; i++) {
     const RuleforgeValue *value;
@@ -413,7 +440,8 @@ static RuleforgeValue r_collections_values(REval *eval, RuleforgeSpan span, cons
       value = ruleforge_value_record_field_get(items[i].as.record, arguments[1].as.string);
 
       if (value == NULL) {
-        ruleforge_eval_fail(eval, "RF0312", span, NULL, "collections.Values: item %lu has no field `%s`", (unsigned long)i, arguments[1].as.string);
+        ruleforge_eval_fail(eval, "RF0312", span, NULL, "collections.Values: item %lu has no field `%s`", (unsigned long)i,
+                            arguments[1].as.string);
 
         return ruleforge_value_none();
       }
@@ -455,10 +483,10 @@ static RuleforgeValue r_collections_ranks(REval *eval, RuleforgeSpan span, const
   }
 
   descending = arguments[2].kind == RVK_BOOL && arguments[2].as.flag;
-  indices    = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(uint32));
-  keys       = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(f_real));
-  list       = ruleforge_value_list_create(eval->compilation, items_count);
-  priced     = 0;
+  indices = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(uint32));
+  keys = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)items_count + 1U) * NEXUS_SIZEOF(f_real));
+  list = ruleforge_value_list_create(eval->compilation, items_count);
+  priced = 0;
 
   for (i = 0; i < items_count; i++) {
     const RuleforgeValue *value;
@@ -476,13 +504,14 @@ static RuleforgeValue r_collections_ranks(REval *eval, RuleforgeSpan span, const
     value = ruleforge_value_record_field_get(items[i].as.record, arguments[1].as.string);
 
     if (value == NULL) {
-      ruleforge_eval_fail(eval, "RF0312", span, NULL, "collections.Ranks: item %lu has no field `%s`", (unsigned long)i, arguments[1].as.string);
+      ruleforge_eval_fail(eval, "RF0312", span, NULL, "collections.Ranks: item %lu has no field `%s`", (unsigned long)i,
+                          arguments[1].as.string);
 
       return ruleforge_value_none();
     }
 
     if (ruleforge_value_number_get(value, &number)) {
-      keys[priced]    = descending ? -number : number;
+      keys[priced] = descending ? -number : number;
       indices[priced] = i;
       priced++;
     }
@@ -493,7 +522,7 @@ static RuleforgeValue r_collections_ranks(REval *eval, RuleforgeSpan span, const
     uint32 *order;
     uint32 *order_scratch;
 
-    order         = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(uint32));
+    order = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(uint32));
     order_scratch = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)priced + 1U) * NEXUS_SIZEOF(uint32));
 
     for (i = 0; i < priced; i++) {
@@ -564,10 +593,10 @@ static RuleforgeValue r_collections_with_field(REval *eval, RuleforgeSpan span, 
   record = ruleforge_value_record_create(eval->compilation, source->count + (exists ? 0U : 1U));
 
   record->dataset = source->dataset;
-  record->row     = source->row;
+  record->row = source->row;
 
   for (i = 0; i < source->count; i++) {
-    record->names[i]  = source->names[i];
+    record->names[i] = source->names[i];
     record->values[i] = source->values[i];
 
     if (nexus_strings_string_equals(source->names[i], arguments[1].as.string)) {
@@ -576,13 +605,13 @@ static RuleforgeValue r_collections_with_field(REval *eval, RuleforgeSpan span, 
   }
 
   if (!exists) {
-    record->names[source->count]  = arguments[1].as.string;
+    record->names[source->count] = arguments[1].as.string;
     record->values[source->count] = arguments[2];
   }
 
-  result.kind          = RVK_RECORD;
+  result.kind = RVK_RECORD;
   result.is_identifier = FALSE;
-  result.as.record     = record;
+  result.as.record = record;
 
   return result;
 }
@@ -597,12 +626,12 @@ static RuleforgeValue r_collections_make_record(REval *eval, RuleforgeSpan span,
 
   (void)count;
 
-  names  = arguments[0].as.list;
+  names = arguments[0].as.list;
   values = arguments[1].as.list;
 
   if (names->count != values->count) {
-    ruleforge_eval_fail(eval, "RF0505", span, NULL, "collections.MakeRecord needs as many values (%lu) as names (%lu)", (unsigned long)values->count,
-                        (unsigned long)names->count);
+    ruleforge_eval_fail(eval, "RF0505", span, NULL, "collections.MakeRecord needs as many values (%lu) as names (%lu)",
+                        (unsigned long)values->count, (unsigned long)names->count);
 
     return ruleforge_value_none();
   }
@@ -611,7 +640,7 @@ static RuleforgeValue r_collections_make_record(REval *eval, RuleforgeSpan span,
 
   /* A record made here comes from no dataset row. */
   record->dataset = 0xFFFFFFFFU;
-  record->row     = 0;
+  record->row = 0;
 
   for (i = 0; i < names->count; i++) {
     if (names->items[i].kind != RVK_STRING) {
@@ -620,13 +649,13 @@ static RuleforgeValue r_collections_make_record(REval *eval, RuleforgeSpan span,
       return ruleforge_value_none();
     }
 
-    record->names[i]  = names->items[i].as.string;
+    record->names[i] = names->items[i].as.string;
     record->values[i] = values->items[i];
   }
 
-  result.kind          = RVK_RECORD;
+  result.kind = RVK_RECORD;
   result.is_identifier = FALSE;
-  result.as.record     = record;
+  result.as.record = record;
 
   return result;
 }
@@ -663,16 +692,16 @@ static RuleforgeValue r_stats_widest_gaps(REval *eval, RuleforgeSpan span, const
   }
 
   gap_count = values->count > 0 ? values->count - 1 : 0;
-  cuts      = (uint32)arguments[1].as.integer;
+  cuts = (uint32)arguments[1].as.integer;
 
   if (cuts > gap_count) {
     cuts = gap_count;
   }
 
-  order   = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)gap_count + 1U) * NEXUS_SIZEOF(uint32));
+  order = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)gap_count + 1U) * NEXUS_SIZEOF(uint32));
   scratch = (uint32 *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)gap_count + 1U) * NEXUS_SIZEOF(uint32));
-  keys    = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)gap_count + 1U) * NEXUS_SIZEOF(f_real));
-  chosen  = (boolean *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)gap_count + 1U) * NEXUS_SIZEOF(boolean));
+  keys = (f_real *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)gap_count + 1U) * NEXUS_SIZEOF(f_real));
+  chosen = (boolean *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)gap_count + 1U) * NEXUS_SIZEOF(boolean));
 
   for (i = 0; i < gap_count; i++) {
     f_real upper;
@@ -684,7 +713,7 @@ static RuleforgeValue r_stats_widest_gaps(REval *eval, RuleforgeSpan span, const
     }
 
     /* A wider gap sorts first: the key is the negated gap. */
-    keys[i]  = -(upper - lower);
+    keys[i] = -(upper - lower);
     order[i] = i;
   }
 
@@ -695,7 +724,7 @@ static RuleforgeValue r_stats_widest_gaps(REval *eval, RuleforgeSpan span, const
   }
 
   result = ruleforge_value_list_create(eval->compilation, cuts);
-  kept   = 0;
+  kept = 0;
 
   for (i = 0; i < gap_count; i++) {
     if (chosen[i]) {
@@ -817,7 +846,7 @@ static RuleforgeValue r_color_lab(REval *eval, RuleforgeSpan span, const Rulefor
   }
 
   blaze_color_srgb_lab_get(arguments[0].as.color, &color);
-  result           = ruleforge_value_list_create(eval->compilation, 3);
+  result = ruleforge_value_list_create(eval->compilation, 3);
   result->items[0] = ruleforge_value_real((f_real)color.l);
   result->items[1] = ruleforge_value_real((f_real)color.a);
   result->items[2] = ruleforge_value_real((f_real)color.b);
@@ -848,9 +877,9 @@ static RuleforgeValue r_color_lab_delta_e(REval *eval, RuleforgeSpan span, const
     }
   }
 
-  first.l  = components[0];
-  first.a  = components[1];
-  first.b  = components[2];
+  first.l = components[0];
+  first.a = components[1];
+  first.b = components[2];
   second.l = components[3];
   second.a = components[4];
   second.b = components[5];
@@ -952,13 +981,13 @@ static RuleforgeValue r_rules_reverse(REval *eval, RuleforgeSpan span, const Rul
 static RuleforgeRule *r_rules_copy(REval *eval, RuleforgeSpan span, const RuleforgeRule *source, const char *label) {
   RuleforgeRule *rule;
 
-  rule  = (RuleforgeRule *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*rule));
+  rule = (RuleforgeRule *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*rule));
   *rule = *source;
 
   {
     const RuleforgeProvenance *saved;
 
-    saved            = eval->provenance;
+    saved = eval->provenance;
     eval->provenance = source->provenance;
     rule->provenance = ruleforge_eval_provenance_push(eval, RPK_TRANSFORM, span, label, NULL);
     eval->provenance = saved;
@@ -990,7 +1019,7 @@ static RuleforgeValue r_rules_with_action(REval *eval, RuleforgeSpan span, const
 
     if (rule->native == NULL) {
       rule->has_action = TRUE;
-      rule->show       = nexus_strings_string_equals(arguments[1].as.string, "show");
+      rule->show = nexus_strings_string_equals(arguments[1].as.string, "show");
     }
 
     ruleforge_value_ruleset_rule_add(eval->compilation, result, rule);
@@ -1083,7 +1112,7 @@ static RuleforgeValue r_rules_with_scope(REval *eval, RuleforgeSpan span, const 
       }
 
       grown[rule->scope.count] = condition;
-      rule->scope.conditions   = grown;
+      rule->scope.conditions = grown;
       rule->scope.count++;
     }
 
@@ -1093,15 +1122,243 @@ static RuleforgeValue r_rules_with_scope(REval *eval, RuleforgeSpan span, const 
   return ruleforge_value_ruleset(result);
 }
 
+/* Summary: select a named colour from a palette without copying its definition. */
+static RuleforgeValue r_color_lookup(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  const RuleforgeNamespace *space;
+  uint32                    i;
+  (void)count;
+  if (arguments[0].kind != RVK_MODULE || !((const RuleforgeNamespace *)arguments[0].as.module)->is_color_set) {
+    ruleforge_eval_fail(eval, "RF0540", span, NULL, "color.Lookup needs a colorSet and a color name");
+    return ruleforge_value_none();
+  }
+  space = (const RuleforgeNamespace *)arguments[0].as.module;
+  for (i = 0; i < rf_color_set_stmt_count_rule_color_definition(space->color_set); i++) {
+    RfColorDefinition definition;
+    definition = rf_color_set_stmt_rule_color_definition(space->color_set, i);
+    if (nexus_strings_string_equals(ruleforge_eval_text_get(eval, definition.tree, rf_color_definition_token_identifier(definition, 0)),
+                                    arguments[1].as.string)) {
+      RuleforgeModule *saved;
+      RuleforgeValue   value;
+      saved = eval->module;
+      eval->module = space->owner;
+      value = ruleforge_eval_expression(eval, rf_color_definition_rule_expr(definition, 0));
+      eval->module = saved;
+      return value;
+    }
+  }
+  ruleforge_eval_fail(eval, "RF0540", span, NULL, "the palette has no color `%s`", arguments[1].as.string);
+  return ruleforge_value_none();
+}
+
+/* Summary: keep priority and purpose channels while marking a hidden property. */
+static RuleforgeValue r_styles_with_border(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  RuleforgeStyle *style;
+  RuleforgeValue  value;
+  uint32          state;
+  (void)span;
+  (void)count;
+  style = (RuleforgeStyle *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*style));
+  *style = *arguments[0].as.style;
+  for (state = 0; state < 2; state++) {
+    const RuleforgeStyleProperty *base;
+    const RuleforgeStyleProperty *marker;
+    const RuleforgeStyleProperty *border;
+    RuleforgeStyleProperty       *out;
+    uint32                        n;
+    uint32                        m;
+    uint32                        i;
+    boolean                       replaced;
+    base = state == 0 ? style->show : style->hide;
+    n = state == 0 ? style->show_count : style->hide_count;
+    marker = state == 0 ? arguments[1].as.style->show : arguments[1].as.style->hide;
+    m = state == 0 ? arguments[1].as.style->show_count : arguments[1].as.style->hide_count;
+    border = NULL;
+    for (i = 0; i < m; i++) {
+      if (nexus_strings_string_equals(marker[i].keyword, "SetBorderColor")) {
+        border = &marker[i];
+      }
+    }
+    if (border == NULL) {
+      continue;
+    }
+    out = (RuleforgeStyleProperty *)nexus_data_arena_allocate(&eval->compilation->arena, ((uint_large)n + 1U) * NEXUS_SIZEOF(*out));
+    replaced = FALSE;
+    for (i = 0; i < n; i++) {
+      out[i] = base[i];
+      if (nexus_strings_string_equals(base[i].keyword, "SetBorderColor")) {
+        out[i] = *border;
+        replaced = TRUE;
+      }
+    }
+    if (!replaced) {
+      out[n++] = *border;
+    }
+    if (state == 0) {
+      style->show = out;
+      style->show_count = n;
+    } else {
+      style->hide = out;
+      style->hide_count = n;
+    }
+  }
+  value = ruleforge_value_none();
+  value.kind = RVK_STYLE;
+  value.as.style = style;
+  return value;
+}
+
+/* Summary: name a section without changing the rules or their order. */
+static RuleforgeValue r_rules_section(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  RuleforgeRuleset *result;
+  uint32            i;
+  (void)count;
+  result = ruleforge_value_ruleset_create(eval->compilation, "section");
+  for (i = 0; i < arguments[0].as.ruleset->count; i++) {
+    RuleforgeRule *rule;
+    rule = r_rules_copy(eval, span, arguments[0].as.ruleset->rules[i], "rules.Section");
+    rule->section = arguments[1].as.string;
+    ruleforge_value_ruleset_rule_add(eval->compilation, result, rule);
+  }
+  return ruleforge_value_ruleset(result);
+}
+
+/* Summary: dataset-backed rules use the same condition validation and provenance as source rules. */
+static RuleforgeValue r_rules_from_records(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count) {
+  RuleforgeValue   *items;
+  RuleforgeRuleset *result;
+  uint32            size;
+  uint32            i;
+  (void)count;
+  if (!r_stdlib_items_get(eval, span, &arguments[0], "rules.FromRecords", &size, &items) || arguments[1].kind != RVK_THEME) {
+    ruleforge_eval_fail(eval, "RF0524", span, NULL, "rules.FromRecords needs rule records and a theme");
+    return ruleforge_value_none();
+  }
+  result = ruleforge_value_ruleset_create(eval->compilation, "FromRecords");
+  for (i = 0; i < size; i++) {
+    const RuleforgeValue *action;
+    const RuleforgeValue *style;
+    const RuleforgeValue *clauses;
+    const RuleforgeValue *label;
+    RuleforgeRule        *rule;
+    uint32                j;
+    if (items[i].kind != RVK_RECORD) {
+      goto invalid;
+    }
+    action = ruleforge_value_record_field_get(items[i].as.record, "decision");
+    if (action == NULL) {
+      action = ruleforge_value_record_field_get(items[i].as.record, "action");
+    }
+    style = ruleforge_value_record_field_get(items[i].as.record, "labelStyle");
+    if (style == NULL) {
+      style = ruleforge_value_record_field_get(items[i].as.record, "style");
+    }
+    clauses = ruleforge_value_record_field_get(items[i].as.record, "conditions");
+    label = ruleforge_value_record_field_get(items[i].as.record, "source");
+    if (action == NULL || action->kind != RVK_STRING || style == NULL || style->kind != RVK_STRING || clauses == NULL ||
+        clauses->kind != RVK_LIST ||
+        (!nexus_strings_string_equals(action->as.string, "show") && !nexus_strings_string_equals(action->as.string, "hide"))) {
+      goto invalid;
+    }
+    rule = (RuleforgeRule *)nexus_data_arena_allocate(&eval->compilation->arena, NEXUS_SIZEOF(*rule));
+    rule->span = span;
+    rule->name = label != NULL && label->kind == RVK_STRING ? label->as.string : "DatasetRule";
+    {
+      const RuleforgeValue *section;
+      section = ruleforge_value_record_field_get(items[i].as.record, "section");
+      rule->section = section != NULL && section->kind == RVK_STRING ? section->as.string : NULL;
+    }
+    rule->has_action = TRUE;
+    rule->show = nexus_strings_string_equals(action->as.string, "show");
+    rule->style = ruleforge_theme_style_get(arguments[1].as.theme, style->as.string);
+    if (rule->style == NULL) {
+      goto invalid;
+    }
+    rule->scope.count = clauses->as.list->count + (uint32)nexus_data_list_length_get(eval->cores);
+    rule->scope.conditions = (RuleforgeCondition **)nexus_data_arena_allocate(
+        &eval->compilation->arena, ((uint_large)rule->scope.count + 1U) * NEXUS_SIZEOF(RuleforgeCondition *));
+    rule->provenance = ruleforge_eval_provenance_push(eval, RPK_ROW, span, rule->name, items[i].as.record);
+    for (j = 0; j < clauses->as.list->count; j++) {
+      const RuleforgeValue         *name;
+      const RuleforgeValue         *op;
+      const RuleforgeValue         *value;
+      const RuleforgeValue         *threshold;
+      const RuleforgeConditionInfo *info;
+      RuleforgeCondition           *condition;
+      RuleforgeOperator             operation;
+      RuleforgeRecord              *clause;
+      if (clauses->as.list->items[j].kind != RVK_RECORD) {
+        goto invalid;
+      }
+      clause = clauses->as.list->items[j].as.record;
+      name = ruleforge_value_record_field_get(clause, "name");
+      op = ruleforge_value_record_field_get(clause, "op");
+      value = ruleforge_value_record_field_get(clause, "value");
+      threshold = ruleforge_value_record_field_get(clause, "count");
+      if (name == NULL || name->kind != RVK_STRING || op == NULL || op->kind != RVK_STRING || value == NULL) {
+        goto invalid;
+      }
+      info = ruleforge_condition_find(eval, eval->module, name->as.string);
+      if (info == NULL) {
+        goto invalid;
+      }
+      operation = ROP_EQ;
+      if (nexus_strings_string_equals(op->as.string, "!=")) {
+        operation = ROP_NE;
+      } else if (nexus_strings_string_equals(op->as.string, "<")) {
+        operation = ROP_LT;
+      } else if (nexus_strings_string_equals(op->as.string, "<=")) {
+        operation = ROP_LE;
+      } else if (nexus_strings_string_equals(op->as.string, ">")) {
+        operation = ROP_GT;
+      } else if (nexus_strings_string_equals(op->as.string, ">=")) {
+        operation = ROP_GE;
+      } else if (!nexus_strings_string_equals(op->as.string, "==") && !nexus_strings_string_equals(op->as.string, "contains")) {
+        goto invalid;
+      }
+      condition = ruleforge_condition_value_make(eval, span, info, ROP_EQ, value);
+      if (condition == NULL) {
+        return ruleforge_value_none();
+      }
+      if (operation != ROP_EQ && operation != ROP_NE && !info->ordered && threshold == NULL &&
+          !nexus_strings_string_equals(info->keyword, "SocketGroup")) {
+        goto invalid;
+      }
+      condition->op = operation;
+      condition->substring = nexus_strings_string_equals(op->as.string, "contains");
+      if (condition->substring && info->type != RCT_STRING) {
+        goto invalid;
+      }
+      if (threshold != NULL && threshold->kind != RVK_NONE) {
+        if (threshold->kind != RVK_INT || threshold->as.integer < 0 || info->type != RCT_STRING) {
+          goto invalid;
+        }
+        condition->counted = TRUE;
+        condition->threshold = threshold->as.integer;
+      }
+      rule->scope.conditions[j] = condition;
+    }
+    for (j = 0; j < nexus_data_list_length_get(eval->cores); j++) {
+      rule->scope.conditions[clauses->as.list->count + j] = (RuleforgeCondition *)nexus_data_list_pointer_at(eval->cores, j);
+    }
+    ruleforge_value_ruleset_rule_add(eval->compilation, result, rule);
+  }
+  return ruleforge_value_ruleset(result);
+invalid:
+  ruleforge_eval_fail(eval, "RF0524", span, NULL, "rules.FromRecords: invalid action, style or condition in row %lu", (unsigned long)i + 1UL);
+  return ruleforge_value_none();
+}
+
 /* ---------------------------------------------------------------------------- */
 /* REGISTRY                                                                     */
 /* ---------------------------------------------------------------------------- */
 
 static const RuleforgeNative r_stdlib_natives[] = {
+    {"std.economy", "TierHistory", ruleforge_economy_tier_history},
     {"std.core", "Fail", r_core_fail},
     {"std.core", "Warn", r_core_warn},
     {"std.core", "TypeOf", r_core_type_of},
     {"std.math", "Truncate", r_math_truncate},
+    {"std.color", "Lookup", r_color_lookup},
     {"std.color", "Channel", r_color_channel},
     {"std.color", "WCAG", r_color_wcag},
     {"std.color", "APCA", r_color_apca},
@@ -1110,6 +1367,7 @@ static const RuleforgeNative r_stdlib_natives[] = {
     {"std.color", "Lab", r_color_lab},
     {"std.color", "Composite", r_color_composite},
     {"std.color", "Luminance", r_color_luminance},
+    {"std.collections", "Contains", r_collections_contains},
     {"std.collections", "Count", r_collections_count},
     {"std.collections", "Take", r_collections_take},
     {"std.collections", "Reverse", r_collections_reverse},
@@ -1125,6 +1383,9 @@ static const RuleforgeNative r_stdlib_natives[] = {
     {"std.collections", "WithField", r_collections_with_field},
     {"std.collections", "MakeRecord", r_collections_make_record},
     {"std.stats", "WidestGaps", r_stats_widest_gaps},
+    {"std.styles", "WithBorder", r_styles_with_border},
+    {"std.rules", "Section", r_rules_section},
+    {"std.rules", "FromRecords", r_rules_from_records},
     {"std.rules", "Concat", r_rules_concat},
     {"std.rules", "Count", r_rules_count},
     {"std.rules", "Reverse", r_rules_reverse},

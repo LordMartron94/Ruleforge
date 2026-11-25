@@ -362,3 +362,7 @@ export condition hasCruciblePassiveTree {
     accepts bool;
     order 117;
 }
+
+/* PoE 3.30 drop-only equipment properties. */
+export condition fated { keyword "Fated"; accepts bool; order 99; }
+export condition unidentifiedItemTier { keyword "UnidentifiedItemTier"; accepts int; ordered; order 79; }

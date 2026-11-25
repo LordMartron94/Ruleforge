@@ -11,6 +11,7 @@ import (
 // Catalog warnings use the engine's lowered condition model, never a second source parser.
 func validateCatalog(req Request, model json.RawMessage) ([]Diagnostic, error) {
 	known := map[string]bool{}
+	coveredClasses := map[string]bool{}
 	configured := false
 	for _, source := range []string{"game.bases", "game.gems", "game.uniques"} {
 		path := req.Datasets[source]
@@ -27,12 +28,16 @@ func validateCatalog(req Request, model json.RawMessage) ([]Diagnostic, error) {
 		}
 		var rows []struct {
 			BaseType string `json:"baseType"`
+			Class    string `json:"class"`
 		}
 		if err := json.Unmarshal(data, &rows); err != nil {
 			return nil, fmt.Errorf("catalogue %s: %w", source, err)
 		}
 		for _, row := range rows {
 			known[strings.ToLower(row.BaseType)] = true
+			if row.Class != "" {
+				coveredClasses[strings.ToLower(row.Class)] = true
+			}
 		}
 	}
 	if !configured {
@@ -58,6 +63,27 @@ func validateCatalog(req Request, model json.RawMessage) ([]Diagnostic, error) {
 	seen := map[string]bool{}
 	diagnostics := []Diagnostic{}
 	for _, block := range product.Blocks {
+		// PoB does not catalogue currency, cards, fragments or league drops.
+		// Warn only for a class PoB covers, or a mixed name list containing a
+		// known base (which can reveal a misspelled alternative).
+		covered := false
+		for _, condition := range block.Conditions {
+			for _, raw := range condition.Values {
+				var value string
+				if json.Unmarshal(raw, &value) != nil {
+					continue
+				}
+				if condition.Name == "class" && coveredClasses[strings.ToLower(value)] {
+					covered = true
+				}
+				if condition.Name == "baseType" && known[strings.ToLower(value)] {
+					covered = true
+				}
+			}
+		}
+		if !covered {
+			continue
+		}
 		for _, condition := range block.Conditions {
 			if condition.Name != "baseType" || condition.Op != "==" {
 				continue

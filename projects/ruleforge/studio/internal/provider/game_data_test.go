@@ -70,3 +70,49 @@ func TestLuaProviderCannotUseFileOrProcessAPIs(t *testing.T) {
 		t.Fatal("Lua process API was available")
 	}
 }
+
+func TestPoBEquipmentSubtypesAndSupportNames(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "Bases"), 0o755)
+	source := `return function(b)
+      b["Small Life Flask"]={type="Flask",subType="Life",req={level=1}}
+      b["Small Mana Flask"]={type="Flask",subType="Mana",req={level=1}}
+      b["Small Hybrid Flask"]={type="Flask",subType="Hybrid",req={level=1}}
+      b["Quicksilver Flask"]={type="Flask",req={level=4}}
+      b["Rusted Spike"]={type="One Handed Sword",subType="Thrusting",req={level=3}}
+      b["Plate Vest"]={type="Body Armour",subType="Armour",req={level=1}}
+    end`
+	os.WriteFile(filepath.Join(dir, "Bases/test.lua"), []byte(source), 0o644)
+	rows, err := readPoBBases(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wanted := map[string]string{"Small Life Flask": "Life Flasks", "Small Mana Flask": "Mana Flasks", "Small Hybrid Flask": "Hybrid Flasks", "Quicksilver Flask": "Utility Flasks", "Rusted Spike": "Thrusting One Hand Swords", "Plate Vest": "Body Armours"}
+	for _, row := range rows {
+		if row.Class != wanted[row.BaseType] {
+			t.Fatalf("incorrect item class: %+v", row)
+		}
+		delete(wanted, row.BaseType)
+		if row.BaseType == "Plate Vest" && row.SubType != "Armour" {
+			t.Fatal("armour subtype lost")
+		}
+	}
+	if len(wanted) != 0 {
+		t.Fatal("missing bases", wanted)
+	}
+	os.WriteFile(filepath.Join(dir, "Gems.lua"), []byte(`return {AddedFireDamage={name="Added Fire Damage",baseTypeName="",support=true,tags={support=true}},Fireball={name="Fireball",baseTypeName="Fireball",tags={spell=true}}}`), 0o644)
+	rows, err = readPoBGems(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wanted = map[string]string{"Added Fire Damage Support": "Support Gems", "Fireball": "Skill Gems"}
+	for _, row := range rows {
+		if row.Class != wanted[row.BaseType] {
+			t.Fatalf("incorrect gem: %+v", row)
+		}
+		delete(wanted, row.BaseType)
+	}
+	if len(wanted) != 0 {
+		t.Fatal("missing gems", wanted)
+	}
+}
