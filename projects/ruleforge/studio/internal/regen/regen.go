@@ -85,7 +85,7 @@ func (r *Regenerator) Refresh(ctx context.Context, force bool) []string {
 		r.last = map[string]time.Time{}
 	}
 	for _, dataset := range r.Project.Datasets {
-		if dataset.Provider == "neversink-divination" {
+		if dataset.Provider == "neversink-divination" || dataset.Provider == "neversink-currency" {
 			interval, err := config.Interval(dataset.Refresh, 24*time.Hour)
 			if err != nil {
 				messages = append(messages, fmt.Sprintf("dataset %s: %v", dataset.Source, err))
@@ -94,7 +94,11 @@ func (r *Regenerator) Refresh(ctx context.Context, force bool) []string {
 			if !force && time.Since(r.last[dataset.Source]) < interval {
 				continue
 			}
-			if err := logging.Phase(ctx, r.Log, "NeverSink dataset", func() error { return provider.PrepareDivination(ctx, r.path(dataset.Path)) }); err != nil {
+			prepare := provider.PrepareDivination
+			if dataset.Provider == "neversink-currency" {
+				prepare = provider.PrepareCurrency
+			}
+			if err := logging.Phase(ctx, r.Log, "NeverSink dataset: "+dataset.Source, func() error { return prepare(ctx, r.path(dataset.Path)) }); err != nil {
 				messages = append(messages, fmt.Sprintf("dataset %s kept its previous snapshot: %v", dataset.Source, err))
 			} else {
 				r.last[dataset.Source] = time.Now()

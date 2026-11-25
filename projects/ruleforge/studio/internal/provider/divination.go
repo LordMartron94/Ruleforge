@@ -105,24 +105,9 @@ func parseDivination(data []byte) ([]DivinationTier, error) {
 // PrepareDivination refreshes the standard NeverSink snapshot atomically. It
 // imports upstream tier membership, never recalculates it from market prices.
 func PrepareDivination(ctx context.Context, path string) error {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, divinationURL, nil)
+	raw, err := fetchNeverSink(ctx)
 	if err != nil {
 		return err
-	}
-	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("NeverSink: HTTP %d", response.StatusCode)
-	}
-	raw, err := io.ReadAll(io.LimitReader(response.Body, (2<<20)+1))
-	if err != nil {
-		return err
-	}
-	if len(raw) > 2<<20 {
-		return fmt.Errorf("NeverSink filter exceeds 2 MiB")
 	}
 	rows, err := parseDivination(raw)
 	if err != nil {
@@ -133,4 +118,27 @@ func PrepareDivination(ctx context.Context, path string) error {
 		return err
 	}
 	return writeSnapshot(path, append(encoded, '\n'))
+}
+
+func fetchNeverSink(ctx context.Context) ([]byte, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, divinationURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("NeverSink: HTTP %d", response.StatusCode)
+	}
+	raw, err := io.ReadAll(io.LimitReader(response.Body, (2<<20)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) > 2<<20 {
+		return nil, fmt.Errorf("NeverSink filter exceeds 2 MiB")
+	}
+	return raw, nil
 }
