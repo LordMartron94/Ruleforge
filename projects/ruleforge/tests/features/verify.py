@@ -79,6 +79,8 @@ export func main() { include rules.FromRecords(Rows, Theme); }
     (root / "state.json").write_text('[]')
     call(root, "compile", "entry.rf", "--settings", "settings.toml", "-o", "out.filter", "--model", "model.json")
     text = (root / "out.filter").read_text()
+    assert 'HasExplicitMod >=2 "fire" "cold"' in text, "modifier counts must attach to their operator"
+    assert 'HasExplicitMod >= 2' not in text
     model = json.loads((root / "model.json").read_text())
     assert len(model["blocks"]) < len(rows), "equivalent disjoint rules were not grouped"
     assert "# Patterns\n" in text and "# Sockets\n" in text

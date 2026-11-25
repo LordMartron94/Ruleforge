@@ -172,7 +172,7 @@ static void r_filter_condition_write(const RuleforgeCondition *condition, NexusS
     (void)nexus_strings_string_builder_append_formatted(out, " %s", ruleforge_manifest_operator_text_get(condition->op));
   }
   if (condition->counted) {
-    (void)nexus_strings_string_builder_append_formatted(out, " %lld", (long long)condition->threshold);
+    (void)nexus_strings_string_builder_append_formatted(out, "%lld", (long long)condition->threshold);
   }
 
   for (i = 0; i < condition->count; i++) {
