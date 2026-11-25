@@ -13,16 +13,19 @@ static void c_main_usage(void) {
   (void)nexus_stdio_stderr_write_cstring("usage: ruleforge <command> [options] <entry.rf>\n\ncommands:\n");
   (void)nexus_stdio_stderr_write_cstring(
       "  item       parse English PoE copied item text as JSON\n  ast        parse the file and its imports; write the syntax trees as JSON\n");
-  (void)nexus_stdio_stderr_write_cstring("  themes     parse the file and its imports; write their themes and color sets as JSON (for editors)\n");
+  (void)nexus_stdio_stderr_write_cstring(
+      "  themes     parse the file and its imports; write their themes and color sets as JSON (for editors)\n");
   (void)nexus_stdio_stderr_write_cstring("  check      parse the file and its imports; report diagnostics only\n");
   (void)nexus_stdio_stderr_write_cstring("  compile    run main and write the item filter (and with --model the structured model)\n");
   (void)nexus_stdio_stderr_write_cstring("  simulate   compile, then run the items of --items through the filter and explain each result\n");
   (void)nexus_stdio_stderr_write_cstring(
       "  eval       evaluate expressions (-e) after importing modules (--import), optionally in the context of a project file\n");
   (void)nexus_stdio_stderr_write_cstring("  tokens     write the lexical tokens of the file as JSON (for editors)\n");
-  (void)nexus_stdio_stderr_write_cstring("  manifest   write everything the engine can express as JSON (conditions, properties, standard library)\n");
+  (void)nexus_stdio_stderr_write_cstring(
+      "  manifest   write everything the engine can express as JSON (conditions, properties, standard library)\n");
   (void)nexus_stdio_stderr_write_cstring("  version    print the engine version\n\noptions:\n");
-  (void)nexus_stdio_stderr_write_cstring("  --log-dir DIR      Echo logs directory (default .ruleforge/logs)\n  --log-keep N       retained engine "
+  (void)nexus_stdio_stderr_write_cstring("  --progress         stream Echo phase records to stderr\n  --log-dir DIR      Echo logs directory "
+                                         "(default .ruleforge/logs)\n  --log-keep N       retained engine "
                                          "logs, 1..65535 (default 10)\n  -I DIR             add a folder searched for imports (repeatable)\n");
   (void)nexus_stdio_stderr_write_cstring("  --settings FILE    a settings file (TOML): [context], [datasets.\"source\"], [limits]\n");
   (void)nexus_stdio_stderr_write_cstring("  --set KEY=VALUE    a compile-time value readable as @KEY (repeatable)\n");
@@ -42,7 +45,7 @@ static boolean c_main_file_write(const char *path, const char *text) {
   uint_large       size;
 
   file_path = nexus_filesystem_path_create(path);
-  size      = nexus_strings_string_length_get(text);
+  size = nexus_strings_string_length_get(text);
 
   if (nexus_filesystem_file_ensure_parent_directory(&file_path) != NEXUS_PROGRAM_ERROR_SUCCESS()) {
     return FALSE;
@@ -86,8 +89,8 @@ static char *c_main_file_read(const char *path) {
     return NULL;
   }
 
-  text        = (char *)nexus_memory_allocate(size + 1);
-  read_size   = 0;
+  text = (char *)nexus_memory_allocate(size + 1);
+  read_size = 0;
   reached_eof = FALSE;
 
   if (size > 0 && nexus_filesystem_file_read(file, (byte *)text, size, &read_size, &reached_eof) != NEXUS_PROGRAM_ERROR_SUCCESS()) {
@@ -104,6 +107,16 @@ static char *c_main_file_read(const char *path) {
   }
 
   return text;
+}
+
+/* Echo's terminal sinks own stdout. Progress uses a custom stderr sink so JSON
+   command products remain parseable while the parent receives live records. */
+static NexusError *c_main_progress_submit(const EchoRecord *record, void *user_data) {
+  (void)user_data;
+  if (echo_record_level_get(record) == ELL_INFO && nexus_strings_string_equals(echo_record_system_label_get(record), "Ruleforge.Ruleforge")) {
+    (void)nexus_stdio_stderr_write_formatted("[Ruleforge] %s\n", echo_record_message_get(record));
+  }
+  return NEXUS_PROGRAM_ERROR_SUCCESS();
 }
 
 int main(int argument_count, char **arguments) {
@@ -128,6 +141,7 @@ int main(int argument_count, char **arguments) {
   uint32                    expression_count;
   uint32                    import_count;
   boolean                   json_diagnostics;
+  boolean                   progress;
   boolean                   ok;
   char                     *text;
   char                      message[512];
@@ -147,10 +161,13 @@ int main(int argument_count, char **arguments) {
   }
 
   log_directory = ".ruleforge/logs";
-  max_logs      = 10;
+  max_logs = 10;
+  progress = FALSE;
 
   for (i = 2; i < argument_count; i++) {
-    if (nexus_strings_string_equals(arguments[i], "--log-dir") && i + 1 < argument_count) {
+    if (nexus_strings_string_equals(arguments[i], "--progress")) {
+      progress = TRUE;
+    } else if (nexus_strings_string_equals(arguments[i], "--log-dir") && i + 1 < argument_count) {
       log_directory = arguments[++i];
     } else if (nexus_strings_string_equals(arguments[i], "--log-keep") && i + 1 < argument_count) {
       const char *digit;
@@ -170,24 +187,39 @@ int main(int argument_count, char **arguments) {
   }
 
   configuration = echo_runtime_configuration_default();
-  system        = NULL;
-  error         = echo_runtime_create(&configuration, &echo);
+  system = NULL;
+  error = echo_runtime_create(&configuration, &echo);
 
   if (error == NEXUS_PROGRAM_ERROR_SUCCESS()) {
     error = echo_runtime_system_register(echo, "Ruleforge", NULL, &system);
   }
 
   if (error == NEXUS_PROGRAM_ERROR_SUCCESS()) {
-    file_configuration.filter            = NULL;
-    file_configuration.filter_user_data  = NULL;
-    file_configuration.base_directory    = nexus_filesystem_path_create(log_directory);
-    file_configuration.max_logs          = (uint16)max_logs;
+    file_configuration.filter = NULL;
+    file_configuration.filter_user_data = NULL;
+    file_configuration.base_directory = nexus_filesystem_path_create(log_directory);
+    file_configuration.max_logs = (uint16)max_logs;
     file_configuration.display_precision = NTP_MILLI_SECOND;
-    file_configuration.log_prefix        = "ruleforge-";
-    error                                = echo_sink_rich_file_create(file_configuration, &file_sink);
+    file_configuration.log_prefix = "ruleforge-";
+    error = echo_sink_rich_file_create(file_configuration, &file_sink);
 
     if (error == NEXUS_PROGRAM_ERROR_SUCCESS()) {
       error = echo_runtime_sink_register(echo, file_sink);
+    }
+  }
+
+  if (error == NEXUS_PROGRAM_ERROR_SUCCESS() && progress) {
+    EchoCustomSinkConfiguration progress_configuration;
+    EchoSink                   *progress_sink;
+    progress_configuration.filter = NULL;
+    progress_configuration.filter_user_data = NULL;
+    progress_configuration.submit = c_main_progress_submit;
+    progress_configuration.flush = NULL;
+    progress_configuration.destroy = NULL;
+    progress_configuration.user_data = NULL;
+    error = echo_sink_custom_create(&progress_configuration, &progress_sink);
+    if (error == NEXUS_PROGRAM_ERROR_SUCCESS()) {
+      error = echo_runtime_sink_register(echo, progress_sink);
     }
   }
 
@@ -201,18 +233,18 @@ int main(int argument_count, char **arguments) {
     return 1;
   }
 
-  runtime          = ruleforge_runtime_create(echo, system);
-  compilation      = ruleforge_compilation_create(runtime);
-  settings         = ruleforge_settings_create();
-  command          = arguments[1];
-  file             = NULL;
-  output           = NULL;
-  model            = NULL;
-  items            = NULL;
+  runtime = ruleforge_runtime_create(echo, system);
+  compilation = ruleforge_compilation_create(runtime);
+  settings = ruleforge_settings_create();
+  command = arguments[1];
+  file = NULL;
+  output = NULL;
+  model = NULL;
+  items = NULL;
   expression_count = 0;
-  import_count     = 0;
+  import_count = 0;
   json_diagnostics = FALSE;
-  result           = 0;
+  result = 0;
 
   for (i = 2; i < argument_count && result == 0; i++) {
     if (nexus_strings_string_equals(arguments[i], "-I") && i + 1 < argument_count) {
@@ -220,6 +252,8 @@ int main(int argument_count, char **arguments) {
     } else if ((nexus_strings_string_equals(arguments[i], "--log-dir") || nexus_strings_string_equals(arguments[i], "--log-keep")) &&
                i + 1 < argument_count) {
       i++;
+    } else if (nexus_strings_string_equals(arguments[i], "--progress")) {
+      /* Registered before the logging runtime started. */
     } else if (nexus_strings_string_equals(arguments[i], "--json")) {
       json_diagnostics = TRUE;
     } else if (nexus_strings_string_equals(arguments[i], "--settings") && i + 1 < argument_count) {
@@ -255,7 +289,8 @@ int main(int argument_count, char **arguments) {
       } else {
         nexus_memory_bytes_copy(arguments[i], source, (uint_large)(equals - arguments[i]));
         source[equals - arguments[i]] = '\0';
-        ruleforge_settings_dataset_set(settings, source, nexus_strings_string_ends_with(equals + 1, ".json") ? "json" : "csv", equals + 1, NULL);
+        ruleforge_settings_dataset_set(settings, source, nexus_strings_string_ends_with(equals + 1, ".json") ? "json" : "csv", equals + 1,
+                                       NULL);
       }
     } else if (nexus_strings_string_equals(arguments[i], "--name") && i + 1 < argument_count) {
       ruleforge_settings_filter_name_set(settings, arguments[++i]);
@@ -265,8 +300,8 @@ int main(int argument_count, char **arguments) {
       model = arguments[++i];
     } else if (nexus_strings_string_equals(arguments[i], "--items") && i + 1 < argument_count) {
       items = arguments[++i];
-    } else if ((nexus_strings_string_equals(arguments[i], "-e") || nexus_strings_string_equals(arguments[i], "--expr")) && i + 1 < argument_count &&
-               expression_count < 512) {
+    } else if ((nexus_strings_string_equals(arguments[i], "-e") || nexus_strings_string_equals(arguments[i], "--expr")) &&
+               i + 1 < argument_count && expression_count < 512) {
       expressions[expression_count++] = arguments[++i];
     } else if (nexus_strings_string_equals(arguments[i], "--import") && i + 1 < argument_count && import_count < 64) {
       imports[import_count++] = arguments[++i];
@@ -330,7 +365,8 @@ int main(int argument_count, char **arguments) {
     }
 
     if (result == 0 && ruleforge_compilation_diagnostic_count_get(compilation) > 0) {
-      text = json_diagnostics ? ruleforge_compilation_diagnostics_json_write(compilation) : ruleforge_compilation_diagnostics_text_write(compilation);
+      text = json_diagnostics ? ruleforge_compilation_diagnostics_json_write(compilation)
+                              : ruleforge_compilation_diagnostics_text_write(compilation);
       (void)(json_diagnostics ? nexus_stdio_stdout_write_cstring(text) : nexus_stdio_stderr_write_cstring(text));
       nexus_memory_deallocate(text);
     }
@@ -342,7 +378,7 @@ int main(int argument_count, char **arguments) {
     char *source;
 
     source = c_main_file_read(file);
-    text   = source == NULL ? NULL : ruleforge_item_json_write(runtime, source, message, NEXUS_SIZEOF(message));
+    text = source == NULL ? NULL : ruleforge_item_json_write(runtime, source, message, NEXUS_SIZEOF(message));
 
     if (text == NULL) {
       (void)nexus_stdio_stderr_write_formatted("ruleforge: %s\n", source == NULL ? "cannot read item text" : message);
@@ -379,7 +415,8 @@ int main(int argument_count, char **arguments) {
     }
 
     if (ruleforge_compilation_diagnostic_count_get(compilation) > 0) {
-      text = json_diagnostics ? ruleforge_compilation_diagnostics_json_write(compilation) : ruleforge_compilation_diagnostics_text_write(compilation);
+      text = json_diagnostics ? ruleforge_compilation_diagnostics_json_write(compilation)
+                              : ruleforge_compilation_diagnostics_text_write(compilation);
       (void)(json_diagnostics ? nexus_stdio_stdout_write_cstring(text) : nexus_stdio_stderr_write_cstring(text));
       nexus_memory_deallocate(text);
     }

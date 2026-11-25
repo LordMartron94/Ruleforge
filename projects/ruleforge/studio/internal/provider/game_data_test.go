@@ -146,3 +146,24 @@ func TestPoBSubtypeNamesAreNotEmittedAsGameBaseNames(t *testing.T) {
 		t.Fatalf("unique lost normalized base metadata: %+v %v", uniques, err)
 	}
 }
+
+func TestTransfiguredDisplayNamesAreNotExactBaseTypes(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "Gems.lua"), []byte(`return {
+      ["storm"]={name="Storm Burst",baseTypeName="Storm Burst",gameId="storm",tags={spell=true}},
+      ["storm-alt"]={name="Storm Burst of Repulsion",baseTypeName="Storm Burst of Repulsion",gameId="storm",tags={spell=true}},
+      ["purity"]={name="Purity of Fire",baseTypeName="Purity of Fire",gameId="purity",tags={spell=true}}
+    }`), 0o644)
+	rows, err := readPoBGems(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("transfigured display name leaked: %+v", rows)
+	}
+	for _, row := range rows {
+		if row.BaseType == "Storm Burst of Repulsion" {
+			t.Fatal("invalid exact base type")
+		}
+	}
+}

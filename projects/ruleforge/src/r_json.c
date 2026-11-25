@@ -83,7 +83,8 @@ static char *r_json_string_decode(RJsonBuilder *builder, JsonString view) {
       escape = json_string_part_rule_string_escape(part, 0);
 
       if (json_string_escape_count_token_escape_simple(escape) > 0) {
-        text   = logos_language_tooling_parsing_syntax_green_node_text_get(builder->tree, json_string_escape_token_escape_simple(escape, 0), &size);
+        text =
+            logos_language_tooling_parsing_syntax_green_node_text_get(builder->tree, json_string_escape_token_escape_simple(escape, 0), &size);
         one[1] = '\0';
 
         switch (text[0]) {
@@ -111,7 +112,8 @@ static char *r_json_string_decode(RJsonBuilder *builder, JsonString view) {
       } else {
         uint32 code;
 
-        text = logos_language_tooling_parsing_syntax_green_node_text_get(builder->tree, json_string_escape_token_escape_unicode(escape, 0), &size);
+        text =
+            logos_language_tooling_parsing_syntax_green_node_text_get(builder->tree, json_string_escape_token_escape_unicode(escape, 0), &size);
         code = r_json_unicode_value(text);
 
         /* A high surrogate pairs with the \uXXXX escape that follows it. */
@@ -148,7 +150,8 @@ static char *r_json_string_decode(RJsonBuilder *builder, JsonString view) {
     }
   }
 
-  result = nexus_data_arena_text_copy(builder->arena, nexus_strings_string_builder_string_get(&out), nexus_strings_string_builder_length_get(&out));
+  result =
+      nexus_data_arena_text_copy(builder->arena, nexus_strings_string_builder_string_get(&out), nexus_strings_string_builder_length_get(&out));
   nexus_strings_string_builder_destroy(&out);
 
   return result;
@@ -166,30 +169,30 @@ static void r_json_number_read(const byte *text, uint_large size, RuleforgeJson 
   boolean    exponent_negative;
   int32      step;
 
-  negative       = size > 0 && text[0] == '-';
-  i              = negative ? 1 : 0;
-  whole          = 0.0;
-  scale          = 1.0;
-  integer        = 0;
-  fraction       = FALSE;
+  negative = size > 0 && text[0] == '-';
+  i = negative ? 1 : 0;
+  whole = 0.0;
+  scale = 1.0;
+  integer = 0;
+  fraction = FALSE;
   node->integral = TRUE;
 
   for (; i < size && text[i] != 'e' && text[i] != 'E'; i++) {
     if (text[i] == '.') {
-      fraction       = TRUE;
+      fraction = TRUE;
       node->integral = FALSE;
     } else if (fraction) {
       scale *= 0.1;
       whole += (f_real)(text[i] - '0') * scale;
     } else {
-      whole   = (whole * 10.0) + (f_real)(text[i] - '0');
+      whole = (whole * 10.0) + (f_real)(text[i] - '0');
       integer = (integer * 10) + (int64)(text[i] - '0');
     }
   }
 
   if (i < size) {
-    node->integral    = FALSE;
-    exponent          = 0;
+    node->integral = FALSE;
+    exponent = 0;
     exponent_negative = FALSE;
     i++;
 
@@ -211,7 +214,7 @@ static void r_json_number_read(const byte *text, uint_large size, RuleforgeJson 
     }
   }
 
-  node->real    = negative ? -whole : whole;
+  node->real = negative ? -whole : whole;
   node->integer = negative ? -integer : integer;
 }
 
@@ -222,10 +225,41 @@ static void r_json_number_read(const byte *text, uint_large size, RuleforgeJson 
 static RuleforgeJson *r_json_node(RJsonBuilder *builder, RuleforgeJsonKind kind) {
   RuleforgeJson *node;
 
-  node       = (RuleforgeJson *)nexus_data_arena_allocate(builder->arena, NEXUS_SIZEOF(*node));
+  node = (RuleforgeJson *)nexus_data_arena_allocate(builder->arena, NEXUS_SIZEOF(*node));
   node->kind = kind;
 
   return node;
+}
+
+/* Visit the direct named children once. Generated indexed accessors rescan a
+   container for each index, making large JSON arrays quadratic to lower. */
+static void r_json_container_fill(RJsonBuilder *builder, const LParserGreenNode *parent, RuleforgeJson *out, uint32 *at) {
+  const LParserGreenAlternative *alternative;
+  uint32                         i;
+  alternative = logos_language_tooling_parsing_syntax_green_node_alternative_first_get(builder->tree, parent);
+  if (alternative == NULL) {
+    return;
+  }
+  for (i = 0; i < logos_language_tooling_parsing_syntax_alternative_child_count_get(alternative); i++) {
+    const LParserGreenNode *child;
+    LParserGreenKind        kind;
+    child = logos_language_tooling_parsing_syntax_alternative_child_get(builder->tree, alternative, i);
+    kind = logos_language_tooling_parsing_syntax_green_node_kind_get(child);
+    if (kind == LPGK_RULE) {
+      int32 rule;
+      rule = json_rule_of(builder->tree, child);
+      if (out->kind == RJK_ARRAY && rule == JSON_RULE_ELEMENT) {
+        out->items[(*at)++] = r_json_element(builder, json_element_cast(builder->tree, child));
+      } else if (out->kind == RJK_OBJECT && rule == JSON_RULE_KEY_VALUE_PAIR) {
+        JsonKeyValuePair pair;
+        pair = json_key_value_pair_cast(builder->tree, child);
+        out->keys[*at] = r_json_string_decode(builder, json_key_value_pair_rule_string(pair, 0));
+        out->items[(*at)++] = r_json_element(builder, json_key_value_pair_rule_element(pair, 0));
+      }
+    } else if (kind != LPGK_TOKEN) {
+      r_json_container_fill(builder, child, out, at);
+    }
+  }
 }
 
 static RuleforgeJson *r_json_element(RJsonBuilder *builder, JsonElement view) {
@@ -235,19 +269,14 @@ static RuleforgeJson *r_json_element(RJsonBuilder *builder, JsonElement view) {
   if (json_element_count_rule_object(view) > 0) {
     JsonObject object;
 
-    object      = json_element_rule_object(view, 0);
-    node        = r_json_node(builder, RJK_OBJECT);
+    object = json_element_rule_object(view, 0);
+    node = r_json_node(builder, RJK_OBJECT);
     node->count = json_object_count_rule_key_value_pair(object);
     node->items = (RuleforgeJson **)nexus_data_arena_allocate(builder->arena, ((uint_large)node->count + 1U) * NEXUS_SIZEOF(RuleforgeJson *));
-    node->keys  = (const char **)nexus_data_arena_allocate(builder->arena, ((uint_large)node->count + 1U) * NEXUS_SIZEOF(const char *));
+    node->keys = (const char **)nexus_data_arena_allocate(builder->arena, ((uint_large)node->count + 1U) * NEXUS_SIZEOF(const char *));
 
-    for (i = 0; i < node->count; i++) {
-      JsonKeyValuePair pair;
-
-      pair           = json_object_rule_key_value_pair(object, i);
-      node->keys[i]  = r_json_string_decode(builder, json_key_value_pair_rule_string(pair, 0));
-      node->items[i] = r_json_element(builder, json_key_value_pair_rule_element(pair, 0));
-    }
+    i = 0;
+    r_json_container_fill(builder, object.node, node, &i);
 
     return node;
   }
@@ -255,20 +284,19 @@ static RuleforgeJson *r_json_element(RJsonBuilder *builder, JsonElement view) {
   if (json_element_count_rule_array(view) > 0) {
     JsonArray array;
 
-    array       = json_element_rule_array(view, 0);
-    node        = r_json_node(builder, RJK_ARRAY);
+    array = json_element_rule_array(view, 0);
+    node = r_json_node(builder, RJK_ARRAY);
     node->count = json_array_count_rule_element(array);
     node->items = (RuleforgeJson **)nexus_data_arena_allocate(builder->arena, ((uint_large)node->count + 1U) * NEXUS_SIZEOF(RuleforgeJson *));
 
-    for (i = 0; i < node->count; i++) {
-      node->items[i] = r_json_element(builder, json_array_rule_element(array, i));
-    }
+    i = 0;
+    r_json_container_fill(builder, array.node, node, &i);
 
     return node;
   }
 
   if (json_element_count_rule_string(view) > 0) {
-    node       = r_json_node(builder, RJK_STRING);
+    node = r_json_node(builder, RJK_STRING);
     node->text = r_json_string_decode(builder, json_element_rule_string(view, 0));
 
     return node;
@@ -279,15 +307,15 @@ static RuleforgeJson *r_json_element(RJsonBuilder *builder, JsonElement view) {
     uint_large  size;
 
     node = r_json_node(builder, RJK_NUMBER);
-    text = logos_language_tooling_parsing_syntax_green_node_text_get(builder->tree, json_number_token_number(json_element_rule_number(view, 0), 0),
-                                                                     &size);
+    text = logos_language_tooling_parsing_syntax_green_node_text_get(builder->tree,
+                                                                     json_number_token_number(json_element_rule_number(view, 0), 0), &size);
     r_json_number_read(text, size, node);
 
     return node;
   }
 
   if (json_element_count_token_true(view) > 0) {
-    node       = r_json_node(builder, RJK_BOOL);
+    node = r_json_node(builder, RJK_BOOL);
     node->flag = TRUE;
 
     return node;
@@ -314,11 +342,11 @@ RuleforgeJson *ruleforge_json_parse(RuleforgeRuntime *runtime, NexusDataArena *a
     return NULL;
   }
 
-  builder.arena      = arena;
-  builder.tree       = tree;
-  builder.error      = error;
+  builder.arena = arena;
+  builder.tree = tree;
+  builder.error = error;
   builder.error_size = error_size;
-  root               = r_json_element(&builder, json_document_rule_element(json_root(tree), 0));
+  root = r_json_element(&builder, json_document_rule_element(json_root(tree), 0));
   logos_language_tooling_parsing_syntax_tree_destroy(tree);
 
   return root;

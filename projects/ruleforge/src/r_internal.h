@@ -24,6 +24,10 @@ struct RuleforgeRuntime {
   LGenesisEngine   *grammar_engines[5];
 };
 
+/* Progress records use Echo; command-line presentation is a separate sink. */
+extern void ruleforge_progress_log(RuleforgeRuntime *runtime, const char *phase, const char *source, const char *status,
+                                   NexusTime started, uint_large completed, uint_large total);
+
 /* ---------------------------------------------------------------------------- */
 /* DIAGNOSTICS                                                                  */
 /* ---------------------------------------------------------------------------- */

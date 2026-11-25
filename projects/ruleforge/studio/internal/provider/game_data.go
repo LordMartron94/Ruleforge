@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -333,9 +334,39 @@ func filterClass(kind string) string {
 	}
 	return kind
 }
+
+var transfiguredVariant = regexp.MustCompile(`Alt[A-Z]+$`)
+
 func readPoBGems(ctx context.Context, dir string) ([]GameRow, error) {
 	rows := []GameRow{}
 	err := readPoBTable(ctx, filepath.Join(dir, "Gems.lua"), false, func(table *lua.LTable) error {
+		canonicalNames := map[string]string{}
+		exact := map[string]bool{}
+		table.ForEach(func(key, value lua.LValue) {
+			entry, ok := value.(*lua.LTable)
+			if !ok {
+				return
+			}
+			id := entry.RawGetString("gameId")
+			if id == lua.LNil || id.String() == "" {
+				return
+			}
+			variant := entry.RawGetString("variantId").String()
+			if transfiguredVariant.MatchString(variant) {
+				return
+			}
+			base := entry.RawGetString("baseTypeName")
+			if base == lua.LNil || base.String() == "" {
+				base = entry.RawGetString("name")
+			}
+			if base == lua.LNil {
+				return
+			}
+			if key.String() == id.String() || !exact[id.String()] && canonicalNames[id.String()] == "" {
+				canonicalNames[id.String()] = base.String()
+				exact[id.String()] = key.String() == id.String()
+			}
+		})
 		table.ForEach(func(key, value lua.LValue) {
 			entry, ok := value.(*lua.LTable)
 			if !ok {
@@ -344,6 +375,22 @@ func readPoBGems(ctx context.Context, dir string) ([]GameRow, error) {
 			name := entry.RawGetString("name")
 			if name == lua.LNil {
 				return
+			}
+			variant := entry.RawGetString("variantId").String()
+			if transfiguredVariant.MatchString(variant) {
+				return
+			}
+			gameID := entry.RawGetString("gameId")
+			if gameID != lua.LNil && canonicalNames[gameID.String()] != "" && entry.RawGetString("baseTypeName") != lua.LNil && entry.RawGetString("baseTypeName").String() != "" && canonicalNames[gameID.String()] != entry.RawGetString("baseTypeName").String() {
+				return
+			}
+			if gameID != lua.LNil && gameID.String() != "" && gameID.String() != key.String() {
+				if canonical, ok := table.RawGetString(gameID.String()).(*lua.LTable); ok {
+					canonicalBase := canonical.RawGetString("baseTypeName")
+					if canonicalBase != lua.LNil && canonicalBase.String() != "" && canonicalBase.String() != entry.RawGetString("baseTypeName").String() {
+						return
+					}
+				}
 			}
 			base := entry.RawGetString("baseTypeName")
 			if base == lua.LNil || base.String() == "" {

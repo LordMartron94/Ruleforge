@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,9 +54,10 @@ type Result struct {
 
 // Engine locates and runs the ruleforge executable.
 type Engine struct {
-	LogDir  string
-	LogKeep int
-	Path    string
+	Progress io.Writer // optional live Echo stderr stream; JSON products remain on stdout
+	LogDir   string
+	LogKeep  int
+	Path     string
 }
 
 // Locate finds the engine: an explicit path, then next to the running executable, then PATH.
@@ -120,11 +122,17 @@ func (e Engine) run(ctx context.Context, dir string, args ...string) (stdout, st
 		}
 		args = append(args, "--log-dir", e.LogDir, "--log-keep", fmt.Sprint(keep))
 	}
+	if e.Progress != nil {
+		args = append(args, "--progress")
+	}
 	command := exec.CommandContext(ctx, e.Path, args...)
 	command.Dir = dir
 	var out, errors_ bytes.Buffer
 	command.Stdout = &out
 	command.Stderr = &errors_
+	if e.Progress != nil {
+		command.Stderr = io.MultiWriter(&errors_, e.Progress)
+	}
 	runErr := command.Run()
 	var exit *exec.ExitError
 	if errors.As(runErr, &exit) {

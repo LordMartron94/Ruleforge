@@ -17,6 +17,7 @@ import (
 
 	"github.com/LordMartron94/Ruleforge/studio/internal/config"
 	"github.com/LordMartron94/Ruleforge/studio/internal/engine"
+	"github.com/LordMartron94/Ruleforge/studio/internal/logging"
 	"github.com/LordMartron94/Ruleforge/studio/internal/provider"
 )
 
@@ -93,7 +94,7 @@ func (r *Regenerator) Refresh(ctx context.Context, force bool) []string {
 			if !force && time.Since(r.last[dataset.Source]) < interval {
 				continue
 			}
-			if err := provider.PrepareDivination(ctx, r.path(dataset.Path)); err != nil {
+			if err := logging.Phase(ctx, r.Log, "NeverSink dataset", func() error { return provider.PrepareDivination(ctx, r.path(dataset.Path)) }); err != nil {
 				messages = append(messages, fmt.Sprintf("dataset %s kept its previous snapshot: %v", dataset.Source, err))
 			} else {
 				r.last[dataset.Source] = time.Now()
@@ -207,16 +208,17 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	messages := r.Refresh(ctx, force)
-	if err := provider.PrepareGameData(ctx, r.Project); err != nil {
+	if err := logging.Phase(ctx, r.Log, "PoB and drop-level data", func() error { return provider.PrepareGameData(ctx, r.Project) }); err != nil {
 		messages = append(messages, "game data kept its previous snapshot: "+err.Error())
 	}
-	if err := provider.PrepareHistory(ctx, r.Project); err != nil {
+	if err := logging.Phase(ctx, r.Log, "Economy history", func() error { return provider.PrepareHistory(ctx, r.Project) }); err != nil {
 		messages = append(messages, "economy history kept its previous snapshot: "+err.Error())
 	}
 	for _, message := range messages {
 		r.logf("%s", message)
 	}
-	inputs := r.inputsHash()
+	var inputs string
+	_ = logging.Phase(ctx, r.Log, "Input fingerprint", func() error { inputs = r.inputsHash(); return nil })
 	status := Status{LastRun: time.Now().UTC(), Inputs: inputs, Messages: messages, Enabled: r.Project.Regeneration.Enabled}
 	if !force && inputs == r.status.Inputs && len(r.status.Outputs) > 0 {
 		status.Skipped = true
@@ -232,7 +234,7 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 	var firstError error
 	var stateRequest engine.Request
 	seenDiagnostics := map[engine.Diagnostic]bool{}
-	for _, output := range outputs {
+	for index, output := range outputs {
 		request := engine.Request{Dir: r.Project.Dir, Entry: r.Project.Entry, Include: r.Project.Include, Name: output.Name, Set: map[string]string{}, Datasets: map[string]string{}}
 		for key, value := range r.Project.Context {
 			request.Set[key] = value
@@ -255,7 +257,12 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 		}
 		stateRequest = request
 		item := OutputStatus{Name: output.Name, Path: output.Path}
-		result, err := r.Engine.Compile(ctx, request)
+		var result engine.Result
+		err := logging.Phase(ctx, r.Log, fmt.Sprintf("Compile %d/%d: %s", index+1, len(outputs), output.Name), func() error {
+			var err error
+			result, err = r.Engine.Compile(ctx, request)
+			return err
+		})
 		for _, diagnostic := range result.Diagnostics {
 			if !seenDiagnostics[diagnostic] {
 				seenDiagnostics[diagnostic] = true
@@ -305,7 +312,12 @@ func (r *Regenerator) RunOnce(ctx context.Context, force bool) error {
 				firstError = fmt.Errorf("state expression %q needs a configured JSON dataset, module and expression", state.Source)
 				break
 			}
-			values, err := r.Engine.Eval(ctx, stateRequest, []string{state.Module}, []string{state.Expression})
+			var values []json.RawMessage
+			err := logging.Phase(ctx, r.Log, "Save engine state: "+state.Source, func() error {
+				var err error
+				values, err = r.Engine.Eval(ctx, stateRequest, []string{state.Module}, []string{state.Expression})
+				return err
+			})
 			if err != nil {
 				firstError = fmt.Errorf("state %s retained its previous value: %w", state.Source, err)
 				break

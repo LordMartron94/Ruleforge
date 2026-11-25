@@ -32,13 +32,13 @@ RuleforgeCompilation *ruleforge_compilation_create(RuleforgeRuntime *runtime) {
 
   NEXUS_PROGRAM_PRECONDITION(runtime != NULL, "ruleforge_compilation_create: NULL runtime");
 
-  compilation          = (RuleforgeCompilation *)nexus_memory_allocate(NEXUS_SIZEOF(*compilation));
+  compilation = (RuleforgeCompilation *)nexus_memory_allocate(NEXUS_SIZEOF(*compilation));
   compilation->runtime = runtime;
   nexus_data_arena_initialize(&compilation->arena);
-  compilation->files       = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 16);
+  compilation->files = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 16);
   compilation->diagnostics = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 16);
-  compilation->search      = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 4);
-  compilation->modules     = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 16);
+  compilation->search = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 4);
+  compilation->modules = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 16);
 
   {
     NexusDataHashMapConfig configuration;
@@ -63,9 +63,9 @@ RuleforgeCompilation *ruleforge_compilation_create(RuleforgeRuntime *runtime) {
     NexusError            *error;
 
     nexus_data_hashmap_config_initialize(&configuration, NEXUS_SIZEOF(const char *), NEXUS_SIZEOF(void *));
-    configuration.hash   = r_compilation_diagnostic_hash;
+    configuration.hash = r_compilation_diagnostic_hash;
     configuration.equals = r_compilation_diagnostic_equal;
-    error                = nexus_data_hashmap_create(&configuration, &compilation->diagnostic_keys);
+    error = nexus_data_hashmap_create(&configuration, &compilation->diagnostic_keys);
 
     if (error != NEXUS_PROGRAM_ERROR_SUCCESS()) {
       NEXUS_PROGRAM_PANIC_ERROR(error);
@@ -73,7 +73,7 @@ RuleforgeCompilation *ruleforge_compilation_create(RuleforgeRuntime *runtime) {
   }
 
   compilation->error_count = 0;
-  compilation->datasets    = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 8);
+  compilation->datasets = nexus_data_list_create(NEXUS_EFFECTIVE_POINTER_SIZE_BYTES, 8);
 
   return compilation;
 }
@@ -154,8 +154,8 @@ static void r_compilation_function_check(RuleforgeCompilation *compilation, cons
   RuleforgeSpan span;
 
   intrinsic = rf_function_stmt_count_token_kw_intrinsic(function) > 0;
-  has_body  = rf_function_stmt_count_token_lbrace(function) > 0;
-  span      = ruleforge_syntax_span_get(module, function.tree, function.node);
+  has_body = rf_function_stmt_count_token_lbrace(function) > 0;
+  span = ruleforge_syntax_span_get(module, function.tree, function.node);
 
   if (intrinsic && !ruleforge_source_get(compilation, module->file)->embedded) {
     ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0120", span, "only the standard library embedded in the engine declares intrinsics",
@@ -185,15 +185,15 @@ static const RuleforgeConditionInfo *r_compilation_condition_describe(RuleforgeC
   uint32                  i;
   uint32                  j;
 
-  info              = (RuleforgeConditionInfo *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*info));
-  span              = ruleforge_syntax_span_get(module, stmt.tree, stmt.node);
-  info->name        = ruleforge_syntax_text_get(compilation, stmt.tree, rf_condition_stmt_token_identifier(stmt, 0));
-  info->module      = module->name;
+  info = (RuleforgeConditionInfo *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*info));
+  span = ruleforge_syntax_span_get(module, stmt.tree, stmt.node);
+  info->name = ruleforge_syntax_text_get(compilation, stmt.tree, rf_condition_stmt_token_identifier(stmt, 0));
+  info->module = module->name;
   info->declaration = compilation->condition_serial++;
-  has_keyword       = FALSE;
-  has_accepts       = FALSE;
-  has_order         = FALSE;
-  has_ordered       = FALSE;
+  has_keyword = FALSE;
+  has_accepts = FALSE;
+  has_order = FALSE;
+  has_ordered = FALSE;
 
   for (i = 0; i < rf_condition_stmt_count_rule_condition_item(stmt); i++) {
     RfConditionItem item;
@@ -213,20 +213,20 @@ static const RuleforgeConditionInfo *r_compilation_condition_describe(RuleforgeC
       }
 
       /* The keyword is a string literal; its quotes are not part of it. */
-      raw           = ruleforge_syntax_text_get(compilation, keyword.tree, rf_condition_keyword_item_token_string_literal(keyword, 0));
-      length        = nexus_strings_string_length_get(raw);
+      raw = ruleforge_syntax_text_get(compilation, keyword.tree, rf_condition_keyword_item_token_string_literal(keyword, 0));
+      length = nexus_strings_string_length_get(raw);
       info->keyword = nexus_data_arena_text_copy(&compilation->arena, raw + 1, length >= 2 ? length - 2 : 0);
-      has_keyword   = TRUE;
+      has_keyword = TRUE;
     } else if (rf_condition_item_count_rule_condition_accepts_item(item) > 0) {
       RfConditionAcceptsItem accepts_item;
       RfConditionAccepts     accepts;
 
       accepts_item = rf_condition_item_rule_condition_accepts_item(item, 0);
-      accepts      = rf_condition_accepts_item_rule_condition_accepts(accepts_item, 0);
+      accepts = rf_condition_accepts_item_rule_condition_accepts(accepts_item, 0);
 
       if (has_accepts) {
-        ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0132", ruleforge_syntax_span_get(module, accepts_item.tree, accepts_item.node), NULL,
-                                    "condition `%s` gives `accepts` twice", info->name);
+        ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0132", ruleforge_syntax_span_get(module, accepts_item.tree, accepts_item.node),
+                                    NULL, "condition `%s` gives `accepts` twice", info->name);
       }
 
       has_accepts = TRUE;
@@ -238,7 +238,7 @@ static const RuleforgeConditionInfo *r_compilation_condition_describe(RuleforgeC
       } else if (rf_condition_accepts_count_token_kw_bool(accepts) > 0) {
         info->type = RCT_BOOLEAN;
       } else {
-        info->type        = RCT_ENUM;
+        info->type = RCT_ENUM;
         info->value_count = rf_condition_accepts_count_token_identifier(accepts);
         info->values =
             (const char **)nexus_data_arena_allocate(&compilation->arena, ((uint_large)info->value_count + 1U) * NEXUS_SIZEOF(const char *));
@@ -248,7 +248,7 @@ static const RuleforgeConditionInfo *r_compilation_condition_describe(RuleforgeC
         }
       }
     } else if (rf_condition_item_count_rule_condition_ordered_item(item) > 0) {
-      has_ordered   = TRUE;
+      has_ordered = TRUE;
       info->ordered = TRUE;
     } else {
       RfConditionOrderItem order_item;
@@ -262,7 +262,7 @@ static const RuleforgeConditionInfo *r_compilation_condition_describe(RuleforgeC
                                     "condition `%s` gives `order` twice", info->name);
       }
 
-      digits      = ruleforge_syntax_text_get(compilation, order_item.tree, rf_condition_order_item_token_integer_literal(order_item, 0));
+      digits = ruleforge_syntax_text_get(compilation, order_item.tree, rf_condition_order_item_token_integer_literal(order_item, 0));
       info->order = 0;
 
       for (k = 0; digits[k] != '\0'; k++) {
@@ -279,7 +279,8 @@ static const RuleforgeConditionInfo *r_compilation_condition_describe(RuleforgeC
   }
 
   if (!has_accepts) {
-    ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0131", span, "write what it accepts: `accepts int;`, `string`, `bool` or `enum { A, B }`",
+    ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0131", span,
+                                "write what it accepts: `accepts int;`, `string`, `bool` or `enum { A, B }`",
                                 "condition `%s` does not say what it `accepts`", info->name);
   }
 
@@ -305,11 +306,12 @@ static void r_compilation_module_describe(RuleforgeCompilation *compilation, Rul
       (const char **)nexus_data_arena_allocate(&compilation->arena, ((uint_large)module->import_count + 1U) * NEXUS_SIZEOF(const char *));
 
   for (i = 0; i < module->import_count; i++) {
-    module->imports[i] = ruleforge_syntax_name_get(compilation, rf_import_stmt_rule_qualified_name(rf_script_rule_import_stmt(module->script, i), 0));
+    module->imports[i] =
+        ruleforge_syntax_name_get(compilation, rf_import_stmt_rule_qualified_name(rf_script_rule_import_stmt(module->script, i), 0));
   }
 
   module->declaration_count = 0;
-  module->declarations      = (RuleforgeDeclaration *)nexus_data_arena_allocate(
+  module->declarations = (RuleforgeDeclaration *)nexus_data_arena_allocate(
       &compilation->arena, ((uint_large)rf_script_count_rule_declaration(module->script) + 1U) * NEXUS_SIZEOF(RuleforgeDeclaration));
 
   for (i = 0; i < rf_script_count_rule_declaration(module->script); i++) {
@@ -319,75 +321,75 @@ static void r_compilation_module_describe(RuleforgeCompilation *compilation, Rul
     boolean                       exported;
     const RuleforgeConditionInfo *condition;
 
-    view      = rf_script_rule_declaration(module->script, i);
-    name      = NULL;
-    exported  = FALSE;
+    view = rf_script_rule_declaration(module->script, i);
+    name = NULL;
+    exported = FALSE;
     condition = NULL;
 
     if (rf_declaration_count_rule_schema_stmt(view) > 0) {
       RfSchemaStmt schema;
 
-      schema   = rf_declaration_rule_schema_stmt(view, 0);
-      name     = rf_schema_stmt_token_identifier(schema, 0);
+      schema = rf_declaration_rule_schema_stmt(view, 0);
+      name = rf_schema_stmt_token_identifier(schema, 0);
       exported = rf_schema_stmt_count_token_kw_export(schema) > 0;
     } else if (rf_declaration_count_rule_dataset_stmt(view) > 0) {
       RfDatasetStmt dataset;
 
-      dataset  = rf_declaration_rule_dataset_stmt(view, 0);
-      name     = rf_dataset_stmt_token_identifier(dataset, 0);
+      dataset = rf_declaration_rule_dataset_stmt(view, 0);
+      name = rf_dataset_stmt_token_identifier(dataset, 0);
       exported = rf_dataset_stmt_count_token_kw_export(dataset) > 0;
     } else if (rf_declaration_count_rule_theme_schema_stmt(view) > 0) {
       RfThemeSchemaStmt schema;
 
-      schema   = rf_declaration_rule_theme_schema_stmt(view, 0);
-      name     = rf_theme_schema_stmt_token_identifier(schema, 0);
+      schema = rf_declaration_rule_theme_schema_stmt(view, 0);
+      name = rf_theme_schema_stmt_token_identifier(schema, 0);
       exported = rf_theme_schema_stmt_count_token_kw_export(schema) > 0;
     } else if (rf_declaration_count_rule_color_set_stmt(view) > 0) {
       RfColorSetStmt set;
 
-      set      = rf_declaration_rule_color_set_stmt(view, 0);
-      name     = rf_color_set_stmt_token_identifier(set, 0);
+      set = rf_declaration_rule_color_set_stmt(view, 0);
+      name = rf_color_set_stmt_token_identifier(set, 0);
       exported = rf_color_set_stmt_count_token_kw_export(set) > 0;
     } else if (rf_declaration_count_rule_theme_stmt(view) > 0) {
       RfThemeStmt theme;
 
-      theme    = rf_declaration_rule_theme_stmt(view, 0);
-      name     = rf_theme_stmt_token_identifier(theme, 0);
+      theme = rf_declaration_rule_theme_stmt(view, 0);
+      name = rf_theme_stmt_token_identifier(theme, 0);
       exported = rf_theme_stmt_count_token_kw_export(theme) > 0;
     } else if (rf_declaration_count_rule_template_stmt(view) > 0) {
       RfTemplateStmt template_stmt;
 
       template_stmt = rf_declaration_rule_template_stmt(view, 0);
-      name          = rf_template_stmt_token_identifier(template_stmt, 0);
-      exported      = rf_template_stmt_count_token_kw_export(template_stmt) > 0;
+      name = rf_template_stmt_token_identifier(template_stmt, 0);
+      exported = rf_template_stmt_count_token_kw_export(template_stmt) > 0;
     } else if (rf_declaration_count_rule_function_stmt(view) > 0) {
       RfFunctionStmt function;
 
       function = rf_declaration_rule_function_stmt(view, 0);
-      name     = rf_function_stmt_token_identifier(function, 0);
+      name = rf_function_stmt_token_identifier(function, 0);
       exported = rf_function_stmt_count_token_kw_export(function) > 0;
       r_compilation_function_check(compilation, module, function);
     } else if (rf_declaration_count_rule_ruleset_stmt(view) > 0) {
       RfRulesetStmt ruleset;
 
-      ruleset  = rf_declaration_rule_ruleset_stmt(view, 0);
-      name     = rf_ruleset_stmt_token_identifier(ruleset, 0);
+      ruleset = rf_declaration_rule_ruleset_stmt(view, 0);
+      name = rf_ruleset_stmt_token_identifier(ruleset, 0);
       exported = rf_ruleset_stmt_count_token_kw_export(ruleset) > 0;
     } else if (rf_declaration_count_rule_condition_stmt(view) > 0) {
       RfConditionStmt condition_stmt;
 
       condition_stmt = rf_declaration_rule_condition_stmt(view, 0);
-      name           = rf_condition_stmt_token_identifier(condition_stmt, 0);
-      exported       = rf_condition_stmt_count_token_kw_export(condition_stmt) > 0;
-      condition      = r_compilation_condition_describe(compilation, module, condition_stmt);
+      name = rf_condition_stmt_token_identifier(condition_stmt, 0);
+      exported = rf_condition_stmt_count_token_kw_export(condition_stmt) > 0;
+      condition = r_compilation_condition_describe(compilation, module, condition_stmt);
     }
 
     /* The configuration block has no name; the entry module's run reads it from the tree. */
     if (name != NULL) {
-      entry            = &module->declarations[module->declaration_count++];
-      entry->name      = ruleforge_syntax_text_get(compilation, module->tree, name);
-      entry->view      = view;
-      entry->exported  = exported;
+      entry = &module->declarations[module->declaration_count++];
+      entry->name = ruleforge_syntax_text_get(compilation, module->tree, name);
+      entry->view = view;
+      entry->exported = exported;
       entry->condition = condition;
     }
   }
@@ -437,7 +439,7 @@ const char *ruleforge_compilation_documentation_get(RuleforgeCompilation *compil
 
   file = ruleforge_source_get(compilation, module->file);
   span = ruleforge_syntax_span_get(module, declaration->view.tree, declaration->view.node);
-  end  = span.start;
+  end = span.start;
 
   /* Whitespace, then the closing of a block comment: the comment is the documentation of the declaration. */
   while (end > 0 && (file->text[end - 1] == ' ' || file->text[end - 1] == '\t' || file->text[end - 1] == '\n' || file->text[end - 1] == '\r')) {
@@ -464,13 +466,14 @@ const char *ruleforge_compilation_documentation_get(RuleforgeCompilation *compil
     uint_large inner_end;
 
     inner_start = start;
-    inner_end   = end - 2;
+    inner_end = end - 2;
 
     while (inner_start < inner_end && (file->text[inner_start] == '\n' || file->text[inner_start] == '\r' || file->text[inner_start] == ' ')) {
       inner_start++;
     }
 
-    while (inner_end > inner_start && (file->text[inner_end - 1] == '\n' || file->text[inner_end - 1] == '\r' || file->text[inner_end - 1] == ' ')) {
+    while (inner_end > inner_start &&
+           (file->text[inner_end - 1] == '\n' || file->text[inner_end - 1] == '\r' || file->text[inner_end - 1] == ' ')) {
       inner_end--;
     }
 
@@ -488,14 +491,14 @@ static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint
   uint32           i;
   boolean          ok;
 
-  ok   = TRUE;
+  ok = TRUE;
   tree = ruleforge_syntax_parse(compilation, file);
 
   if (tree == NULL) {
     return FALSE;
   }
 
-  module       = (RuleforgeModule *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*module));
+  module = (RuleforgeModule *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*module));
   module->file = file;
   module->tree = tree;
   r_compilation_module_describe(compilation, module);
@@ -520,7 +523,7 @@ static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint
     RuleforgeSpan span;
 
     import = module->imports[i];
-    span   = ruleforge_syntax_span_get(module, tree, rf_import_stmt_rule_qualified_name(rf_script_rule_import_stmt(module->script, i), 0).node);
+    span = ruleforge_syntax_span_get(module, tree, rf_import_stmt_rule_qualified_name(rf_script_rule_import_stmt(module->script, i), 0).node);
 
     if (ruleforge_compilation_module_find(compilation, import) != NULL) {
       continue;
@@ -536,8 +539,8 @@ static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint
     }
 
     if (depth > 64) {
-      ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0103", span, "imports are nested too deeply", "import chain of `%s` exceeds 64 modules",
-                                  import);
+      ruleforge_diagnostic_report(compilation, RDS_ERROR, "RF0103", span, "imports are nested too deeply",
+                                  "import chain of `%s` exceeds 64 modules", import);
       ok = FALSE;
 
       continue;
@@ -551,7 +554,7 @@ static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint
       NexusStringBuilder candidate;
       const char        *cursor;
 
-      base      = j == 0 ? folder : (const char *)nexus_data_list_pointer_at(compilation->search, j - 1);
+      base = j == 0 ? folder : (const char *)nexus_data_list_pointer_at(compilation->search, j - 1);
       candidate = nexus_strings_string_builder_create_growable(64);
       (void)nexus_strings_string_builder_append(&candidate, base);
 
@@ -579,7 +582,7 @@ static boolean r_compilation_source_load(RuleforgeCompilation *compilation, uint
       if (ruleforge_source_file_read(path, &bytes, &size)) {
         uint32 imported;
 
-        found    = TRUE;
+        found = TRUE;
         imported = ruleforge_source_add(compilation, path, NULL, bytes, size, FALSE);
         nexus_memory_deallocate(bytes);
 
@@ -688,10 +691,10 @@ char *ruleforge_compilation_diagnostics_json_write(const RuleforgeCompilation *c
     uint32                     end_column;
 
     diagnostic = (const RuleforgeDiagnostic *)nexus_data_list_pointer_at(compilation->diagnostics, i);
-    file       = nexus_data_list_length_get(compilation->files) > 0 ? ruleforge_source_get(compilation, diagnostic->span.file) : NULL;
-    line       = 0;
-    column     = 0;
-    end_line   = 0;
+    file = nexus_data_list_length_get(compilation->files) > 0 ? ruleforge_source_get(compilation, diagnostic->span.file) : NULL;
+    line = 0;
+    column = 0;
+    end_line = 0;
     end_column = 0;
 
     if (file != NULL) {
@@ -703,13 +706,14 @@ char *ruleforge_compilation_diagnostics_json_write(const RuleforgeCompilation *c
       (void)nexus_strings_string_builder_append(&out, ",");
     }
 
-    (void)nexus_strings_string_builder_append_formatted(
-        &out, "{\"severity\":\"%s\",\"code\":\"%s\",\"message\":", ruleforge_diagnostic_severity_name_get(diagnostic->severity), diagnostic->code);
+    (void)nexus_strings_string_builder_append_formatted(&out, "{\"severity\":\"%s\",\"code\":\"%s\",\"message\":",
+                                                        ruleforge_diagnostic_severity_name_get(diagnostic->severity), diagnostic->code);
     (void)nexus_json_quote_append(&out, diagnostic->message);
     (void)nexus_strings_string_builder_append(&out, ",\"file\":");
     (void)nexus_json_quote_append(&out, file != NULL ? file->name : "");
-    (void)nexus_strings_string_builder_append_formatted(&out, ",\"line\":%lu,\"column\":%lu,\"endLine\":%lu,\"endColumn\":%lu", (unsigned long)line,
-                                                        (unsigned long)column, (unsigned long)end_line, (unsigned long)end_column);
+    (void)nexus_strings_string_builder_append_formatted(&out, ",\"line\":%lu,\"column\":%lu,\"endLine\":%lu,\"endColumn\":%lu",
+                                                        (unsigned long)line, (unsigned long)column, (unsigned long)end_line,
+                                                        (unsigned long)end_column);
 
     if (diagnostic->note != NULL) {
       (void)nexus_strings_string_builder_append(&out, ",\"note\":");
@@ -750,7 +754,7 @@ char *ruleforge_compilation_diagnostics_text_write(const RuleforgeCompilation *c
     uint_large                 line_end;
 
     diagnostic = (const RuleforgeDiagnostic *)nexus_data_list_pointer_at(compilation->diagnostics, i);
-    file       = nexus_data_list_length_get(compilation->files) > 0 ? ruleforge_source_get(compilation, diagnostic->span.file) : NULL;
+    file = nexus_data_list_length_get(compilation->files) > 0 ? ruleforge_source_get(compilation, diagnostic->span.file) : NULL;
 
     (void)nexus_strings_string_builder_append_formatted(&out, "%s[%s]: %s\n", ruleforge_diagnostic_severity_name_get(diagnostic->severity),
                                                         diagnostic->code, diagnostic->message);
@@ -761,7 +765,7 @@ char *ruleforge_compilation_diagnostics_text_write(const RuleforgeCompilation *c
       (void)nexus_strings_string_builder_append_formatted(&out, "  --> %s:%lu:%lu\n", file->name, (unsigned long)line, (unsigned long)column);
 
       line_start = file->line_starts[line - 1];
-      line_end   = line_start;
+      line_end = line_start;
 
       while (line_end < file->size && file->text[line_end] != '\n' && file->text[line_end] != '\r') {
         line_end++;
@@ -810,7 +814,7 @@ char *ruleforge_compilation_ast_json_write(const RuleforgeCompilation *compilati
     const RuleforgeFile   *file;
 
     module = (const RuleforgeModule *)nexus_data_list_pointer_at(compilation->modules, i);
-    file   = ruleforge_source_get(compilation, module->file);
+    file = ruleforge_source_get(compilation, module->file);
 
     if (i > 0) {
       (void)nexus_strings_string_builder_append(&out, ",");
@@ -849,8 +853,8 @@ char *ruleforge_compilation_themes_json_write(RuleforgeCompilation *compilation)
   return result;
 }
 
-boolean ruleforge_compilation_expression_evaluate(RuleforgeCompilation *compilation, const RuleforgeSettings *settings, const char *const *imports,
-                                                  uint32 import_count, const char *expression, char **out_json) {
+boolean ruleforge_compilation_expression_evaluate(RuleforgeCompilation *compilation, const RuleforgeSettings *settings,
+                                                  const char *const *imports, uint32 import_count, const char *expression, char **out_json) {
   NexusStringBuilder          text;
   char                        name[64];
   uint32                      file;
@@ -888,7 +892,7 @@ boolean ruleforge_compilation_expression_evaluate(RuleforgeCompilation *compilat
     return FALSE;
   }
 
-  module      = ruleforge_compilation_module_find(compilation, name);
+  module = ruleforge_compilation_module_find(compilation, name);
   declaration = module == NULL ? NULL : ruleforge_compilation_declaration_find(module, "Evaluate");
 
   if (declaration == NULL) {
@@ -904,13 +908,13 @@ boolean ruleforge_compilation_expression_evaluate(RuleforgeCompilation *compilat
 
   ruleforge_eval_initialize(&eval, compilation, settings);
   eval.module = module;
-  function    = rf_declaration_rule_function_stmt(declaration->view, 0);
-  value       = ruleforge_value_none();
+  function = rf_declaration_rule_function_stmt(declaration->view, 0);
+  value = ruleforge_value_none();
 
   /* The one statement of the function is the `return <expression>;` written above. */
   result_statement = rf_generator_stmt_rule_return_stmt(rf_function_stmt_rule_generator_stmt(function, 0), 0);
-  value            = ruleforge_eval_expression(&eval, rf_return_stmt_rule_expr(result_statement, 0));
-  ok               = !eval.failed;
+  value = ruleforge_eval_expression(&eval, rf_return_stmt_rule_expr(result_statement, 0));
+  ok = !eval.failed;
 
   ruleforge_eval_release(&eval);
 
@@ -998,7 +1002,7 @@ uint64 ruleforge_compilation_hash_get(const RuleforgeCompilation *compilation) {
     uint64 dataset_hash;
 
     dataset_hash = ((const RuleforgeDataset *)nexus_data_list_pointer_at(compilation->datasets, i))->hash;
-    hash         = r_compilation_hash_bytes(hash, (const byte *)&dataset_hash, NEXUS_SIZEOF(dataset_hash));
+    hash = r_compilation_hash_bytes(hash, (const byte *)&dataset_hash, NEXUS_SIZEOF(dataset_hash));
   }
 
   if (compilation->settings != NULL) {
@@ -1007,7 +1011,7 @@ uint64 ruleforge_compilation_hash_get(const RuleforgeCompilation *compilation) {
       NexusStringBuilder           text;
 
       entry = (const RuleforgeSettingValue *)nexus_data_list_pointer_at(compilation->settings->values, i);
-      text  = nexus_strings_string_builder_create_growable(16);
+      text = nexus_strings_string_builder_create_growable(16);
       (void)nexus_strings_string_builder_append_formatted(&text, "%s=", entry->key);
       ruleforge_value_json_write(&entry->value, &text);
       hash = r_compilation_hash_string(hash, nexus_strings_string_builder_string_get(&text));
@@ -1024,6 +1028,7 @@ boolean ruleforge_compilation_compile(RuleforgeCompilation *compilation, const R
   RuleforgeRuleset  *result;
   boolean            ok;
   uint_large         i;
+  NexusTime          started;
 
   NEXUS_PROGRAM_PRECONDITION(compilation != NULL, "ruleforge_compilation_compile: NULL compilation");
 
@@ -1038,14 +1043,18 @@ boolean ruleforge_compilation_compile(RuleforgeCompilation *compilation, const R
     settings = fallback;
   }
 
-  compilation->settings    = settings;
-  compilation->result      = NULL;
-  compilation->filter      = NULL;
+  compilation->settings = settings;
+  compilation->result = NULL;
+  compilation->filter = NULL;
   compilation->filter_text = NULL;
 
   ruleforge_eval_initialize(&eval, compilation, settings);
   result = NULL;
-  ok     = ruleforge_eval_main_run(&eval, &result);
+  started = nexus_time_get_monotonic();
+  ruleforge_progress_log(compilation->runtime, "compile.evaluate", settings->filter == NULL ? "filter" : settings->filter, "started", started,
+                         0, 0);
+  ok = ruleforge_eval_main_run(&eval, &result);
+  ruleforge_progress_log(compilation->runtime, "compile.evaluate", "filter", ok ? "finished" : "failed", started, eval.steps, eval.steps);
 
   for (i = 0; i < nexus_data_list_length_get(eval.datasets); i++) {
     (void)nexus_data_list_append_pointer(compilation->datasets, nexus_data_list_pointer_at(eval.datasets, i));
@@ -1054,10 +1063,14 @@ boolean ruleforge_compilation_compile(RuleforgeCompilation *compilation, const R
   ruleforge_eval_release(&eval);
 
   if (ok && compilation->error_count == 0) {
-    compilation->result      = result;
-    compilation->filter      = ruleforge_filter_lower(compilation, result);
+    started = nexus_time_get_monotonic();
+    ruleforge_progress_log(compilation->runtime, "compile.emit", "filter", "started", started, result->count, result->count);
+    compilation->result = result;
+    compilation->filter = ruleforge_filter_lower(compilation, result);
     compilation->filter_hash = ruleforge_compilation_hash_get(compilation);
     compilation->filter_text = ruleforge_filter_text_write(compilation, compilation->filter, settings->filter, compilation->filter_hash);
+    ruleforge_progress_log(compilation->runtime, "compile.emit", "filter", "finished", started, compilation->filter->count,
+                           compilation->filter->count);
   } else {
     ok = FALSE;
   }

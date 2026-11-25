@@ -83,14 +83,13 @@ static boolean r_dataset_text_convert(RuleforgeCompilation *compilation, const c
   uint32            color;
 
   length = nexus_strings_string_length_get(text);
-  kind   = ruleforge_eval_type_kind_get(type);
+  kind = ruleforge_eval_type_kind_get(type);
   if (kind == RTK_LIST || kind == RTK_RECORD || kind == RTK_ANY) {
     RuleforgeJson *json;
-    char error[256];
+    char           error[256];
     json = ruleforge_json_parse(compilation->runtime, &compilation->arena, text, length, error, NEXUS_SIZEOF(error));
     return json != NULL && r_dataset_json_convert(compilation, json, type, out);
   }
-
 
   if (kind == RTK_STRING) {
     *out = ruleforge_value_string(text);
@@ -129,12 +128,12 @@ static boolean r_dataset_text_convert(RuleforgeCompilation *compilation, const c
   }
 
   negative = length > 0 && (text[0] == '-' || text[0] == '+') ? text[0] == '-' : FALSE;
-  i        = length > 0 && (text[0] == '-' || text[0] == '+') ? 1 : 0;
-  integer  = 0;
-  real     = 0.0;
-  scale    = 1.0;
+  i = length > 0 && (text[0] == '-' || text[0] == '+') ? 1 : 0;
+  integer = 0;
+  real = 0.0;
+  scale = 1.0;
   fraction = FALSE;
-  digits   = FALSE;
+  digits = FALSE;
 
   for (; i < length; i++) {
     if (text[i] >= '0' && text[i] <= '9') {
@@ -145,7 +144,7 @@ static boolean r_dataset_text_convert(RuleforgeCompilation *compilation, const c
         real += (f_real)(text[i] - '0') * scale;
       } else {
         integer = (integer * 10) + (int64)(text[i] - '0');
-        real    = (real * 10.0) + (f_real)(text[i] - '0');
+        real = (real * 10.0) + (f_real)(text[i] - '0');
       }
     } else if (text[i] == '.' && !fraction && kind == RTK_FLOAT) {
       fraction = TRUE;
@@ -170,21 +169,32 @@ static boolean r_dataset_text_convert(RuleforgeCompilation *compilation, const c
 /* Summary: untyped nested JSON remains structured data, including nulls. */
 static RuleforgeValue r_dataset_json_value(RuleforgeCompilation *compilation, const RuleforgeJson *json) {
   RuleforgeValue value;
-  uint32 i;
+  uint32         i;
   value = ruleforge_value_none();
-  if (json->kind == RJK_STRING) { return ruleforge_value_string(json->text); }
-  if (json->kind == RJK_NUMBER) { return json->integral ? ruleforge_value_integer(json->integer) : ruleforge_value_real(json->real); }
-  if (json->kind == RJK_BOOL) { return ruleforge_value_flag(json->flag); }
+  if (json->kind == RJK_STRING) {
+    return ruleforge_value_string(json->text);
+  }
+  if (json->kind == RJK_NUMBER) {
+    return json->integral ? ruleforge_value_integer(json->integer) : ruleforge_value_real(json->real);
+  }
+  if (json->kind == RJK_BOOL) {
+    return ruleforge_value_flag(json->flag);
+  }
   if (json->kind == RJK_ARRAY) {
     RuleforgeList *list;
     list = ruleforge_value_list_create(compilation, json->count);
-    for (i = 0; i < json->count; i++) { list->items[i] = r_dataset_json_value(compilation, json->items[i]); }
+    for (i = 0; i < json->count; i++) {
+      list->items[i] = r_dataset_json_value(compilation, json->items[i]);
+    }
     return ruleforge_value_list(list);
   }
   if (json->kind == RJK_OBJECT) {
     RuleforgeRecord *record;
     record = ruleforge_value_record_create(compilation, json->count);
-    for (i = 0; i < json->count; i++) { record->names[i] = json->keys[i]; record->values[i] = r_dataset_json_value(compilation, json->items[i]); }
+    for (i = 0; i < json->count; i++) {
+      record->names[i] = json->keys[i];
+      record->values[i] = r_dataset_json_value(compilation, json->items[i]);
+    }
     value.kind = RVK_RECORD;
     value.as.record = record;
   }
@@ -213,7 +223,7 @@ static boolean r_dataset_json_convert(RuleforgeCompilation *compilation, const R
     }
 
     element = rf_base_type_rule_type(rf_type_rule_base_type(type, 0), 0);
-    list    = ruleforge_value_list_create(compilation, json->count);
+    list = ruleforge_value_list_create(compilation, json->count);
 
     for (i = 0; i < json->count; i++) {
       if (!r_dataset_json_convert(compilation, json->items[i], element, &list->items[i])) {
@@ -284,7 +294,7 @@ static const char *r_dataset_string_literal(REval *eval, RfDatasetStmt declarati
   const char *raw;
   uint_large  length;
 
-  raw    = ruleforge_eval_text_get(eval, declaration.tree, rf_dataset_stmt_token_string_literal(declaration, 0));
+  raw = ruleforge_eval_text_get(eval, declaration.tree, rf_dataset_stmt_token_string_literal(declaration, 0));
   length = nexus_strings_string_length_get(raw);
 
   return nexus_data_arena_text_copy(&eval->compilation->arena, raw + 1, length >= 2 ? length - 2 : 0);
@@ -319,16 +329,18 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
   boolean                        is_json;
   char                           error[256];
   uint64                         hash;
+  NexusTime                      started;
+  NexusTime                      last_progress;
 
-  compilation  = eval->compilation;
+  compilation = eval->compilation;
   dataset_name = ruleforge_eval_text_get(eval, declaration.tree, rf_dataset_stmt_token_identifier(declaration, 0));
-  schema_name  = ruleforge_syntax_name_get(compilation, rf_dataset_stmt_rule_qualified_name(declaration, 0));
-  span         = ruleforge_syntax_span_get(owner, declaration.tree, declaration.node);
-  logical      = r_dataset_string_literal(eval, declaration);
-  source       = NULL;
-  json         = NULL;
-  array        = NULL;
-  csv          = NULL;
+  schema_name = ruleforge_syntax_name_get(compilation, rf_dataset_stmt_rule_qualified_name(declaration, 0));
+  span = ruleforge_syntax_span_get(owner, declaration.tree, declaration.node);
+  logical = r_dataset_string_literal(eval, declaration);
+  source = NULL;
+  json = NULL;
+  array = NULL;
+  csv = NULL;
 
   for (i = 0; eval->settings != NULL && i < nexus_data_list_length_get(eval->settings->datasets); i++) {
     const RuleforgeSettingDataset *candidate;
@@ -355,15 +367,20 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
     return NULL;
   }
 
-  fields      = rf_declaration_rule_schema_stmt(schema->view, 0);
+  fields = rf_declaration_rule_schema_stmt(schema->view, 0);
   field_count = rf_schema_stmt_count_rule_schema_field(fields);
 
+  started = nexus_time_get_monotonic();
+  ruleforge_progress_log(compilation->runtime, "dataset.read", logical, "started", started, 0, 0);
   if (!ruleforge_source_file_read(source->path, &bytes, &size)) {
     ruleforge_eval_fail(eval, "RF0302", span, NULL, "cannot read the snapshot %s of dataset `%s`", source->path, dataset_name);
 
     return NULL;
   }
 
+  ruleforge_progress_log(compilation->runtime, "dataset.read", logical, "finished", started, size, size);
+  started = nexus_time_get_monotonic();
+  ruleforge_progress_log(compilation->runtime, "dataset.parse", logical, "started", started, 0, size);
   provider = nexus_strings_string_ends_with(source->path, ".json") ? "json" : "csv";
 
   if (source->provider[0] != '\0') {
@@ -376,7 +393,8 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
     json = ruleforge_json_parse(compilation->runtime, &compilation->arena, (const char *)bytes, size, error, NEXUS_SIZEOF(error));
 
     if (json == NULL) {
-      ruleforge_eval_fail(eval, "RF0303", span, NULL, "the snapshot %s of dataset `%s` is not valid JSON: %s", source->path, dataset_name, error);
+      ruleforge_eval_fail(eval, "RF0303", span, NULL, "the snapshot %s of dataset `%s` is not valid JSON: %s", source->path, dataset_name,
+                          error);
       nexus_memory_deallocate(bytes);
 
       return NULL;
@@ -413,6 +431,7 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
   }
 
   nexus_memory_deallocate(bytes);
+  ruleforge_progress_log(compilation->runtime, "dataset.parse", logical, "finished", started, size, size);
 
   /* Map schema fields to CSV columns once. */
   columns = (uint32 *)nexus_data_arena_allocate(&compilation->arena, ((uint_large)field_count + 1U) * NEXUS_SIZEOF(uint32));
@@ -421,8 +440,8 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
     RfSchemaField schema_field;
     const char   *field_name;
 
-    schema_field   = rf_schema_stmt_rule_schema_field(fields, field);
-    field_name     = ruleforge_eval_text_get(eval, schema_field.tree, rf_schema_field_token_identifier(schema_field, 0));
+    schema_field = rf_schema_stmt_rule_schema_field(fields, field);
+    field_name = ruleforge_eval_text_get(eval, schema_field.tree, rf_schema_field_token_identifier(schema_field, 0));
     columns[field] = 0xFFFFFFFFU;
 
     if (!is_json) {
@@ -433,30 +452,37 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
       }
 
       if (columns[field] == 0xFFFFFFFFU && rf_type_count_token_question(rf_schema_field_rule_type(schema_field, 0)) == 0) {
-        ruleforge_eval_fail(eval, "RF0307", span, NULL, "the snapshot %s lacks the column `%s` that schema `%s` requires", source->path, field_name,
-                            schema_name);
+        ruleforge_eval_fail(eval, "RF0307", span, NULL, "the snapshot %s lacks the column `%s` that schema `%s` requires", source->path,
+                            field_name, schema_name);
 
         return NULL;
       }
     }
   }
 
-  dataset         = (RuleforgeDataset *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*dataset));
-  dataset->name   = dataset_name;
+  dataset = (RuleforgeDataset *)nexus_data_arena_allocate(&compilation->arena, NEXUS_SIZEOF(*dataset));
+  dataset->name = dataset_name;
   dataset->source = logical;
   dataset->schema = schema_name;
-  dataset->index  = (uint32)nexus_data_list_length_get(eval->datasets);
-  dataset->count  = is_json ? array->count : csv->row_count - 1;
+  dataset->index = (uint32)nexus_data_list_length_get(eval->datasets);
+  dataset->count = is_json ? array->count : csv->row_count - 1;
   dataset->rows =
       (RuleforgeRecord **)nexus_data_arena_allocate(&compilation->arena, ((uint_large)dataset->count + 1U) * NEXUS_SIZEOF(RuleforgeRecord *));
   hash = 14695981039346656037ULL;
 
+  started = nexus_time_get_monotonic();
+  last_progress = started;
+  ruleforge_progress_log(compilation->runtime, "dataset.convert", logical, "started", started, 0, dataset->count);
   for (row = 0; row < dataset->count; row++) {
+    if (row % 256U == 0 && nexus_time_duration_between(last_progress, nexus_time_get_monotonic()).nanoseconds >= 5000000000LL) {
+      ruleforge_progress_log(compilation->runtime, "dataset.convert", logical, "progress", started, row, dataset->count);
+      last_progress = nexus_time_get_monotonic();
+    }
     RuleforgeRecord *record;
 
-    record          = ruleforge_value_record_create(compilation, field_count);
+    record = ruleforge_value_record_create(compilation, field_count);
     record->dataset = dataset->index;
-    record->row     = row;
+    record->row = row;
 
     for (field = 0; field < field_count; field++) {
       RfSchemaField        schema_field;
@@ -468,26 +494,27 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
       boolean              ok;
       NexusStringBuilder   canonical;
 
-      schema_field          = rf_schema_stmt_rule_schema_field(fields, field);
-      field_name            = ruleforge_eval_text_get(eval, schema_field.tree, rf_schema_field_token_identifier(schema_field, 0));
-      type                  = rf_schema_field_rule_type(schema_field, 0);
-      record->names[field]  = field_name;
+      schema_field = rf_schema_stmt_rule_schema_field(fields, field);
+      field_name = ruleforge_eval_text_get(eval, schema_field.tree, rf_schema_field_token_identifier(schema_field, 0));
+      type = rf_schema_field_rule_type(schema_field, 0);
+      record->names[field] = field_name;
       record->values[field] = ruleforge_value_none();
-      text                  = "";
-      member                = NULL;
+      text = "";
+      member = NULL;
 
       if (is_json) {
-        member  = ruleforge_json_member_get(array->items[row], field_name);
+        member = ruleforge_json_member_get(array->items[row], field_name);
         missing = member == NULL || member->kind == RJK_NULL;
       } else {
-        text    = columns[field] != 0xFFFFFFFFU && columns[field] < csv->column_counts[row + 1] ? csv->cells[row + 1][columns[field]] : "";
+        text = columns[field] != 0xFFFFFFFFU && columns[field] < csv->column_counts[row + 1] ? csv->cells[row + 1][columns[field]] : "";
         missing = text[0] == '\0';
       }
 
       if (missing) {
         if (rf_type_count_token_question(type) == 0) {
           ruleforge_eval_fail(eval, "RF0308", span, "mark the field optional (`T?`) when values can be absent",
-                              "row %lu of dataset `%s` has no value for the required field `%s`", (unsigned long)row + 1UL, dataset_name, field_name);
+                              "row %lu of dataset `%s` has no value for the required field `%s`", (unsigned long)row + 1UL, dataset_name,
+                              field_name);
 
           return NULL;
         }
@@ -519,6 +546,7 @@ RuleforgeDataset *ruleforge_dataset_load(REval *eval, RfDatasetStmt declaration,
     dataset->rows[row] = record;
   }
 
+  ruleforge_progress_log(compilation->runtime, "dataset.convert", logical, "finished", started, dataset->count, dataset->count);
   dataset->hash = hash;
   (void)nexus_data_list_append_pointer(eval->datasets, dataset);
 

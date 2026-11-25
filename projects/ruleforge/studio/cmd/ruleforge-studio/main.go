@@ -85,6 +85,7 @@ func openProject(dir, enginePath string) (*config.Project, engine.Engine, error)
 		return nil, engine.Engine{}, err
 	}
 	eng.LogDir, eng.LogKeep, _ = project.LogOptions()
+	eng.Progress = os.Stderr
 	return project, eng, nil
 }
 
@@ -118,6 +119,7 @@ func serve(args []string) int {
 	}
 	defer writer.Close()
 	log.SetOutput(io.MultiWriter(os.Stderr, writer))
+	eng.Progress = io.MultiWriter(os.Stderr, writer)
 	defer log.SetOutput(os.Stderr)
 	var updater *update.Updater
 	if !*noUpdate {
@@ -195,6 +197,7 @@ func build(args []string) int {
 	}
 	defer writer.Close()
 	log.SetOutput(io.MultiWriter(os.Stderr, writer))
+	eng.Progress = io.MultiWriter(os.Stderr, writer)
 	defer log.SetOutput(os.Stderr)
 	regenerator := &regen.Regenerator{Project: project, Engine: eng, Log: log.Printf}
 	if err := regenerator.RunOnce(context.Background(), true); err != nil {
