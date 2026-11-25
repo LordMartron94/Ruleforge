@@ -81,6 +81,10 @@ func TestPoBEquipmentSubtypesAndSupportNames(t *testing.T) {
       b["Quicksilver Flask"]={type="Flask",req={level=4}}
       b["Rusted Spike"]={type="One Handed Sword",subType="Thrusting",req={level=3}}
       b["Plate Vest"]={type="Body Armour",subType="Armour",req={level=1}}
+      b["Energy Blade One Handed"]={type="One Handed Sword",hidden=true}
+      b["Energy Blade Two Handed"]={type="Two Handed Sword",hidden=true}
+      b["Random One Hand Sword"]={type="One Handed Sword",baseId="Metadata/OneHandSwordGamble"}
+      b["Keyblade"]={type="Two Handed Sword",baseId="Metadata/TwoHandSwordDev"}
     end`
 	os.WriteFile(filepath.Join(dir, "Bases/test.lua"), []byte(source), 0o644)
 	rows, err := readPoBBases(context.Background(), dir)

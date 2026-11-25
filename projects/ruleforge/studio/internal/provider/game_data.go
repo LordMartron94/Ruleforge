@@ -267,6 +267,12 @@ func readPoBBases(ctx context.Context, dir string) ([]GameRow, error) {
 					failure = fmt.Errorf("invalid PoB base %s", key)
 					return
 				}
+				// PoB also models temporary skill weapons, retired bases and
+				// gamble/developer placeholders that cannot drop as filter items.
+				baseID := entry.RawGetString("baseId").String()
+				if entry.RawGetString("hidden") == lua.LTrue || strings.HasSuffix(baseID, "Gamble") || strings.HasSuffix(baseID, "Dev") {
+					return
+				}
 				kind := entry.RawGetString("type").String()
 				row := GameRow{ID: key.String(), Name: key.String(), BaseType: key.String(), Class: filterClass(kind), Tags: []string{}}
 				if subtype, ok := entry.RawGetString("subType").(lua.LString); ok {
