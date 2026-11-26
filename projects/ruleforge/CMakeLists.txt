@@ -145,5 +145,7 @@ if(BUILD_TESTING)
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/features/verify_lsp.py" $<TARGET_FILE:genesis>)
         add_test(NAME ruleforge_structured_rules_and_history
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/features/verify.py" $<TARGET_FILE:ruleforge_cli>)
+        add_test(NAME ruleforge_property_markers
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/features/verify_markers.py" $<TARGET_FILE:ruleforge_cli>)
     endif()
 endif()

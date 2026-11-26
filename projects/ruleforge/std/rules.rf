@@ -54,3 +54,10 @@ export intrinsic func FromRecords(rows any, selectedTheme any) -> ruleset;
 
 /* Summary: give an ordered group of rules a heading in the emitted filter. */
 export intrinsic func Section(rules ruleset, title string) -> ruleset;
+
+/* Summary: mark matching items only where an existing rule already shows them.
+   Markers are structured Show rules with a style. Copies precede each matching
+   Show block in place; earlier Hide rules keep their precedence. Marker borders
+   win, while higher font-size priority supplies text, alerts and icon colour.
+   Backgrounds and icon shapes retain the original rule's purpose. */
+export intrinsic func MarkShown(rules ruleset, markers ruleset) -> ruleset;

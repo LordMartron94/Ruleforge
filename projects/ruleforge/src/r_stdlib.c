@@ -1386,6 +1386,7 @@ static const RuleforgeNative r_stdlib_natives[] = {
     {"std.styles", "WithBorder", r_styles_with_border},
     {"std.rules", "Section", r_rules_section},
     {"std.rules", "FromRecords", r_rules_from_records},
+    {"std.rules", "MarkShown", ruleforge_rules_mark_shown},
     {"std.rules", "Concat", r_rules_concat},
     {"std.rules", "Count", r_rules_count},
     {"std.rules", "Reverse", r_rules_reverse},

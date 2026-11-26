@@ -3,7 +3,7 @@
 
 /* Coalescing is allowed only when moving a block earlier cannot cross a rule
    that could match one of its items. This preserves first-match semantics. */
-static boolean r_opt_text_equal(const char *a, const char *b) {
+boolean ruleforge_filter_text_equal(const char *a, const char *b) {
   uint32 i;
   for (i = 0; a[i] != '\0' || b[i] != '\0'; i++) {
     char left;
@@ -69,7 +69,7 @@ static int32 r_opt_base(const RuleforgeBlock *block) {
   }
   return found;
 }
-static boolean r_opt_disjoint(const RuleforgeBlock *a, const RuleforgeBlock *b) {
+boolean ruleforge_filter_blocks_disjoint(const RuleforgeBlock *a, const RuleforgeBlock *b) {
   uint32 i;
   uint32 j;
   uint32 x;
@@ -99,7 +99,7 @@ static boolean r_opt_disjoint(const RuleforgeBlock *a, const RuleforgeBlock *b) 
       overlap = FALSE;
       for (x = 0; x < left->count; x++) {
         for (y = 0; y < right->count; y++) {
-          overlap = overlap || (left->info->type == RCT_STRING ? r_opt_text_equal(left->strings[x], right->strings[y])
+          overlap = overlap || (left->info->type == RCT_STRING ? ruleforge_filter_text_equal(left->strings[x], right->strings[y])
                                                                : left->numbers[x] == right->numbers[y]);
         }
       }
@@ -150,7 +150,7 @@ void ruleforge_filter_optimize(RuleforgeCompilation *compilation, RuleforgeFilte
         continue;
       }
       for (k = j + 1; k < i; k++) {
-        if (filter->blocks[k] != NULL && !r_opt_disjoint(filter->blocks[k], current)) {
+        if (filter->blocks[k] != NULL && !ruleforge_filter_blocks_disjoint(filter->blocks[k], current)) {
           same = FALSE;
           break;
         }
@@ -177,7 +177,7 @@ void ruleforge_filter_optimize(RuleforgeCompilation *compilation, RuleforgeFilte
           boolean present;
           present = FALSE;
           for (n = 0; n < merged->count; n++) {
-            if (r_opt_text_equal(merged->strings[n], right->strings[k])) {
+            if (ruleforge_filter_text_equal(merged->strings[n], right->strings[k])) {
               present = TRUE;
               break;
             }

@@ -264,8 +264,10 @@ char *ruleforge_filter_text_write(RuleforgeCompilation *compilation, RuleforgeFi
     }
 
     block->last_line = line - 1;
-    (void)nexus_strings_string_builder_append(&out, "\n");
-    line++;
+    if (!block->rule->property_marker) {
+      (void)nexus_strings_string_builder_append(&out, "\n");
+      line++;
+    }
   }
 
   result = nexus_data_arena_text_copy(&compilation->arena, nexus_strings_string_builder_string_get(&out),

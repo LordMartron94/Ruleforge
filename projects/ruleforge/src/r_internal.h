@@ -264,6 +264,7 @@ typedef struct RuleforgeRule {
   const char                *native; /* a raw filter block instead of a structured rule, or NULL */
   const RuleforgeProvenance *provenance;
   uint32                     shadowed; /* variants and baseline dropped because an earlier variant always matched */
+  boolean                    property_marker; /* emit adjacent to the original Show rule */
 } RuleforgeRule;
 
 struct RuleforgeRuleset {
@@ -737,3 +738,6 @@ extern const RuleforgeDeclaration *ruleforge_compilation_declaration_find(const 
 extern RuleforgeValue ruleforge_economy_tier_history(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count);
 
 extern void ruleforge_filter_optimize(RuleforgeCompilation *compilation, RuleforgeFilter *filter);
+extern boolean ruleforge_filter_blocks_disjoint(const RuleforgeBlock *a, const RuleforgeBlock *b);
+extern boolean ruleforge_filter_text_equal(const char *a, const char *b);
+extern RuleforgeValue ruleforge_rules_mark_shown(REval *eval, RuleforgeSpan span, const RuleforgeValue *arguments, uint32 count);
